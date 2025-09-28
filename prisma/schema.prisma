@@ -16,12 +16,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -85,23 +85,23 @@ enum SubstitutionStatus {
 
 model SystemSettings {
   id                String   @id @default(cuid())
-  key               String   @unique
-  value             String
-  description       String?
-  updatedAt         DateTime @updatedAt
-  createdAt         DateTime @default(now())
+  key               String   @unique @db.VarChar(100)
+  value             String   @db.Text
+  description       String?  @db.Text
+  updatedAt         DateTime @updatedAt @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
 }
 
 model User {
   id                    String    @id @default(cuid())
-  username              String    @unique
-  password              String
+  username              String    @unique @db.VarChar(50)
+  password              String    @db.VarChar(255)
   isFirstLogin          Boolean   @default(true)
   isActive              Boolean   @default(true)
   primaryRole           Role?
   primaryTransport      TransportType?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt             DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @db.Timestamptz(6)
 
   // Relations
   accounts              Account[]
@@ -171,12 +171,11 @@ model Availability {
 
 model Schedule {
   id        String   @id @default(cuid())
-  weekStart DateTime // Start of the week (Monday)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  weekStart DateTime @unique @db.Date // Start of the week (Monday)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
   shifts    Shift[]
 
-  @@unique([weekStart])
   @@map("schedules")
 }
 
@@ -188,10 +187,10 @@ model Shift {
   shiftType    ShiftType
   role         Role
   status       ShiftStatus @default(ASSIGNED)
-  startTime    String      // "11:30" or "18:00"
-  endTime      String      // "14:00" or "22:00"
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  startTime    String      @db.VarChar(5) // "11:30" or "18:00"
+  endTime      String      @db.VarChar(5) // "14:00" or "22:00"
+  createdAt    DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime    @updatedAt @db.Timestamptz(6)
 
   schedule      Schedule       @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -205,15 +204,15 @@ model WorkedHours {
   id          String      @id @default(cuid())
   shiftId     String      @unique
   userId      String
-  startTime   String      // "HH:MM"
-  endTime     String      // "HH:MM"
-  totalHours  Float       // Calculated in 0.5h increments
+  startTime   String      @db.VarChar(5) // "HH:MM"
+  endTime     String      @db.VarChar(5) // "HH:MM"
+  totalHours  Float       @db.DoublePrecision // Calculated in 0.5h increments
   status      HoursStatus @default(PENDING)
-  rejectionReason String?
-  submittedAt DateTime    @default(now())
-  reviewedAt  DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  rejectionReason String? @db.Text
+  submittedAt DateTime    @default(now()) @db.Timestamptz(6)
+  reviewedAt  DateTime?   @db.Timestamptz(6)
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(6)
 
   shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -228,11 +227,11 @@ model Substitution {
   substituteId String?            // Chi si applica per la sostituzione
   approverId   String?            // Admin che approva
   status       SubstitutionStatus @default(PENDING)
-  requestNote  String?
-  responseNote String?
-  deadline     DateTime
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  requestNote  String?            @db.Text
+  responseNote String?            @db.Text
+  deadline     DateTime           @db.Timestamptz(6)
+  createdAt    DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime           @updatedAt @db.Timestamptz(6)
 
   shift      Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   requester  User  @relation("SubstitutionRequester", fields: [requesterId], references: [id], onDelete: Cascade)

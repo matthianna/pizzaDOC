@@ -1,14 +1,15 @@
-# 🚀 SETUP DATABASE VERCEL - GUIDA COMPLETA
+# 🐘 PIZZADOC - SETUP POSTGRESQL SU VERCEL
 
 ## 📋 **STEP 1: DEPLOY INIZIALE**
 
 1. Vai su [vercel.com](https://vercel.com)
-2. Login con GitHub
+2. Login con GitHub  
 3. Import del repository "pizzaDOC"
-4. **IMPORTANTE**: Prima del deploy, imposta solo queste variabili d'ambiente:
-   ```
+4. **IMPORTANTE**: Prima del deploy, imposta queste variabili d'ambiente:
+   ```env
    NEXTAUTH_SECRET=il-tuo-segreto-lungo-32-caratteri-min
    NEXTAUTH_URL=https://tuo-dominio.vercel.app
+   DATABASE_URL=postgresql://temp:temp@temp:5432/temp
    ```
 5. Deploy (fallirà per il database, è normale!)
 
@@ -28,27 +29,36 @@
 
 ## ⚙️ **STEP 3: VARIABILI D'AMBIENTE AUTO-GENERATE**
 
-Vercel aggiungerà automaticamente:
+Vercel aggiungerà automaticamente queste variabili:
 ```env
 POSTGRES_URL=postgresql://...
-POSTGRES_PRISMA_URL=postgresql://...
-POSTGRES_URL_NO_SSL=postgresql://...
-POSTGRES_URL_NON_POOLING=postgresql://...
+POSTGRES_PRISMA_URL=postgresql://...?pgbouncer=true&connect_timeout=15
+POSTGRES_URL_NO_SSL=postgresql://...?sslmode=disable
+POSTGRES_URL_NON_POOLING=postgresql://...?sslmode=require
+POSTGRES_USER=username
+POSTGRES_HOST=hostname
+POSTGRES_PASSWORD=password
+POSTGRES_DATABASE=database
 ```
 
 ## 🔄 **STEP 4: UPDATE VARIABILI**
 
 Nel tuo progetto Vercel, vai su **"Settings" > "Environment Variables"** e:
 
-1. **Cambia** `DATABASE_URL` da `file:./dev.db` a:
-   ```
+1. **Sostituisci** `DATABASE_URL` con:
+   ```env
    DATABASE_URL=${POSTGRES_PRISMA_URL}
    ```
 
-2. **Verifica** che ci sia:
-   ```
-   NEXTAUTH_SECRET=il-tuo-segreto
+2. **Verifica** che ci siano:
+   ```env
+   NEXTAUTH_SECRET=il-tuo-segreto-32-caratteri
    NEXTAUTH_URL=https://tuo-dominio.vercel.app
+   ```
+
+3. **Aggiungi** (opzionale, per debugging):
+   ```env
+   NODE_ENV=production
    ```
 
 ## 🚀 **STEP 5: REDEPLOY**
