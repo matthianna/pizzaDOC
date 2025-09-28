@@ -1,0 +1,392 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { MainLayout } from '@/components/layout/main-layout'
+import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Users } from 'lucide-react'
+import { format, startOfWeek, addDays, addWeeks, subWeeks, isPast } from 'date-fns'
+import { it } from 'date-fns/locale'
+import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
+import { Role, ShiftType } from '@prisma/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/toast'
+
+interface Shift {
+  id: string
+  dayOfWeek: number
+  shiftType: ShiftType
+  role: Role
+  startTime: string
+  endTime: string
+  schedule: {
+    weekStart: string
+  }
+}
+
+export default function SchedulePage() {
+  const { data: session } = useSession()
+  const [currentWeek, setCurrentWeek] = useState(() => {
+    const now = new Date()
+    return startOfWeek(now, { weekStartsOn: 1 }) // Lunedì
+  })
+  const [shifts, setShifts] = useState<Shift[]>([])
+  const [substitutionRequests, setSubstitutionRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showSubstitutionModal, setShowSubstitutionModal] = useState(false)
+  const [selectedShift, setSelectedShift] = useState<Shift | null>(null)
+  const [requestNote, setRequestNote] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const { showToast, ToastContainer } = useToast()
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchMyShifts()
+    }
+  }, [session?.user?.id, currentWeek])
+
+  const fetchMyShifts = async () => {
+    setLoading(true)
+    try {
+      const weekStart = currentWeek.toISOString()
+      const [shiftsResponse, substitutionsResponse] = await Promise.all([
+        fetch(`/api/user/schedule?weekStart=${weekStart}`),
+        fetch('/api/user/substitutions')
+      ])
+      
+      if (shiftsResponse.ok && substitutionsResponse.ok) {
+        const shiftsData = await shiftsResponse.json()
+        const substitutionsData = await substitutionsResponse.json()
+        setShifts(shiftsData)
+        setSubstitutionRequests(substitutionsData.mine)
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const goToPreviousWeek = () => {
+    setCurrentWeek(prev => subWeeks(prev, 1))
+  }
+
+  const goToNextWeek = () => {
+    setCurrentWeek(prev => addWeeks(prev, 1))
+  }
+
+  const goToCurrentWeek = () => {
+    setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))
+  }
+
+  const openSubstitutionModal = (shift: Shift) => {
+    setSelectedShift(shift)
+    setShowSubstitutionModal(true)
+    setRequestNote('')
+  }
+
+  const createSubstitutionRequest = async () => {
+    if (!selectedShift || !requestNote.trim()) {
+      showToast('Inserisci il motivo della richiesta', 'error')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const response = await fetch('/api/user/substitutions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          shiftId: selectedShift.id,
+          requestNote: requestNote.trim()
+        }),
+      })
+
+      if (response.ok) {
+        showToast('Richiesta per sostituto creata!', 'success')
+        setShowSubstitutionModal(false)
+        setSelectedShift(null)
+        setRequestNote('')
+        fetchMyShifts() // Refresh per vedere se il turno è ancora disponibile
+      } else {
+        const error = await response.json()
+        showToast(error.error || 'Errore nella creazione', 'error')
+      }
+    } catch (error) {
+      console.error('Error creating substitution:', error)
+      showToast('Errore di connessione', 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const weekEnd = addDays(currentWeek, 6)
+  const days = Array.from({ length: 7 }, (_, i) => addDays(currentWeek, i))
+
+  // Raggruppa i turni per giorno
+  const shiftsByDay = shifts.reduce((acc, shift) => {
+    const day = shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1 // Converti domenica (0) a sabato (6)
+    if (!acc[day]) acc[day] = []
+    acc[day].push(shift)
+    return acc
+  }, {} as Record<number, Shift[]>)
+
+  const getShiftTimes = (shiftType: ShiftType) => {
+    return shiftType === 'PRANZO' ? '11:30 - 14:00' : '18:00 - 22:00'
+  }
+
+  const getSubstitutionForShift = (shiftId: string) => {
+    return substitutionRequests.find(sub => sub.shiftId === shiftId)
+  }
+
+  if (!session) {
+    return <div>Loading...</div>
+  }
+
+  return (
+    <MainLayout>
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+              <Calendar className="h-6 w-6 text-orange-500 mr-2" />
+              Il Mio Piano di Lavoro
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Visualizza i tuoi turni assegnati per la settimana
+            </p>
+          </div>
+        </div>
+
+        {/* Week Navigation */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={goToPreviousWeek}
+              className="flex items-center px-4 py-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="h-5 w-5 mr-1" />
+              Settimana precedente
+            </button>
+
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {format(currentWeek, 'dd/MM/yyyy', { locale: it })} - {format(weekEnd, 'dd/MM/yyyy', { locale: it })}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {format(currentWeek, 'MMMM yyyy', { locale: it })}
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={goToCurrentWeek}
+                className="px-4 py-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors font-medium"
+              >
+                Questa settimana
+              </button>
+              <button
+                onClick={goToNextWeek}
+                className="flex items-center px-4 py-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+              >
+                Settimana successiva
+                <ChevronRight className="h-5 w-5 ml-1" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Schedule Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+          {days.map((day, dayIndex) => {
+            const dayShifts = shiftsByDay[dayIndex] || []
+            const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+
+            return (
+              <div key={dayIndex} className={`bg-white rounded-lg shadow overflow-hidden ${isToday ? 'ring-2 ring-orange-500' : ''}`}>
+                <div className={`p-4 text-center ${isToday ? 'bg-orange-500 text-white' : 'bg-gray-50'}`}>
+                  <div className={`font-semibold ${isToday ? 'text-white' : 'text-gray-900'}`}>
+                    {format(day, 'EEEE', { locale: it })}
+                  </div>
+                  <div className={`text-sm ${isToday ? 'text-orange-100' : 'text-gray-500'}`}>
+                    {format(day, 'dd/MM', { locale: it })}
+                  </div>
+                  {isToday && (
+                    <div className="text-xs text-orange-200 mt-1">OGGI</div>
+                  )}
+                </div>
+
+                <div className="p-4 space-y-3 min-h-[200px]">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-32">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
+                    </div>
+                  ) : dayShifts.length > 0 ? (
+                    dayShifts.map((shift) => {
+                      const shiftDate = addDays(currentWeek, shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1)
+                      const isFutureShift = !isPast(shiftDate)
+                      const substitutionRequest = getSubstitutionForShift(shift.id)
+                      
+                      return (
+                        <div
+                          key={shift.id}
+                          className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-orange-800">
+                              {getShiftTypeName(shift.shiftType)}
+                            </span>
+                            <Clock className="h-4 w-4 text-orange-600" />
+                          </div>
+                          
+                          <div className="text-xs text-orange-600">
+                            {getShiftTimes(shift.shiftType)}
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <MapPin className="h-3 w-3 text-orange-500 mr-1" />
+                              <span className="text-xs font-medium text-orange-700">
+                                {getRoleName(shift.role)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Substitution Status */}
+                          {substitutionRequest && (
+                            <div className="pt-2 border-t border-orange-200">
+                              <div className={`text-xs px-2 py-1 rounded-md text-center ${
+                                substitutionRequest.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                substitutionRequest.status === 'APPLIED' ? 'bg-blue-100 text-blue-800' :
+                                substitutionRequest.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {substitutionRequest.status === 'PENDING' && '⏳ In attesa candidati'}
+                                {substitutionRequest.status === 'APPLIED' && `✋ ${substitutionRequest.substitute?.username} si è candidato`}
+                                {substitutionRequest.status === 'APPROVED' && '✅ Sostituzione approvata'}
+                                {substitutionRequest.status === 'REJECTED' && '❌ Sostituzione rifiutata'}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Request Substitution Button */}
+                          {isFutureShift && !substitutionRequest && (
+                            <div className="pt-2 border-t border-orange-200">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openSubstitutionModal(shift)}
+                                className="w-full text-xs h-7 text-orange-700 border-orange-300 hover:bg-orange-100"
+                              >
+                                <Users className="h-3 w-3 mr-1" />
+                                Cerca Sostituto
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="flex items-center justify-center h-32 text-center">
+                      <div className="text-gray-400">
+                        <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Nessun turno</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Summary */}
+        {shifts.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Riepilogo Settimana
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {shifts.length}
+                </div>
+                <div className="text-sm text-gray-500">Turni Totali</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {shifts.filter(s => s.shiftType === 'PRANZO').length}
+                </div>
+                <div className="text-sm text-gray-500">Turni Pranzo</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {shifts.filter(s => s.shiftType === 'CENA').length}
+                </div>
+                <div className="text-sm text-gray-500">Turni Cena</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Substitution Request Modal */}
+        {showSubstitutionModal && selectedShift && (
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Cerca un Sostituto
+                </h3>
+                
+                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="text-sm font-medium text-gray-900">
+                    {getDayName(selectedShift.dayOfWeek)} - {getShiftTypeName(selectedShift.shiftType)}
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {format(addDays(currentWeek, selectedShift.dayOfWeek === 0 ? 6 : selectedShift.dayOfWeek - 1), 'dd/MM/yyyy', { locale: it })}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {selectedShift.startTime} - {selectedShift.endTime} • {getRoleName(selectedShift.role)}
+                  </div>
+                </div>
+
+                <Input
+                  label="Motivo della richiesta"
+                  placeholder="Spiega perché hai bisogno di un sostituto..."
+                  value={requestNote}
+                  onChange={(e) => setRequestNote(e.target.value)}
+                  multiline
+                  rows={3}
+                />
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowSubstitutionModal(false)
+                      setSelectedShift(null)
+                      setRequestNote('')
+                    }}
+                  >
+                    Annulla
+                  </Button>
+                  <Button
+                    onClick={createSubstitutionRequest}
+                    disabled={!requestNote.trim() || submitting}
+                    isLoading={submitting}
+                  >
+                    Crea Richiesta
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      <ToastContainer />
+    </MainLayout>
+  )
+}

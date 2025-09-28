@@ -1,0 +1,243 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum Role {
+  ADMIN
+  FATTORINO
+  CUCINA
+  SALA
+}
+
+enum TransportType {
+  AUTO
+  SCOOTER
+}
+
+enum ShiftType {
+  PRANZO
+  CENA
+}
+
+enum ShiftStatus {
+  ASSIGNED
+  COMPLETED
+  SUBSTITUTION_REQUESTED
+  SUBSTITUTED
+}
+
+enum HoursStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SubstitutionStatus {
+  PENDING     // Richiesta creata, in attesa di candidati
+  APPLIED     // Qualcuno si è applicato, in attesa approvazione admin
+  APPROVED    // Admin ha approvato, turno trasferito
+  REJECTED    // Admin ha rifiutato la sostituzione
+  EXPIRED     // Scaduta la deadline
+}
+
+model SystemSettings {
+  id                String   @id @default(cuid())
+  key               String   @unique
+  value             String
+  description       String?
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  username              String    @unique
+  password              String
+  isFirstLogin          Boolean   @default(true)
+  isActive              Boolean   @default(true)
+  primaryRole           Role?
+  primaryTransport      TransportType?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  accounts              Account[]
+  sessions              Session[]
+  userRoles             UserRole[]
+  userTransports        UserTransport[]
+  availabilities        Availability[]
+  assignedShifts        Shift[]
+  workedHours           WorkedHours[]
+  substitutionRequests  Substitution[] @relation("SubstitutionRequester")
+  substitutionAsSubstitute Substitution[] @relation("SubstitutionSubstitute")
+  substitutionApprovals Substitution[] @relation("SubstitutionApprover")
+
+  @@map("users")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  role   Role
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+model UserTransport {
+  id        String        @id @default(cuid())
+  userId    String
+  transport TransportType
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, transport])
+  @@map("user_transports")
+}
+
+model ShiftLimits {
+  id          String    @id @default(cuid())
+  dayOfWeek   Int       // 0 = Sunday, 1 = Monday, etc.
+  shiftType   ShiftType
+  role        Role
+  minStaff    Int
+  maxStaff    Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([dayOfWeek, shiftType, role])
+  @@map("shift_limits")
+}
+
+model Availability {
+  id          String    @id @default(cuid())
+  userId      String
+  weekStart   DateTime  // Start of the week (Monday)
+  dayOfWeek   Int       // 0 = Sunday, 1 = Monday, etc.
+  shiftType   ShiftType
+  isAvailable Boolean   @default(false)
+  isAbsentWeek Boolean  @default(false) // Checkbox "Assente tutta la settimana"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart, dayOfWeek, shiftType])
+  @@map("availabilities")
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  weekStart DateTime // Start of the week (Monday)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  shifts    Shift[]
+
+  @@unique([weekStart])
+  @@map("schedules")
+}
+
+model Shift {
+  id           String      @id @default(cuid())
+  scheduleId   String
+  userId       String
+  dayOfWeek    Int         // 0 = Sunday, 1 = Monday, etc.
+  shiftType    ShiftType
+  role         Role
+  status       ShiftStatus @default(ASSIGNED)
+  startTime    String      // "11:30" or "18:00"
+  endTime      String      // "14:00" or "22:00"
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  schedule      Schedule       @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workedHours   WorkedHours?
+  substitutions Substitution[]
+
+  @@map("shifts")
+}
+
+model WorkedHours {
+  id          String      @id @default(cuid())
+  shiftId     String      @unique
+  userId      String
+  startTime   String      // "HH:MM"
+  endTime     String      // "HH:MM"
+  totalHours  Float       // Calculated in 0.5h increments
+  status      HoursStatus @default(PENDING)
+  rejectionReason String?
+  submittedAt DateTime    @default(now())
+  reviewedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("worked_hours")
+}
+
+model Substitution {
+  id           String             @id @default(cuid())
+  shiftId      String
+  requesterId  String
+  substituteId String?            // Chi si applica per la sostituzione
+  approverId   String?            // Admin che approva
+  status       SubstitutionStatus @default(PENDING)
+  requestNote  String?
+  responseNote String?
+  deadline     DateTime
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  shift      Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  requester  User  @relation("SubstitutionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  substitute User? @relation("SubstitutionSubstitute", fields: [substituteId], references: [id], onDelete: SetNull)
+  approver   User? @relation("SubstitutionApprover", fields: [approverId], references: [id], onDelete: SetNull)
+
+  @@map("substitutions")
+}
