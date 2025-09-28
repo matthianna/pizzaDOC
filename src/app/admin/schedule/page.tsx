@@ -39,11 +39,19 @@ interface Gap {
   assigned: number
 }
 
+interface ShiftLimit {
+  dayOfWeek: number
+  shiftType: ShiftType
+  role: Role
+  minStaff: number
+  maxStaff: number
+}
+
 export default function AdminSchedulePage() {
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [schedule, setSchedule] = useState<Schedule | null>(null)
   const [gaps, setGaps] = useState<Gap[]>([])
-  const [shiftLimits, setShiftLimits] = useState<any[]>([])
+  const [shiftLimits, setShiftLimits] = useState<ShiftLimit[]>([])
   const [missingAvailability, setMissingAvailability] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)

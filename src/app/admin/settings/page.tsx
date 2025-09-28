@@ -287,7 +287,7 @@ export default function SettingsPage() {
             <ul className="text-sm text-blue-800 space-y-1">
               <li><strong>Min:</strong> Numero minimo di persone richieste per il turno</li>
               <li><strong>Max:</strong> Numero massimo di persone che possono lavorare nel turno</li>
-              <li>L'algoritmo di generazione automatica userà questi limiti per assegnare i turni</li>
+              <li>L&apos;algoritmo di generazione automatica userà questi limiti per assegnare i turni</li>
             </ul>
           </div>
         </div>

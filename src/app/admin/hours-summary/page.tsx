@@ -69,7 +69,7 @@ export default function AdminHoursSummaryPage() {
       const response = await fetch('/api/admin/users')
       if (response.ok) {
         const data = await response.json()
-        setAllUsers(data.filter((user: any) => !user.roles?.includes('ADMIN')))
+        setAllUsers(data.filter((user: User & { roles?: string[] }) => !user.roles?.includes('ADMIN')))
       }
     } catch (error) {
       console.error('Error fetching users:', error)
@@ -167,7 +167,7 @@ export default function AdminHoursSummaryPage() {
   })
 
   const monthOptions = [
-    { value: null, label: 'Tutto l\'anno' },
+    { value: 0, label: 'Tutto l\'anno' },
     ...Array.from({ length: 12 }, (_, i) => ({
       value: i + 1,
       label: new Date(0, i).toLocaleDateString('it-IT', { month: 'long' })
@@ -228,12 +228,12 @@ export default function AdminHoursSummaryPage() {
               label="Mese"
               options={monthOptions}
               value={{
-                value: selectedMonth,
+                value: selectedMonth || 0,
                 label: selectedMonth 
                   ? new Date(0, selectedMonth - 1).toLocaleDateString('it-IT', { month: 'long' })
                   : 'Tutto l\'anno'
               }}
-              onChange={(option) => setSelectedMonth(option?.value as number | null)}
+              onChange={(option) => setSelectedMonth(option?.value === 0 ? null : option?.value as number)}
             />
 
             <div className="flex items-end">

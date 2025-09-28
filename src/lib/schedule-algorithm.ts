@@ -175,7 +175,7 @@ export class ScheduleAlgorithm {
         roleAssignments.set(req.role, 0)
       })
 
-      const times = this.getShiftTimes(shiftType)
+      const times = this.getShiftTimes(shiftType as ShiftType)
 
       // Assign users to their preferred roles
       for (const { user, preferredRole } of usersWithPreferredRole) {

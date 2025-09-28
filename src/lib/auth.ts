@@ -43,7 +43,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           username: user.username,
           isFirstLogin: user.isFirstLogin,
-          primaryRole: user.primaryRole,
+          primaryRole: user.primaryRole || 'CUCINA', // fallback per evitare null
           roles: user.userRoles.map(ur => ur.role)
         }
       }
@@ -72,7 +72,7 @@ export const authOptions: NextAuthOptions = {
         
         if (updatedUser) {
           token.isFirstLogin = updatedUser.isFirstLogin
-          token.primaryRole = updatedUser.primaryRole
+          token.primaryRole = updatedUser.primaryRole || 'CUCINA' // fallback
           token.roles = updatedUser.userRoles.map(ur => ur.role)
         }
       }

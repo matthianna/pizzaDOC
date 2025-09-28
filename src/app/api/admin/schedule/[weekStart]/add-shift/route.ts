@@ -58,8 +58,7 @@ export async function POST(
     if (!schedule) {
       schedule = await prisma.schedule.create({
         data: {
-          weekStart,
-          generatedAt: new Date()
+          weekStart
         }
       })
     }

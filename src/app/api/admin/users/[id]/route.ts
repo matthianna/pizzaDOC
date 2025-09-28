@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 // PUT /api/admin/users/[id] - Update user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -15,6 +15,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const resolvedParams = await params
     const { roles, primaryRole, transports, primaryTransport, isActive } = await request.json()
 
     if (!roles || roles.length === 0 || !primaryRole) {
@@ -26,16 +27,16 @@ export async function PUT(
 
     // Delete existing roles and transports
     await prisma.userRole.deleteMany({
-      where: { userId: params.id }
+      where: { userId: resolvedParams.id }
     })
 
     await prisma.userTransport.deleteMany({
-      where: { userId: params.id }
+      where: { userId: resolvedParams.id }
     })
 
     // Update user with new data
     const user = await prisma.user.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: {
         primaryRole,
         primaryTransport: primaryTransport || null,
@@ -66,7 +67,7 @@ export async function PUT(
 // DELETE /api/admin/users/[id] - Delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -75,9 +76,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const resolvedParams = await params
     // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { id: params.id }
+      where: { id: resolvedParams.id }
     })
 
     if (!user) {
@@ -96,7 +98,7 @@ export async function DELETE(
     }
 
     await prisma.user.delete({
-      where: { id: params.id }
+      where: { id: resolvedParams.id }
     })
 
     return NextResponse.json({ success: true })

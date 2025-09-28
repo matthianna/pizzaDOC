@@ -1,116 +1,89 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { AlertCircle, Pizza, ArrowLeft } from 'lucide-react'
 
-export default function AuthErrorPage() {
+function ErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
 
-  const getErrorMessage = (error: string | null) => {
-    switch (error) {
-      case 'CredentialsSignin':
-        return {
-          title: 'Credenziali non valide',
-          message: 'Nome utente o password non corretti. Verifica i tuoi dati e riprova.'
-        }
-      case 'AccessDenied':
-        return {
-          title: 'Accesso negato',
-          message: 'Il tuo account potrebbe essere disattivato. Contatta un amministratore.'
-        }
-      case 'Configuration':
-        return {
-          title: 'Errore di configurazione',
-          message: 'Si è verificato un problema con la configurazione del sistema.'
-        }
-      default:
-        return {
-          title: 'Errore di autenticazione',
-          message: 'Si è verificato un errore durante il login. Riprova più tardi.'
-        }
-    }
-  }
-
-  const errorInfo = getErrorMessage(error)
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-100 px-4">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <div className="flex justify-center">
-            <div className="flex items-center space-x-2 text-orange-600">
-              <Pizza className="h-12 w-12" />
-              <h1 className="text-3xl font-bold">PizzaDOC</h1>
-            </div>
-          </div>
-          <h2 className="mt-6 text-2xl font-semibold text-gray-900">
-            Ops! Qualcosa è andato storto
+          <img
+            src="/logo.png"
+            alt="PizzaDOC Logo"
+            className="mx-auto h-16 w-16 rounded-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+              const nextEl = e.currentTarget.nextElementSibling as HTMLElement
+              if (nextEl) nextEl.style.display = 'block'
+            }}
+          />
+          <span className="text-4xl hidden">🍕</span>
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            Errore di Accesso
           </h2>
         </div>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
-          <div className="flex items-center space-x-3">
-            <div className="flex-shrink-0">
-              <AlertCircle className="h-8 w-8 text-red-500" />
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+              <svg
+                className="h-6 w-6 text-red-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
             </div>
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">
-                {errorInfo.title}
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                {errorInfo.message}
+            
+            <h3 className="mt-4 text-lg font-medium text-gray-900">
+              Si è verificato un errore
+            </h3>
+            
+            <div className="mt-2">
+              <p className="text-sm text-gray-600">
+                {error === 'CredentialsSignin' && 'Credenziali non valide. Verifica username e password.'}
+                {error === 'AccessDenied' && 'Accesso negato. Non hai i permessi necessari.'}
+                {error === 'Configuration' && 'Errore di configurazione. Contatta l\'amministratore.'}
+                {!error && 'Si è verificato un errore durante l\'accesso.'}
               </p>
             </div>
-          </div>
 
-          {error && (
-            <div className="bg-gray-50 rounded-md p-3">
-              <p className="text-xs text-gray-500">
-                Codice errore: <code className="font-mono bg-gray-200 px-1 rounded">{error}</code>
-              </p>
+            <div className="mt-6">
+              <Link
+                href="/auth/signin"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+              >
+                Torna al Login
+              </Link>
             </div>
-          )}
-
-          <div className="pt-4">
-            <Link
-              href="/auth/signin"
-              className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Torna al login
-            </Link>
           </div>
-
-          <div className="text-center pt-2">
-            <p className="text-xs text-gray-500">
-              Se il problema persiste, contatta un amministratore
-            </p>
-          </div>
-        </div>
-
-        {/* Troubleshooting Tips */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-3">
-            Suggerimenti
-          </h3>
-          <ul className="text-sm text-gray-600 space-y-2">
-            <li className="flex items-start">
-              <span className="inline-block w-2 h-2 bg-orange-400 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-              <span>Verifica che il nome utente sia scritto correttamente (maiuscole/minuscole)</span>
-            </li>
-            <li className="flex items-start">
-              <span className="inline-block w-2 h-2 bg-orange-400 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-              <span>Se è il tuo primo accesso, la password è il tuo nome utente in minuscolo</span>
-            </li>
-            <li className="flex items-start">
-              <span className="inline-block w-2 h-2 bg-orange-400 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-              <span>Assicurati che il tuo account sia attivo</span>
-            </li>
-          </ul>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+      </div>
+    }>
+      <ErrorContent />
+    </Suspense>
   )
 }

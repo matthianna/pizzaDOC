@@ -297,7 +297,7 @@ export default function AdminSubstitutionsPage() {
                           {substitution.requestNote && (
                             <div className="mt-2">
                               <p><strong>Motivo:</strong></p>
-                              <p className="text-gray-800 italic">"{substitution.requestNote}"</p>
+                              <p className="text-gray-800 italic">&quot;{substitution.requestNote}&quot;</p>
                             </div>
                           )}
                         </div>
