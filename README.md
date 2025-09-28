@@ -223,4 +223,4 @@ Questo progetto è rilasciato sotto licenza MIT. Vedi il file `LICENSE` per i de
 
 ---
 
-**PizzaDOC** - Gestione professionale del piano di lavoro per pizzerie 🍕
+**PizzaDOC** - Gestione professionale del piano di lavoro per pizzerie 🍕# pizzaDOC
