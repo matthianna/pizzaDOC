@@ -120,9 +120,24 @@ export default function DashboardPage() {
       if (response.ok) {
         const data = await response.json()
         setTodayShifts(data)
+      } else {
+        // Set empty data if request fails
+        setTodayShifts({
+          date: new Date().toISOString(),
+          dayOfWeek: 0,
+          shifts: {},
+          totalWorkers: 0
+        })
       }
     } catch (error) {
       console.error('Error fetching today shifts:', error)
+      // Set empty data if request fails
+      setTodayShifts({
+        date: new Date().toISOString(),
+        dayOfWeek: 0,
+        shifts: {},
+        totalWorkers: 0
+      })
     }
   }
 

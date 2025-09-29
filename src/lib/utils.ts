@@ -26,8 +26,9 @@ export function calculateHours(startTime: string, endTime: string): number {
 }
 
 export function getDayName(dayOfWeek: number): string {
-  const days = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
-  return days[dayOfWeek]
+  // Our system: 0=Monday, 1=Tuesday, ..., 6=Sunday
+  const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+  return days[dayOfWeek] || 'Giorno non valido'
 }
 
 export function getShiftTypeName(shiftType: 'PRANZO' | 'CENA'): string {
