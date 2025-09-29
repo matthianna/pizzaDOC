@@ -13,12 +13,8 @@ export async function GET() {
     }
 
     const today = new Date()
-    let dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
-    
-    // Converti la domenica da 0 a 7 per il database
-    if (dayOfWeek === 0) {
-      dayOfWeek = 7
-    }
+    const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
+    // Il database usa lo stesso formato JS: 0=Sunday, 1=Monday, etc.
     
     // Calcola l'inizio della settimana corrente (lunedì)
     const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 })
