@@ -448,11 +448,18 @@ export class EnhancedScheduleAlgorithm {
       // Trova candidati disponibili per questo ruolo e turno
       const candidates = this.findBestCandidates(users, req, userWorkload, userLastShift, schedule, priorityMode)
       
+      // NUOVO: Se ci sono POCHI candidati, riprova con criteri più flessibili
+      let finalCandidates = candidates
+      if (candidates.length < needed && !priorityMode) {
+        console.log(`🔄 Riprovo con criteri rilassati per ${req.role} ${req.dayOfWeek} ${req.shiftType}`)
+        finalCandidates = this.findBestCandidates(users, req, userWorkload, userLastShift, schedule, priorityMode, true)
+      }
+      
       // Assegna i candidati UNO ALLA VOLTA controllando anche i limiti di trasporto
       let assignedThisReq = 0
       
-      for (let i = 0; i < candidates.length && assignedThisReq < needed; i++) {
-        const candidate = candidates[i]
+      for (let i = 0; i < finalCandidates.length && assignedThisReq < needed; i++) {
+        const candidate = finalCandidates[i]
         
         // Controlla limiti di trasporto PRIMA di assegnare
         const transportCheck = await this.checkTransportLimits(
@@ -559,7 +566,8 @@ export class EnhancedScheduleAlgorithm {
     userWorkload: Map<string, number>,
     userLastShift: Map<string, { dayOfWeek: number; shiftType: ShiftType }>,
     currentSchedule: ScheduleShift[],
-    priorityMode: boolean = false
+    priorityMode: boolean = false,
+    relaxedMode: boolean = false
   ): (UserProfile & { score: number })[] {
     
     const candidates = users
@@ -588,7 +596,7 @@ export class EnhancedScheduleAlgorithm {
         return true
       })
       .map(user => {
-        const score = this.calculateUserScore(user, requirement, userWorkload, userLastShift, priorityMode)
+        const score = this.calculateUserScore(user, requirement, userWorkload, userLastShift, priorityMode, relaxedMode)
         return { ...user, score }
       })
       .sort((a, b) => b.score - a.score)
@@ -636,7 +644,8 @@ export class EnhancedScheduleAlgorithm {
     requirement: ShiftRequirement,
     userWorkload: Map<string, number>,
     userLastShift: Map<string, { dayOfWeek: number; shiftType: ShiftType }>,
-    priorityMode: boolean = false
+    priorityMode: boolean = false,
+    relaxedMode: boolean = false
   ): number {
     let score = 100 // Base score
     
@@ -654,8 +663,17 @@ export class EnhancedScheduleAlgorithm {
     
     // 2. Penalità workload (favorisce chi ha lavorato meno)
     const workload = userWorkload.get(user.id) || 0
-    const workloadPenalty = Math.min(workload * 2, 30) // Max 30 punti di penalità
-    score -= workloadPenalty
+    
+    if (relaxedMode) {
+      // In modalità rilassata, penalità workload molto ridotta
+      const workloadPenalty = Math.min(workload * 0.5, 10) // Max 10 punti di penalità (invece di 30)
+      score -= workloadPenalty
+      console.log(`🔄 ${user.username}: penalità workload rilassata: ${workloadPenalty} (workload: ${workload})`)
+    } else {
+      // Modalità normale
+      const workloadPenalty = Math.min(workload * 2, 30) // Max 30 punti di penalità
+      score -= workloadPenalty
+    }
     
     // 3. Bonus distribuzione temporale
     const lastShift = userLastShift.get(user.id)

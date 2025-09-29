@@ -28,7 +28,7 @@ interface AddShiftModalProps {
 export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData }: AddShiftModalProps) {
   const [users, setUsers] = useState<User[]>([])
   const [selectedUserId, setSelectedUserId] = useState('')
-  const [selectedDay, setSelectedDay] = useState(1) // 1 = Monday
+  const [selectedDay, setSelectedDay] = useState(0) // 0 = Monday (our system)
   const [selectedShiftType, setSelectedShiftType] = useState('PRANZO')
   const [selectedRole, setSelectedRole] = useState('')
   const [selectedStartTime, setSelectedStartTime] = useState('')
@@ -37,13 +37,13 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
   const { showToast, ToastContainer } = useToast()
 
   const days = [
-    { value: 1, label: 'Lunedì' },
-    { value: 2, label: 'Martedì' },
-    { value: 3, label: 'Mercoledì' },
-    { value: 4, label: 'Giovedì' },
-    { value: 5, label: 'Venerdì' },
-    { value: 6, label: 'Sabato' },
-    { value: 0, label: 'Domenica' }
+    { value: 0, label: 'Lunedì' },
+    { value: 1, label: 'Martedì' },
+    { value: 2, label: 'Mercoledì' },
+    { value: 3, label: 'Giovedì' },
+    { value: 4, label: 'Venerdì' },
+    { value: 5, label: 'Sabato' },
+    { value: 6, label: 'Domenica' }
   ]
 
   const shiftTypes = [

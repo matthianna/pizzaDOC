@@ -15,7 +15,7 @@
 import { PrismaClient } from '@prisma/client'
 import { hashPassword } from '../src/lib/utils'
 import { Role, TransportType } from '@prisma/client'
-import { ro } from 'date-fns/locale'
+import { ro, tr } from 'date-fns/locale'
 
 const prisma = new PrismaClient()
 
@@ -150,6 +150,13 @@ const users: UserData[] = [
     roles: [Role.FATTORINO],
     primaryRole: Role.FATTORINO,
     transports: [TransportType.SCOOTER],
+    primaryTransport: TransportType.SCOOTER
+  },
+  {
+    username: 'alessandro.fumasoli',
+    roles: [Role.FATTORINO],
+    primaryRole: Role.FATTORINO,
+    transports: [TransportType.SCOOTER, TransportType.AUTO],
     primaryTransport: TransportType.SCOOTER
   },
   {
