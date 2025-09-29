@@ -15,6 +15,7 @@
 import { PrismaClient } from '@prisma/client'
 import { hashPassword } from '../src/lib/utils'
 import { Role, TransportType } from '@prisma/client'
+import { ro } from 'date-fns/locale'
 
 const prisma = new PrismaClient()
 
@@ -39,113 +40,147 @@ const users: UserData[] = [
   
   // PIZZAIOLI
   {
-    username: 'Mario',
+    username: 'mario.dipietro',
     roles: [Role.PIZZAIOLO, Role.CUCINA],
     primaryRole: Role.PIZZAIOLO
   },
   {
-    username: 'Valentino',
+    username: 'valentino.dipietro',
     roles: [Role.PIZZAIOLO],
     primaryRole: Role.PIZZAIOLO
   },
   
   // FATTORINI
   {
-    username: 'Luis',
+    username: 'luis.rodrigues',
     roles: [Role.FATTORINO],
     primaryRole: Role.FATTORINO,
     transports: [TransportType.AUTO, TransportType.SCOOTER],
     primaryTransport: TransportType.AUTO
   },
   {
-    username: 'Matthias',
+    username: 'brando.rizzo',
+    roles: [Role.FATTORINO],
+    primaryRole: Role.FATTORINO,
+    transports: [TransportType.SCOOTER],
+    primaryTransport: TransportType.SCOOTER
+  },
+  {
+    username: 'matthias.iannarella',
     roles: [Role.FATTORINO],
     primaryRole: Role.FATTORINO,
     transports: [TransportType.AUTO, TransportType.SCOOTER],
     primaryTransport: TransportType.SCOOTER
   },
   {
-    username: 'Mathias',
+    username: 'mathias.mencarelli',
     roles: [Role.FATTORINO],
     primaryRole: Role.FATTORINO,
     transports: [TransportType.SCOOTER],
     primaryTransport: TransportType.SCOOTER
   },
   {
-    username: 'Jacopo',
+    username: 'jacopo.alberti',
     roles: [Role.FATTORINO],
     primaryRole: Role.FATTORINO,
     transports: [TransportType.SCOOTER],
     primaryTransport: TransportType.SCOOTER
   },
   
-  // CUCINA
   {
-    username: 'Davide',
-    roles: [Role.CUCINA],
-    primaryRole: Role.CUCINA
+    username: 'davide.ferreira',
+    roles: [Role.FATTORINO],
+    primaryRole: Role.FATTORINO
   },
   {
-    username: 'Mike',
-    roles: [Role.CUCINA],
-    primaryRole: Role.CUCINA
-  },
-  {
-    username: 'Damiano',
-    roles: [Role.CUCINA],
-    primaryRole: Role.CUCINA
-  },
-  
-  // SALA
-  {
-    username: 'Nadina',
-    roles: [Role.SALA],
-    primaryRole: Role.SALA
-  },
-  {
-    username: 'Yannick',
+    username: 'michele.caiazzo',
     roles: [Role.SALA, Role.FATTORINO],
     primaryRole: Role.SALA,
     transports: [TransportType.SCOOTER],
     primaryTransport: TransportType.SCOOTER
   },
   {
-    username: 'Ioshua',
-    roles: [Role.SALA],
-    primaryRole: Role.SALA
-  },
-  {
-    username: 'Michelle',
-    roles: [Role.SALA],
-    primaryRole: Role.SALA
+    username: 'damiano.crivelli',
+    roles: [Role.FATTORINO],
+    primaryRole: Role.FATTORINO,
+    transports: [TransportType.SCOOTER],
+    primaryTransport: TransportType.SCOOTER
   },
   
-  // ALTRI
+  // SALA
   {
-    username: 'Alessietto',
+    username: 'nadina.sherief',
+    roles: [Role.FATTORINO],
+    primaryRole: Role.FATTORINO,
+    transports: [TransportType.SCOOTER, TransportType.AUTO],
+    primaryTransport: TransportType.SCOOTER
+  },
+  {
+    username: 'yannick.iannarella',
+    roles: [Role.SALA, Role.FATTORINO, Role.CUCINA],
+    primaryRole: Role.CUCINA,
+    transports: [TransportType.SCOOTER],
+    primaryTransport: TransportType.SCOOTER
+  },
+  {
+    username: 'ioshua.muheim',
     roles: [Role.FATTORINO],
     primaryRole: Role.FATTORINO,
     transports: [TransportType.SCOOTER],
     primaryTransport: TransportType.SCOOTER
   },
   {
-    username: 'Simone',
+    username: 'michelle.muheim',
+    roles: [Role.FATTORINO],
+    primaryRole: Role.FATTORINO,
+    transports: [TransportType.SCOOTER],
+    primaryTransport: TransportType.SCOOTER
+  },
+  
+  // ALTRI
+  {
+    username: 'alessio.guarneri',
+    roles: [Role.FATTORINO, Role.SALA],
+    primaryRole: Role.FATTORINO,
+    transports: [TransportType.SCOOTER],
+    primaryTransport: TransportType.SCOOTER
+  },
+  {
+    username: 'simone.marinelli',
+    roles: [Role.FATTORINO],
+    primaryRole: Role.FATTORINO,
+    transports: [TransportType.SCOOTER],
+    primaryTransport: TransportType.SCOOTER
+  },
+  {
+    username: 'simone.buccieri',
+    roles: [Role.FATTORINO],
+    primaryRole: Role.FATTORINO,
+    transports: [TransportType.SCOOTER],
+    primaryTransport: TransportType.SCOOTER
+  },
+  {
+    username: 'fred.nunez',
     roles: [Role.CUCINA],
     primaryRole: Role.CUCINA
   },
   {
-    username: 'Fred',
+    username: 'riccardo.quinto',
+    roles: [Role.CUCINA, Role.SALA, Role.FATTORINO],
+    primaryRole: Role.CUCINA,
+    transports: [TransportType.SCOOTER],
+    primaryTransport: TransportType.SCOOTER
+  },
+  {
+    username: 'francesco.desimone',
+    roles: [Role.FATTORINO],
+    primaryRole: Role.FATTORINO,
+    transports: [TransportType.AUTO],
+    primaryTransport: TransportType.AUTO
+  },
+  {
+    username: 'alessio.tshimanga',
     roles: [Role.CUCINA],
-    primaryRole: Role.CUCINA
-  },
-  {
-    username: 'Riccardo',
-    roles: [Role.CUCINA, Role.SALA],
-    primaryRole: Role.CUCINA
-  },
-  {
-    username: 'Alessio',
-    roles: [Role.CUCINA, Role.SALA],
     primaryRole: Role.CUCINA
   }
 ]
@@ -240,47 +275,103 @@ async function setupSystemSettings() {
 async function setupShiftLimits() {
   console.log('📊 Configurazione limiti turni...')
   
-  const roles = [Role.PIZZAIOLO, Role.CUCINA, Role.SALA, Role.FATTORINO]
-  const shiftTypes = ['PRANZO', 'CENA']
-  
-  // Limiti per giorni della settimana (0=Lunedì, 6=Domenica)
-  const limits = {
-    PIZZAIOLO: { PRANZO: { min: 1, max: 2 }, CENA: { min: 1, max: 2 } },
-    CUCINA: { PRANZO: { min: 2, max: 4 }, CENA: { min: 2, max: 4 } },
-    SALA: { PRANZO: { min: 2, max: 4 }, CENA: { min: 2, max: 4 } },
-    FATTORINO: { PRANZO: { min: 1, max: 3 }, CENA: { min: 3, max: 6 } }
-  }
+  // Configurazione dettagliata basata sui dati reali del sistema
+  const detailedLimits = [
+    // Lunedì
+    { dayOfWeek: 0, shiftType: 'PRANZO', role: 'FATTORINO', min: 2, max: 2 },
+    { dayOfWeek: 0, shiftType: 'PRANZO', role: 'CUCINA', min: 2, max: 2 },
+    { dayOfWeek: 0, shiftType: 'PRANZO', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 0, shiftType: 'PRANZO', role: 'PIZZAIOLO', min: 1, max: 1 },
+    { dayOfWeek: 0, shiftType: 'CENA', role: 'FATTORINO', min: 5, max: 5 },
+    { dayOfWeek: 0, shiftType: 'CENA', role: 'CUCINA', min: 2, max: 2 },
+    { dayOfWeek: 0, shiftType: 'CENA', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 0, shiftType: 'CENA', role: 'PIZZAIOLO', min: 1, max: 1 },
+    
+    // Martedì
+    { dayOfWeek: 1, shiftType: 'PRANZO', role: 'FATTORINO', min: 2, max: 2 },
+    { dayOfWeek: 1, shiftType: 'PRANZO', role: 'CUCINA', min: 1, max: 1 },
+    { dayOfWeek: 1, shiftType: 'PRANZO', role: 'SALA', min: 0, max: 0 },
+    { dayOfWeek: 1, shiftType: 'PRANZO', role: 'PIZZAIOLO', min: 1, max: 1 },
+    { dayOfWeek: 1, shiftType: 'CENA', role: 'FATTORINO', min: 3, max: 3 },
+    { dayOfWeek: 1, shiftType: 'CENA', role: 'CUCINA', min: 1, max: 1 },
+    { dayOfWeek: 1, shiftType: 'CENA', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 1, shiftType: 'CENA', role: 'PIZZAIOLO', min: 1, max: 1 },
+    
+    // Mercoledì
+    { dayOfWeek: 2, shiftType: 'PRANZO', role: 'FATTORINO', min: 2, max: 2 },
+    { dayOfWeek: 2, shiftType: 'PRANZO', role: 'CUCINA', min: 1, max: 1 },
+    { dayOfWeek: 2, shiftType: 'PRANZO', role: 'SALA', min: 0, max: 0 },
+    { dayOfWeek: 2, shiftType: 'PRANZO', role: 'PIZZAIOLO', min: 1, max: 1 },
+    { dayOfWeek: 2, shiftType: 'CENA', role: 'FATTORINO', min: 3, max: 3 },
+    { dayOfWeek: 2, shiftType: 'CENA', role: 'CUCINA', min: 1, max: 1 },
+    { dayOfWeek: 2, shiftType: 'CENA', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 2, shiftType: 'CENA', role: 'PIZZAIOLO', min: 1, max: 1 },
+    
+    // Giovedì
+    { dayOfWeek: 3, shiftType: 'PRANZO', role: 'FATTORINO', min: 2, max: 2 },
+    { dayOfWeek: 3, shiftType: 'PRANZO', role: 'CUCINA', min: 1, max: 1 },
+    { dayOfWeek: 3, shiftType: 'PRANZO', role: 'SALA', min: 0, max: 0 },
+    { dayOfWeek: 3, shiftType: 'PRANZO', role: 'PIZZAIOLO', min: 1, max: 1 },
+    { dayOfWeek: 3, shiftType: 'CENA', role: 'FATTORINO', min: 3, max: 3 },
+    { dayOfWeek: 3, shiftType: 'CENA', role: 'CUCINA', min: 2, max: 2 },
+    { dayOfWeek: 3, shiftType: 'CENA', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 3, shiftType: 'CENA', role: 'PIZZAIOLO', min: 1, max: 1 },
+    
+    // Venerdì
+    { dayOfWeek: 4, shiftType: 'PRANZO', role: 'FATTORINO', min: 2, max: 2 },
+    { dayOfWeek: 4, shiftType: 'PRANZO', role: 'CUCINA', min: 2, max: 2 },
+    { dayOfWeek: 4, shiftType: 'PRANZO', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 4, shiftType: 'PRANZO', role: 'PIZZAIOLO', min: 1, max: 1 },
+    { dayOfWeek: 4, shiftType: 'CENA', role: 'FATTORINO', min: 4, max: 4 },
+    { dayOfWeek: 4, shiftType: 'CENA', role: 'CUCINA', min: 2, max: 2 },
+    { dayOfWeek: 4, shiftType: 'CENA', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 4, shiftType: 'CENA', role: 'PIZZAIOLO', min: 1, max: 1 },
+    
+    // Sabato
+    { dayOfWeek: 5, shiftType: 'PRANZO', role: 'FATTORINO', min: 2, max: 2 },
+    { dayOfWeek: 5, shiftType: 'PRANZO', role: 'CUCINA', min: 2, max: 2 },
+    { dayOfWeek: 5, shiftType: 'PRANZO', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 5, shiftType: 'PRANZO', role: 'PIZZAIOLO', min: 1, max: 1 },
+    { dayOfWeek: 5, shiftType: 'CENA', role: 'FATTORINO', min: 5, max: 5 },
+    { dayOfWeek: 5, shiftType: 'CENA', role: 'CUCINA', min: 2, max: 2 },
+    { dayOfWeek: 5, shiftType: 'CENA', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 5, shiftType: 'CENA', role: 'PIZZAIOLO', min: 1, max: 1 },
+    
+    // Domenica
+    { dayOfWeek: 6, shiftType: 'PRANZO', role: 'FATTORINO', min: 2, max: 2 },
+    { dayOfWeek: 6, shiftType: 'PRANZO', role: 'CUCINA', min: 2, max: 2 },
+    { dayOfWeek: 6, shiftType: 'PRANZO', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 6, shiftType: 'PRANZO', role: 'PIZZAIOLO', min: 1, max: 1 },
+    { dayOfWeek: 6, shiftType: 'CENA', role: 'FATTORINO', min: 5, max: 5 },
+    { dayOfWeek: 6, shiftType: 'CENA', role: 'CUCINA', min: 2, max: 2 },
+    { dayOfWeek: 6, shiftType: 'CENA', role: 'SALA', min: 1, max: 1 },
+    { dayOfWeek: 6, shiftType: 'CENA', role: 'PIZZAIOLO', min: 1, max: 1 },
+  ]
 
-  for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
-    for (const role of roles) {
-      for (const shiftType of shiftTypes) {
-        const limit = limits[role][shiftType as keyof typeof limits.PIZZAIOLO]
-        
-        await prisma.shiftLimits.upsert({
-          where: {
-            dayOfWeek_shiftType_role: {
-              dayOfWeek,
-              shiftType,
-              role
-            }
-          },
-          update: {
-            minStaff: limit.min,
-            maxStaff: limit.max
-          },
-          create: {
-            dayOfWeek,
-            shiftType,
-            role,
-            minStaff: limit.min,
-            maxStaff: limit.max
-          }
-        })
+  for (const limit of detailedLimits) {
+    await prisma.shiftLimits.upsert({
+      where: {
+        dayOfWeek_shiftType_role: {
+          dayOfWeek: limit.dayOfWeek,
+          shiftType: limit.shiftType,
+          role: limit.role
+        }
+      },
+      update: {
+        minStaff: limit.min,
+        maxStaff: limit.max
+      },
+      create: {
+        dayOfWeek: limit.dayOfWeek,
+        shiftType: limit.shiftType,
+        role: limit.role,
+        minStaff: limit.min,
+        maxStaff: limit.max
       }
-    }
+    })
   }
   
-  console.log('✅ Limiti turni configurati')
+  console.log('✅ Limiti turni configurati (56 configurazioni dettagliate)')
 }
 
 async function setupStartTimeDistributions() {
