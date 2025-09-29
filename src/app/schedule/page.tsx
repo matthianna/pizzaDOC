@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Users } from 'lucide-react'
-import { format, startOfWeek, addDays, addWeeks, subWeeks, isPast } from 'date-fns'
+import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Users, AlertCircle, FileText } from 'lucide-react'
+import { format, startOfWeek, addDays, addWeeks, subWeeks, isPast, isToday } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { Role, ShiftType } from '@prisma/client'
@@ -21,6 +21,11 @@ interface Shift {
   endTime: string
   schedule: {
     weekStart: string
+  }
+  workedHours?: {
+    id: string
+    status: 'PENDING' | 'APPROVED' | 'REJECTED'
+    totalHours: number
   }
 }
 
@@ -141,6 +146,25 @@ export default function SchedulePage() {
     return substitutionRequests.find(sub => sub.shiftId === shiftId)
   }
 
+  const isShiftEnded = (shift: Shift) => {
+    const now = new Date()
+    const currentTime = now.getHours()
+    const shiftDate = addDays(currentWeek, shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1)
+    
+    // Se il turno non è oggi, controlla se è passato
+    if (!isToday(shiftDate)) {
+      return isPast(shiftDate)
+    }
+    
+    // Se è oggi, controlla l'orario
+    return (shift.shiftType === 'PRANZO' && currentTime >= 14) || 
+           (shift.shiftType === 'CENA' && currentTime >= 22)
+  }
+
+  const needsHoursEntry = (shift: Shift) => {
+    return isShiftEnded(shift) && !shift.workedHours
+  }
+
   if (!session) {
     return <div>Loading...</div>
   }
@@ -200,100 +224,189 @@ export default function SchedulePage() {
         </div>
 
         {/* Schedule Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
           {days.map((day, dayIndex) => {
             const dayShifts = shiftsByDay[dayIndex] || []
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
 
             return (
-              <div key={dayIndex} className={`bg-white rounded-lg shadow overflow-hidden ${isToday ? 'ring-2 ring-orange-500' : ''}`}>
-                <div className={`p-4 text-center ${isToday ? 'bg-orange-500 text-white' : 'bg-gray-50'}`}>
-                  <div className={`font-semibold ${isToday ? 'text-white' : 'text-gray-900'}`}>
+              <div key={dayIndex} className={`bg-white rounded-xl shadow-lg border overflow-hidden ${isToday ? 'ring-3 ring-orange-400 border-orange-300' : 'border-gray-200'}`}>
+                {/* Day Header */}
+                <div className={`px-4 py-4 text-center ${isToday ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' : 'bg-gradient-to-r from-gray-50 to-gray-100'}`}>
+                  <div className={`text-lg font-bold ${isToday ? 'text-white' : 'text-gray-900'}`}>
                     {format(day, 'EEEE', { locale: it })}
                   </div>
-                  <div className={`text-sm ${isToday ? 'text-orange-100' : 'text-gray-500'}`}>
+                  <div className={`text-sm ${isToday ? 'text-orange-100' : 'text-gray-600'}`}>
                     {format(day, 'dd/MM', { locale: it })}
                   </div>
                   {isToday && (
-                    <div className="text-xs text-orange-200 mt-1">OGGI</div>
+                    <div className="text-xs text-orange-200 mt-1 font-bold">OGGI</div>
                   )}
                 </div>
 
-                <div className="p-4 space-y-3 min-h-[200px]">
+                {/* Shifts Content */}
+                <div className="p-4 space-y-4 min-h-[400px]">
                   {loading ? (
                     <div className="flex items-center justify-center h-32">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
                     </div>
                   ) : dayShifts.length > 0 ? (
-                    dayShifts.map((shift) => {
-                      const shiftDate = addDays(currentWeek, shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1)
-                      const isFutureShift = !isPast(shiftDate)
-                      const substitutionRequest = getSubstitutionForShift(shift.id)
-                      
-                      return (
-                        <div
-                          key={shift.id}
-                          className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-3"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-orange-800">
-                              {getShiftTypeName(shift.shiftType)}
-                            </span>
-                            <Clock className="h-4 w-4 text-orange-600" />
-                          </div>
-                          
-                          <div className="text-xs text-orange-600">
-                            {getShiftTimes(shift.shiftType)}
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <MapPin className="h-3 w-3 text-orange-500 mr-1" />
-                              <span className="text-xs font-medium text-orange-700">
-                                {getRoleName(shift.role)}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Substitution Status */}
-                          {substitutionRequest && (
-                            <div className="pt-2 border-t border-orange-200">
-                              <div className={`text-xs px-2 py-1 rounded-md text-center ${
-                                substitutionRequest.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                                substitutionRequest.status === 'APPLIED' ? 'bg-blue-100 text-blue-800' :
-                                substitutionRequest.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {substitutionRequest.status === 'PENDING' && '⏳ In attesa candidati'}
-                                {substitutionRequest.status === 'APPLIED' && `✋ ${substitutionRequest.substitute?.username} si è candidato`}
-                                {substitutionRequest.status === 'APPROVED' && '✅ Sostituzione approvata'}
-                                {substitutionRequest.status === 'REJECTED' && '❌ Sostituzione rifiutata'}
+                    <div className="space-y-4">
+                      {dayShifts.map((shift) => {
+                        const shiftDate = addDays(currentWeek, shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1)
+                        const isFutureShift = !isPast(shiftDate)
+                        const substitutionRequest = getSubstitutionForShift(shift.id)
+                        const shiftEnded = isShiftEnded(shift)
+                        const needsHours = needsHoursEntry(shift)
+                        
+                        return (
+                          <div
+                            key={shift.id}
+                            className={`rounded-xl border-2 transition-all hover:shadow-lg ${
+                              shiftEnded 
+                                ? 'bg-gray-100 border-gray-300 opacity-75' 
+                                : shift.shiftType === 'PRANZO'
+                                  ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-orange-200 hover:border-orange-400'
+                                  : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 hover:border-blue-400'
+                            } shadow-md`}
+                          >
+                            {/* Header */}
+                            <div className={`px-3 py-3 border-b text-center ${
+                              shiftEnded 
+                                ? 'border-gray-200 bg-gray-50' 
+                                : shift.shiftType === 'PRANZO'
+                                  ? 'border-orange-100 bg-gradient-to-r from-amber-50 to-orange-100'
+                                  : 'border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-100'
+                            }`}>
+                              <div className="flex items-center justify-center space-x-2 mb-1">
+                                <div className={`w-3 h-3 rounded-full ${
+                                  shiftEnded ? 'bg-gray-400' : 
+                                  shift.shiftType === 'PRANZO' ? 'bg-orange-500' : 'bg-blue-600'
+                                }`}></div>
+                                <span className={`text-base font-bold ${
+                                  shiftEnded ? 'text-gray-600' : 'text-gray-900'
+                                }`}>
+                                  {getShiftTypeName(shift.shiftType)}
+                                </span>
                               </div>
+                              {shiftEnded && (
+                                <span className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                  TERMINATO
+                                </span>
+                              )}
                             </div>
-                          )}
 
-                          {/* Request Substitution Button */}
-                          {isFutureShift && !substitutionRequest && (
-                            <div className="pt-2 border-t border-orange-200">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openSubstitutionModal(shift)}
-                                className="w-full text-xs h-7 text-orange-700 border-orange-300 hover:bg-orange-100"
-                              >
-                                <Users className="h-3 w-3 mr-1" />
-                                Cerca Sostituto
-                              </Button>
+                            {/* Content */}
+                            <div className="p-3 space-y-3">
+                              {/* Time */}
+                              <div className="text-center">
+                                <div className={`text-xs font-medium ${
+                                  shiftEnded ? 'text-gray-500' : 'text-gray-600'
+                                }`}>
+                                  Inizio
+                                </div>
+                                <div className={`text-xl font-bold ${
+                                  shiftEnded ? 'text-gray-600' : 'text-gray-900'
+                                }`}>
+                                  {shift.startTime}
+                                </div>
+                              </div>
+
+                              {/* Role */}
+                              <div className="text-center">
+                                <div className="flex items-center justify-center">
+                                  <MapPin className={`h-3 w-3 mr-1 ${
+                                    shiftEnded ? 'text-gray-400' : 'text-gray-500'
+                                  }`} />
+                                  <span className={`text-sm font-medium ${
+                                    shiftEnded ? 'text-gray-500' : 'text-gray-700'
+                                  }`}>
+                                    {getRoleName(shift.role)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Hours Status */}
+                              {shift.workedHours && (
+                                <div className={`p-2 rounded-lg border text-center ${
+                                  shift.workedHours.status === 'PENDING' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+                                  shift.workedHours.status === 'APPROVED' ? 'bg-green-50 border-green-200 text-green-800' :
+                                  'bg-red-50 border-red-200 text-red-800'
+                                }`}>
+                                  <div className="text-xs font-bold">
+                                    {shift.workedHours.status === 'PENDING' && '⏳ In attesa'}
+                                    {shift.workedHours.status === 'APPROVED' && '✅ Approvate'}
+                                    {shift.workedHours.status === 'REJECTED' && '❌ Rifiutate'}
+                                  </div>
+                                  <div className="text-sm font-bold">
+                                    {shift.workedHours.totalHours}h
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Need Hours Entry Alert */}
+                              {needsHours && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                  <div className="text-center mb-2">
+                                    <AlertCircle className="h-4 w-4 text-red-500 mx-auto" />
+                                    <span className="text-xs font-bold text-red-800 block">
+                                      Ore mancanti
+                                    </span>
+                                  </div>
+                                  <a 
+                                    href="/hours"
+                                    className="inline-flex items-center justify-center w-full px-3 py-2 text-xs font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" />
+                                    Inserisci
+                                  </a>
+                                </div>
+                              )}
+
+                              {/* Substitution Status */}
+                              {substitutionRequest && (
+                                <div className={`p-2 rounded-lg border text-center ${
+                                  substitutionRequest.status === 'PENDING' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+                                  substitutionRequest.status === 'APPLIED' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                                  substitutionRequest.status === 'APPROVED' ? 'bg-green-50 border-green-200 text-green-800' :
+                                  'bg-red-50 border-red-200 text-red-800'
+                                }`}>
+                                  <div className="text-xs font-bold">
+                                    {substitutionRequest.status === 'PENDING' && '⏳ In attesa'}
+                                    {substitutionRequest.status === 'APPLIED' && `✋ ${substitutionRequest.substitute?.username}`}
+                                    {substitutionRequest.status === 'APPROVED' && '✅ Approvata'}
+                                    {substitutionRequest.status === 'REJECTED' && '❌ Rifiutata'}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Request Substitution Button */}
+                              {isFutureShift && !substitutionRequest && !shiftEnded && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openSubstitutionModal(shift)}
+                                  className={`w-full text-xs h-8 border transition-all font-medium ${
+                                    shift.shiftType === 'PRANZO'
+                                      ? 'text-orange-700 border-orange-300 hover:bg-orange-100'
+                                      : 'text-blue-700 border-blue-300 hover:bg-blue-100'
+                                  }`}
+                                >
+                                  <Users className="h-3 w-3 mr-1" />
+                                  Sostituto
+                                </Button>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      )
-                    })
+                          </div>
+                        )
+                      })}
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center h-32 text-center">
                       <div className="text-gray-400">
                         <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Nessun turno</p>
+                        <p className="text-sm font-medium">Nessun turno</p>
+                        <p className="text-xs text-gray-500">Riposo!</p>
                       </div>
                     </div>
                   )}
@@ -305,28 +418,28 @@ export default function SchedulePage() {
 
         {/* Summary */}
         {shifts.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl shadow-lg border border-orange-200 p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
               Riepilogo Settimana
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
+              <div className="text-center bg-white rounded-xl p-6 shadow-md border border-orange-200">
+                <div className="text-3xl font-bold text-orange-600 mb-1">
                   {shifts.length}
                 </div>
-                <div className="text-sm text-gray-500">Turni Totali</div>
+                <div className="text-sm font-semibold text-gray-700">Turni Totali</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
+              <div className="text-center bg-white rounded-xl p-6 shadow-md border border-orange-200">
+                <div className="text-3xl font-bold text-amber-600 mb-1">
                   {shifts.filter(s => s.shiftType === 'PRANZO').length}
                 </div>
-                <div className="text-sm text-gray-500">Turni Pranzo</div>
+                <div className="text-sm font-semibold text-gray-700">Turni Pranzo</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
+              <div className="text-center bg-white rounded-xl p-6 shadow-md border border-blue-200">
+                <div className="text-3xl font-bold text-blue-600 mb-1">
                   {shifts.filter(s => s.shiftType === 'CENA').length}
                 </div>
-                <div className="text-sm text-gray-500">Turni Cena</div>
+                <div className="text-sm font-semibold text-gray-700">Turni Cena</div>
               </div>
             </div>
           </div>
@@ -349,7 +462,7 @@ export default function SchedulePage() {
                     {format(addDays(currentWeek, selectedShift.dayOfWeek === 0 ? 6 : selectedShift.dayOfWeek - 1), 'dd/MM/yyyy', { locale: it })}
                   </div>
                   <div className="text-xs text-gray-600">
-                    {selectedShift.startTime} - {selectedShift.endTime} • {getRoleName(selectedShift.role)}
+                    {selectedShift.startTime} • {getRoleName(selectedShift.role)}
                   </div>
                 </div>
 

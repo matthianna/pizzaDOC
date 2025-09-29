@@ -34,6 +34,13 @@ export async function GET(request: NextRequest) {
                 id: true,
                 username: true
               }
+            },
+            workedHours: {
+              select: {
+                id: true,
+                status: true,
+                totalHours: true
+              }
             }
           },
           orderBy: [

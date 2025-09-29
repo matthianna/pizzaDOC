@@ -147,39 +147,40 @@ export default function AvailabilityPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-              <Calendar className="h-8 w-8 mr-3 text-orange-600" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+              <Calendar className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-orange-600" />
               Gestione Disponibilità
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Indica la tua disponibilità per i turni settimanali
             </p>
           </div>
         </div>
 
         {/* Week Navigation */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 mb-4">
             <button
               onClick={() => navigateWeek('prev')}
-              className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-800"
+              className="flex items-center justify-center sm:justify-start px-3 py-2 text-gray-600 hover:text-gray-800 text-sm sm:text-base"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Settimana precedente
+              <span className="hidden sm:inline">Settimana precedente</span>
+              <span className="sm:hidden">Precedente</span>
             </button>
             
             <div className="text-center">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                 Settimana dal {formatDate(weekDays[0])} al {formatDate(weekDays[6])}
               </h2>
               {!canEdit && (
                 <div className="flex items-center justify-center mt-2 text-amber-600">
                   <Lock className="h-4 w-4 mr-1" />
-                  <span className="text-sm">
+                  <span className="text-xs sm:text-sm text-center">
                     {!canEditThisWeek 
                       ? "Non è possibile modificare la disponibilità per settimane già iniziate"
                       : "Modifiche non consentite per questa settimana"

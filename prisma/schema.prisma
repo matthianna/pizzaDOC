@@ -16,12 +16,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -50,6 +50,7 @@ enum Role {
   FATTORINO
   CUCINA
   SALA
+  PIZZAIOLO
 }
 
 enum TransportType {
@@ -85,23 +86,23 @@ enum SubstitutionStatus {
 
 model SystemSettings {
   id                String   @id @default(cuid())
-  key               String   @unique @db.VarChar(100)
-  value             String   @db.Text
-  description       String?  @db.Text
-  updatedAt         DateTime @updatedAt @db.Timestamptz(6)
-  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  key               String   @unique
+  value             String
+  description       String?
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
 }
 
 model User {
   id                    String    @id @default(cuid())
-  username              String    @unique @db.VarChar(50)
-  password              String    @db.VarChar(255)
+  username              String    @unique
+  password              String
   isFirstLogin          Boolean   @default(true)
   isActive              Boolean   @default(true)
   primaryRole           Role?
   primaryTransport      TransportType?
-  createdAt             DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt             DateTime  @updatedAt @db.Timestamptz(6)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   // Relations
   accounts              Account[]
@@ -171,11 +172,12 @@ model Availability {
 
 model Schedule {
   id        String   @id @default(cuid())
-  weekStart DateTime @unique @db.Date // Start of the week (Monday)
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  weekStart DateTime // Start of the week (Monday)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   shifts    Shift[]
 
+  @@unique([weekStart])
   @@map("schedules")
 }
 
@@ -187,10 +189,10 @@ model Shift {
   shiftType    ShiftType
   role         Role
   status       ShiftStatus @default(ASSIGNED)
-  startTime    String      @db.VarChar(5) // "11:30" or "18:00"
-  endTime      String      @db.VarChar(5) // "14:00" or "22:00"
-  createdAt    DateTime    @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime    @updatedAt @db.Timestamptz(6)
+  startTime    String      // "11:30" or "18:00"
+  endTime      String      // "14:00" or "22:00"
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   schedule      Schedule       @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -200,19 +202,47 @@ model Shift {
   @@map("shifts")
 }
 
+model ShiftStartTimeTemplate {
+  id          String    @id @default(cuid())
+  shiftType   ShiftType
+  role        Role
+  startTime   String    // "18:00", "18:30", etc.
+  priority    Int       @default(0) // 0 = default, higher = more preferred
+  isActive    Boolean   @default(true)
+  description String?   // "Apertura", "Standard", "Picco"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("shift_start_time_templates")
+}
+
+model ShiftStartTimeDistribution {
+  id           String    @id @default(cuid())
+  shiftType    ShiftType
+  role         Role
+  startTime    String    // "18:00", "18:30", etc.
+  targetCount  Int       // Quanti utenti devono iniziare a questo orario
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([shiftType, role, startTime])
+  @@map("shift_start_time_distributions")
+}
+
 model WorkedHours {
   id          String      @id @default(cuid())
   shiftId     String      @unique
   userId      String
-  startTime   String      @db.VarChar(5) // "HH:MM"
-  endTime     String      @db.VarChar(5) // "HH:MM"
-  totalHours  Float       @db.DoublePrecision // Calculated in 0.5h increments
+  startTime   String      // "HH:MM"
+  endTime     String      // "HH:MM"
+  totalHours  Float       // Calculated in 0.5h increments
   status      HoursStatus @default(PENDING)
-  rejectionReason String? @db.Text
-  submittedAt DateTime    @default(now()) @db.Timestamptz(6)
-  reviewedAt  DateTime?   @db.Timestamptz(6)
-  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime    @updatedAt @db.Timestamptz(6)
+  rejectionReason String?
+  submittedAt DateTime    @default(now())
+  reviewedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -227,11 +257,11 @@ model Substitution {
   substituteId String?            // Chi si applica per la sostituzione
   approverId   String?            // Admin che approva
   status       SubstitutionStatus @default(PENDING)
-  requestNote  String?            @db.Text
-  responseNote String?            @db.Text
-  deadline     DateTime           @db.Timestamptz(6)
-  createdAt    DateTime           @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime           @updatedAt @db.Timestamptz(6)
+  requestNote  String?
+  responseNote String?
+  deadline     DateTime
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   shift      Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   requester  User  @relation("SubstitutionRequester", fields: [requesterId], references: [id], onDelete: Cascade)

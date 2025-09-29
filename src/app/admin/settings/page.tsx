@@ -28,11 +28,20 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [savingLimits, setSavingLimits] = useState(false)
+  const [startTimeDistributions, setStartTimeDistributions] = useState<{
+    id: string;
+    shiftType: string;
+    role: string;
+    startTime: string;
+    targetCount: number;
+    isActive: boolean;
+  }[]>([])
+  const [savingDistributions, setSavingDistributions] = useState(false)
   const { showToast, ToastContainer } = useToast()
 
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
   const shifts = ['PRANZO', 'CENA']
-  const roles = ['CUCINA', 'FATTORINO', 'SALA']
+  const roles = ['PIZZAIOLO', 'CUCINA', 'FATTORINO', 'SALA']
 
   // Converte l'indice dell'array (0=Lunedì) in dayOfWeek del database (1=Lunedì, 0=Domenica)
   const getDbDayOfWeek = (arrayIndex: number) => {
@@ -46,9 +55,10 @@ export default function SettingsPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [settingsResponse, limitsResponse] = await Promise.all([
+      const [settingsResponse, limitsResponse, distributionsResponse] = await Promise.all([
         fetch('/api/admin/settings'),
-        fetch('/api/admin/shift-limits')
+        fetch('/api/admin/shift-limits'),
+        fetch('/api/admin/start-time-distributions')
       ])
       
       if (settingsResponse.ok) {
@@ -61,6 +71,11 @@ export default function SettingsPage() {
       if (limitsResponse.ok) {
         const limitsData = await limitsResponse.json()
         setShiftLimits(limitsData)
+      }
+
+      if (distributionsResponse.ok) {
+        const distributionsData = await distributionsResponse.json()
+        setStartTimeDistributions(distributionsData)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -135,6 +150,61 @@ export default function SettingsPage() {
       showToast('Errore durante il salvataggio', 'error')
     } finally {
       setSavingLimits(false)
+    }
+  }
+
+  const getDistribution = (shiftType: string, role: string, startTime: string) => {
+    return startTimeDistributions.find(d => 
+      d.shiftType === shiftType && 
+      d.role === role && 
+      d.startTime === startTime
+    )
+  }
+
+  const updateDistribution = (shiftType: string, role: string, startTime: string, targetCount: number) => {
+    setStartTimeDistributions(prev => {
+      const existing = prev.findIndex(d => 
+        d.shiftType === shiftType && 
+        d.role === role && 
+        d.startTime === startTime
+      )
+      
+      if (existing >= 0) {
+        const updated = [...prev]
+        updated[existing] = { ...updated[existing], targetCount }
+        return updated
+      } else {
+        return [...prev, { id: `new-${Date.now()}-${Math.random()}`, shiftType, role, startTime, targetCount, isActive: true }]
+      }
+    })
+  }
+
+  const saveDistributions = async () => {
+    setSavingDistributions(true)
+    try {
+      const responses = await Promise.all(
+        startTimeDistributions.map(dist =>
+          fetch('/api/admin/start-time-distributions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dist)
+          })
+        )
+      )
+
+      const allSuccessful = responses.every(r => r.ok)
+      if (allSuccessful) {
+        showToast('Distribuzioni orari salvate con successo!', 'success')
+      } else {
+        showToast('Errore nel salvataggio di alcune distribuzioni', 'error')
+      }
+    } catch (error) {
+      console.error('Error saving distributions:', error)
+      showToast('Errore nel salvataggio delle distribuzioni', 'error')
+    } finally {
+      setSavingDistributions(false)
     }
   }
 
@@ -223,7 +293,7 @@ export default function SettingsPage() {
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Giorno</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900">Turno</th>
                   {roles.map(role => (
-                    <th key={role} className="text-center py-3 px-4 font-medium text-gray-900">
+                    <th key={role} className="text-left py-3 px-4 font-medium text-gray-900">
                       {role.charAt(0) + role.slice(1).toLowerCase()}
                     </th>
                   ))}
@@ -241,7 +311,7 @@ export default function SettingsPage() {
                       <td className="py-3 px-4 text-sm font-medium text-gray-700">
                         {shift}
                         <div className="text-xs text-gray-500">
-                          {shift === 'PRANZO' ? '11:30-14:00' : '18:00-22:00'}
+                          {shift === 'PRANZO' ? '11:00-14:00' : '17:00-22:00'}
                         </div>
                       </td>
                       {roles.map(role => {
@@ -289,6 +359,118 @@ export default function SettingsPage() {
               <li><strong>Max:</strong> Numero massimo di persone che possono lavorare nel turno</li>
               <li>L&apos;algoritmo di generazione automatica userà questi limiti per assegnare i turni</li>
             </ul>
+          </div>
+        </div>
+
+        {/* Sezione Distribuzioni Orari di Inizio */}
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Distribuzioni Orari di Inizio</h3>
+                <p className="text-sm text-gray-600 mt-1">Configura quanti utenti devono iniziare a determinati orari</p>
+              </div>
+              <Button
+                onClick={saveDistributions}
+                isLoading={savingDistributions}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                size="sm"
+              >
+                Salva Distribuzioni
+              </Button>
+            </div>
+          </div>
+
+          {/* Contenuto principale */}
+          <div className="p-6">
+            {shifts.map(shiftType => (
+              <div key={shiftType} className="mb-8 last:mb-0">
+                {/* Intestazione turno */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className={`w-4 h-4 rounded-full ${shiftType === 'PRANZO' ? 'bg-orange-400' : 'bg-blue-500'}`}></div>
+                    <h4 className="text-lg font-semibold text-gray-900">
+                      {shiftType === 'PRANZO' ? 'PRANZO' : 'CENA'}
+                    </h4>
+                    <span className="text-sm text-gray-500 font-mono ml-2">
+                      ({shiftType === 'PRANZO' ? '11:00-14:00' : '17:00-22:00'})
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Grid ruoli */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+                  {roles.map(role => {
+                    const startTimes = shiftType === 'PRANZO' 
+                      ? (role === 'SALA' || role === 'FATTORINO') 
+                        ? ['11:30', '12:00']
+                        : ['11:00', '11:30']
+                      : (role === 'FATTORINO')
+                        ? ['18:00', '18:30', '19:00']
+                        : (role === 'SALA')
+                        ? ['18:00', '18:30']
+                        : ['17:00', '18:00', '18:30']
+                    
+                    return (
+                      <div key={role} className="bg-gray-50 rounded-lg p-4">
+                        {/* Titolo ruolo */}
+                        <div className="text-center mb-4">
+                          <h5 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                            {role}
+                          </h5>
+                        </div>
+                        
+                        {/* Orari e contatori */}
+                        <div className="space-y-4">
+                          {startTimes.map(startTime => {
+                            const dist = getDistribution(shiftType, role, startTime)
+                            return (
+                              <div key={startTime} className="bg-white rounded-lg p-3 border border-gray-200">
+                                {/* Orario */}
+                                <div className="text-center mb-3">
+                                  <span className="inline-block text-sm font-mono text-gray-700 bg-gray-100 px-3 py-1 rounded-md font-semibold">
+                                    {startTime}
+                                  </span>
+                                </div>
+                                
+                                {/* Input numero persone */}
+                                <div className="text-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    value={dist?.targetCount || 0}
+                                    onChange={(e) => updateDistribution(shiftType, role, startTime, parseInt(e.target.value) || 0)}
+                                    className="w-16 h-12 text-xl font-bold text-center border-2 border-gray-300 rounded-lg bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors hover:border-gray-400"
+                                  />
+                                  <div className="mt-2">
+                                    <span className="text-xs text-gray-500 font-medium">persone</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer con regole */}
+          <div className="px-6 py-4 bg-blue-50 border-t border-blue-200">
+            <div className="text-sm text-blue-800">
+              <h4 className="font-semibold mb-2">Vincoli e Regole:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                <div>• <strong>Orari:</strong> Solo ogni 30 minuti</div>
+                <div>• <strong>PRANZO:</strong> Pizzaiolo/Cucina dalle 11:00</div>
+                <div>• <strong>CENA:</strong> Fattorino/Sala dalle 18:00</div>
+                <div>• <strong>Algoritmo:</strong> Rispetta tutti i vincoli</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

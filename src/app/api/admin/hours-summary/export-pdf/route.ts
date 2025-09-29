@@ -19,7 +19,14 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : null
 
     // Get the data (same logic as the summary API)
-    const where: any = {
+    const where: {
+      status: string;
+      userId?: string;
+      submittedAt?: {
+        gte: Date;
+        lte: Date;
+      };
+    } = {
       status: 'APPROVED'
     }
 
@@ -71,11 +78,19 @@ export async function GET(request: NextRequest) {
 
     // Process data into summary
     const summary: Record<string, {
-      user: any
+      user: {
+        id: string;
+        username: string;
+        primaryRole: string;
+      }
       monthlyHours: Record<string, {
         totalHours: number
         shiftsCount: number
-        details: any[]
+        details: Array<{
+          id: string;
+          totalHours: number;
+          submittedAt: Date;
+        }>
       }>
       yearlyTotal: number
     }> = {}
@@ -142,7 +157,7 @@ function generateHoursSummaryHTML(
     return format(date, 'MMMM yyyy', { locale: it })
   }
 
-  const totalHoursAllUsers = Object.values(summary).reduce((sum: number, user: any) => sum + user.yearlyTotal, 0)
+  const totalHoursAllUsers = Object.values(summary).reduce((sum: number, user) => sum + user.yearlyTotal, 0)
   const totalUsers = Object.keys(summary).length
 
   const periodText = month 
@@ -335,7 +350,7 @@ function generateHoursSummaryHTML(
             <h3>Nessun dato disponibile</h3>
             <p>Non ci sono ore lavorate per il periodo selezionato.</p>
         </div>
-    ` : Object.values(summary).map((userSummary: any) => `
+    ` : Object.values(summary).map((userSummary) => `
         <div class="user-section">
             <div class="user-header">
                 <div class="user-name">${userSummary.user.username}</div>

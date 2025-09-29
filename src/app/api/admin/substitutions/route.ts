@@ -15,7 +15,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
 
     // Build where clause
-    const where: Record<string, unknown> = {}
+    const where: {
+      status?: string;
+    } = {}
     if (status && status !== 'ALL') {
       where.status = status
     }

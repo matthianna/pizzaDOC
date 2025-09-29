@@ -17,7 +17,12 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month')
     const year = searchParams.get('year')
 
-    const whereClause: Record<string, unknown> = {}
+    const whereClause: {
+      status?: string;
+      user?: {
+        id: string;
+      };
+    } = {}
 
     if (status) {
       whereClause.status = status

@@ -69,7 +69,7 @@ export default function AdminHoursSummaryPage() {
       const response = await fetch('/api/admin/users')
       if (response.ok) {
         const data = await response.json()
-        setAllUsers(data.filter((user: User & { roles?: string[] }) => !user.roles?.includes('ADMIN')))
+        setAllUsers(data.filter((user: {roles?: string[]}) => !user.roles?.includes('ADMIN')))
       }
     } catch (error) {
       console.error('Error fetching users:', error)
@@ -161,13 +161,66 @@ export default function AdminHoursSummaryPage() {
     }
   }
 
+  const exportUserMonthPDF = async (userId: string, monthStr: string) => {
+    try {
+      const [year, month] = monthStr.split('-')
+      const url = `/api/admin/hours-summary/export-user-pdf?userId=${userId}&year=${year}&month=${month}`
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const htmlContent = await response.text()
+        const newWindow = window.open('', '_blank')
+        if (newWindow) {
+          newWindow.document.write(htmlContent)
+          newWindow.document.close()
+        }
+      } else {
+        console.error('Failed to export user PDF:', response.statusText)
+        alert('Errore durante l\'esportazione del PDF')
+      }
+    } catch (error) {
+      console.error('Error exporting user PDF:', error)
+      alert('Errore durante l\'esportazione del PDF')
+    }
+  }
+
+  const exportUserYearPDF = async (userId: string) => {
+    try {
+      const url = `/api/admin/hours-summary/export-user-pdf?userId=${userId}&year=${selectedYear}`
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const htmlContent = await response.text()
+        const newWindow = window.open('', '_blank')
+        if (newWindow) {
+          newWindow.document.write(htmlContent)
+          newWindow.document.close()
+        }
+      } else {
+        console.error('Failed to export user year PDF:', response.statusText)
+        alert('Errore durante l\'esportazione del PDF')
+      }
+    } catch (error) {
+      console.error('Error exporting user year PDF:', error)
+      alert('Errore durante l\'esportazione del PDF')
+    }
+  }
+
   const currentYearOptions = Array.from({ length: 5 }, (_, i) => {
     const year = new Date().getFullYear() - i
     return { value: year, label: year.toString() }
   })
 
   const monthOptions = [
-    { value: 0, label: 'Tutto l\'anno' },
+    { value: null, label: 'Tutto l\'anno' },
     ...Array.from({ length: 12 }, (_, i) => ({
       value: i + 1,
       label: new Date(0, i).toLocaleDateString('it-IT', { month: 'long' })
@@ -228,12 +281,12 @@ export default function AdminHoursSummaryPage() {
               label="Mese"
               options={monthOptions}
               value={{
-                value: selectedMonth || 0,
+                value: selectedMonth,
                 label: selectedMonth 
                   ? new Date(0, selectedMonth - 1).toLocaleDateString('it-IT', { month: 'long' })
                   : 'Tutto l\'anno'
               }}
-              onChange={(option) => setSelectedMonth(option?.value === 0 ? null : option?.value as number)}
+              onChange={(option) => setSelectedMonth(option?.value as number | null)}
             />
 
             <div className="flex items-end">
@@ -283,12 +336,25 @@ export default function AdminHoursSummaryPage() {
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-orange-600">
-                        {userSummary.yearlyTotal.toFixed(1)}h
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {selectedMonth ? 'Totale mese' : 'Totale anno'}
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          exportUserYearPDF(userSummary.user.id)
+                        }}
+                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-300 rounded-md hover:bg-orange-200 transition-colors"
+                        title="Esporta PDF anno completo"
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        PDF Anno
+                      </button>
+                      <div className="text-right">
+                        <div className="text-xl font-bold text-orange-600">
+                          {userSummary.yearlyTotal.toFixed(1)}h
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {selectedMonth ? 'Totale mese' : 'Totale anno'}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -321,7 +387,18 @@ export default function AdminHoursSummaryPage() {
                                     {getMonthName(month.month)}
                                   </span>
                                 </div>
-                                <div className="flex items-center space-x-4">
+                                <div className="flex items-center space-x-3">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      exportUserMonthPDF(userSummary.user.id, month.month)
+                                    }}
+                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded hover:bg-blue-200 transition-colors"
+                                    title={`Esporta PDF ${getMonthName(month.month)}`}
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" />
+                                    PDF
+                                  </button>
                                   <div className="text-sm text-gray-500">
                                     {month.shiftsCount} turni
                                   </div>

@@ -39,7 +39,8 @@ export function getRoleName(role: string): string {
     'ADMIN': 'Admin',
     'FATTORINO': 'Fattorino',
     'CUCINA': 'Cucina',
-    'SALA': 'Sala'
+    'SALA': 'Sala',
+    'PIZZAIOLO': 'Pizzaiolo'
   }
   return roleNames[role] || role
 }

@@ -88,7 +88,7 @@ export async function POST(
     
     if (!canPerformRole) {
       return NextResponse.json(
-        { error: 'You are not qualified for this role' },
+        { error: `Non puoi candidarti per questo turno. Ruolo richiesto: ${substitution.shift.role}` },
         { status: 400 }
       )
     }

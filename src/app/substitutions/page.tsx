@@ -228,7 +228,21 @@ export default function SubstitutionsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Available Substitutions */}
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">Sostituzioni Disponibili</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Sostituzioni Disponibili</h2>
+                {session?.user?.roles && session.user.roles.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">I tuoi ruoli:</span>
+                    <div className="flex gap-1">
+                      {session.user.roles.map((role) => (
+                        <span key={role} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                          {getRoleName(role)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               {availableSubstitutions.length === 0 ? (
                 <div className="bg-white rounded-lg shadow p-6 text-center">
                   <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -237,7 +251,14 @@ export default function SubstitutionsPage() {
               ) : (
                 availableSubstitutions.map((substitution) => {
                   const shiftDate = getShiftDate(substitution.shift)
-                  const canApply = substitution.status === 'PENDING' && !isPast(shiftDate)
+                  
+                  // Check if user can apply based on multiple criteria
+                  const userHasRequiredRole = session?.user?.roles?.includes(substitution.shift.role) || false
+                  const isNotPastDeadline = !isPast(shiftDate)
+                  const isPending = substitution.status === 'PENDING'
+                  const isNotOwnRequest = substitution.requesterId !== session?.user?.id
+                  
+                  const canApply = isPending && isNotPastDeadline && isNotOwnRequest && userHasRequiredRole
                   
                   return (
                     <div key={substitution.id} className="bg-white rounded-lg shadow p-4">
@@ -258,11 +279,22 @@ export default function SubstitutionsPage() {
                           {getDayName(substitution.shift.dayOfWeek)} - {getShiftTypeName(substitution.shift.shiftType)}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • {getRoleName(substitution.shift.role)}
+                          {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • {substitution.shift.startTime}
                         </p>
-                        <p className="text-sm text-gray-600">
-                          {substitution.shift.startTime} - {substitution.shift.endTime}
-                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            userHasRequiredRole 
+                              ? 'bg-green-100 text-green-800 border border-green-200' 
+                              : 'bg-red-100 text-red-800 border border-red-200'
+                          }`}>
+                            {getRoleName(substitution.shift.role)}
+                          </span>
+                          {!userHasRequiredRole && (
+                            <span className="text-xs text-red-600 font-medium">
+                              Ruolo non disponibile
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="mb-3">
@@ -276,7 +308,7 @@ export default function SubstitutionsPage() {
                         )}
                       </div>
 
-                      {canApply && (
+                      {canApply ? (
                         <Button
                           size="sm"
                           onClick={() => applyForSubstitution(substitution.id)}
@@ -286,6 +318,42 @@ export default function SubstitutionsPage() {
                           <Send className="h-4 w-4 mr-2" />
                           Candidati
                         </Button>
+                      ) : (
+                        <div className="w-full">
+                          {!userHasRequiredRole ? (
+                            <Button
+                              size="sm"
+                              disabled
+                              className="w-full bg-gray-300 text-gray-500 cursor-not-allowed"
+                            >
+                              Ruolo non compatibile
+                            </Button>
+                          ) : !isPending ? (
+                            <Button
+                              size="sm"
+                              disabled
+                              className="w-full bg-gray-300 text-gray-500 cursor-not-allowed"
+                            >
+                              Non più disponibile
+                            </Button>
+                          ) : !isNotPastDeadline ? (
+                            <Button
+                              size="sm"
+                              disabled
+                              className="w-full bg-gray-300 text-gray-500 cursor-not-allowed"
+                            >
+                              Scaduto
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              disabled
+                              className="w-full bg-gray-300 text-gray-500 cursor-not-allowed"
+                            >
+                              Non disponibile
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   )

@@ -43,14 +43,16 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           username: user.username,
           isFirstLogin: user.isFirstLogin,
-          primaryRole: user.primaryRole || 'CUCINA', // fallback per evitare null
+          primaryRole: user.primaryRole,
           roles: user.userRoles.map(ur => ur.role)
         }
       }
     })
   ],
   session: {
-    strategy: 'jwt'
+    strategy: 'jwt',
+    maxAge: 24 * 60 * 60, // 24 hours
+    updateAge: 60 * 60, // 1 hour - refresh session every hour
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
@@ -60,11 +62,35 @@ export const authOptions: NextAuthOptions = {
         token.isFirstLogin = user.isFirstLogin
         token.primaryRole = user.primaryRole
         token.roles = user.roles
+        token.lastActivity = Date.now()
+      }
+      
+      // Check if user is still active and update token periodically
+      if (token.id && (!token.lastActivity || Date.now() - (token.lastActivity as number) > 5 * 60 * 1000)) {
+        try {
+          const currentUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            include: { userRoles: true }
+          })
+          
+          if (!currentUser || !currentUser.isActive) {
+            // User has been deactivated, invalidate session
+            return null
+          }
+          
+          // Update token with latest user data
+          token.isFirstLogin = currentUser.isFirstLogin
+          token.primaryRole = currentUser.primaryRole
+          token.roles = currentUser.userRoles.map(ur => ur.role)
+          token.lastActivity = Date.now()
+        } catch (error) {
+          console.error('Error refreshing user data:', error)
+          // Continue with existing token if DB error
+        }
       }
       
       // Handle session update (e.g., after password change)
       if (trigger === 'update' && session) {
-        // Update token with latest user data
         const updatedUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           include: { userRoles: true }
@@ -72,8 +98,9 @@ export const authOptions: NextAuthOptions = {
         
         if (updatedUser) {
           token.isFirstLogin = updatedUser.isFirstLogin
-          token.primaryRole = updatedUser.primaryRole || 'CUCINA' // fallback
+          token.primaryRole = updatedUser.primaryRole
           token.roles = updatedUser.userRoles.map(ur => ur.role)
+          token.lastActivity = Date.now()
         }
       }
       

@@ -152,15 +152,15 @@ export default function SubstitutionRequestsPage() {
 
   return (
     <MainLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-              <Users className="h-6 w-6 text-orange-500 mr-2" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+              <Users className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500 mr-2" />
               Richieste di Sostituzione
             </h1>
-            <p className="text-gray-800 mt-1">
+            <p className="text-gray-800 mt-1 text-sm sm:text-base">
               Vedi le richieste di altri colleghi e candidati per aiutarli
             </p>
           </div>
@@ -172,7 +172,7 @@ export default function SubstitutionRequestsPage() {
             <p className="text-gray-700">Caricamento richieste...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Available Substitutions */}
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-gray-900">Richieste Disponibili</h2>

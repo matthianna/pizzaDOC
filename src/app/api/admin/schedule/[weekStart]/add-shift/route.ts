@@ -16,12 +16,12 @@ export async function POST(
 
     const resolvedParams = await params
     const weekStart = new Date(resolvedParams.weekStart)
-    const { userId, dayOfWeek, shiftType, role } = await request.json()
+    const { userId, dayOfWeek, shiftType, role, startTime } = await request.json()
 
     // Validazione input
-    if (!userId || dayOfWeek === undefined || !shiftType || !role) {
+    if (!userId || dayOfWeek === undefined || !shiftType || !role || !startTime) {
       return NextResponse.json(
-        { error: 'Dati mancanti: userId, dayOfWeek, shiftType, role sono richiesti' },
+        { error: 'Dati mancanti: userId, dayOfWeek, shiftType, role, startTime sono richiesti' },
         { status: 400 }
       )
     }
@@ -58,7 +58,8 @@ export async function POST(
     if (!schedule) {
       schedule = await prisma.schedule.create({
         data: {
-          weekStart
+          weekStart,
+          generatedAt: new Date()
         }
       })
     }
@@ -80,8 +81,8 @@ export async function POST(
       )
     }
 
-    // Determina gli orari del turno
-    const shiftTimes = getShiftTimes(shiftType)
+    // Determina l'orario di fine fisso in base al turno
+    const endTime = shiftType === 'PRANZO' ? '14:00' : '22:00'
 
     // Crea il nuovo turno
     const newShift = await prisma.shift.create({
@@ -91,8 +92,8 @@ export async function POST(
         dayOfWeek: dayOfWeek,
         shiftType: shiftType,
         role: role,
-        startTime: shiftTimes.start,
-        endTime: shiftTimes.end,
+        startTime: startTime,
+        endTime: endTime,
         status: 'ASSIGNED'
       },
       include: {
@@ -120,8 +121,3 @@ export async function POST(
   }
 }
 
-function getShiftTimes(shiftType: string): { start: string; end: string } {
-  return shiftType === 'PRANZO' 
-    ? { start: '11:30', end: '14:00' }
-    : { start: '18:00', end: '22:00' }
-}

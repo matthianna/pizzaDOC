@@ -227,7 +227,7 @@ export default function AdminHoursPage() {
             </div>
           ) : workedHours.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -340,45 +340,92 @@ export default function AdminHoursPage() {
 
       {/* Reject Modal */}
       {rejectingId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Rifiuta Ore Lavorate
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Motivo del rifiuto
-                  </label>
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-lg w-full transform transition-all">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 px-6 py-4 border-b border-red-100 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <X className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Rifiuta Ore Lavorate
+                    </h2>
+                    <p className="text-sm text-red-600">
+                      Specifica il motivo del rifiuto
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setRejectingId(null)
+                    setRejectReason('')
+                  }}
+                  className="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors"
+                >
+                  <X className="h-4 w-4 text-red-600" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-5">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-800">Attenzione</p>
+                    <p className="text-amber-700">
+                      Il rifiuto comporterà la restituzione delle ore al dipendente per la correzione.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-gray-800">
+                  Motivo del rifiuto *
+                </label>
+                <div className="relative">
                   <textarea
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    rows={3}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-                    placeholder="Specifica il motivo del rifiuto..."
+                    rows={4}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none"
+                    placeholder="Esempio: Orario di fine non corretto, mancano informazioni sulla pausa, ecc..."
                   />
+                  <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+                    {rejectReason.length}/500
+                  </div>
                 </div>
+                <p className="text-xs text-gray-600">
+                  Fornisci dettagli specifici per aiutare il dipendente a correggere l&apos;errore.
+                </p>
+              </div>
+            </div>
 
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={() => {
-                      setRejectingId(null)
-                      setRejectReason('')
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                  >
-                    Annulla
-                  </button>
-                  <button
-                    onClick={() => rejectHours(rejectingId, rejectReason)}
-                    disabled={!rejectReason.trim()}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
-                  >
-                    Rifiuta
-                  </button>
-                </div>
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-xl">
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setRejectingId(null)
+                    setRejectReason('')
+                  }}
+                  className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={() => rejectHours(rejectingId, rejectReason)}
+                  disabled={!rejectReason.trim()}
+                  className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 rounded-lg hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center space-x-2"
+                >
+                  <X className="h-4 w-4" />
+                  <span>Rifiuta Ore</span>
+                </button>
               </div>
             </div>
           </div>

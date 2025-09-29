@@ -65,35 +65,40 @@ export async function GET(
   }
 }
 
-function generateScheduleHTML(schedule: any, weekStart: Date): string {
+function generateScheduleHTML(schedule: {
+  shifts: Array<{
+    id: string;
+    dayOfWeek: number;
+    shiftType: string;
+    role: string;
+    startTime: string;
+    user: {
+      username: string;
+    };
+  }>;
+}, weekStart: Date): string {
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekEnd.getDate() + 6)
 
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
-  const shifts = ['PRANZO', 'CENA']
-
   // Raggruppa i turni per giorno e tipo
-  const shiftsByDay: Record<number, Record<string, any[]>> = {}
+  const shiftsByDay: Record<number, Record<string, Array<{
+    id: string;
+    role: string;
+    startTime: string;
+    user: {
+      username: string;
+    };
+  }>>> = {}
   
   for (let day = 1; day <= 7; day++) {
     shiftsByDay[day] = { PRANZO: [], CENA: [] }
   }
 
-  schedule.shifts.forEach((shift: any) => {
+  schedule.shifts.forEach((shift) => {
     const dayIndex = shift.dayOfWeek === 0 ? 7 : shift.dayOfWeek // Domenica = 0 -> 7
     shiftsByDay[dayIndex][shift.shiftType].push(shift)
   })
-
-  // Raggruppa per ruolo per contare meglio i buchi
-  const groupByRole = (shifts: any[]) => {
-    const groups: Record<string, any[]> = { CUCINA: [], FATTORINO: [], SALA: [] }
-    shifts.forEach(shift => {
-      if (groups[shift.role]) {
-        groups[shift.role].push(shift)
-      }
-    })
-    return groups
-  }
 
   return `
 <!DOCTYPE html>
@@ -196,10 +201,22 @@ function generateScheduleHTML(schedule: any, weekStart: Date): string {
             margin-bottom: 6px;
         }
         
+        .person-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
         .person-name {
             font-weight: 500;
             color: #1f2937;
             font-size: 13px;
+        }
+        
+        .person-start-time {
+            font-size: 11px;
+            color: #f97316;
+            font-weight: 600;
         }
         
         .person-role {
@@ -299,13 +316,16 @@ function generateScheduleHTML(schedule: any, weekStart: Date): string {
                 <div class="shift-section">
                     <h3 class="shift-title">
                         Pranzo 
-                        <span class="shift-time">11:30-14:00</span>
+                        <span class="shift-time">11:00-14:00</span>
                     </h3>
                     <div class="person-list">
                         ${pranzaShifts.length > 0 
-                          ? pranzaShifts.map((shift: any) => `
+                          ? pranzaShifts.map((shift) => `
                               <div class="person">
-                                  <span class="person-name">${shift.user.username}</span>
+                                  <div class="person-info">
+                                      <span class="person-name">${shift.user.username}</span>
+                                      <span class="person-start-time">${shift.startTime}</span>
+                                  </div>
                                   <span class="person-role">${shift.role}</span>
                               </div>
                             `).join('')
@@ -317,13 +337,16 @@ function generateScheduleHTML(schedule: any, weekStart: Date): string {
                 <div class="shift-section">
                     <h3 class="shift-title">
                         Cena 
-                        <span class="shift-time">18:00-22:00</span>
+                        <span class="shift-time">17:00-22:00</span>
                     </h3>
                     <div class="person-list">
                         ${cenaShifts.length > 0 
-                          ? cenaShifts.map((shift: any) => `
+                          ? cenaShifts.map((shift) => `
                               <div class="person">
-                                  <span class="person-name">${shift.user.username}</span>
+                                  <div class="person-info">
+                                      <span class="person-name">${shift.user.username}</span>
+                                      <span class="person-start-time">${shift.startTime}</span>
+                                  </div>
                                   <span class="person-role">${shift.role}</span>
                               </div>
                             `).join('')
@@ -344,7 +367,7 @@ function generateScheduleHTML(schedule: any, weekStart: Date): string {
                 <div class="stat-label">Turni Totali</div>
             </div>
             <div class="stat">
-                <div class="stat-number">${new Set(schedule.shifts.map((s: any) => s.userId)).size}</div>
+                <div class="stat-number">${new Set(schedule.shifts.map((s) => s.userId)).size}</div>
                 <div class="stat-label">Persone</div>
             </div>
         </div>

@@ -7,11 +7,9 @@ import { hashPassword } from '@/lib/utils'
 // POST /api/admin/users/[id]/reset-password - Reset user password
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-
-    const resolvedParams = await params
     const session = await getServerSession(authOptions)
     
     if (!session || !session.user.roles.includes('ADMIN')) {
@@ -19,7 +17,7 @@ export async function POST(
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: resolvedParams.id }
+      where: { id: params.id }
     })
 
     if (!user) {
@@ -29,11 +27,11 @@ export async function POST(
       )
     }
 
-    // Reset password to username
-    const hashedPassword = await hashPassword(user.username)
+    // Reset password to username (lowercase)
+    const hashedPassword = await hashPassword(user.username.toLowerCase())
 
     await prisma.user.update({
-      where: { id: resolvedParams.id },
+      where: { id: params.id },
       data: {
         password: hashedPassword,
         isFirstLogin: true

@@ -17,7 +17,14 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : null
 
     // Build where clause
-    const where: any = {
+    const where: {
+      status: string;
+      userId?: string;
+      submittedAt?: {
+        gte: Date;
+        lte: Date;
+      };
+    } = {
       status: 'APPROVED' // Solo ore approvate
     }
 
@@ -71,11 +78,19 @@ export async function GET(request: NextRequest) {
 
     // Group by user and month
     const summary: Record<string, {
-      user: any
+      user: {
+        id: string;
+        username: string;
+        primaryRole: string;
+      }
       monthlyHours: Record<string, {
         totalHours: number
         shiftsCount: number
-        details: any[]
+        details: Array<{
+          id: string;
+          totalHours: number;
+          submittedAt: Date;
+        }>
       }>
       yearlyTotal: number
     }> = {}

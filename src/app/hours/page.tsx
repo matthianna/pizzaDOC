@@ -75,13 +75,25 @@ export default function HoursPage() {
         const shiftsData = await shiftsResponse.json()
         const hoursData = await hoursResponse.json()
         
-        // Merge shifts with their worked hours
+        // Merge shifts with their worked hours and sort by day
         const shiftsWithHours = shiftsData.map((shift: Shift) => ({
           ...shift,
           workedHours: hoursData.find((wh: WorkedHours) => wh.shiftId === shift.id)
         }))
         
-        setShifts(shiftsWithHours)
+        // Sort shifts by day of week (Monday = 1, Sunday = 0 -> 7)
+        const sortedShifts = shiftsWithHours.sort((a, b) => {
+          const dayA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek // Sunday becomes 7
+          const dayB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek
+          if (dayA !== dayB) return dayA - dayB
+          // If same day, sort by shift type (PRANZO before CENA)
+          if (a.shiftType !== b.shiftType) {
+            return a.shiftType === 'PRANZO' ? -1 : 1
+          }
+          return 0
+        })
+        
+        setShifts(sortedShifts)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -136,8 +148,15 @@ export default function HoursPage() {
     try {
       const totalHours = calculateHours(startTime, endTime)
       
-      const response = await fetch('/api/user/worked-hours', {
-        method: 'POST',
+      // Se esiste già un record rifiutato, aggiorna invece di creare
+      const isResubmission = shift.workedHours && shift.workedHours.status === 'REJECTED'
+      const method = isResubmission ? 'PUT' : 'POST'
+      const url = isResubmission 
+        ? `/api/user/worked-hours/${shift.workedHours.id}` 
+        : '/api/user/worked-hours'
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -150,7 +169,7 @@ export default function HoursPage() {
       })
 
       if (response.ok) {
-        showToast('Ore inviate per approvazione!', 'success')
+        showToast(isResubmission ? 'Ore corrette e reinviate!' : 'Ore inviate per approvazione!', 'success')
         fetchShiftsAndHours() // Refresh data
       } else {
         const error = await response.json()
@@ -423,43 +442,67 @@ function ShiftCard({
     const [endHour, endMin] = end.split(':').map(Number)
     
     const startMinutes = startHour * 60 + startMin
-    const endMinutes = endHour * 60 + endMin
+    let endMinutes = endHour * 60 + endMin
+    
+    // Gestisce il passaggio della mezzanotte (00:00, 00:30)
+    if (endHour < startHour) {
+      endMinutes += 24 * 60 // Aggiunge 24 ore
+    }
     
     const totalMinutes = endMinutes - startMinutes
     return Math.round((totalMinutes / 60) * 2) / 2
   }
 
   const totalHours = calculateHours(startTime, endTime)
-  const canSubmit = !shift.workedHours && isPastShift && startTime && endTime && startTime < endTime
+  const canSubmit = isPastShift && startTime && endTime && totalHours > 0 && 
+    (!shift.workedHours || shift.workedHours.status === 'REJECTED')
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-4">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+      {/* Header with gradient */}
+      <div className={`px-6 py-4 border-b ${
+        shift.shiftType === 'PRANZO' 
+          ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-orange-100' 
+          : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100'
+      }`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className={`w-3 h-3 rounded-full ${
+              shift.shiftType === 'PRANZO' ? 'bg-orange-400' : 'bg-blue-500'
+            }`}></div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
                 {getDayName(shift.dayOfWeek)} - {getShiftTypeName(shift.shiftType)}
               </h3>
-              <p className="text-sm text-gray-700">
-                {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • {getRoleName(shift.role)}
-              </p>
-              <p className="text-sm text-gray-700">
-                Orario turno: {shift.startTime} - {shift.endTime}
-              </p>
+              <div className="flex items-center space-x-3 text-sm text-gray-600 mt-1">
+                <span className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-1" />
+                  {format(shiftDate, 'dd/MM/yyyy', { locale: it })}
+                </span>
+                <span className="flex items-center">
+                  <Clock className="h-4 w-4 mr-1" />
+                  Inizio: {shift.startTime}
+                </span>
+                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">
+                  {getRoleName(shift.role)}
+                </span>
+              </div>
             </div>
           </div>
 
           {shift.workedHours && (
-            <div className={`px-3 py-1 rounded-full border text-sm font-medium flex items-center ${getStatusColor(shift.workedHours.status)}`}>
+            <div className={`px-4 py-2 rounded-full border text-sm font-medium flex items-center shadow-sm ${getStatusColor(shift.workedHours.status)}`}>
               {getStatusIcon(shift.workedHours.status)}
               <span className="ml-2">{getStatusText(shift.workedHours.status)}</span>
             </div>
           )}
         </div>
+      </div>
 
-        {shift.workedHours ? (
-          // Show submitted hours
+      <div className="p-6">
+
+        {shift.workedHours && shift.workedHours.status !== 'REJECTED' ? (
+          // Show submitted hours (PENDING or APPROVED only)
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
@@ -477,59 +520,164 @@ function ShiftCard({
                 </p>
               </div>
             </div>
-            
-            {shift.workedHours.status === 'REJECTED' && shift.workedHours.rejectionReason && (
-              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
-                <div className="flex items-start">
-                  <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-red-800">Motivo rifiuto:</p>
-                    <p className="text-sm text-red-700">{shift.workedHours.rejectionReason}</p>
+          </div>
+        ) : isPastShift ? (
+          // Show input form for past shifts or rejected hours
+          <div className="space-y-4">
+            {/* Show rejection reason if hours were rejected */}
+            {shift.workedHours && shift.workedHours.status === 'REJECTED' && shift.workedHours.rejectionReason && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <div className="flex items-start space-x-3">
+                  <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h5 className="text-sm font-semibold text-red-800 mb-1">Ore rifiutate - Correzioni richieste</h5>
+                    <p className="text-sm text-red-700 mb-3">{shift.workedHours.rejectionReason}</p>
+                    <div className="bg-red-100 rounded-lg p-3 text-xs text-red-600">
+                      <strong>Ore precedenti:</strong> {shift.workedHours.startTime} - {shift.workedHours.endTime} ({shift.workedHours.totalHours}h)
+                    </div>
                   </div>
                 </div>
               </div>
             )}
-          </div>
-        ) : isPastShift ? (
-          // Show input form for past shifts
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Input
-                  type="time"
-                  label="Orario inizio"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
+
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-200">
+              <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
+                <Clock className="h-4 w-4 text-orange-500 mr-2" />
+                {shift.workedHours && shift.workedHours.status === 'REJECTED' 
+                  ? 'Correggi e reinvia le ore' 
+                  : 'Inserisci le ore lavorate'
+                }
+              </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Orario Inizio */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Orario inizio
+                </label>
+                <div className="relative">
+                  <select
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full appearance-none bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium shadow-sm hover:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                  >
+                    <option value="">Seleziona orario</option>
+                    {shift.shiftType === 'PRANZO' ? (
+                      // Orari pranzo
+                      <>
+                        <option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option>
+                        <option value="11:30">11:30</option>
+                        <option value="12:00">12:00</option>
+                        <option value="12:30">12:30</option>
+                      </>
+                    ) : (
+                      // Orari cena
+                      <>
+                        <option value="16:30">16:30</option>
+                        <option value="17:00">17:00</option>
+                        <option value="17:30">17:30</option>
+                        <option value="18:00">18:00</option>
+                        <option value="18:30">18:30</option>
+                        <option value="19:00">19:00</option>
+                        <option value="19:30">19:30</option>
+                      </>
+                    )}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div>
-                <Input
-                  type="time"
-                  label="Orario fine"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
+
+              {/* Orario Fine */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Orario fine
+                </label>
+                <div className="relative">
+                  <select
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full appearance-none bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium shadow-sm hover:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                  >
+                    <option value="">Seleziona orario</option>
+                    {shift.shiftType === 'PRANZO' ? (
+                      // Orari fine pranzo
+                      <>
+                        <option value="13:00">13:00</option>
+                        <option value="13:30">13:30</option>
+                        <option value="14:00">14:00</option>
+                        <option value="14:30">14:30</option>
+                        <option value="15:00">15:00</option>
+                        <option value="15:30">15:30</option>
+                      </>
+                    ) : (
+                      // Orari fine cena
+                      <>
+                        <option value="20:30">20:30</option>
+                        <option value="21:00">21:00</option>
+                        <option value="21:30">21:30</option>
+                        <option value="22:00">22:00</option>
+                        <option value="22:30">22:30</option>
+                        <option value="23:00">23:00</option>
+                        <option value="23:30">23:30</option>
+                        <option value="00:00">00:00</option>
+                        <option value="00:30">00:30</option>
+                      </>
+                    )}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+
+              {/* Ore Totali */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
                   Ore totali
                 </label>
-                <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-medium">
-                  {totalHours > 0 ? `${totalHours}h` : '-'}
+                <div className="relative">
+                  <div className={`px-4 py-3 rounded-xl border-2 text-center font-bold text-lg transition-all ${
+                    totalHours > 0 
+                      ? 'bg-gradient-to-r from-green-100 to-emerald-100 border-green-300 text-green-800' 
+                      : 'bg-gray-100 border-gray-200 text-gray-400'
+                  }`}>
+                    {totalHours > 0 ? `${totalHours}h` : '0h'}
+                  </div>
+                  {totalHours > 0 && (
+                    <div className="absolute -top-1 -right-1">
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <Button
-                onClick={() => onSubmitHours(shift, startTime, endTime)}
-                disabled={!canSubmit || submitting}
-                isLoading={submitting}
-                className="flex items-center"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Invia per approvazione
-              </Button>
+              <div className="flex justify-end mt-6 pt-4 border-t border-orange-200">
+                <Button
+                  onClick={() => onSubmitHours(shift, startTime, endTime)}
+                  disabled={!canSubmit || submitting}
+                  isLoading={submitting}
+                  className={`flex items-center shadow-lg text-white ${
+                    shift.workedHours && shift.workedHours.status === 'REJECTED'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+                      : 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700'
+                  }`}
+                  size="lg"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {shift.workedHours && shift.workedHours.status === 'REJECTED' 
+                    ? 'Reinvia corretto' 
+                    : 'Invia per approvazione'
+                  }
+                </Button>
+              </div>
             </div>
           </div>
         ) : (

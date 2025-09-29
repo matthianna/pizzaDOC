@@ -43,16 +43,76 @@ interface TodayShiftsData {
   totalWorkers: number
 }
 
+interface MyShift {
+  id: string
+  dayOfWeek: number
+  dayName: string
+  date: string
+  shiftType: 'PRANZO' | 'CENA'
+  role: string
+  startTime: string
+  endTime: string
+  isToday: boolean
+  isPast: boolean
+}
+
+interface MyShiftsData {
+  shifts: MyShift[]
+  total: number
+}
+
+interface PendingHoursData {
+  users: Array<{
+    user: {
+      id: string
+      username: string
+      primaryRole: string
+    }
+    pendingShifts: Array<{
+      id: string
+      shiftId: string
+      startTime: string
+      endTime: string
+      totalHours: number
+      submittedAt: string
+      shift: {
+        dayOfWeek: number
+        shiftType: string
+        role: string
+        startTime: string
+        endTime: string
+        schedule: {
+          weekStart: string
+        }
+      }
+    }>
+    totalHours: number
+    shiftsCount: number
+  }>
+  totalUsers: number
+  totalShifts: number
+  totalHours: number
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession()
   const [stats, setStats] = useState<DashboardStats>({})
   const [todayShifts, setTodayShifts] = useState<TodayShiftsData | null>(null)
+  const [myShifts, setMyShifts] = useState<MyShiftsData | null>(null)
+  const [pendingHours, setPendingHours] = useState<PendingHoursData | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const isAdmin = session?.user.roles.includes('ADMIN')
 
   useEffect(() => {
     fetchStats()
     fetchTodayShifts()
-  }, [])
+    if (!isAdmin && session) {
+      fetchMyShifts()
+    } else if (isAdmin && session) {
+      fetchPendingHours()
+    }
+  }, [session, isAdmin])
 
   const fetchTodayShifts = async () => {
     try {
@@ -63,6 +123,30 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Error fetching today shifts:', error)
+    }
+  }
+
+  const fetchMyShifts = async () => {
+    try {
+      const response = await fetch('/api/dashboard/my-shifts')
+      if (response.ok) {
+        const data = await response.json()
+        setMyShifts(data)
+      }
+    } catch (error) {
+      console.error('Error fetching my shifts:', error)
+    }
+  }
+
+  const fetchPendingHours = async () => {
+    try {
+      const response = await fetch('/api/dashboard/pending-hours')
+      if (response.ok) {
+        const data = await response.json()
+        setPendingHours(data)
+      }
+    } catch (error) {
+      console.error('Error fetching pending hours:', error)
     }
   }
 
@@ -80,8 +164,6 @@ export default function DashboardPage() {
     }
   }
 
-  const isAdmin = session?.user.roles.includes('ADMIN')
-
   if (loading) {
     return (
       <MainLayout>
@@ -94,16 +176,16 @@ export default function DashboardPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Welcome Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-2xl font-bold text-gray-900">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Benvenuto, {session?.user.username}!
           </h1>
-          <p className="text-gray-800 mt-2">
+          <p className="text-gray-800 mt-2 text-sm sm:text-base">
             Dashboard - Sistema di gestione piano di lavoro pizzeria
           </p>
-          <div className="mt-4 flex items-center text-sm text-gray-700">
+          <div className="mt-3 sm:mt-4 flex items-center text-sm text-gray-700">
             <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
               {session?.user.primaryRole === 'ADMIN' ? 'Amministratore' : 
                session?.user.primaryRole === 'FATTORINO' ? 'Fattorino' :
@@ -113,47 +195,90 @@ export default function DashboardPage() {
         </div>
 
         {/* Chi lavora oggi */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
           <div className="flex items-center mb-4">
-            <CalendarDays className="h-6 w-6 text-orange-500 mr-2" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500 mr-2" />
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">
               Chi lavora oggi - {format(new Date(), 'EEEE d MMMM', { locale: it })}
             </h2>
           </div>
           
           {todayShifts && todayShifts.totalWorkers > 0 ? (
-            <div className="space-y-4">
-              {Object.entries(todayShifts.shifts).map(([shiftType, shifts]) => (
-                <div key={shiftType} className="border-l-4 border-orange-500 pl-4">
-                  <h3 className="font-medium text-gray-900 mb-2 capitalize">
-                    {shiftType.toLowerCase()}
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {shifts.map((shift) => (
-                      <div 
-                        key={shift.id} 
-                        className="bg-orange-50 rounded-lg p-3 border border-orange-200"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {shift.user.username}
-                            </p>
-                            <p className="text-sm text-orange-600">
-                              {getRoleName(shift.role as any)}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-gray-900">
-                              {shift.startTime} - {shift.endTime}
-                            </p>
-                          </div>
-                        </div>
+            <div className="space-y-6">
+              {Object.entries(todayShifts.shifts)
+                .sort(([a], [b]) => {
+                  // Ordina: PRANZO prima, CENA dopo
+                  if (a === 'PRANZO' && b === 'CENA') return -1
+                  if (a === 'CENA' && b === 'PRANZO') return 1
+                  return 0
+                })
+                .map(([shiftType, shifts]) => {
+                  // Raggruppa per ruolo
+                  const shiftsByRole = shifts.reduce((acc, shift) => {
+                    if (!acc[shift.role]) acc[shift.role] = []
+                    acc[shift.role].push(shift)
+                    return acc
+                  }, {} as Record<string, typeof shifts>)
+
+                  // Determina se il turno è terminato
+                  const now = new Date()
+                  const isShiftEnded = (shiftType === 'PRANZO' && now.getHours() >= 14) || 
+                                      (shiftType === 'CENA' && now.getHours() >= 22)
+
+                  return (
+                    <div key={shiftType} className="border-l-4 border-orange-500 pl-4">
+                      <div className="flex items-center gap-3 mb-4">
+                        <h3 className="font-medium text-gray-900 capitalize text-lg">
+                          {shiftType.toLowerCase()}
+                        </h3>
+                        {isShiftEnded && (
+                          <span className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            TERMINATO
+                          </span>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                      
+                      <div className="space-y-4">
+                        {Object.entries(shiftsByRole).map(([role, roleShifts]) => (
+                          <div key={role}>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                              {getRoleName(role as Role)}
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                              {roleShifts.map((shift) => (
+                                <div 
+                                  key={shift.id} 
+                                  className={`rounded-lg p-2 sm:p-3 border transition-all ${
+                                    isShiftEnded 
+                                      ? 'bg-gray-100 border-gray-300 opacity-75' 
+                                      : 'bg-orange-50 border-orange-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className={`font-medium ${
+                                        isShiftEnded ? 'text-gray-600' : 'text-gray-900'
+                                      }`}>
+                                        {shift.user.username}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className={`text-sm font-medium ${
+                                        isShiftEnded ? 'text-gray-500' : 'text-gray-900'
+                                      }`}>
+                                        Inizio: {shift.startTime}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
             </div>
           ) : (
             <div className="text-center py-8">
@@ -241,28 +366,115 @@ export default function DashboardPage() {
               </h2>
             </div>
             <div className="p-6">
-              <p className="text-gray-700 text-center py-8">
-                {isAdmin ? 
-                  'Nessuna attività recente' : 
-                  'Nessun turno assegnato per questa settimana'
-                }
-              </p>
+              {isAdmin ? (
+                <p className="text-gray-700 text-center py-8">
+                  Nessuna attività recente
+                </p>
+              ) : (
+                myShifts && myShifts.total > 0 ? (
+                  <div className="space-y-3">
+                    {myShifts.shifts.map((shift) => (
+                      <div
+                        key={shift.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                          shift.isToday 
+                            ? 'bg-orange-50 border-orange-200' 
+                            : shift.isPast 
+                            ? 'bg-gray-50 border-gray-200 opacity-75'
+                            : 'bg-blue-50 border-blue-200'
+                        }`}
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {shift.dayName} {shift.date}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {shift.shiftType.toLowerCase()} - {getRoleName(shift.role as any)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-gray-900">
+                            Inizio: {shift.startTime}
+                          </p>
+                          {shift.isToday && (
+                            <p className="text-xs text-orange-600 font-medium">OGGI</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-700 text-center py-8">
+                    Nessun turno assegnato per questa settimana
+                  </p>
+                )
+              )}
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow">
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">
-                {isAdmin ? 'Ore da Approvare' : 'Le Mie Ore'}
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-medium text-gray-900">
+                  {isAdmin ? 'Ore da Approvare' : 'Le Mie Ore'}
+                </h2>
+                {isAdmin && pendingHours && pendingHours.totalShifts > 0 && (
+                  <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {pendingHours.totalShifts} turni
+                  </span>
+                )}
+              </div>
             </div>
             <div className="p-6">
-              <p className="text-gray-700 text-center py-8">
-                {isAdmin ?
-                  stats.pendingHours === 0 ? 'Nessuna ora in attesa di approvazione' : `${stats.pendingHours} ore da approvare` :
-                  'Visualizza le tue ore lavorate nella sezione dedicata'
-                }
-              </p>
+              {isAdmin ? (
+                pendingHours && pendingHours.users.length > 0 ? (
+                  <div className="space-y-3">
+                    {pendingHours.users.map((userPending) => (
+                      <div 
+                        key={userPending.user.id}
+                        className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {userPending.user.username}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {getRoleName(userPending.user.primaryRole as any)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-orange-800">
+                            {userPending.shiftsCount} {userPending.shiftsCount === 1 ? 'turno' : 'turni'}
+                          </p>
+                          <p className="text-xs text-orange-600">
+                            {userPending.totalHours}h totali
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <a 
+                        href="/admin/hours"
+                        className="block w-full text-center bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors font-medium"
+                      >
+                        Approva Tutte le Ore →
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-700">Nessuna ora in attesa di approvazione</p>
+                  </div>
+                )
+              ) : (
+                <p className="text-gray-700 text-center py-8">
+                  Visualizza le tue ore lavorate nella sezione dedicata
+                </p>
+              )}
             </div>
           </div>
         </div>

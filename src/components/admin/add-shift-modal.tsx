@@ -18,14 +18,20 @@ interface AddShiftModalProps {
   weekStart: Date
   onClose: () => void
   onShiftAdded: () => void
+  prefilledData?: {
+    dayOfWeek?: number
+    shiftType?: string
+    role?: string
+  } | null
 }
 
-export function AddShiftModal({ weekStart, onClose, onShiftAdded }: AddShiftModalProps) {
+export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData }: AddShiftModalProps) {
   const [users, setUsers] = useState<User[]>([])
   const [selectedUserId, setSelectedUserId] = useState('')
   const [selectedDay, setSelectedDay] = useState(1) // 1 = Monday
   const [selectedShiftType, setSelectedShiftType] = useState('PRANZO')
   const [selectedRole, setSelectedRole] = useState('')
+  const [selectedStartTime, setSelectedStartTime] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const { showToast, ToastContainer } = useToast()
@@ -41,18 +47,88 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded }: AddShiftModa
   ]
 
   const shiftTypes = [
-    { value: 'PRANZO', label: 'Pranzo (11:30-14:00)' },
-    { value: 'CENA', label: 'Cena (18:00-22:00)' }
+    { value: 'PRANZO', label: 'Pranzo (11:00-14:00)' },
+    { value: 'CENA', label: 'Cena (17:00-22:00)' }
   ]
+
+  // Orari di inizio disponibili in base al turno e ruolo selezionato
+  const getAvailableStartTimes = (shiftType: string, role: string) => {
+    if (shiftType === 'PRANZO') {
+      if (role === 'SALA' || role === 'FATTORINO') {
+        // SALA e FATTORINO: NO 11:00, iniziano da 11:30
+        return [
+          { value: '11:30', label: '11:30' },
+          { value: '12:00', label: '12:00' }
+        ]
+      } else {
+        // PIZZAIOLO e CUCINA: possono iniziare alle 11:00
+        return [
+          { value: '11:00', label: '11:00' },
+          { value: '11:30', label: '11:30' },
+          { value: '12:00', label: '12:00' }
+        ]
+      }
+    } else { // CENA
+      if (role === 'FATTORINO') {
+        // FATTORINO: solo dalle 18:00, NO 19:30
+        return [
+          { value: '18:00', label: '18:00' },
+          { value: '18:30', label: '18:30' },
+          { value: '19:00', label: '19:00' }
+        ]
+      } else if (role === 'SALA') {
+        // SALA: dalle 18:00, NO 19:00, NO 19:30
+        return [
+          { value: '18:00', label: '18:00' },
+          { value: '18:30', label: '18:30' }
+        ]
+      } else {
+        // PIZZAIOLO e CUCINA: possono iniziare alle 17:00
+        return [
+          { value: '17:00', label: '17:00' },
+          { value: '17:30', label: '17:30' },
+          { value: '18:00', label: '18:00' },
+          { value: '18:30', label: '18:30' }
+        ]
+      }
+    }
+  }
 
   useEffect(() => {
     fetchUsers()
   }, [])
 
   useEffect(() => {
-    // Reset role when user changes
-    setSelectedRole('')
-  }, [selectedUserId])
+    // Imposta i valori precompilati se forniti
+    if (prefilledData) {
+      if (prefilledData.dayOfWeek !== undefined) {
+        setSelectedDay(prefilledData.dayOfWeek)
+      }
+      if (prefilledData.shiftType) {
+        setSelectedShiftType(prefilledData.shiftType)
+      }
+      if (prefilledData.role) {
+        setSelectedRole(prefilledData.role)
+      }
+    }
+  }, [prefilledData])
+
+  useEffect(() => {
+    // Reset role when user changes, solo se non abbiamo dati precompilati
+    if (!prefilledData?.role) {
+      setSelectedRole('')
+    }
+  }, [selectedUserId, prefilledData?.role])
+
+  useEffect(() => {
+    // Reset start time when shift type changes
+    setSelectedStartTime('')
+  }, [selectedShiftType])
+
+  useEffect(() => {
+    // Reset start time when role changes (because available times depend on role)
+    setSelectedStartTime('')
+  }, [selectedRole])
 
   const fetchUsers = async () => {
     try {
@@ -77,8 +153,8 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded }: AddShiftModa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!selectedUserId || !selectedRole) {
-      showToast('Seleziona utente e ruolo', 'error')
+    if (!selectedUserId || !selectedRole || !selectedStartTime) {
+      showToast('Completa tutti i campi obbligatori', 'error')
       return
     }
 
@@ -94,7 +170,8 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded }: AddShiftModa
           userId: selectedUserId,
           dayOfWeek: selectedDay,
           shiftType: selectedShiftType,
-          role: selectedRole
+          role: selectedRole,
+          startTime: selectedStartTime
         })
       })
 
@@ -176,6 +253,18 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded }: AddShiftModa
               onChange={(value) => setSelectedShiftType(value as string)}
             />
 
+            {/* Start Time Selection */}
+            <Select
+              label="Orario Inizio"
+              options={[
+                { value: '', label: 'Seleziona orario di inizio' },
+                ...getAvailableStartTimes(selectedShiftType, selectedRole)
+              ]}
+              value={selectedStartTime}
+              onChange={(value) => setSelectedStartTime(value as string)}
+              disabled={!selectedRole}
+            />
+
             {/* Role Selection */}
             <Select
               label="Ruolo"
@@ -224,7 +313,7 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded }: AddShiftModa
               </Button>
               <Button
                 type="submit"
-                disabled={!selectedUserId || !selectedRole}
+                disabled={!selectedUserId || !selectedRole || !selectedStartTime}
                 isLoading={submitting}
               >
                 Aggiungi Turno

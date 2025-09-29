@@ -6,11 +6,9 @@ import { prisma } from '@/lib/prisma'
 // POST /api/admin/hours/[id]/reject - Reject worked hours
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-
-    const resolvedParams = await params
     const session = await getServerSession(authOptions)
     
     if (!session || !session.user.roles.includes('ADMIN')) {
@@ -27,7 +25,7 @@ export async function POST(
     }
 
     const workedHours = await prisma.workedHours.findUnique({
-      where: { id: resolvedParams.id }
+      where: { id: params.id }
     })
 
     if (!workedHours) {
@@ -45,7 +43,7 @@ export async function POST(
     }
 
     const updatedHours = await prisma.workedHours.update({
-      where: { id: resolvedParams.id },
+      where: { id: params.id },
       data: {
         status: 'REJECTED',
         rejectionReason: reason,

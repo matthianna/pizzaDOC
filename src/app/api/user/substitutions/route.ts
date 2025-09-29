@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { addDays } from 'date-fns'
 
 // GET - Fetch available substitutions and user's own substitution requests
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     

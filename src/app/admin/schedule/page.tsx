@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike } from 'lucide-react'
-import { getWeekStart, getNextWeekStart, getWeekDays, formatDate, getDayOfWeek } from '@/lib/date-utils'
+import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X } from 'lucide-react'
+import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek } from '@/lib/date-utils'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
 import { AddShiftModal } from '@/components/admin/add-shift-modal'
+import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 
 interface ScheduleShift {
   id: string
@@ -39,23 +41,31 @@ interface Gap {
   assigned: number
 }
 
-interface ShiftLimit {
-  dayOfWeek: number
-  shiftType: ShiftType
-  role: Role
-  minStaff: number
-  maxStaff: number
-}
-
 export default function AdminSchedulePage() {
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [schedule, setSchedule] = useState<Schedule | null>(null)
   const [gaps, setGaps] = useState<Gap[]>([])
-  const [shiftLimits, setShiftLimits] = useState<ShiftLimit[]>([])
+  const [shiftLimits, setShiftLimits] = useState<{ dayOfWeek: number; shiftType: string; role: string; minStaff: number; maxStaff: number }[]>([])
   const [missingAvailability, setMissingAvailability] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [showAddShiftModal, setShowAddShiftModal] = useState(false)
+  const [prefilledShiftData, setPrefilledShiftData] = useState<{
+    dayOfWeek?: number
+    shiftType?: ShiftType
+    role?: Role
+  } | null>(null)
+  const [showRemoveModal, setShowRemoveModal] = useState(false)
+  const [selectedShift, setSelectedShift] = useState<ScheduleShift | null>(null)
+  const [removeReason, setRemoveReason] = useState('')
+  const [removing, setRemoving] = useState(false)
+  
+  // Stati per modifica orari
+  const [showTimeEditModal, setShowTimeEditModal] = useState(false)
+  const [editingShift, setEditingShift] = useState<ScheduleShift | null>(null)
+  const [newStartTime, setNewStartTime] = useState('')
+  const [, setNewEndTime] = useState('')
+  const [updatingTime, setUpdatingTime] = useState(false)
 
   useEffect(() => {
     fetchSchedule()
@@ -242,6 +252,98 @@ export default function AdminSchedulePage() {
     setCurrentWeek(newWeek)
   }
 
+  const handleRemoveShift = (shift: ScheduleShift) => {
+    setSelectedShift(shift)
+    setRemoveReason('')
+    setShowRemoveModal(true)
+  }
+
+  const confirmRemoveShift = async () => {
+    if (!selectedShift) return
+
+    setRemoving(true)
+    try {
+      const response = await fetch('/api/admin/schedule/remove-staff', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          shiftId: selectedShift.id,
+          reason: removeReason,
+          createSubstitution: false
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setShowRemoveModal(false)
+        await fetchSchedule()
+        
+        alert(`Turno di ${result.username} rimosso definitivamente.`)
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Errore nella rimozione')
+      }
+    } catch (error) {
+      console.error('Error removing shift:', error)
+      alert('Errore nella rimozione del turno')
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  const handleEditShiftTime = (shift: ScheduleShift) => {
+    setEditingShift(shift)
+    setNewStartTime(shift.startTime)
+    setNewEndTime(shift.endTime)
+    setShowTimeEditModal(true)
+  }
+
+  const confirmTimeUpdate = async () => {
+    if (!editingShift) return
+
+    setUpdatingTime(true)
+    try {
+      const endTime = editingShift.shiftType === 'PRANZO' ? '14:00' : '22:00'
+      const response = await fetch(`/api/admin/shifts/${editingShift.id}/times`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          startTime: newStartTime,
+          endTime: endTime
+        })
+      })
+
+      if (response.ok) {
+        setShowTimeEditModal(false)
+        setEditingShift(null)
+        fetchSchedule() // Ricarica il piano
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Errore nell\'aggiornamento degli orari')
+      }
+    } catch (error) {
+      console.error('Error updating shift times:', error)
+      alert('Errore nell\'aggiornamento degli orari')
+    } finally {
+      setUpdatingTime(false)
+    }
+  }
+
+  const handleQuickAdd = (dayOfWeek: number, shiftType: ShiftType, role: Role) => {
+    // Imposta i parametri precompilati
+    setPrefilledShiftData({
+      dayOfWeek,
+      shiftType,
+      role
+    })
+    // Apri il modal di aggiunta turno
+    setShowAddShiftModal(true)
+  }
+
   const groupShiftsByDayAndShift = () => {
     if (!schedule) return {}
     
@@ -301,7 +403,10 @@ export default function AdminSchedulePage() {
               {generating ? 'Generando...' : 'Genera Piano'}
             </button>
             <button
-              onClick={() => setShowAddShiftModal(true)}
+              onClick={() => {
+                setPrefilledShiftData(null)
+                setShowAddShiftModal(true)
+              }}
               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center"
             >
               <UserPlus className="h-4 w-4 mr-2" />
@@ -322,7 +427,7 @@ export default function AdminSchedulePage() {
             </button>
             
             <div className="text-center">
-              <h2 className="text-lg font-semibold">
+              <h2 className="text-lg font-bold text-2xl font-bold text-gray-900">
                 Settimana dal {formatDate(weekDays[0])} al {formatDate(weekDays[6])}
               </h2>
             </div>
@@ -432,6 +537,9 @@ export default function AdminSchedulePage() {
                             shiftType="PRANZO"
                             gaps={gaps}
                             shiftLimits={shiftLimits}
+                            onRemoveShift={handleRemoveShift}
+                            onEditTime={handleEditShiftTime}
+                            onQuickAdd={handleQuickAdd}
                           />
                         </td>
                         <td className="px-6 py-4">
@@ -441,6 +549,9 @@ export default function AdminSchedulePage() {
                             shiftType="CENA"
                             gaps={gaps}
                             shiftLimits={shiftLimits}
+                            onRemoveShift={handleRemoveShift}
+                            onEditTime={handleEditShiftTime}
+                            onQuickAdd={handleQuickAdd}
                           />
                         </td>
                       </tr>
@@ -469,12 +580,168 @@ export default function AdminSchedulePage() {
       {showAddShiftModal && (
         <AddShiftModal
           weekStart={currentWeek}
-          onClose={() => setShowAddShiftModal(false)}
+          prefilledData={prefilledShiftData}
+          onClose={() => {
+            setShowAddShiftModal(false)
+            setPrefilledShiftData(null)
+          }}
           onShiftAdded={() => {
             setShowAddShiftModal(false)
+            setPrefilledShiftData(null)
             fetchSchedule() // Refresh the schedule
           }}
         />
+      )}
+
+      {/* Remove Shift Modal */}
+      {showRemoveModal && selectedShift && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Rimuovi dal Turno
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowRemoveModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {/* User Info */}
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-red-900 text-sm mb-2">
+                    Stai per rimuovere {selectedShift.user.username} dal turno:
+                  </h4>
+                  <div className="space-y-1 text-sm text-red-800">
+                    <p><strong>Giorno:</strong> {getDayName(selectedShift.dayOfWeek)}</p>
+                    <p><strong>Turno:</strong> {getShiftTypeName(selectedShift.shiftType)}</p>
+                    <p><strong>Ruolo:</strong> {getRoleName(selectedShift.role)}</p>
+                    <p><strong>Orario:</strong> {selectedShift.startTime} - {selectedShift.endTime}</p>
+                  </div>
+                </div>
+                
+                {/* Reason */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Motivo (opzionale)
+                  </label>
+                  <textarea
+                    value={removeReason}
+                    onChange={(e) => setRemoveReason(e.target.value)}
+                    rows={3}
+                    className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-gray-900 placeholder-gray-500 bg-white shadow-sm hover:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-none"
+                    placeholder="Motivo della rimozione..."
+                  />
+                </div>
+
+                {/* Submit Buttons */}
+                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowRemoveModal(false)}
+                  >
+                    Annulla
+                  </Button>
+                  <Button
+                    onClick={confirmRemoveShift}
+                    disabled={removing}
+                    isLoading={removing}
+                    className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
+                  >
+                    Conferma Rimozione
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Modifica Orari */}
+      {showTimeEditModal && editingShift && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Modifica Orari Turno
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowTimeEditModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {/* User Info */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-blue-900 text-sm mb-2">
+                    Modificando gli orari per {editingShift.user.username}:
+                  </h4>
+                  <div className="space-y-1 text-sm text-blue-800">
+                    <p><strong>Giorno:</strong> {getDayName(editingShift.dayOfWeek)}</p>
+                    <p><strong>Turno:</strong> {getShiftTypeName(editingShift.shiftType)}</p>
+                    <p><strong>Ruolo:</strong> {getRoleName(editingShift.role)}</p>
+                  </div>
+                </div>
+
+                {/* Start Time Selection */}
+                <Select
+                  label="Orario Inizio"
+                  options={[
+                    { value: '', label: 'Seleziona orario' },
+                    ...(editingShift?.shiftType === 'PRANZO' ? [
+                      { value: '11:00', label: '11:00' },
+                      { value: '11:30', label: '11:30' },
+                      { value: '12:00', label: '12:00' }
+                    ] : [
+                      { value: '17:00', label: '17:00' },
+                      { value: '17:30', label: '17:30' },
+                      { value: '18:00', label: '18:00' },
+                      { value: '18:30', label: '18:30' },
+                      { value: '19:00', label: '19:00' }
+                    ])
+                  ]}
+                  value={newStartTime}
+                  onChange={(value) => setNewStartTime(value as string)}
+                />
+
+                <p className="text-sm text-gray-600">
+                  💡 Gli orari di fine sono fissi per tutti i turni
+                </p>
+
+                {/* Submit Buttons */}
+                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowTimeEditModal(false)}
+                  >
+                    Annulla
+                  </Button>
+                  <Button
+                    onClick={confirmTimeUpdate}
+                    disabled={!newStartTime || updatingTime}
+                    isLoading={updatingTime}
+                  >
+                    Aggiorna Orari
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </MainLayout>
   )
@@ -504,13 +771,19 @@ function ShiftCrew({
   dayOfWeek, 
   shiftType, 
   gaps, 
-  shiftLimits 
+  shiftLimits,
+  onRemoveShift,
+  onEditTime,
+  onQuickAdd
 }: { 
   shifts: ScheduleShift[]
   dayOfWeek: number
   shiftType: ShiftType
   gaps: Gap[]
-  shiftLimits: any[]
+  shiftLimits: { dayOfWeek: number; shiftType: string; role: string; minStaff: number; maxStaff: number }[]
+  onRemoveShift?: (shift: ScheduleShift) => void
+  onEditTime?: (shift: ScheduleShift) => void
+  onQuickAdd?: (dayOfWeek: number, shiftType: ShiftType, role: Role) => void
 }) {
   // Group by role
   const byRole = shifts.reduce((acc, shift) => {
@@ -571,21 +844,55 @@ function ShiftCrew({
               {roleShifts.map((shift) => {
                 const transportIcon = getTransportIcon(shift.user, shift.role)
                 return (
-                  <span
+                  <div
                     key={shift.id}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800"
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 group relative"
                   >
                     <span className="flex items-center gap-1">
                       {shift.user.username}
                       {transportIcon}
+                      <span className="text-xs text-orange-600 ml-1">
+                        {shift.startTime}
+                      </span>
                     </span>
-                  </span>
+                    <div className="flex items-center gap-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {onEditTime && (
+                        <button
+                          onClick={() => onEditTime(shift)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Modifica orari"
+                        >
+                          <Clock className="h-3 w-3" />
+                        </button>
+                      )}
+                      {onRemoveShift && (
+                        <button
+                          onClick={() => onRemoveShift(shift)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Rimuovi dal turno"
+                        >
+                          <UserMinus className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 )
               })}
               {missing > 0 && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600 border border-red-200 border-dashed">
-                  Mancano {missing}
-                </span>
+                <div className="inline-flex items-center gap-1">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600 border border-red-200 border-dashed">
+                    Mancano {missing}
+                  </span>
+                  {onQuickAdd && (
+                    <button
+                      onClick={() => onQuickAdd(dayOfWeek, shiftType, role)}
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-colors"
+                      title={`Aggiungi ${getRoleName(role)}`}
+                    >
+                      <UserPlus className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

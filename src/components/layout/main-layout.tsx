@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { Sidebar } from './sidebar'
 import { LoadingSpinner } from '../ui/loading-spinner'
+import { isAdmin } from '@/lib/auth-utils'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -28,7 +29,7 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
       return
     }
 
-    if (adminOnly && !session.user.roles.includes('ADMIN')) {
+    if (adminOnly && !isAdmin(session)) {
       router.push('/dashboard')
       return
     }
@@ -42,7 +43,7 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
     return null
   }
 
-  if (adminOnly && !session.user.roles.includes('ADMIN')) {
+  if (adminOnly && !isAdmin(session)) {
     return null
   }
 

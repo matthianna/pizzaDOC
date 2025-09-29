@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { ScheduleAlgorithm } from '@/lib/schedule-algorithm'
+import { EnhancedScheduleAlgorithm } from '@/lib/enhanced-schedule-algorithm'
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,10 +21,10 @@ export async function POST(request: NextRequest) {
     }
 
     const weekStartDate = new Date(weekStart)
-    const algorithm = new ScheduleAlgorithm()
+    const algorithm = new EnhancedScheduleAlgorithm()
     
-    // Generate schedule
-    const result = await algorithm.generateSchedule(weekStartDate)
+    // Generate perfect schedule
+    const result = await algorithm.generatePerfectSchedule(weekStartDate)
     
     // Save schedule
     const scheduleId = await algorithm.saveSchedule(weekStartDate, result.shifts)
@@ -32,7 +32,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       scheduleId,
       shiftsGenerated: result.shifts.length,
-      gaps: result.gaps
+      gaps: result.statistics.gaps,
+      statistics: {
+        totalShifts: result.statistics.totalShifts,
+        rolesAssigned: result.statistics.rolesAssigned,
+        quality: result.statistics.quality
+      }
     })
   } catch (error) {
     console.error('Error generating schedule:', error)

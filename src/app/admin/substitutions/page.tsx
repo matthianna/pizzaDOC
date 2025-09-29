@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Users, Check, X, Clock, Calendar, AlertCircle, CheckCircle, XCircle, User } from 'lucide-react'
+import { Users, Check, X, Clock, AlertCircle, CheckCircle, XCircle, User } from 'lucide-react'
 import { format, parseISO, addDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'

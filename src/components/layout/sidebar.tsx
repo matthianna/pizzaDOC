@@ -30,6 +30,7 @@ import {
   PresentationChartLineIcon as PresentationChartLineIconSolid
 } from '@heroicons/react/24/solid'
 import { cn, getRoleName } from '@/lib/utils'
+import { isAdmin } from '@/lib/auth-utils'
 
 export function Sidebar() {
   const { data: session } = useSession()
@@ -38,7 +39,7 @@ export function Sidebar() {
 
   if (!session) return null
 
-  const isAdmin = session.user.roles.includes('ADMIN')
+  const isUserAdmin = isAdmin(session)
 
   const navigation = [
     {
@@ -127,8 +128,8 @@ export function Sidebar() {
 
   // Filtra la navigazione in base ai permessi
   const visibleNavigation = navigation.filter(item => {
-    if (item.adminOnly && !isAdmin) return false
-    if (item.hideForAdmin && isAdmin) return false
+    if (item.adminOnly && !isUserAdmin) return false
+    if (item.hideForAdmin && isUserAdmin) return false
     return true
   })
 
