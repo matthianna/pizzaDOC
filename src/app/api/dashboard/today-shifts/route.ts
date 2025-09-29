@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { startOfDay, endOfDay } from 'date-fns'
+import { startOfWeek, format } from 'date-fns'
 
 export async function GET() {
   try {
@@ -13,22 +13,29 @@ export async function GET() {
     }
 
     const today = new Date()
-    const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
+    let dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
     
-    // Calcola l'inizio della settimana (lunedì)
-    const startOfWeek = new Date(today)
-    startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7))
-    startOfWeek.setHours(0, 0, 0, 0)
+    // Converti la domenica da 0 a 7 per il database
+    if (dayOfWeek === 0) {
+      dayOfWeek = 7
+    }
+    
+    // Calcola l'inizio della settimana corrente (lunedì)
+    const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 })
+    const weekStartString = format(currentWeekStart, 'yyyy-MM-dd')
+
+    console.log('Today shifts debug:', {
+      today: format(today, 'yyyy-MM-dd HH:mm'),
+      dayOfWeek,
+      weekStartString
+    })
 
     // Trova i turni di oggi
     const todayShifts = await prisma.shift.findMany({
       where: {
         dayOfWeek: dayOfWeek,
         schedule: {
-          weekStart: {
-            gte: startOfWeek,
-            lt: new Date(startOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000) // Fine settimana
-          }
+          weekStart: weekStartString
         }
       },
       include: {
@@ -36,7 +43,13 @@ export async function GET() {
           select: {
             id: true,
             username: true,
-            primaryRole: true
+            primaryRole: true,
+            primaryTransport: true,
+            userTransports: {
+              select: {
+                transport: true
+              }
+            }
           }
         },
         schedule: true
