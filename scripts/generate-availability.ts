@@ -45,7 +45,8 @@ function getWeekDays(weekStart: Date): Array<{ dayOfWeek: number; date: Date; na
   
   for (let i = 0; i < 7; i++) {
     const date = addDays(weekStart, i)
-    const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay() // Domenica = 7
+    const jsDay = date.getDay() // JS: 0=Sunday, 1=Monday, etc.
+    const dayOfWeek = jsDay === 0 ? 6 : jsDay - 1 // Our system: 0=Monday, 6=Sunday
     const name = format(date, 'EEEE', { locale: it })
     
     days.push({

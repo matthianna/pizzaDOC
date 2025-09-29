@@ -243,7 +243,7 @@ async function setupShiftLimits() {
   const roles = [Role.PIZZAIOLO, Role.CUCINA, Role.SALA, Role.FATTORINO]
   const shiftTypes = ['PRANZO', 'CENA']
   
-  // Limiti per giorni della settimana (1=Lunedì, 7=Domenica)
+  // Limiti per giorni della settimana (0=Lunedì, 6=Domenica)
   const limits = {
     PIZZAIOLO: { PRANZO: { min: 1, max: 2 }, CENA: { min: 1, max: 2 } },
     CUCINA: { PRANZO: { min: 2, max: 4 }, CENA: { min: 2, max: 4 } },
@@ -251,7 +251,7 @@ async function setupShiftLimits() {
     FATTORINO: { PRANZO: { min: 1, max: 3 }, CENA: { min: 3, max: 6 } }
   }
 
-  for (let dayOfWeek = 1; dayOfWeek <= 7; dayOfWeek++) {
+  for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
     for (const role of roles) {
       for (const shiftType of shiftTypes) {
         const limit = limits[role][shiftType as keyof typeof limits.PIZZAIOLO]

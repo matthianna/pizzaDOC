@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { startOfWeek, format } from 'date-fns'
+import { convertJsDayToOurDay } from '@/lib/date-utils'
 
 export async function GET() {
   try {
@@ -13,8 +14,8 @@ export async function GET() {
     }
 
     const today = new Date()
-    const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
-    // Il database usa lo stesso formato JS: 0=Sunday, 1=Monday, etc.
+    const jsDay = today.getDay() // JavaScript: 0=Sunday, 1=Monday, etc.
+    const dayOfWeek = convertJsDayToOurDay(jsDay) // Our system: 0=Monday, 1=Tuesday, ..., 6=Sunday
     
     // Calcola l'inizio della settimana corrente (lunedì)
     const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 })
