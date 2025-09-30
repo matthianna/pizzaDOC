@@ -115,6 +115,7 @@ model User {
   substitutionRequests  Substitution[] @relation("SubstitutionRequester")
   substitutionAsSubstitute Substitution[] @relation("SubstitutionSubstitute")
   substitutionApprovals Substitution[] @relation("SubstitutionApprover")
+  absences              Absence[]
 
   @@map("users")
 }
@@ -269,4 +270,34 @@ model Substitution {
   approver   User? @relation("SubstitutionApprover", fields: [approverId], references: [id], onDelete: SetNull)
 
   @@map("substitutions")
+}
+
+model Absence {
+  id          String      @id @default(cuid())
+  userId      String
+  startDate   DateTime
+  endDate     DateTime
+  type        AbsenceType @default(VACATION)
+  reason      String?
+  description String?
+  status      AbsenceStatus @default(APPROVED) // Auto-approvate per ora
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("absences")
+}
+
+enum AbsenceType {
+  VACATION     // Vacanze
+  SICK_LEAVE   // Malattia  
+  PERSONAL     // Permesso personale
+  OTHER        // Altro
+}
+
+enum AbsenceStatus {
+  PENDING      // In attesa
+  APPROVED     // Approvata
+  REJECTED     // Rifiutata
 }

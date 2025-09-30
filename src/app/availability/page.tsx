@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { useSession } from 'next-auth/react'
-import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock, MapPin, ExternalLink } from 'lucide-react'
 import { getWeekStart, getNextWeekStart, canEditAvailability, getWeekDays, formatDate, getDayOfWeek, getShiftTimes } from '@/lib/date-utils'
 import { getDayName, getShiftTypeName } from '@/lib/utils'
+import { format, parseISO } from 'date-fns'
+import { it } from 'date-fns/locale'
 
 interface Availability {
   dayOfWeek: number
@@ -18,6 +20,7 @@ export default function AvailabilityPage() {
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [isAbsentWeek, setIsAbsentWeek] = useState(false)
+  const [absenceDetails, setAbsenceDetails] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -34,7 +37,21 @@ export default function AvailabilityPage() {
 
   useEffect(() => {
     fetchAvailability()
+    checkAbsences()
   }, [currentWeek])
+
+  const checkAbsences = async () => {
+    try {
+      const response = await fetch(`/api/user/absences/check?weekStart=${currentWeek.toISOString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setIsAbsentWeek(data.hasAbsence)
+        setAbsenceDetails(data.absences || [])
+      }
+    } catch (error) {
+      console.error('Error checking absences:', error)
+    }
+  }
 
   const fetchAvailability = async () => {
     setLoading(true)
@@ -43,19 +60,12 @@ export default function AvailabilityPage() {
       if (response.ok) {
         const data = await response.json()
         
-        // Check if user is absent for the week
-        const isAbsent = data.length > 0 && data[0].isAbsentWeek
-        setIsAbsentWeek(isAbsent)
-        
-        if (!isAbsent) {
-          setAvailabilities(data.map((d: any) => ({
-            dayOfWeek: d.dayOfWeek,
-            shiftType: d.shiftType,
-            isAvailable: d.isAvailable
-          })))
-        } else {
-          setAvailabilities([])
-        }
+        // Don't use old isAbsentWeek logic, use new absence system
+        setAvailabilities(data.map((d: any) => ({
+          dayOfWeek: d.dayOfWeek,
+          shiftType: d.shiftType,
+          isAvailable: d.isAvailable
+        })))
       }
     } catch (error) {
       console.error('Error fetching availability:', error)
@@ -120,6 +130,16 @@ export default function AvailabilityPage() {
     const newWeek = new Date(currentWeek)
     newWeek.setDate(newWeek.getDate() + (direction === 'next' ? 7 : -7))
     setCurrentWeek(newWeek)
+  }
+
+  const getAbsenceTypeName = (type: string) => {
+    switch (type) {
+      case 'VACATION': return 'Vacanze'
+      case 'SICK_LEAVE': return 'Malattia'
+      case 'PERSONAL': return 'Permesso Personale'
+      case 'OTHER': return 'Altro'
+      default: return type
+    }
   }
 
   const weekDays = getWeekDays(currentWeek)
@@ -199,7 +219,42 @@ export default function AvailabilityPage() {
             </button>
           </div>
 
-          {canEdit && (
+          {/* Absence Warning */}
+          {isAbsentWeek && absenceDetails.length > 0 && (
+            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <MapPin className="h-5 w-5 text-amber-600 mt-0.5 mr-3" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-amber-800">
+                    Sei in assenza durante questa settimana
+                  </h3>
+                  <div className="mt-2 space-y-2">
+                    {absenceDetails.map((absence, index) => (
+                      <div key={index} className="text-sm text-amber-700">
+                        <strong>{getAbsenceTypeName(absence.type)}</strong> dal{' '}
+                        {format(parseISO(absence.startDate), 'dd MMM', { locale: it })} al{' '}
+                        {format(parseISO(absence.endDate), 'dd MMM yyyy', { locale: it })}
+                        {absence.reason && (
+                          <span className="block text-xs mt-1">Motivo: {absence.reason}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3">
+                    <a
+                      href="/absences"
+                      className="inline-flex items-center text-sm text-amber-800 hover:text-amber-900 font-medium"
+                    >
+                      Gestisci le tue assenze
+                      <ExternalLink className="h-4 w-4 ml-1" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {canEdit && !isAbsentWeek && (
             <div className="mb-6">
               <label className="flex items-center">
                 <input
