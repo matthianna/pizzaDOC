@@ -395,9 +395,9 @@ export default function AdminAbsencesPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {format(parseISO(absence.startDate), 'dd MMM', { locale: it })} -{' '}
-                            {format(parseISO(absence.endDate), 'dd MMM yyyy', { locale: it })}
+                          <div className="text-sm text-black">
+                            {format(parseISO(absence.startDate), 'dd/MM', { locale: it })} -{' '}
+                            {format(parseISO(absence.endDate), 'dd/MM/yyyy', { locale: it })}
                           </div>
                           <div className="mt-1">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${timeStatus.color}`}>

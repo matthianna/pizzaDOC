@@ -232,8 +232,8 @@ export default function AvailabilityPage() {
                     {absenceDetails.map((absence, index) => (
                       <div key={index} className="text-sm text-amber-700">
                         <strong>{getAbsenceTypeName(absence.type)}</strong> dal{' '}
-                        {format(parseISO(absence.startDate), 'dd MMM', { locale: it })} al{' '}
-                        {format(parseISO(absence.endDate), 'dd MMM yyyy', { locale: it })}
+                        {format(parseISO(absence.startDate), 'dd/MM', { locale: it })} al{' '}
+                        {format(parseISO(absence.endDate), 'dd/MM/yyyy', { locale: it })}
                         {absence.reason && (
                           <span className="block text-xs mt-1">Motivo: {absence.reason}</span>
                         )}
@@ -359,8 +359,8 @@ export default function AvailabilityPage() {
 
         {/* Legend */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Legenda</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <h3 className="text-lg font-medium text-black mb-4">Legenda</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-black">
             <div className="flex items-center">
               <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
               <span>Disponibile</span>

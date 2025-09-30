@@ -119,7 +119,7 @@ function generateScheduleHTML(schedule: {
     <title>Piano di Lavoro - ${format(weekStart, 'dd/MM/yyyy', { locale: it })}</title>
     <style>
         @page {
-            size: A4 landscape;
+            size: A4 portrait;
             margin: 15mm;
         }
         
@@ -130,149 +130,120 @@ function generateScheduleHTML(schedule: {
         }
         
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 11px;
-            line-height: 1.3;
-            color: #1f2937;
+            font-family: 'Arial', sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #000;
             background: white;
         }
         
         .container {
             max-width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            padding: 10px;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #f97316;
+            border-bottom: 3px solid #f97316;
         }
         
         .title {
-            font-size: 24px;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 5px;
+            font-size: 26px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 8px;
         }
         
         .subtitle {
-            font-size: 14px;
-            color: #6b7280;
-        }
-        
-        .week-container {
-            flex: 1;
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            min-height: 0;
-        }
-        
-        .day-column {
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            overflow: hidden;
-            background: white;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .day-header {
-            background: linear-gradient(135deg, #f97316, #ea580c);
-            color: white;
-            padding: 8px 6px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 11px;
-        }
-        
-        .day-date {
-            font-size: 9px;
-            opacity: 0.9;
-            margin-top: 2px;
-        }
-        
-        .day-content {
-            flex: 1;
-            padding: 6px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .shift-section {
-            background: #f8fafc;
-            border-radius: 4px;
-            padding: 6px;
-        }
-        
-        .shift-title {
-            font-weight: 600;
-            color: #374151;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .shift-time {
-            color: #f97316;
+            font-size: 16px;
+            color: #333;
             font-weight: 500;
         }
         
-        .workers-list {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
+        .week-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
         }
         
-        .worker {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 4px 6px;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            font-size: 9px;
+        .week-table th {
+            background: #f97316;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 14px;
+            border: 1px solid #333;
         }
         
-        .worker-info {
-            display: flex;
-            flex-direction: column;
-            gap: 1px;
+        .week-table td {
+            padding: 10px 8px;
+            border: 1px solid #333;
+            vertical-align: top;
+            font-size: 12px;
+        }
+        
+        .day-row {
+            background: #f8f9fa;
+        }
+        
+        .day-name {
+            font-weight: bold;
+            color: #000;
+            font-size: 14px;
+        }
+        
+        .day-date {
+            color: #666;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+        
+        .shift-content {
+            min-height: 60px;
+        }
+        
+        .shift-title {
+            font-weight: bold;
+            color: #f97316;
+            font-size: 13px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .worker-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        
+        .worker-item {
+            margin-bottom: 6px;
+            padding: 6px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 3px;
         }
         
         .worker-name {
-            font-weight: 600;
-            color: #1f2937;
+            font-weight: bold;
+            color: #000;
+            font-size: 12px;
         }
         
-        .worker-role {
-            color: #6b7280;
-            text-transform: uppercase;
-            font-size: 8px;
-            letter-spacing: 0.3px;
+        .worker-details {
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
         }
         
-        .worker-time {
-            font-weight: 600;
-            color: #f97316;
-            font-size: 9px;
-        }
-        
-        .empty-shift {
-            text-align: center;
-            color: #9ca3af;
+        .no-workers {
+            color: #999;
             font-style: italic;
-            padding: 12px 6px;
-            font-size: 9px;
+            text-align: center;
+            padding: 20px;
         }
         
         .summary {
@@ -327,70 +298,62 @@ function generateScheduleHTML(schedule: {
             <p class="subtitle">Settimana dal ${format(weekStart, 'dd/MM/yyyy', { locale: it })} al ${format(weekEnd, 'dd/MM/yyyy', { locale: it })}</p>
         </div>
 
-        <div class="week-container">
-            ${days.map((dayName, index) => {
-              const date = addDays(weekStart, index)
-              const dayShifts = shiftsByDay[index] || []
-              
-              // Raggruppa per turno
-              const pranzoShifts = dayShifts.filter(s => s.shiftType === 'PRANZO')
-              const cenaShifts = dayShifts.filter(s => s.shiftType === 'CENA')
-              
-              return `
-            <div class="day-column">
-                <div class="day-header">
-                    ${dayName}
-                    <div class="day-date">${format(date, 'dd/MM', { locale: it })}</div>
-                </div>
-                <div class="day-content">
-                    ${pranzoShifts.length > 0 ? `
-                    <div class="shift-section">
-                        <div class="shift-title">
-                            Pranzo
-                            <span class="shift-time">11:00-14:00</span>
-                        </div>
-                        <div class="workers-list">
+        <table class="week-table">
+            <thead>
+                <tr>
+                    <th width="15%">Giorno</th>
+                    <th width="42.5%">Pranzo (11:00-14:00)</th>
+                    <th width="42.5%">Cena (17:00-22:00)</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${days.map((dayName, index) => {
+                  const date = addDays(weekStart, index)
+                  const dayShifts = shiftsByDay[index] || []
+                  
+                  // Raggruppa per turno
+                  const pranzoShifts = dayShifts.filter(s => s.shiftType === 'PRANZO')
+                  const cenaShifts = dayShifts.filter(s => s.shiftType === 'CENA')
+                  
+                  return `
+                <tr class="day-row">
+                    <td>
+                        <div class="day-name">${dayName}</div>
+                        <div class="day-date">${format(date, 'dd/MM/yyyy', { locale: it })}</div>
+                    </td>
+                    <td class="shift-content">
+                        ${pranzoShifts.length > 0 ? `
+                        <ul class="worker-list">
                             ${pranzoShifts.map(shift => `
-                            <div class="worker">
-                                <div class="worker-info">
-                                    <div class="worker-name">${shift.user.username}</div>
-                                    <div class="worker-role">${getRoleShort(shift.role)}</div>
+                            <li class="worker-item">
+                                <div class="worker-name">${shift.user.username}</div>
+                                <div class="worker-details">
+                                    ${getRoleShort(shift.role)} - Inizio: ${shift.startTime}
                                 </div>
-                                <div class="worker-time">${shift.startTime}</div>
-                            </div>
+                            </li>
                             `).join('')}
-                        </div>
-                    </div>
-                    ` : ''}
-                    
-                    ${cenaShifts.length > 0 ? `
-                    <div class="shift-section">
-                        <div class="shift-title">
-                            Cena
-                            <span class="shift-time">17:00-22:00</span>
-                        </div>
-                        <div class="workers-list">
+                        </ul>
+                        ` : '<div class="no-workers">Nessun dipendente</div>'}
+                    </td>
+                    <td class="shift-content">
+                        ${cenaShifts.length > 0 ? `
+                        <ul class="worker-list">
                             ${cenaShifts.map(shift => `
-                            <div class="worker">
-                                <div class="worker-info">
-                                    <div class="worker-name">${shift.user.username}</div>
-                                    <div class="worker-role">${getRoleShort(shift.role)}</div>
+                            <li class="worker-item">
+                                <div class="worker-name">${shift.user.username}</div>
+                                <div class="worker-details">
+                                    ${getRoleShort(shift.role)} - Inizio: ${shift.startTime}
                                 </div>
-                                <div class="worker-time">${shift.startTime}</div>
-                            </div>
+                            </li>
                             `).join('')}
-                        </div>
-                    </div>
-                    ` : ''}
-                    
-                    ${pranzoShifts.length === 0 && cenaShifts.length === 0 ? `
-                    <div class="empty-shift">Nessun turno assegnato</div>
-                    ` : ''}
-                </div>
-            </div>
-              `
-            }).join('')}
-        </div>
+                        </ul>
+                        ` : '<div class="no-workers">Nessun dipendente</div>'}
+                    </td>
+                </tr>
+                  `
+                }).join('')}
+            </tbody>
+        </table>
 
         <div class="summary">
             <div class="summary-item">

@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
     const weekStart = new Date(weekStartParam)
     const weekEnd = endOfWeek(startOfWeek(weekStart, { weekStartsOn: 1 }), { weekStartsOn: 1 })
 
-    // Check for any approved absences that overlap with this week
+    // Check for any approved or pending absences that overlap with this week
     const absences = await prisma.absence.findMany({
       where: {
         userId: session.user.id,
-        status: 'APPROVED',
+        status: { in: ['APPROVED', 'PENDING'] },
         OR: [
           {
             // Absence starts within the week

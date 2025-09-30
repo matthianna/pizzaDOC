@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3 } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Users } from 'lucide-react'
 import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek } from '@/lib/date-utils'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
@@ -498,6 +498,18 @@ export default function AdminSchedulePage() {
             currentWeek={currentWeek}
           />
         )}
+
+        {/* Employee Coverage Details */}
+        {schedule && shiftLimits.length > 0 && (
+          <EmployeeCoverageDetails 
+            currentWeek={currentWeek}
+          />
+        )}
+
+        {/* Weekly Availability Overview */}
+        <WeeklyAvailabilityOverview 
+          currentWeek={currentWeek}
+        />
 
         {/* Schedule Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -1010,6 +1022,251 @@ function CoverageReport({
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function EmployeeCoverageDetails({ currentWeek }: { currentWeek: Date }) {
+  const [expanded, setExpanded] = useState(false)
+  const [employeeStats, setEmployeeStats] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const fetchEmployeeStats = async () => {
+    if (!expanded || employeeStats.length > 0) return
+    
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/schedule/employee-coverage?weekStart=${currentWeek.toISOString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setEmployeeStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching employee stats:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleToggle = () => {
+    setExpanded(!expanded)
+    if (!expanded) {
+      fetchEmployeeStats()
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <button
+        onClick={handleToggle}
+        className="w-full px-6 py-4 text-left focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-lg"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Users className="h-5 w-5 text-gray-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">
+              Dettaglio Copertura per Dipendente
+            </h3>
+          </div>
+          <ChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+        </div>
+        <p className="text-sm text-gray-600 mt-1">
+          Visualizza disponibilità vs turni assegnati per ogni dipendente
+        </p>
+      </button>
+
+      {expanded && (
+        <div className="px-6 pb-6 border-t border-gray-200">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
+              <span className="ml-2 text-gray-600">Caricamento statistiche...</span>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {employeeStats.map((employee) => (
+                <div key={employee.id} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="font-medium text-gray-900">{employee.username}</h4>
+                      <p className="text-sm text-gray-600">{employee.primaryRole}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">
+                        {employee.assigned}/{employee.available} turni
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {employee.available > 0 ? Math.round((employee.assigned / employee.available) * 100) : 0}% utilizzo
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${employee.available > 0 ? Math.min(100, (employee.assigned / employee.available) * 100) : 0}%` 
+                      }}
+                    />
+                  </div>
+                  
+                  {employee.availableShifts && employee.availableShifts.length > 0 && (
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p className="font-medium text-gray-700 mb-1">Disponibile per:</p>
+                        <div className="space-y-1">
+                          {employee.availableShifts.map((shift: any, index: number) => (
+                            <span key={index} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-1">
+                              {getDayName(shift.dayOfWeek)} {shift.shiftType}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-700 mb-1">Assegnato a:</p>
+                        <div className="space-y-1">
+                          {employee.assignedShifts && employee.assignedShifts.map((shift: any, index: number) => (
+                            <span key={index} className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded mr-1">
+                              {getDayName(shift.dayOfWeek)} {shift.shiftType}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {employeeStats.length === 0 && (
+                <p className="text-center text-gray-500 py-4">
+                  Nessun dato disponibile per questa settimana
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function WeeklyAvailabilityOverview({ currentWeek }: { currentWeek: Date }) {
+  const [expanded, setExpanded] = useState(false)
+  const [availabilityData, setAvailabilityData] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  const fetchAvailabilityData = async () => {
+    if (!expanded || availabilityData) return
+    
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/schedule/weekly-availability?weekStart=${currentWeek.toISOString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAvailabilityData(data)
+      }
+    } catch (error) {
+      console.error('Error fetching weekly availability:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleToggle = () => {
+    setExpanded(!expanded)
+    if (!expanded) {
+      fetchAvailabilityData()
+    }
+  }
+
+  const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+  const shifts = ['PRANZO', 'CENA']
+
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <button
+        onClick={handleToggle}
+        className="w-full px-6 py-4 text-left focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-lg"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Calendar className="h-5 w-5 text-gray-600 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">
+              Vista Disponibilità Settimanale
+            </h3>
+          </div>
+          <ChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+        </div>
+        <p className="text-sm text-gray-600 mt-1">
+          Vedi chi è disponibile per ogni turno della settimana
+        </p>
+      </button>
+
+      {expanded && (
+        <div className="px-6 pb-6 border-t border-gray-200">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
+              <span className="ml-2 text-gray-600">Caricamento disponibilità...</span>
+            </div>
+          ) : availabilityData ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left p-3 border-b-2 border-gray-200 font-semibold text-gray-700">
+                      Giorno
+                    </th>
+                    {shifts.map(shift => (
+                      <th key={shift} className="text-left p-3 border-b-2 border-gray-200 font-semibold text-gray-700">
+                        {shift === 'PRANZO' ? 'Pranzo (11:00-14:00)' : 'Cena (17:00-22:00)'}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {days.map((dayName, dayIndex) => (
+                    <tr key={dayIndex} className="border-b border-gray-100">
+                      <td className="p-3 font-medium text-gray-900">
+                        {dayName}
+                      </td>
+                      {shifts.map(shift => {
+                        const availableUsers = availabilityData[dayIndex]?.[shift] || []
+                        return (
+                          <td key={shift} className="p-3 align-top">
+                            {availableUsers.length > 0 ? (
+                              <div className="space-y-1">
+                                {availableUsers.map((user: any) => (
+                                  <span
+                                    key={user.id}
+                                    className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 mb-1"
+                                  >
+                                    {user.username} ({user.primaryRole})
+                                  </span>
+                                ))}
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {availableUsers.length} disponibili
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-sm italic">
+                                Nessuno disponibile
+                              </span>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 py-4">
+              Nessun dato disponibile per questa settimana
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

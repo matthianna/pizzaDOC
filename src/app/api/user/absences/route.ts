@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         type: type || 'VACATION',
         reason: reason || null,
         description: description || null,
-        status: 'APPROVED' // Auto-approve for now
+        status: 'PENDING' // Richiede approvazione
       }
     })
 
