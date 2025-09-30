@@ -58,6 +58,14 @@ export function Sidebar() {
       hideForAdmin: true // Admin non deve vedere questa sezione
     },
     {
+      name: 'Le Mie Assenze',
+      href: '/leaves',
+      icon: CalendarIcon,
+      iconSolid: CalendarIconSolid,
+      adminOnly: false,
+      hideForAdmin: true // Admin non deve vedere questa sezione
+    },
+    {
       name: 'Ore Lavorate',
       href: '/hours',
       icon: ClockIcon,
@@ -80,14 +88,6 @@ export function Sidebar() {
       iconSolid: UserPlusIconSolid,
       adminOnly: false,
       hideForAdmin: true // Admin ha la sua vista admin
-    },
-    {
-      name: 'Assenze/Vacanze',
-      href: '/absences',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
-      adminOnly: false,
-      hideForAdmin: true // Admin ha la sua vista assenze
     },
     // Sezione Admin
     {
@@ -126,8 +126,8 @@ export function Sidebar() {
       adminOnly: true
     },
     {
-      name: 'Assenze/Vacanze',
-      href: '/admin/absences',
+      name: 'Gestione Assenze',
+      href: '/admin/leaves',
       icon: CalendarIcon,
       iconSolid: CalendarIconSolid,
       adminOnly: true

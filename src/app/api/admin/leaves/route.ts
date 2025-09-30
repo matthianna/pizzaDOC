@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin } from '@/lib/auth-utils'
 
-// GET /api/admin/absences - Get all absences
+// GET /api/admin/leaves - Get all leaves for admin
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -16,36 +16,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const userId = searchParams.get('userId')
-    const startDate = searchParams.get('startDate')
-    const endDate = searchParams.get('endDate')
 
     const where: any = {}
-
-    if (status) {
+    
+    if (status && ['PENDING', 'APPROVED', 'REJECTED'].includes(status)) {
       where.status = status
     }
-
+    
     if (userId) {
       where.userId = userId
     }
 
-    if (startDate || endDate) {
-      where.OR = []
-      
-      if (startDate) {
-        where.OR.push({
-          startDate: { gte: new Date(startDate) }
-        })
-      }
-      
-      if (endDate) {
-        where.OR.push({
-          endDate: { lte: new Date(endDate) }
-        })
-      }
-    }
-
-    const absences = await prisma.absence.findMany({
+    const leaves = await prisma.leave.findMany({
       where,
       include: {
         user: {
@@ -57,14 +39,14 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: [
-        { startDate: 'desc' },
-        { createdAt: 'desc' }
+        { status: 'asc' }, // PENDING first
+        { startDate: 'asc' }
       ]
     })
 
-    return NextResponse.json(absences)
+    return NextResponse.json(leaves)
   } catch (error) {
-    console.error('Error fetching admin absences:', error)
+    console.error('Error fetching leaves:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

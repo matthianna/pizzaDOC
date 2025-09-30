@@ -18,7 +18,8 @@ export default function AvailabilityPage() {
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [isAbsentWeek, setIsAbsentWeek] = useState(false)
-  const [weekAbsences, setWeekAbsences] = useState<any[]>([])
+  const [hasApprovedLeaves, setHasApprovedLeaves] = useState(false)
+  const [approvedLeaves, setApprovedLeaves] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -31,12 +32,25 @@ export default function AvailabilityPage() {
     return today >= monday
   }
   
-  const canEditThisWeek = !hasWeekStarted()
+  const canEditThisWeek = !hasWeekStarted() && !hasApprovedLeaves
 
   useEffect(() => {
     fetchAvailability()
-    checkWeekAbsences()
+    checkApprovedLeaves()
   }, [currentWeek])
+
+  const checkApprovedLeaves = async () => {
+    try {
+      const response = await fetch(`/api/user/leaves/check?weekStart=${currentWeek.toISOString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setHasApprovedLeaves(data.hasApprovedLeaves)
+        setApprovedLeaves(data.leaves || [])
+      }
+    } catch (error) {
+      console.error('Error checking approved leaves:', error)
+    }
+  }
 
   const fetchAvailability = async () => {
     setLoading(true)
@@ -63,28 +77,6 @@ export default function AvailabilityPage() {
       console.error('Error fetching availability:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const checkWeekAbsences = async () => {
-    try {
-      const weekDays = getWeekDays(currentWeek)
-      const absencePromises = weekDays.map(async (day) => {
-        const response = await fetch(`/api/user/absences/check?date=${day.toISOString().split('T')[0]}`)
-        if (response.ok) {
-          const data = await response.json()
-          return { date: day, ...data }
-        }
-        return { date: day, hasAbsence: false, absence: null }
-      })
-      
-      const absenceResults = await Promise.all(absencePromises)
-      const weekHasAbsences = absenceResults.some(result => result.hasAbsence)
-      
-      setWeekAbsences(absenceResults)
-      setIsAbsentWeek(weekHasAbsences)
-    } catch (error) {
-      console.error('Error checking week absences:', error)
     }
   }
 
@@ -202,14 +194,25 @@ export default function AvailabilityPage() {
                 Settimana dal {formatDate(weekDays[0])} al {formatDate(weekDays[6])}
               </h2>
               {!canEdit && (
-                <div className="flex items-center justify-center mt-2 text-amber-600">
-                  <Lock className="h-4 w-4 mr-1" />
-                  <span className="text-xs sm:text-sm text-center">
-                    {!canEditThisWeek 
-                      ? "Non è possibile modificare la disponibilità per settimane già iniziate"
-                      : "Modifiche non consentite per questa settimana"
-                    }
-                  </span>
+                <div className="flex items-center justify-center mt-2">
+                  {hasApprovedLeaves ? (
+                    <div className="flex items-center text-blue-600">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      <span className="text-xs sm:text-sm text-center">
+                        Hai vacanze approvate in questa settimana - Disponibilità disabilitata
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center text-amber-600">
+                      <Lock className="h-4 w-4 mr-1" />
+                      <span className="text-xs sm:text-sm text-center">
+                        {!canEditThisWeek 
+                          ? "Non è possibile modificare la disponibilità per settimane già iniziate"
+                          : "Modifiche non consentite per questa settimana"
+                        }
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -223,44 +226,54 @@ export default function AvailabilityPage() {
             </button>
           </div>
 
-          {/* Absence Warning */}
-          {isAbsentWeek && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          {/* Leave Info Box */}
+          {hasApprovedLeaves && approvedLeaves.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
               <div className="flex items-start">
-                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-red-800">
-                    Hai un'assenza programmata questa settimana
+                <Calendar className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
+                <div>
+                  <h3 className="text-sm font-medium text-blue-800 mb-2">
+                    Vacanze/Assenze Approvate in questa settimana
                   </h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <p className="mb-2">
-                      Non puoi inserire la disponibilità per questa settimana a causa di:
-                    </p>
-                    <div className="space-y-1">
-                      {weekAbsences
-                        .filter(result => result.hasAbsence)
-                        .map((result, index) => (
-                          <div key={index} className="flex items-center text-xs">
-                            <span className="font-medium">
-                              {formatDate(result.date)}: 
-                            </span>
-                            <span className="ml-1">
-                              {result.absence?.type === 'VACATION' && 'Ferie'}
-                              {result.absence?.type === 'SICK_LEAVE' && 'Malattia'}
-                              {result.absence?.type === 'PERSONAL' && 'Motivi Personali'}
-                              {result.absence?.type === 'OTHER' && 'Altro'}
-                              {result.absence?.reason && ` - ${result.absence.reason}`}
-                            </span>
-                          </div>
-                        ))
-                      }
-                    </div>
-                    <p className="mt-3 text-xs">
-                      Per modificare le tue assenze, vai alla sezione <strong>Assenze/Vacanze</strong>.
-                    </p>
+                  <div className="space-y-1">
+                    {approvedLeaves.map((leave) => (
+                      <div key={leave.id} className="text-sm text-blue-700">
+                        <strong>{leave.type === 'VACATION' ? 'Vacanze' : 
+                                leave.type === 'SICK' ? 'Malattia' :
+                                leave.type === 'PERSONAL' ? 'Permesso Personale' :
+                                leave.type === 'FAMILY' ? 'Emergenza Familiare' : 'Altro'}:</strong>{' '}
+                        dal {new Date(leave.startDate).toLocaleDateString('it-IT')} al {new Date(leave.endDate).toLocaleDateString('it-IT')}
+                        {leave.reason && <div className="ml-2 text-blue-600">Motivo: {leave.reason}</div>}
+                      </div>
+                    ))}
                   </div>
+                  <p className="text-xs text-blue-600 mt-2">
+                    Non puoi inserire la disponibilità quando hai vacanze approvate. 
+                    Le tue assenze sono già programmate.
+                  </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {canEdit && (
+            <div className="mb-6">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={isAbsentWeek}
+                  onChange={(e) => {
+                    setIsAbsentWeek(e.target.checked)
+                    if (e.target.checked) {
+                      setAvailabilities([])
+                    }
+                  }}
+                  className="mr-2 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Assente tutta la settimana
+                </span>
+              </label>
             </div>
           )}
 

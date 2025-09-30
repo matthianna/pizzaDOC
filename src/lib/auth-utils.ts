@@ -39,15 +39,6 @@ export function hasAnyRole(session: Session | null, roles: string[]): boolean {
 }
 
 /**
- * Verifica se l'utente è autenticato (ha una sessione valida)
- * @param session - La sessione dell'utente
- * @returns true se l'utente è autenticato, false altrimenti
- */
-export function isAuthenticated(session: Session | null): boolean {
-  return !!session?.user
-}
-
-/**
  * Verifica se l'utente è autenticato e ha i ruoli necessari
  * @param session - La sessione dell'utente
  * @param requiredRoles - Ruoli richiesti (opzionale, default: ['ADMIN'])
