@@ -42,11 +42,16 @@ export async function GET(request: NextRequest) {
     // Get all users with their availability for this week
     const users = await prisma.user.findMany({
       where: {
-        roles: {
-          hasSome: ['FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO']
+        userRoles: {
+          some: {
+            role: {
+              in: ['FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO']
+            }
+          }
         }
       },
       include: {
+        userRoles: true,
         availability: {
           where: {
             weekStart: {
@@ -58,6 +63,9 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    console.log(`[DEBUG] Found ${users.length} users for employee coverage`)
+    console.log(`[DEBUG] Schedule exists: ${!!schedule}, shifts: ${schedule?.shifts.length || 0}`)
+    
     const employeeStats = users.map(user => {
       const availableShifts = user.availability.filter(a => a.isAvailable)
       const assignedShifts = schedule?.shifts.filter(s => s.userId === user.id) || []
@@ -79,6 +87,8 @@ export async function GET(request: NextRequest) {
         }))
       }
     })
+    
+    console.log(`[DEBUG] Employee stats generated: ${employeeStats.length} employees`)
 
     // Sort by utilization rate (highest first)
     employeeStats.sort((a, b) => {

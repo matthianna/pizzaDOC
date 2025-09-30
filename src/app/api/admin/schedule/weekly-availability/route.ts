@@ -53,6 +53,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    console.log(`[DEBUG] Found ${availabilities.length} availabilities for weekly overview`)
+    
     // Fill with available users
     availabilities.forEach(availability => {
       const dayIndex = availability.dayOfWeek
@@ -67,6 +69,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    console.log(`[DEBUG] Weekly availability data generated`)
     return NextResponse.json(availabilityData)
   } catch (error) {
     console.error('Error fetching weekly availability:', error)

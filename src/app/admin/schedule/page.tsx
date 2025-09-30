@@ -1030,8 +1030,16 @@ function EmployeeCoverageDetails({ currentWeek }: { currentWeek: Date }) {
   const [employeeStats, setEmployeeStats] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Reset when week changes
+  useEffect(() => {
+    setEmployeeStats([])
+    if (expanded) {
+      fetchEmployeeStats()
+    }
+  }, [currentWeek])
+
   const fetchEmployeeStats = async () => {
-    if (!expanded || employeeStats.length > 0) return
+    if (!expanded) return
     
     setLoading(true)
     try {
@@ -1153,8 +1161,16 @@ function WeeklyAvailabilityOverview({ currentWeek }: { currentWeek: Date }) {
   const [availabilityData, setAvailabilityData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
+  // Reset when week changes
+  useEffect(() => {
+    setAvailabilityData(null)
+    if (expanded) {
+      fetchAvailabilityData()
+    }
+  }, [currentWeek])
+
   const fetchAvailabilityData = async () => {
-    if (!expanded || availabilityData) return
+    if (!expanded) return
     
     setLoading(true)
     try {
