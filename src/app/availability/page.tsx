@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { useSession } from 'next-auth/react'
-import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock, MapPin } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock } from 'lucide-react'
 import { getWeekStart, getNextWeekStart, canEditAvailability, getWeekDays, formatDate, getDayOfWeek, getShiftTimes } from '@/lib/date-utils'
 import { getDayName, getShiftTypeName } from '@/lib/utils'
 
@@ -13,21 +13,12 @@ interface Availability {
   isAvailable: boolean
 }
 
-interface Absence {
-  id: string
-  type: string
-  startDate: string
-  endDate: string
-  reason?: string
-  status: string
-}
-
 export default function AvailabilityPage() {
   const { data: session } = useSession()
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [isAbsentWeek, setIsAbsentWeek] = useState(false)
-  const [absences, setAbsences] = useState<Absence[]>([])
+  const [weekAbsences, setWeekAbsences] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -44,6 +35,7 @@ export default function AvailabilityPage() {
 
   useEffect(() => {
     fetchAvailability()
+    checkWeekAbsences()
   }, [currentWeek])
 
   const fetchAvailability = async () => {
@@ -53,12 +45,12 @@ export default function AvailabilityPage() {
       if (response.ok) {
         const data = await response.json()
         
-        // Gestisce la nuova struttura dati
-        setIsAbsentWeek(data.isAbsentWeek || false)
-        setAbsences(data.absences || [])
+        // Check if user is absent for the week
+        const isAbsent = data.length > 0 && data[0].isAbsentWeek
+        setIsAbsentWeek(isAbsent)
         
-        if (!data.isAbsentWeek) {
-          setAvailabilities(data.availabilities.map((d: any) => ({
+        if (!isAbsent) {
+          setAvailabilities(data.map((d: any) => ({
             dayOfWeek: d.dayOfWeek,
             shiftType: d.shiftType,
             isAvailable: d.isAvailable
@@ -71,6 +63,28 @@ export default function AvailabilityPage() {
       console.error('Error fetching availability:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const checkWeekAbsences = async () => {
+    try {
+      const weekDays = getWeekDays(currentWeek)
+      const absencePromises = weekDays.map(async (day) => {
+        const response = await fetch(`/api/user/absences/check?date=${day.toISOString().split('T')[0]}`)
+        if (response.ok) {
+          const data = await response.json()
+          return { date: day, ...data }
+        }
+        return { date: day, hasAbsence: false, absence: null }
+      })
+      
+      const absenceResults = await Promise.all(absencePromises)
+      const weekHasAbsences = absenceResults.some(result => result.hasAbsence)
+      
+      setWeekAbsences(absenceResults)
+      setIsAbsentWeek(weekHasAbsences)
+    } catch (error) {
+      console.error('Error checking week absences:', error)
     }
   }
 
@@ -209,69 +223,44 @@ export default function AvailabilityPage() {
             </button>
           </div>
 
-          {/* Absence Information */}
-          {isAbsentWeek && absences.length > 0 && (
-            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+          {/* Absence Warning */}
+          {isAbsentWeek && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-start">
-                <MapPin className="h-5 w-5 text-amber-600 mt-0.5 mr-3" />
+                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3" />
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium text-amber-800 mb-2">
-                    Assenza Programmata
+                  <h3 className="text-sm font-medium text-red-800">
+                    Hai un'assenza programmata questa settimana
                   </h3>
-                  <div className="text-sm text-amber-700">
+                  <div className="mt-2 text-sm text-red-700">
                     <p className="mb-2">
-                      Hai un'assenza programmata che si sovrappone con questa settimana:
+                      Non puoi inserire la disponibilità per questa settimana a causa di:
                     </p>
-                    {absences.map((absence, index) => (
-                      <div key={absence.id} className="mb-2 last:mb-0">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">
-                            {absence.type === 'VACATION' ? '🏖️ Vacanze' :
-                             absence.type === 'SICK_LEAVE' ? '🤒 Malattia' :
-                             absence.type === 'PERSONAL' ? '📅 Permesso Personale' : 
-                             '📋 Altro'}
-                          </span>
-                          <span>•</span>
-                          <span>
-                            Dal {new Date(absence.startDate).toLocaleDateString('it-IT')} 
-                            al {new Date(absence.endDate).toLocaleDateString('it-IT')}
-                          </span>
-                        </div>
-                        {absence.reason && (
-                          <p className="text-xs text-amber-600 mt-1">
-                            {absence.reason}
-                          </p>
-                        )}
-                      </div>
-                    ))}
+                    <div className="space-y-1">
+                      {weekAbsences
+                        .filter(result => result.hasAbsence)
+                        .map((result, index) => (
+                          <div key={index} className="flex items-center text-xs">
+                            <span className="font-medium">
+                              {formatDate(result.date)}: 
+                            </span>
+                            <span className="ml-1">
+                              {result.absence?.type === 'VACATION' && 'Ferie'}
+                              {result.absence?.type === 'SICK_LEAVE' && 'Malattia'}
+                              {result.absence?.type === 'PERSONAL' && 'Motivi Personali'}
+                              {result.absence?.type === 'OTHER' && 'Altro'}
+                              {result.absence?.reason && ` - ${result.absence.reason}`}
+                            </span>
+                          </div>
+                        ))
+                      }
+                    </div>
                     <p className="mt-3 text-xs">
-                      Non puoi inserire la disponibilità per questa settimana. 
-                      Se vuoi modificare questa assenza, vai alla <a href="/absences" className="underline">pagina Assenze</a>.
+                      Per modificare le tue assenze, vai alla sezione <strong>Assenze/Vacanze</strong>.
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {canEdit && absences.length === 0 && (
-            <div className="mb-6">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={isAbsentWeek}
-                  onChange={(e) => {
-                    setIsAbsentWeek(e.target.checked)
-                    if (e.target.checked) {
-                      setAvailabilities([])
-                    }
-                  }}
-                  className="mr-2 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Assente tutta la settimana
-                </span>
-              </label>
             </div>
           )}
 

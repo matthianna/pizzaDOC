@@ -16,8 +16,7 @@ import {
   ArrowRightOnRectangleIcon,
   ChartBarIcon,
   UserPlusIcon,
-  PresentationChartLineIcon,
-  MapPinIcon
+  PresentationChartLineIcon
 } from '@heroicons/react/24/outline'
 import { 
   HomeIcon as HomeIconSolid,
@@ -28,8 +27,7 @@ import {
   Cog6ToothIcon as Cog6ToothIconSolid,
   ChartBarIcon as ChartBarIconSolid,
   UserPlusIcon as UserPlusIconSolid,
-  PresentationChartLineIcon as PresentationChartLineIconSolid,
-  MapPinIcon as MapPinIconSolid
+  PresentationChartLineIcon as PresentationChartLineIconSolid
 } from '@heroicons/react/24/solid'
 import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
@@ -84,12 +82,12 @@ export function Sidebar() {
       hideForAdmin: true // Admin ha la sua vista admin
     },
     {
-      name: 'Assenze',
+      name: 'Assenze/Vacanze',
       href: '/absences',
-      icon: MapPinIcon,
-      iconSolid: MapPinIconSolid,
+      icon: CalendarIcon,
+      iconSolid: CalendarIconSolid,
       adminOnly: false,
-      hideForAdmin: true // Admin ha la sua vista admin
+      hideForAdmin: true // Admin ha la sua vista assenze
     },
     // Sezione Admin
     {
@@ -128,10 +126,10 @@ export function Sidebar() {
       adminOnly: true
     },
     {
-      name: 'Assenze',
+      name: 'Assenze/Vacanze',
       href: '/admin/absences',
-      icon: MapPinIcon,
-      iconSolid: MapPinIconSolid,
+      icon: CalendarIcon,
+      iconSolid: CalendarIconSolid,
       adminOnly: true
     },
     {

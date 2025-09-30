@@ -2,9 +2,46 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isAuthenticatedWithRoles } from '@/lib/auth-utils'
+import { isAuthenticated } from '@/lib/auth-utils'
 
-// PUT /api/user/absences/[id] - Update user's absence
+// GET /api/user/absences/[id] - Get specific absence
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session || !isAuthenticated(session)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const resolvedParams = await params
+    const absence = await prisma.absence.findFirst({
+      where: {
+        id: resolvedParams.id,
+        userId: session.user.id
+      }
+    })
+
+    if (!absence) {
+      return NextResponse.json(
+        { error: 'Assenza non trovata' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(absence)
+  } catch (error) {
+    console.error('Error fetching absence:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT /api/user/absences/[id] - Update absence
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,95 +49,89 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || !isAuthenticatedWithRoles(session, ['ADMIN', 'FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO'])) {
+    if (!session || !isAuthenticated(session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const resolvedParams = await params
-    const absenceId = resolvedParams.id
+    const { startDate, endDate, type, reason, notes } = await request.json()
 
-    // Verifica che l'assenza appartenga all'utente
+    // Trova l'assenza esistente
     const existingAbsence = await prisma.absence.findFirst({
       where: {
-        id: absenceId,
+        id: resolvedParams.id,
         userId: session.user.id
       }
     })
 
     if (!existingAbsence) {
-      return NextResponse.json({ error: 'Absence not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Assenza non trovata' },
+        { status: 404 }
+      )
     }
 
-    // Non si possono modificare assenze nel passato
+    // Non permettere modifica di assenze già iniziate
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
     if (existingAbsence.startDate < today) {
       return NextResponse.json(
-        { error: 'Cannot modify past absences' },
+        { error: 'Non puoi modificare assenze già iniziate' },
         { status: 400 }
       )
     }
 
-    const { type, startDate, endDate, reason } = await request.json()
+    // Validazioni sui nuovi dati
+    if (startDate && endDate) {
+      const start = new Date(startDate)
+      const end = new Date(endDate)
 
-    if (!type || !startDate || !endDate) {
-      return NextResponse.json(
-        { error: 'Type, start date, and end date are required' },
-        { status: 400 }
-      )
-    }
-
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-
-    // Non si possono creare assenze nel passato
-    if (start < today) {
-      return NextResponse.json(
-        { error: 'Cannot set absence for past dates' },
-        { status: 400 }
-      )
-    }
-
-    // Data fine deve essere >= data inizio
-    if (end < start) {
-      return NextResponse.json(
-        { error: 'End date must be on or after start date' },
-        { status: 400 }
-      )
-    }
-
-    // Verifica sovrapposizioni (escludendo l'assenza corrente)
-    const overlappingAbsences = await prisma.absence.findMany({
-      where: {
-        userId: session.user.id,
-        status: { in: ['PENDING', 'APPROVED'] },
-        id: { not: absenceId },
-        OR: [
-          {
-            AND: [
-              { startDate: { lte: end } },
-              { endDate: { gte: start } }
-            ]
-          }
-        ]
+      if (start < today) {
+        return NextResponse.json(
+          { error: 'Non puoi impostare assenze nel passato' },
+          { status: 400 }
+        )
       }
-    })
 
-    if (overlappingAbsences.length > 0) {
-      return NextResponse.json(
-        { error: 'Dates overlap with existing absence' },
-        { status: 400 }
-      )
+      if (end < start) {
+        return NextResponse.json(
+          { error: 'La data di fine deve essere successiva o uguale alla data di inizio' },
+          { status: 400 }
+        )
+      }
+
+      // Controlla sovrapposizioni (escludendo l'assenza corrente)
+      const overlappingAbsence = await prisma.absence.findFirst({
+        where: {
+          userId: session.user.id,
+          id: { not: resolvedParams.id },
+          status: { in: ['PENDING', 'APPROVED'] },
+          OR: [
+            {
+              startDate: { lte: end },
+              endDate: { gte: start }
+            }
+          ]
+        }
+      })
+
+      if (overlappingAbsence) {
+        return NextResponse.json(
+          { error: 'Esiste già un\'assenza in questo periodo' },
+          { status: 400 }
+        )
+      }
     }
 
     const updatedAbsence = await prisma.absence.update({
-      where: { id: absenceId },
+      where: { id: resolvedParams.id },
       data: {
-        type,
-        startDate: start,
-        endDate: end,
-        reason
+        ...(startDate && { startDate: new Date(startDate) }),
+        ...(endDate && { endDate: new Date(endDate) }),
+        ...(type && { type }),
+        ...(reason !== undefined && { reason }),
+        ...(notes !== undefined && { notes })
       }
     })
 
@@ -114,7 +145,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/user/absences/[id] - Delete user's absence
+// DELETE /api/user/absences/[id] - Delete absence
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -122,41 +153,41 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || !isAuthenticatedWithRoles(session, ['ADMIN', 'FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO'])) {
+    if (!session || !isAuthenticated(session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const resolvedParams = await params
-    const absenceId = resolvedParams.id
-
-    // Verifica che l'assenza appartenga all'utente
-    const existingAbsence = await prisma.absence.findFirst({
+    const absence = await prisma.absence.findFirst({
       where: {
-        id: absenceId,
+        id: resolvedParams.id,
         userId: session.user.id
       }
     })
 
-    if (!existingAbsence) {
-      return NextResponse.json({ error: 'Absence not found' }, { status: 404 })
+    if (!absence) {
+      return NextResponse.json(
+        { error: 'Assenza non trovata' },
+        { status: 404 }
+      )
     }
 
-    // Non si possono eliminare assenze nel passato
+    // Non permettere eliminazione di assenze già iniziate
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
-    if (existingAbsence.startDate < today) {
+    if (absence.startDate < today) {
       return NextResponse.json(
-        { error: 'Cannot delete past absences' },
+        { error: 'Non puoi eliminare assenze già iniziate' },
         { status: 400 }
       )
     }
 
     await prisma.absence.delete({
-      where: { id: absenceId }
+      where: { id: resolvedParams.id }
     })
 
-    return NextResponse.json({ message: 'Absence deleted successfully' })
+    return NextResponse.json({ message: 'Assenza eliminata con successo' })
   } catch (error) {
     console.error('Error deleting absence:', error)
     return NextResponse.json(

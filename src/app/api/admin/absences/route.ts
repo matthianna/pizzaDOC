@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin } from '@/lib/auth-utils'
 
-// GET /api/admin/absences - Get all absences with optional filters
+// GET /api/admin/absences - Get all absences
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
 
     const where: any = {}
 
-    // Filtri opzionali
     if (status) {
       where.status = status
     }
@@ -30,17 +29,20 @@ export async function GET(request: NextRequest) {
       where.userId = userId
     }
 
-    if (startDate && endDate) {
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      where.OR = [
-        {
-          AND: [
-            { startDate: { lte: end } },
-            { endDate: { gte: start } }
-          ]
-        }
-      ]
+    if (startDate || endDate) {
+      where.OR = []
+      
+      if (startDate) {
+        where.OR.push({
+          startDate: { gte: new Date(startDate) }
+        })
+      }
+      
+      if (endDate) {
+        where.OR.push({
+          endDate: { lte: new Date(endDate) }
+        })
+      }
     }
 
     const absences = await prisma.absence.findMany({
@@ -54,7 +56,10 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { startDate: 'desc' }
+      orderBy: [
+        { startDate: 'desc' },
+        { createdAt: 'desc' }
+      ]
     })
 
     return NextResponse.json(absences)

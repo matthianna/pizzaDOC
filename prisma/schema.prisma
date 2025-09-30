@@ -84,19 +84,6 @@ enum SubstitutionStatus {
   EXPIRED     // Scaduta la deadline
 }
 
-enum AbsenceType {
-  VACATION    // Vacanze/Ferie
-  SICK_LEAVE  // Malattia
-  PERSONAL    // Permesso personale
-  OTHER       // Altro
-}
-
-enum AbsenceStatus {
-  PENDING     // In attesa di approvazione
-  APPROVED    // Approvata
-  REJECTED    // Rifiutata
-}
-
 model SystemSettings {
   id                String   @id @default(cuid())
   key               String   @unique
@@ -288,15 +275,31 @@ model Substitution {
 model Absence {
   id          String      @id @default(cuid())
   userId      String
+  startDate   DateTime    @db.Date
+  endDate     DateTime    @db.Date
   type        AbsenceType @default(VACATION)
-  startDate   DateTime    // Data inizio assenza (inclusiva)
-  endDate     DateTime    // Data fine assenza (inclusiva)
-  reason      String?     // Motivo opzionale
-  status      AbsenceStatus @default(APPROVED) // Per ora approvazione automatica
+  reason      String?     // Motivo dell'assenza
+  notes       String?     // Note aggiuntive
+  status      AbsenceStatus @default(APPROVED) // Le assenze sono auto-approvate per ora
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([startDate, endDate])
   @@map("absences")
+}
+
+enum AbsenceType {
+  VACATION    // Ferie
+  SICK_LEAVE  // Malattia
+  PERSONAL    // Motivi personali
+  OTHER       // Altro
+}
+
+enum AbsenceStatus {
+  PENDING   // In attesa di approvazione
+  APPROVED  // Approvata
+  REJECTED  // Rifiutata
 }

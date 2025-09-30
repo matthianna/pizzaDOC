@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3 } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X } from 'lucide-react'
 import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek } from '@/lib/date-utils'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
@@ -959,15 +959,15 @@ function CoverageReport({
         <div className="bg-white rounded-lg p-3">
           <div className="text-xs text-gray-600 mb-1">Turni Assegnati</div>
           <div className="text-lg font-bold text-gray-900">
-            {availabilityStats?.totalAssigned || 0}/{availabilityStats?.totalRequired || 0}
+            {availabilityStats.totalAssigned}/{availabilityStats.totalRequired}
           </div>
           <div className="text-xs text-gray-600">
-            {(availabilityStats?.coveragePercentage || 0).toFixed(1)}% copertura
+            {availabilityStats.coveragePercentage.toFixed(1)}% copertura
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
             <div 
               className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${Math.min(100, availabilityStats?.coveragePercentage || 0)}%` }}
+              style={{ width: `${Math.min(100, availabilityStats.coveragePercentage)}%` }}
             />
           </div>
         </div>
@@ -975,15 +975,15 @@ function CoverageReport({
         <div className="bg-white rounded-lg p-3">
           <div className="text-xs text-gray-600 mb-1">Disponibilità Inserite</div>
           <div className="text-lg font-bold text-gray-900">
-            {availabilityStats?.totalAvailable || 0}
+            {availabilityStats.totalAvailable}
           </div>
           <div className="text-xs text-gray-600">
-            su {availabilityStats?.totalRequired || 0} necessarie
+            su {availabilityStats.totalRequired} necessarie
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
             <div 
               className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${Math.min(100, availabilityStats?.availabilityPercentage || 0)}%` }}
+              style={{ width: `${Math.min(100, availabilityStats.availabilityPercentage)}%` }}
             />
           </div>
         </div>
@@ -991,8 +991,8 @@ function CoverageReport({
         <div className="bg-white rounded-lg p-3">
           <div className="text-xs text-gray-600 mb-1">Efficienza Assegnamento</div>
           <div className="text-lg font-bold text-gray-900">
-            {(availabilityStats?.totalAvailable || 0) > 0 
-              ? (((availabilityStats?.totalAssigned || 0) / (availabilityStats?.totalAvailable || 1)) * 100).toFixed(1)
+            {availabilityStats.totalAvailable > 0 
+              ? ((availabilityStats.totalAssigned / availabilityStats.totalAvailable) * 100).toFixed(1)
               : 0}%
           </div>
           <div className="text-xs text-gray-600">
@@ -1002,8 +1002,8 @@ function CoverageReport({
             <div 
               className="bg-green-500 h-2 rounded-full transition-all duration-300"
               style={{ 
-                width: `${Math.min(100, (availabilityStats?.totalAvailable || 0) > 0 
-                  ? ((availabilityStats?.totalAssigned || 0) / (availabilityStats?.totalAvailable || 1)) * 100 
+                width: `${Math.min(100, availabilityStats.totalAvailable > 0 
+                  ? (availabilityStats.totalAssigned / availabilityStats.totalAvailable) * 100 
                   : 0)}%` 
               }}
             />
