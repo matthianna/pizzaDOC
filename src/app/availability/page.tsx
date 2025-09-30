@@ -18,9 +18,6 @@ export default function AvailabilityPage() {
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [isAbsentWeek, setIsAbsentWeek] = useState(false)
-  const [hasApprovedLeaves, setHasApprovedLeaves] = useState(false)
-  const [approvedLeaves, setApprovedLeaves] = useState<any[]>([])
-  const [leaveDays, setLeaveDays] = useState<number[]>([]) // Giorni in vacanza
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -33,32 +30,11 @@ export default function AvailabilityPage() {
     return today >= monday
   }
   
-  // Check se un giorno specifico è modificabile
-  const canEditDay = (dayOfWeek: number) => {
-    if (hasWeekStarted()) return false
-    return !leaveDays.includes(dayOfWeek)
-  }
-  
   const canEditThisWeek = !hasWeekStarted()
 
   useEffect(() => {
     fetchAvailability()
-    checkApprovedLeaves()
   }, [currentWeek])
-
-  const checkApprovedLeaves = async () => {
-    try {
-      const response = await fetch(`/api/user/leaves/check?weekStart=${currentWeek.toISOString()}`)
-      if (response.ok) {
-        const data = await response.json()
-        setHasApprovedLeaves(data.hasApprovedLeaves)
-        setApprovedLeaves(data.leaves || [])
-        setLeaveDays(data.leaveDays || [])
-      }
-    } catch (error) {
-      console.error('Error checking approved leaves:', error)
-    }
-  }
 
   const fetchAvailability = async () => {
     setLoading(true)
@@ -202,25 +178,14 @@ export default function AvailabilityPage() {
                 Settimana dal {formatDate(weekDays[0])} al {formatDate(weekDays[6])}
               </h2>
               {!canEdit && (
-                <div className="flex items-center justify-center mt-2">
-                  {hasApprovedLeaves ? (
-                    <div className="flex items-center text-blue-600">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      <span className="text-xs sm:text-sm text-center">
-                        Hai vacanze approvate in questa settimana - Disponibilità disabilitata
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center text-amber-600">
-                      <Lock className="h-4 w-4 mr-1" />
-                      <span className="text-xs sm:text-sm text-center">
-                        {!canEditThisWeek 
-                          ? "Non è possibile modificare la disponibilità per settimane già iniziate"
-                          : "Modifiche non consentite per questa settimana"
-                        }
-                      </span>
-                    </div>
-                  )}
+                <div className="flex items-center justify-center mt-2 text-amber-600">
+                  <Lock className="h-4 w-4 mr-1" />
+                  <span className="text-xs sm:text-sm text-center">
+                    {!canEditThisWeek 
+                      ? "Non è possibile modificare la disponibilità per settimane già iniziate"
+                      : "Modifiche non consentite per questa settimana"
+                    }
+                  </span>
                 </div>
               )}
             </div>
@@ -233,36 +198,6 @@ export default function AvailabilityPage() {
               <ChevronRight className="h-4 w-4 ml-1" />
             </button>
           </div>
-
-          {/* Leave Info Box */}
-          {hasApprovedLeaves && approvedLeaves.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <div className="flex items-start">
-                <Calendar className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
-                <div>
-                  <h3 className="text-sm font-medium text-blue-800 mb-2">
-                    Vacanze/Assenze Approvate in questa settimana
-                  </h3>
-                  <div className="space-y-1">
-                    {approvedLeaves.map((leave) => (
-                      <div key={leave.id} className="text-sm text-blue-700">
-                        <strong>{leave.type === 'VACATION' ? 'Vacanze' : 
-                                leave.type === 'SICK' ? 'Malattia' :
-                                leave.type === 'PERSONAL' ? 'Permesso Personale' :
-                                leave.type === 'FAMILY' ? 'Emergenza Familiare' : 'Altro'}:</strong>{' '}
-                        dal {new Date(leave.startDate).toLocaleDateString('it-IT')} al {new Date(leave.endDate).toLocaleDateString('it-IT')}
-                        {leave.reason && <div className="ml-2 text-blue-600">Motivo: {leave.reason}</div>}
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-blue-600 mt-2">
-                    Non puoi inserire la disponibilità quando hai vacanze approvate. 
-                    Le tue assenze sono già programmate.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {canEdit && (
             <div className="mb-6">
@@ -308,20 +243,12 @@ export default function AvailabilityPage() {
               <tbody>
                 {weekDays.map((day, index) => {
                   const dayOfWeek = getDayOfWeek(day)
-                  const isDayOnLeave = leaveDays.includes(dayOfWeek)
-                  const canEditThisDay = canEditDay(dayOfWeek)
-                  
                   return (
-                    <tr key={index} className={`border-b border-gray-100 ${isDayOnLeave ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-4 px-4">
                         <div>
-                          <div className={`font-medium ${isDayOnLeave ? 'text-yellow-800' : 'text-gray-900'}`}>
+                          <div className="font-medium text-gray-900">
                             {getDayName(dayOfWeek)}
-                            {isDayOnLeave && (
-                              <span className="ml-2 text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">
-                                In vacanza
-                              </span>
-                            )}
                           </div>
                           <div className="text-sm text-gray-500">
                             {formatDate(day)}
@@ -331,31 +258,27 @@ export default function AvailabilityPage() {
                       <td className="py-4 px-4 text-center">
                         <button
                           onClick={() => toggleAvailability(dayOfWeek, 'PRANZO')}
-                          disabled={!canEditThisDay || isAbsentWeek || loading}
+                          disabled={!canEdit || isAbsentWeek || loading}
                           className={`w-8 h-8 rounded-full border-2 transition-colors ${
                             isAvailable(dayOfWeek, 'PRANZO')
                               ? 'bg-green-500 border-green-500 text-white'
-                              : isDayOnLeave
-                              ? 'bg-yellow-100 border-yellow-300'
                               : 'bg-white border-gray-300 hover:border-gray-400'
-                          } ${!canEditThisDay || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          {isAvailable(dayOfWeek, 'PRANZO') ? '✓' : isDayOnLeave ? '🏖️' : ''}
+                          {isAvailable(dayOfWeek, 'PRANZO') && '✓'}
                         </button>
                       </td>
                       <td className="py-4 px-4 text-center">
                         <button
                           onClick={() => toggleAvailability(dayOfWeek, 'CENA')}
-                          disabled={!canEditThisDay || isAbsentWeek || loading}
+                          disabled={!canEdit || isAbsentWeek || loading}
                           className={`w-8 h-8 rounded-full border-2 transition-colors ${
                             isAvailable(dayOfWeek, 'CENA')
                               ? 'bg-green-500 border-green-500 text-white'
-                              : isDayOnLeave
-                              ? 'bg-yellow-100 border-yellow-300'
                               : 'bg-white border-gray-300 hover:border-gray-400'
-                          } ${!canEditThisDay || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          {isAvailable(dayOfWeek, 'CENA') ? '✓' : isDayOnLeave ? '🏖️' : ''}
+                          {isAvailable(dayOfWeek, 'CENA') && '✓'}
                         </button>
                       </td>
                     </tr>

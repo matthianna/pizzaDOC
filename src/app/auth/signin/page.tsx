@@ -73,23 +73,21 @@ export default function SignInPage() {
       <div className="w-full max-w-sm">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-6">
+          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-orange-500 rounded-full">
             <img
               src="/logo.png"
               alt="PizzaDOC Logo"
-              className="w-32 h-32 object-contain"
+              className="w-20 h-20 rounded-full object-cover"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
                 const nextEl = e.currentTarget.nextElementSibling as HTMLElement
-                if (nextEl) nextEl.style.display = 'block'
+                if (nextEl) nextEl.style.display = 'flex'
               }}
             />
-            <div className="hidden w-32 h-32 items-center justify-center bg-orange-500 rounded-full">
-              <span className="text-white font-bold text-4xl">🍕</span>
-            </div>
+            <span className="text-white font-bold text-2xl hidden items-center justify-center">🍕</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">PizzaDOC</h1>
-          <p className="text-gray-600">Accedi al tuo account</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">PizzaDOC</h1>
+          <p className="text-gray-600 text-sm">Accedi al tuo account</p>
         </div>
 
         {/* Login Form */}
