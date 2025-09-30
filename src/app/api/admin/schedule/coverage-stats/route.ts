@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const weekStart = new Date(weekStartParam)
 
     // 1. Carica tutti i limiti di turno
-    const shiftLimits = await prisma.shiftLimit.findMany()
+    const shiftLimits = await prisma.shiftLimits.findMany()
     
     // 2. Carica i turni assegnati per questa settimana
     const assignedShifts = await prisma.shift.findMany({

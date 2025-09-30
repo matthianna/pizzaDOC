@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-// PUT /api/user/absences/[id] - Update absence
+import { isAuthenticatedWithRoles } from '@/lib/auth-utils'
+
+// PUT /api/user/absences/[id] - Update user's absence
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -10,14 +12,14 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session) {
+    if (!session || !isAuthenticatedWithRoles(session, ['ADMIN', 'FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const resolvedParams = await params
     const absenceId = resolvedParams.id
 
-    // Check if absence exists and belongs to user
+    // Verifica che l'assenza appartenga all'utente
     const existingAbsence = await prisma.absence.findFirst({
       where: {
         id: absenceId,
@@ -26,13 +28,10 @@ export async function PUT(
     })
 
     if (!existingAbsence) {
-      return NextResponse.json(
-        { error: 'Absence not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Absence not found' }, { status: 404 })
     }
 
-    // Cannot modify past absences
+    // Non si possono modificare assenze nel passato
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
@@ -43,12 +42,11 @@ export async function PUT(
       )
     }
 
-    const { startDate, endDate, type, reason, description } = await request.json()
+    const { type, startDate, endDate, reason } = await request.json()
 
-    // Validation
-    if (!startDate || !endDate) {
+    if (!type || !startDate || !endDate) {
       return NextResponse.json(
-        { error: 'Start date and end date are required' },
+        { error: 'Type, start date, and end date are required' },
         { status: 400 }
       )
     }
@@ -56,32 +54,34 @@ export async function PUT(
     const start = new Date(startDate)
     const end = new Date(endDate)
 
-    // Cannot set dates in the past
+    // Non si possono creare assenze nel passato
     if (start < today) {
       return NextResponse.json(
-        { error: 'Cannot set dates in the past' },
+        { error: 'Cannot set absence for past dates' },
         { status: 400 }
       )
     }
 
-    // End date must be after start date
+    // Data fine deve essere >= data inizio
     if (end < start) {
       return NextResponse.json(
-        { error: 'End date must be after start date' },
+        { error: 'End date must be on or after start date' },
         { status: 400 }
       )
     }
 
-    // Check for overlapping absences (excluding current one)
+    // Verifica sovrapposizioni (escludendo l'assenza corrente)
     const overlappingAbsences = await prisma.absence.findMany({
       where: {
         userId: session.user.id,
-        id: { not: absenceId },
         status: { in: ['PENDING', 'APPROVED'] },
+        id: { not: absenceId },
         OR: [
           {
-            startDate: { lte: end },
-            endDate: { gte: start }
+            AND: [
+              { startDate: { lte: end } },
+              { endDate: { gte: start } }
+            ]
           }
         ]
       }
@@ -89,7 +89,7 @@ export async function PUT(
 
     if (overlappingAbsences.length > 0) {
       return NextResponse.json(
-        { error: 'There is already an absence in this period' },
+        { error: 'Dates overlap with existing absence' },
         { status: 400 }
       )
     }
@@ -97,11 +97,10 @@ export async function PUT(
     const updatedAbsence = await prisma.absence.update({
       where: { id: absenceId },
       data: {
+        type,
         startDate: start,
         endDate: end,
-        type: type || existingAbsence.type,
-        reason: reason || null,
-        description: description || null
+        reason
       }
     })
 
@@ -115,7 +114,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/user/absences/[id] - Delete absence
+// DELETE /api/user/absences/[id] - Delete user's absence
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -123,14 +122,14 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session) {
+    if (!session || !isAuthenticatedWithRoles(session, ['ADMIN', 'FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const resolvedParams = await params
     const absenceId = resolvedParams.id
 
-    // Check if absence exists and belongs to user
+    // Verifica che l'assenza appartenga all'utente
     const existingAbsence = await prisma.absence.findFirst({
       where: {
         id: absenceId,
@@ -139,13 +138,10 @@ export async function DELETE(
     })
 
     if (!existingAbsence) {
-      return NextResponse.json(
-        { error: 'Absence not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Absence not found' }, { status: 404 })
     }
 
-    // Cannot delete past absences
+    // Non si possono eliminare assenze nel passato
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     

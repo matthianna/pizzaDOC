@@ -24,7 +24,7 @@ const prisma = new PrismaClient()
 // ================================
 // Modifica questa data per cambiare la settimana target
 // La data deve essere un LUNEDÌ (inizio settimana)
-const WEEK_START_DATE = new Date('2025-10-06') // 6 Gennaio 2025 (Lunedì)
+const WEEK_START_DATE = new Date('2025-01-06') // 6 Gennaio 2025 (Lunedì)
 
 // Opzioni aggiuntive
 const CLEAR_EXISTING = true // Elimina disponibilità esistenti per la settimana

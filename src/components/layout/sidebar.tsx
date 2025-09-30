@@ -84,7 +84,7 @@ export function Sidebar() {
       hideForAdmin: true // Admin ha la sua vista admin
     },
     {
-      name: 'Assenze / Vacanze',
+      name: 'Assenze',
       href: '/absences',
       icon: MapPinIcon,
       iconSolid: MapPinIconSolid,
@@ -93,17 +93,17 @@ export function Sidebar() {
     },
     // Sezione Admin
     {
+      name: 'Gestione Utenti',
+      href: '/admin/users',
+      icon: UsersIcon,
+      iconSolid: UsersIconSolid,
+      adminOnly: true
+    },
+    {
       name: 'Piano Lavoro',
       href: '/admin/schedule',
       icon: ChartBarIcon,
       iconSolid: ChartBarIconSolid,
-      adminOnly: true
-    },
-    {
-      name: 'Assenze / Vacanze',
-      href: '/admin/absences',
-      icon: MapPinIcon,
-      iconSolid: MapPinIconSolid,
       adminOnly: true
     },
     {
@@ -128,10 +128,10 @@ export function Sidebar() {
       adminOnly: true
     },
     {
-      name: 'Gestione Utenti',
-      href: '/admin/users',
-      icon: UsersIcon,
-      iconSolid: UsersIconSolid,
+      name: 'Assenze',
+      href: '/admin/absences',
+      icon: MapPinIcon,
+      iconSolid: MapPinIconSolid,
       adminOnly: true
     },
     {

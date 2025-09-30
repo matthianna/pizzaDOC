@@ -3,11 +3,9 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { useSession } from 'next-auth/react'
-import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock, MapPin, ExternalLink } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock, MapPin } from 'lucide-react'
 import { getWeekStart, getNextWeekStart, canEditAvailability, getWeekDays, formatDate, getDayOfWeek, getShiftTimes } from '@/lib/date-utils'
 import { getDayName, getShiftTypeName } from '@/lib/utils'
-import { format, parseISO } from 'date-fns'
-import { it } from 'date-fns/locale'
 
 interface Availability {
   dayOfWeek: number
@@ -15,14 +13,21 @@ interface Availability {
   isAvailable: boolean
 }
 
+interface Absence {
+  id: string
+  type: string
+  startDate: string
+  endDate: string
+  reason?: string
+  status: string
+}
+
 export default function AvailabilityPage() {
   const { data: session } = useSession()
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [isAbsentWeek, setIsAbsentWeek] = useState(false)
-  const [absenceDetails, setAbsenceDetails] = useState<any[]>([])
-  const [blockedDays, setBlockedDays] = useState<number[]>([])
-  const [hasPartialAbsence, setHasPartialAbsence] = useState(false)
+  const [absences, setAbsences] = useState<Absence[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -39,23 +44,7 @@ export default function AvailabilityPage() {
 
   useEffect(() => {
     fetchAvailability()
-    checkAbsences()
   }, [currentWeek])
-
-  const checkAbsences = async () => {
-    try {
-      const response = await fetch(`/api/user/absences/check?weekStart=${currentWeek.toISOString()}`)
-      if (response.ok) {
-        const data = await response.json()
-        setIsAbsentWeek(data.hasAbsence)
-        setAbsenceDetails(data.absences || [])
-        setBlockedDays(data.blockedDays || [])
-        setHasPartialAbsence(data.hasPartialAbsence || false)
-      }
-    } catch (error) {
-      console.error('Error checking absences:', error)
-    }
-  }
 
   const fetchAvailability = async () => {
     setLoading(true)
@@ -64,12 +53,19 @@ export default function AvailabilityPage() {
       if (response.ok) {
         const data = await response.json()
         
-        // Don't use old isAbsentWeek logic, use new absence system
-        setAvailabilities(data.map((d: any) => ({
-          dayOfWeek: d.dayOfWeek,
-          shiftType: d.shiftType,
-          isAvailable: d.isAvailable
-        })))
+        // Gestisce la nuova struttura dati
+        setIsAbsentWeek(data.isAbsentWeek || false)
+        setAbsences(data.absences || [])
+        
+        if (!data.isAbsentWeek) {
+          setAvailabilities(data.availabilities.map((d: any) => ({
+            dayOfWeek: d.dayOfWeek,
+            shiftType: d.shiftType,
+            isAvailable: d.isAvailable
+          })))
+        } else {
+          setAvailabilities([])
+        }
       }
     } catch (error) {
       console.error('Error fetching availability:', error)
@@ -130,24 +126,10 @@ export default function AvailabilityPage() {
     return availabilities.find(a => a.dayOfWeek === dayOfWeek && a.shiftType === shiftType)?.isAvailable || false
   }
 
-  const isDayBlocked = (dayOfWeek: number) => {
-    return blockedDays.includes(dayOfWeek)
-  }
-
   const navigateWeek = (direction: 'prev' | 'next') => {
     const newWeek = new Date(currentWeek)
     newWeek.setDate(newWeek.getDate() + (direction === 'next' ? 7 : -7))
     setCurrentWeek(newWeek)
-  }
-
-  const getAbsenceTypeName = (type: string) => {
-    switch (type) {
-      case 'VACATION': return 'Vacanze'
-      case 'SICK_LEAVE': return 'Malattia'
-      case 'PERSONAL': return 'Permesso Personale'
-      case 'OTHER': return 'Altro'
-      default: return type
-    }
   }
 
   const weekDays = getWeekDays(currentWeek)
@@ -227,50 +209,52 @@ export default function AvailabilityPage() {
             </button>
           </div>
 
-          {/* Absence Warning */}
-          {(isAbsentWeek || hasPartialAbsence) && absenceDetails.length > 0 && (
+          {/* Absence Information */}
+          {isAbsentWeek && absences.length > 0 && (
             <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
               <div className="flex items-start">
                 <MapPin className="h-5 w-5 text-amber-600 mt-0.5 mr-3" />
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium text-amber-800">
-                    {isAbsentWeek 
-                      ? "Sei in assenza durante questa settimana" 
-                      : "Hai assenze parziali in questa settimana"
-                    }
+                  <h3 className="text-sm font-medium text-amber-800 mb-2">
+                    Assenza Programmata
                   </h3>
-                  <div className="mt-2 space-y-2">
-                    {absenceDetails.map((absence, index) => (
-                      <div key={index} className="text-sm text-amber-700">
-                        <strong>{getAbsenceTypeName(absence.type)}</strong> dal{' '}
-                        {format(parseISO(absence.startDate), 'dd/MM', { locale: it })} al{' '}
-                        {format(parseISO(absence.endDate), 'dd/MM/yyyy', { locale: it })}
+                  <div className="text-sm text-amber-700">
+                    <p className="mb-2">
+                      Hai un'assenza programmata che si sovrappone con questa settimana:
+                    </p>
+                    {absences.map((absence, index) => (
+                      <div key={absence.id} className="mb-2 last:mb-0">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">
+                            {absence.type === 'VACATION' ? '🏖️ Vacanze' :
+                             absence.type === 'SICK_LEAVE' ? '🤒 Malattia' :
+                             absence.type === 'PERSONAL' ? '📅 Permesso Personale' : 
+                             '📋 Altro'}
+                          </span>
+                          <span>•</span>
+                          <span>
+                            Dal {new Date(absence.startDate).toLocaleDateString('it-IT')} 
+                            al {new Date(absence.endDate).toLocaleDateString('it-IT')}
+                          </span>
+                        </div>
                         {absence.reason && (
-                          <span className="block text-xs mt-1">Motivo: {absence.reason}</span>
+                          <p className="text-xs text-amber-600 mt-1">
+                            {absence.reason}
+                          </p>
                         )}
                       </div>
                     ))}
-                  </div>
-                  {hasPartialAbsence && (
-                    <div className="mt-2 text-xs text-amber-600">
-                      Alcuni giorni potrebbero essere disabilitati per la disponibilità
-                    </div>
-                  )}
-                  <div className="mt-3">
-                    <a
-                      href="/absences"
-                      className="inline-flex items-center text-sm text-amber-800 hover:text-amber-900 font-medium"
-                    >
-                      Gestisci le tue assenze
-                      <ExternalLink className="h-4 w-4 ml-1" />
-                    </a>
+                    <p className="mt-3 text-xs">
+                      Non puoi inserire la disponibilità per questa settimana. 
+                      Se vuoi modificare questa assenza, vai alla <a href="/absences" className="underline">pagina Assenze</a>.
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {canEdit && !isAbsentWeek && (
+          {canEdit && absences.length === 0 && (
             <div className="mb-6">
               <label className="flex items-center">
                 <input
@@ -329,31 +313,27 @@ export default function AvailabilityPage() {
                       <td className="py-4 px-4 text-center">
                         <button
                           onClick={() => toggleAvailability(dayOfWeek, 'PRANZO')}
-                          disabled={!canEdit || isAbsentWeek || loading || isDayBlocked(dayOfWeek)}
+                          disabled={!canEdit || isAbsentWeek || loading}
                           className={`w-8 h-8 rounded-full border-2 transition-colors ${
-                            isDayBlocked(dayOfWeek)
-                              ? 'bg-red-100 border-red-300 text-red-400'
-                              : isAvailable(dayOfWeek, 'PRANZO')
+                            isAvailable(dayOfWeek, 'PRANZO')
                               ? 'bg-green-500 border-green-500 text-white'
                               : 'bg-white border-gray-300 hover:border-gray-400'
-                          } ${!canEdit || isAbsentWeek || isDayBlocked(dayOfWeek) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          {isDayBlocked(dayOfWeek) ? '✕' : isAvailable(dayOfWeek, 'PRANZO') && '✓'}
+                          {isAvailable(dayOfWeek, 'PRANZO') && '✓'}
                         </button>
                       </td>
                       <td className="py-4 px-4 text-center">
                         <button
                           onClick={() => toggleAvailability(dayOfWeek, 'CENA')}
-                          disabled={!canEdit || isAbsentWeek || loading || isDayBlocked(dayOfWeek)}
+                          disabled={!canEdit || isAbsentWeek || loading}
                           className={`w-8 h-8 rounded-full border-2 transition-colors ${
-                            isDayBlocked(dayOfWeek)
-                              ? 'bg-red-100 border-red-300 text-red-400'
-                              : isAvailable(dayOfWeek, 'CENA')
+                            isAvailable(dayOfWeek, 'CENA')
                               ? 'bg-green-500 border-green-500 text-white'
                               : 'bg-white border-gray-300 hover:border-gray-400'
-                          } ${!canEdit || isAbsentWeek || isDayBlocked(dayOfWeek) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          {isDayBlocked(dayOfWeek) ? '✕' : isAvailable(dayOfWeek, 'CENA') && '✓'}
+                          {isAvailable(dayOfWeek, 'CENA') && '✓'}
                         </button>
                       </td>
                     </tr>
@@ -380,24 +360,18 @@ export default function AvailabilityPage() {
         {/* Legend */}
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Legenda</h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div className="flex items-center">
               <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
-              <span className="text-gray-900">Disponibile</span>
+              <span>Disponibile</span>
             </div>
             <div className="flex items-center">
               <div className="w-4 h-4 rounded-full border-2 border-gray-300 mr-2"></div>
-              <span className="text-gray-900">Non disponibile</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-4 h-4 rounded-full bg-red-100 border-2 border-red-300 mr-2 flex items-center justify-center">
-                <span className="text-red-400 text-xs">✕</span>
-              </div>
-              <span className="text-gray-900">Assente</span>
+              <span>Non disponibile</span>
             </div>
             <div className="flex items-center">
               <AlertCircle className="h-4 w-4 text-amber-600 mr-2" />
-              <span className="text-gray-900">Modifiche non consentite</span>
+              <span>Modifiche non consentite</span>
             </div>
           </div>
         </div>

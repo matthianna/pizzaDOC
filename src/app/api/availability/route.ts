@@ -21,6 +21,42 @@ export async function GET(request: NextRequest) {
     }
 
     const weekStart = new Date(weekStartParam)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+
+    // Controlla se l'utente ha assenze in questa settimana
+    const absences = await prisma.absence.findMany({
+      where: {
+        userId: session.user.id,
+        status: { in: ['PENDING', 'APPROVED'] },
+        OR: [
+          {
+            AND: [
+              { startDate: { lte: weekEnd } },
+              { endDate: { gte: weekStart } }
+            ]
+          }
+        ]
+      }
+    })
+
+    const hasAbsences = absences.length > 0
+
+    if (hasAbsences) {
+      // Se ha assenze, restituisci informazioni sull'assenza
+      return NextResponse.json({
+        isAbsentWeek: true,
+        absences: absences.map(absence => ({
+          id: absence.id,
+          type: absence.type,
+          startDate: absence.startDate,
+          endDate: absence.endDate,
+          reason: absence.reason,
+          status: absence.status
+        })),
+        availabilities: []
+      })
+    }
 
     const availabilities = await prisma.availability.findMany({
       where: {
@@ -29,7 +65,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json(availabilities)
+    return NextResponse.json({
+      isAbsentWeek: false,
+      absences: [],
+      availabilities
+    })
   } catch (error) {
     console.error('Error fetching availability:', error)
     return NextResponse.json(
@@ -55,6 +95,37 @@ export async function POST(request: NextRequest) {
     }
 
     const weekStartDate = new Date(weekStart)
+    const weekEnd = new Date(weekStartDate)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+
+    // Controlla se l'utente ha assenze in questa settimana
+    const absences = await prisma.absence.findMany({
+      where: {
+        userId: session.user.id,
+        status: { in: ['PENDING', 'APPROVED'] },
+        OR: [
+          {
+            AND: [
+              { startDate: { lte: weekEnd } },
+              { endDate: { gte: weekStartDate } }
+            ]
+          }
+        ]
+      }
+    })
+
+    if (absences.length > 0 && !isAbsentWeek) {
+      return NextResponse.json({ 
+        error: 'Cannot set availability for a week with absences',
+        absences: absences.map(absence => ({
+          id: absence.id,
+          type: absence.type,
+          startDate: absence.startDate,
+          endDate: absence.endDate,
+          reason: absence.reason
+        }))
+      }, { status: 400 })
+    }
 
     // Delete existing availabilities for this week
     await prisma.availability.deleteMany({
