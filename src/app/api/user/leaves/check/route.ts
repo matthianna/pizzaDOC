@@ -62,9 +62,33 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Calcola quali giorni della settimana sono coperti da vacanze
+    const leaveDays: number[] = [] // 0=Lunedì, 6=Domenica
+    
+    for (let dayOffset = 0; dayOffset <= 6; dayOffset++) {
+      const currentDay = new Date(weekStart)
+      currentDay.setDate(currentDay.getDate() + dayOffset)
+      currentDay.setHours(0, 0, 0, 0)
+      
+      // Verifica se questo giorno è coperto da qualche vacanza
+      const isDayOnLeave = overlappingLeaves.some(leave => {
+        const leaveStart = new Date(leave.startDate)
+        const leaveEnd = new Date(leave.endDate)
+        leaveStart.setHours(0, 0, 0, 0)
+        leaveEnd.setHours(23, 59, 59, 999)
+        
+        return currentDay >= leaveStart && currentDay <= leaveEnd
+      })
+      
+      if (isDayOnLeave) {
+        leaveDays.push(dayOffset)
+      }
+    }
+
     return NextResponse.json({
       hasApprovedLeaves: overlappingLeaves.length > 0,
-      leaves: overlappingLeaves
+      leaves: overlappingLeaves,
+      leaveDays // Array di giorni in vacanza (0=Lun, 1=Mar, ..., 6=Dom)
     })
   } catch (error) {
     console.error('Error checking leaves:', error)

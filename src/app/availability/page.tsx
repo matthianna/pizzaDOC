@@ -20,6 +20,7 @@ export default function AvailabilityPage() {
   const [isAbsentWeek, setIsAbsentWeek] = useState(false)
   const [hasApprovedLeaves, setHasApprovedLeaves] = useState(false)
   const [approvedLeaves, setApprovedLeaves] = useState<any[]>([])
+  const [leaveDays, setLeaveDays] = useState<number[]>([]) // Giorni in vacanza
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -32,7 +33,13 @@ export default function AvailabilityPage() {
     return today >= monday
   }
   
-  const canEditThisWeek = !hasWeekStarted() && !hasApprovedLeaves
+  // Check se un giorno specifico è modificabile
+  const canEditDay = (dayOfWeek: number) => {
+    if (hasWeekStarted()) return false
+    return !leaveDays.includes(dayOfWeek)
+  }
+  
+  const canEditThisWeek = !hasWeekStarted()
 
   useEffect(() => {
     fetchAvailability()
@@ -46,6 +53,7 @@ export default function AvailabilityPage() {
         const data = await response.json()
         setHasApprovedLeaves(data.hasApprovedLeaves)
         setApprovedLeaves(data.leaves || [])
+        setLeaveDays(data.leaveDays || [])
       }
     } catch (error) {
       console.error('Error checking approved leaves:', error)
@@ -300,12 +308,20 @@ export default function AvailabilityPage() {
               <tbody>
                 {weekDays.map((day, index) => {
                   const dayOfWeek = getDayOfWeek(day)
+                  const isDayOnLeave = leaveDays.includes(dayOfWeek)
+                  const canEditThisDay = canEditDay(dayOfWeek)
+                  
                   return (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={index} className={`border-b border-gray-100 ${isDayOnLeave ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                       <td className="py-4 px-4">
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div className={`font-medium ${isDayOnLeave ? 'text-yellow-800' : 'text-gray-900'}`}>
                             {getDayName(dayOfWeek)}
+                            {isDayOnLeave && (
+                              <span className="ml-2 text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">
+                                In vacanza
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-gray-500">
                             {formatDate(day)}
@@ -315,27 +331,31 @@ export default function AvailabilityPage() {
                       <td className="py-4 px-4 text-center">
                         <button
                           onClick={() => toggleAvailability(dayOfWeek, 'PRANZO')}
-                          disabled={!canEdit || isAbsentWeek || loading}
+                          disabled={!canEditThisDay || isAbsentWeek || loading}
                           className={`w-8 h-8 rounded-full border-2 transition-colors ${
                             isAvailable(dayOfWeek, 'PRANZO')
                               ? 'bg-green-500 border-green-500 text-white'
+                              : isDayOnLeave
+                              ? 'bg-yellow-100 border-yellow-300'
                               : 'bg-white border-gray-300 hover:border-gray-400'
-                          } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${!canEditThisDay || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          {isAvailable(dayOfWeek, 'PRANZO') && '✓'}
+                          {isAvailable(dayOfWeek, 'PRANZO') ? '✓' : isDayOnLeave ? '🏖️' : ''}
                         </button>
                       </td>
                       <td className="py-4 px-4 text-center">
                         <button
                           onClick={() => toggleAvailability(dayOfWeek, 'CENA')}
-                          disabled={!canEdit || isAbsentWeek || loading}
+                          disabled={!canEditThisDay || isAbsentWeek || loading}
                           className={`w-8 h-8 rounded-full border-2 transition-colors ${
                             isAvailable(dayOfWeek, 'CENA')
                               ? 'bg-green-500 border-green-500 text-white'
+                              : isDayOnLeave
+                              ? 'bg-yellow-100 border-yellow-300'
                               : 'bg-white border-gray-300 hover:border-gray-400'
-                          } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${!canEditThisDay || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          {isAvailable(dayOfWeek, 'CENA') && '✓'}
+                          {isAvailable(dayOfWeek, 'CENA') ? '✓' : isDayOnLeave ? '🏖️' : ''}
                         </button>
                       </td>
                     </tr>
