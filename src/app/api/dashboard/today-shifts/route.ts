@@ -19,12 +19,11 @@ export async function GET() {
     
     // Calcola l'inizio della settimana corrente (lunedì)
     const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 })
-    const weekStartString = format(currentWeekStart, 'yyyy-MM-dd')
 
     console.log('Today shifts debug:', {
       today: format(today, 'yyyy-MM-dd HH:mm'),
       dayOfWeek,
-      weekStartString
+      currentWeekStart: format(currentWeekStart, 'yyyy-MM-dd')
     })
 
     // Trova i turni di oggi
@@ -32,7 +31,7 @@ export async function GET() {
       where: {
         dayOfWeek: dayOfWeek,
         schedule: {
-          weekStart: weekStartString
+          weekStart: currentWeekStart
         }
       },
       include: {
