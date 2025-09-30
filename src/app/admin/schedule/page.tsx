@@ -490,6 +490,15 @@ export default function AdminSchedulePage() {
           </div>
         )}
 
+        {/* Coverage Report */}
+        {schedule && shiftLimits.length > 0 && (
+          <CoverageReport 
+            schedule={schedule} 
+            shiftLimits={shiftLimits}
+            currentWeek={currentWeek}
+          />
+        )}
+
         {/* Schedule Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {loading ? (
@@ -898,6 +907,109 @@ function ShiftCrew({
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function CoverageReport({ 
+  schedule, 
+  shiftLimits, 
+  currentWeek 
+}: { 
+  schedule: Schedule
+  shiftLimits: { dayOfWeek: number; shiftType: string; role: string; minStaff: number; maxStaff: number }[]
+  currentWeek: Date
+}) {
+  const [availabilityStats, setAvailabilityStats] = useState<{
+    totalRequired: number
+    totalAssigned: number
+    totalAvailable: number
+    coveragePercentage: number
+    availabilityPercentage: number
+  } | null>(null)
+
+  useEffect(() => {
+    fetchAvailabilityStats()
+  }, [schedule, currentWeek])
+
+  const fetchAvailabilityStats = async () => {
+    try {
+      const response = await fetch(`/api/admin/schedule/coverage-stats?weekStart=${currentWeek.toISOString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAvailabilityStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching coverage stats:', error)
+    }
+  }
+
+  if (!availabilityStats) return null
+
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="flex items-center mb-3">
+        <BarChart3 className="h-5 w-5 text-blue-600 mr-2" />
+        <h3 className="text-sm font-medium text-blue-800">
+          Resoconto Copertura Turni
+        </h3>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-lg p-3">
+          <div className="text-xs text-gray-600 mb-1">Turni Assegnati</div>
+          <div className="text-lg font-bold text-gray-900">
+            {availabilityStats.totalAssigned}/{availabilityStats.totalRequired}
+          </div>
+          <div className="text-xs text-gray-600">
+            {availabilityStats.coveragePercentage.toFixed(1)}% copertura
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div 
+              className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(100, availabilityStats.coveragePercentage)}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-3">
+          <div className="text-xs text-gray-600 mb-1">Disponibilità Inserite</div>
+          <div className="text-lg font-bold text-gray-900">
+            {availabilityStats.totalAvailable}
+          </div>
+          <div className="text-xs text-gray-600">
+            su {availabilityStats.totalRequired} necessarie
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div 
+              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(100, availabilityStats.availabilityPercentage)}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-3">
+          <div className="text-xs text-gray-600 mb-1">Efficienza Assegnamento</div>
+          <div className="text-lg font-bold text-gray-900">
+            {availabilityStats.totalAvailable > 0 
+              ? ((availabilityStats.totalAssigned / availabilityStats.totalAvailable) * 100).toFixed(1)
+              : 0}%
+          </div>
+          <div className="text-xs text-gray-600">
+            assegnati su disponibili
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div 
+              className="bg-green-500 h-2 rounded-full transition-all duration-300"
+              style={{ 
+                width: `${Math.min(100, availabilityStats.totalAvailable > 0 
+                  ? (availabilityStats.totalAssigned / availabilityStats.totalAvailable) * 100 
+                  : 0)}%` 
+              }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
