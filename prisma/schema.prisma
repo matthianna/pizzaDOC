@@ -280,7 +280,7 @@ model Absence {
   type        AbsenceType @default(VACATION)
   reason      String?
   description String?
-  status      AbsenceStatus @default(APPROVED) // Auto-approvate per ora
+  status      AbsenceStatus @default(PENDING) // Richiedono approvazione
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 

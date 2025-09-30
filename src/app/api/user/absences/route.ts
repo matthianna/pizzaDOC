@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         type: type || 'VACATION',
         reason: reason || null,
         description: description || null,
-        status: 'PENDING' // Richiede approvazione
+        status: 'PENDING' // Richiede approvazione admin
       }
     })
 

@@ -21,6 +21,8 @@ export default function AvailabilityPage() {
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [isAbsentWeek, setIsAbsentWeek] = useState(false)
   const [absenceDetails, setAbsenceDetails] = useState<any[]>([])
+  const [blockedDays, setBlockedDays] = useState<number[]>([])
+  const [hasPartialAbsence, setHasPartialAbsence] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -47,6 +49,8 @@ export default function AvailabilityPage() {
         const data = await response.json()
         setIsAbsentWeek(data.hasAbsence)
         setAbsenceDetails(data.absences || [])
+        setBlockedDays(data.blockedDays || [])
+        setHasPartialAbsence(data.hasPartialAbsence || false)
       }
     } catch (error) {
       console.error('Error checking absences:', error)
@@ -124,6 +128,10 @@ export default function AvailabilityPage() {
 
   const isAvailable = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA') => {
     return availabilities.find(a => a.dayOfWeek === dayOfWeek && a.shiftType === shiftType)?.isAvailable || false
+  }
+
+  const isDayBlocked = (dayOfWeek: number) => {
+    return blockedDays.includes(dayOfWeek)
   }
 
   const navigateWeek = (direction: 'prev' | 'next') => {
@@ -220,13 +228,16 @@ export default function AvailabilityPage() {
           </div>
 
           {/* Absence Warning */}
-          {isAbsentWeek && absenceDetails.length > 0 && (
+          {(isAbsentWeek || hasPartialAbsence) && absenceDetails.length > 0 && (
             <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
               <div className="flex items-start">
                 <MapPin className="h-5 w-5 text-amber-600 mt-0.5 mr-3" />
                 <div className="flex-1">
                   <h3 className="text-sm font-medium text-amber-800">
-                    Sei in assenza durante questa settimana
+                    {isAbsentWeek 
+                      ? "Sei in assenza durante questa settimana" 
+                      : "Hai assenze parziali in questa settimana"
+                    }
                   </h3>
                   <div className="mt-2 space-y-2">
                     {absenceDetails.map((absence, index) => (
@@ -240,6 +251,11 @@ export default function AvailabilityPage() {
                       </div>
                     ))}
                   </div>
+                  {hasPartialAbsence && (
+                    <div className="mt-2 text-xs text-amber-600">
+                      Alcuni giorni potrebbero essere disabilitati per la disponibilità
+                    </div>
+                  )}
                   <div className="mt-3">
                     <a
                       href="/absences"
@@ -313,27 +329,31 @@ export default function AvailabilityPage() {
                       <td className="py-4 px-4 text-center">
                         <button
                           onClick={() => toggleAvailability(dayOfWeek, 'PRANZO')}
-                          disabled={!canEdit || isAbsentWeek || loading}
+                          disabled={!canEdit || isAbsentWeek || loading || isDayBlocked(dayOfWeek)}
                           className={`w-8 h-8 rounded-full border-2 transition-colors ${
-                            isAvailable(dayOfWeek, 'PRANZO')
+                            isDayBlocked(dayOfWeek)
+                              ? 'bg-red-100 border-red-300 text-red-400'
+                              : isAvailable(dayOfWeek, 'PRANZO')
                               ? 'bg-green-500 border-green-500 text-white'
                               : 'bg-white border-gray-300 hover:border-gray-400'
-                          } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${!canEdit || isAbsentWeek || isDayBlocked(dayOfWeek) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          {isAvailable(dayOfWeek, 'PRANZO') && '✓'}
+                          {isDayBlocked(dayOfWeek) ? '✕' : isAvailable(dayOfWeek, 'PRANZO') && '✓'}
                         </button>
                       </td>
                       <td className="py-4 px-4 text-center">
                         <button
                           onClick={() => toggleAvailability(dayOfWeek, 'CENA')}
-                          disabled={!canEdit || isAbsentWeek || loading}
+                          disabled={!canEdit || isAbsentWeek || loading || isDayBlocked(dayOfWeek)}
                           className={`w-8 h-8 rounded-full border-2 transition-colors ${
-                            isAvailable(dayOfWeek, 'CENA')
+                            isDayBlocked(dayOfWeek)
+                              ? 'bg-red-100 border-red-300 text-red-400'
+                              : isAvailable(dayOfWeek, 'CENA')
                               ? 'bg-green-500 border-green-500 text-white'
                               : 'bg-white border-gray-300 hover:border-gray-400'
-                          } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          } ${!canEdit || isAbsentWeek || isDayBlocked(dayOfWeek) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          {isAvailable(dayOfWeek, 'CENA') && '✓'}
+                          {isDayBlocked(dayOfWeek) ? '✕' : isAvailable(dayOfWeek, 'CENA') && '✓'}
                         </button>
                       </td>
                     </tr>
@@ -359,19 +379,25 @@ export default function AvailabilityPage() {
 
         {/* Legend */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-black mb-4">Legenda</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-black">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Legenda</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
             <div className="flex items-center">
               <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
-              <span>Disponibile</span>
+              <span className="text-gray-900">Disponibile</span>
             </div>
             <div className="flex items-center">
               <div className="w-4 h-4 rounded-full border-2 border-gray-300 mr-2"></div>
-              <span>Non disponibile</span>
+              <span className="text-gray-900">Non disponibile</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-4 h-4 rounded-full bg-red-100 border-2 border-red-300 mr-2 flex items-center justify-center">
+                <span className="text-red-400 text-xs">✕</span>
+              </div>
+              <span className="text-gray-900">Assente</span>
             </div>
             <div className="flex items-center">
               <AlertCircle className="h-4 w-4 text-amber-600 mr-2" />
-              <span>Modifiche non consentite</span>
+              <span className="text-gray-900">Modifiche non consentite</span>
             </div>
           </div>
         </div>

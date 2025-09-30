@@ -500,11 +500,9 @@ export default function AdminSchedulePage() {
         )}
 
         {/* Employee Coverage Details */}
-        {schedule && shiftLimits.length > 0 && (
-          <EmployeeCoverageDetails 
-            currentWeek={currentWeek}
-          />
-        )}
+        <EmployeeCoverageDetails 
+          currentWeek={currentWeek}
+        />
 
         {/* Weekly Availability Overview */}
         <WeeklyAvailabilityOverview 

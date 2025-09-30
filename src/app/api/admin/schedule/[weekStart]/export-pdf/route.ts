@@ -120,7 +120,7 @@ function generateScheduleHTML(schedule: {
     <style>
         @page {
             size: A4 portrait;
-            margin: 15mm;
+            margin: 10mm;
         }
         
         * { 
@@ -130,120 +130,143 @@ function generateScheduleHTML(schedule: {
         }
         
         body { 
-            font-family: 'Arial', sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
-            color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 11px;
+            line-height: 1.3;
+            color: #1f2937;
             background: white;
         }
         
         .container {
             max-width: 100%;
-            padding: 10px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 3px solid #f97316;
+            border-bottom: 2px solid #f97316;
         }
         
         .title {
-            font-size: 26px;
-            font-weight: bold;
-            color: #000;
-            margin-bottom: 8px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 5px;
         }
         
         .subtitle {
-            font-size: 16px;
-            color: #333;
-            font-weight: 500;
+            font-size: 14px;
+            color: #6b7280;
         }
         
-        .week-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
+        .week-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
         
-        .week-table th {
-            background: #f97316;
+        .day-section {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            page-break-inside: avoid;
+        }
+        
+        .day-header {
+            background: linear-gradient(135deg, #f97316, #ea580c);
             color: white;
-            padding: 12px 8px;
-            text-align: left;
-            font-weight: bold;
+            padding: 12px 16px;
+            font-weight: 700;
             font-size: 14px;
-            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         
-        .week-table td {
-            padding: 10px 8px;
-            border: 1px solid #333;
-            vertical-align: top;
-            font-size: 12px;
+        .day-content {
+            padding: 12px 16px;
         }
         
-        .day-row {
-            background: #f8f9fa;
+        .shift-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 15px;
         }
         
-        .day-name {
-            font-weight: bold;
-            color: #000;
-            font-size: 14px;
+        .shift-row:last-child {
+            margin-bottom: 0;
         }
         
-        .day-date {
-            color: #666;
-            font-size: 11px;
-            margin-top: 2px;
-        }
-        
-        .shift-content {
-            min-height: 60px;
+        .shift-info {
+            min-width: 120px;
+            flex-shrink: 0;
         }
         
         .shift-title {
-            font-weight: bold;
-            color: #f97316;
-            font-size: 13px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
+            font-weight: 700;
+            color: #1f2937;
+            font-size: 12px;
+            margin-bottom: 2px;
         }
         
-        .worker-list {
-            margin: 0;
-            padding: 0;
-            list-style: none;
+        .shift-time {
+            color: #6b7280;
+            font-size: 10px;
         }
         
-        .worker-item {
-            margin-bottom: 6px;
-            padding: 6px;
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 3px;
+        .workers-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+        }
+        
+        .worker-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 10px;
+        }
+        
+        .worker-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
         
         .worker-name {
-            font-weight: bold;
-            color: #000;
-            font-size: 12px;
+            font-weight: 600;
+            color: #1f2937;
         }
         
-        .worker-details {
+        .worker-role {
+            color: #6b7280;
+            text-transform: uppercase;
+            font-size: 8px;
+            letter-spacing: 0.3px;
+        }
+        
+        .worker-time {
+            font-weight: 600;
+            color: #f97316;
             font-size: 10px;
-            color: #666;
-            margin-top: 2px;
         }
         
         .no-workers {
-            color: #999;
+            color: #9ca3af;
             font-style: italic;
-            text-align: center;
-            padding: 20px;
+            font-size: 10px;
         }
         
         .summary {
@@ -298,62 +321,66 @@ function generateScheduleHTML(schedule: {
             <p class="subtitle">Settimana dal ${format(weekStart, 'dd/MM/yyyy', { locale: it })} al ${format(weekEnd, 'dd/MM/yyyy', { locale: it })}</p>
         </div>
 
-        <table class="week-table">
-            <thead>
-                <tr>
-                    <th width="15%">Giorno</th>
-                    <th width="42.5%">Pranzo (11:00-14:00)</th>
-                    <th width="42.5%">Cena (17:00-22:00)</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${days.map((dayName, index) => {
-                  const date = addDays(weekStart, index)
-                  const dayShifts = shiftsByDay[index] || []
-                  
-                  // Raggruppa per turno
-                  const pranzoShifts = dayShifts.filter(s => s.shiftType === 'PRANZO')
-                  const cenaShifts = dayShifts.filter(s => s.shiftType === 'CENA')
-                  
-                  return `
-                <tr class="day-row">
-                    <td>
-                        <div class="day-name">${dayName}</div>
-                        <div class="day-date">${format(date, 'dd/MM/yyyy', { locale: it })}</div>
-                    </td>
-                    <td class="shift-content">
-                        ${pranzoShifts.length > 0 ? `
-                        <ul class="worker-list">
+        <div class="week-container">
+            ${days.map((dayName, index) => {
+              const date = addDays(weekStart, index)
+              const dayShifts = shiftsByDay[index] || []
+              
+              // Raggruppa per turno
+              const pranzoShifts = dayShifts.filter(s => s.shiftType === 'PRANZO')
+              const cenaShifts = dayShifts.filter(s => s.shiftType === 'CENA')
+              
+              return `
+            <div class="day-section">
+                <div class="day-header">
+                    <span>${dayName}</span>
+                    <span>${format(date, 'dd/MM', { locale: it })}</span>
+                </div>
+                <div class="day-content">
+                    ${pranzoShifts.length > 0 ? `
+                    <div class="shift-row">
+                        <div class="shift-info">
+                            <div class="shift-title">PRANZO</div>
+                            <div class="shift-time">11:00-14:00</div>
+                        </div>
+                        <div class="workers-grid">
                             ${pranzoShifts.map(shift => `
-                            <li class="worker-item">
-                                <div class="worker-name">${shift.user.username}</div>
-                                <div class="worker-details">
-                                    ${getRoleShort(shift.role)} - Inizio: ${shift.startTime}
+                            <div class="worker-card">
+                                <div class="worker-info">
+                                    <div class="worker-name">${shift.user.username}</div>
+                                    <div class="worker-role">${getRoleShort(shift.role)}</div>
                                 </div>
-                            </li>
+                                <div class="worker-time">${shift.startTime}</div>
+                            </div>
                             `).join('')}
-                        </ul>
-                        ` : '<div class="no-workers">Nessun dipendente</div>'}
-                    </td>
-                    <td class="shift-content">
-                        ${cenaShifts.length > 0 ? `
-                        <ul class="worker-list">
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${cenaShifts.length > 0 ? `
+                    <div class="shift-row">
+                        <div class="shift-info">
+                            <div class="shift-title">CENA</div>
+                            <div class="shift-time">17:00-22:00</div>
+                        </div>
+                        <div class="workers-grid">
                             ${cenaShifts.map(shift => `
-                            <li class="worker-item">
-                                <div class="worker-name">${shift.user.username}</div>
-                                <div class="worker-details">
-                                    ${getRoleShort(shift.role)} - Inizio: ${shift.startTime}
+                            <div class="worker-card">
+                                <div class="worker-info">
+                                    <div class="worker-name">${shift.user.username}</div>
+                                    <div class="worker-role">${getRoleShort(shift.role)}</div>
                                 </div>
-                            </li>
+                                <div class="worker-time">${shift.startTime}</div>
+                            </div>
                             `).join('')}
-                        </ul>
-                        ` : '<div class="no-workers">Nessun dipendente</div>'}
-                    </td>
-                </tr>
-                  `
-                }).join('')}
-            </tbody>
-        </table>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+              `
+            }).join('')}
+        </div>
 
         <div class="summary">
             <div class="summary-item">
