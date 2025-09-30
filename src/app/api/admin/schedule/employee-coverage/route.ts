@@ -22,7 +22,24 @@ export async function GET(request: NextRequest) {
     const weekStart = startOfWeek(new Date(weekStartParam), { weekStartsOn: 1 })
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 })
 
-    // Get all users with their availability and assigned shifts for this week
+    // Get the schedule for this week
+    const schedule = await prisma.schedule.findFirst({
+      where: {
+        weekStart: {
+          gte: weekStart,
+          lte: weekEnd
+        }
+      },
+      include: {
+        shifts: {
+          include: {
+            user: true
+          }
+        }
+      }
+    })
+
+    // Get all users with their availability for this week
     const users = await prisma.user.findMany({
       where: {
         roles: {
@@ -37,21 +54,13 @@ export async function GET(request: NextRequest) {
               lte: weekEnd
             }
           }
-        },
-        shifts: {
-          where: {
-            weekStart: {
-              gte: weekStart,
-              lte: weekEnd
-            }
-          }
         }
       }
     })
 
     const employeeStats = users.map(user => {
       const availableShifts = user.availability.filter(a => a.isAvailable)
-      const assignedShifts = user.shifts
+      const assignedShifts = schedule?.shifts.filter(s => s.userId === user.id) || []
 
       return {
         id: user.id,

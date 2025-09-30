@@ -127,7 +127,7 @@ export default function AdminSchedulePage() {
     }
 
     const calculatedGaps: Gap[] = []
-    const roles: Role[] = ['CUCINA', 'FATTORINO', 'SALA']
+    const roles: Role[] = ['CUCINA', 'FATTORINO', 'SALA', 'PIZZAIOLO']
     const shiftTypes: ShiftType[] = ['PRANZO', 'CENA']
     
     // Group shifts by day/shift/role
@@ -141,7 +141,8 @@ export default function AdminSchedulePage() {
     })
 
     // Calculate gaps for each day/shift/role combination
-    for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
+    // 0=Monday, 1=Tuesday, ..., 6=Sunday
+    for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
       for (const shiftType of shiftTypes) {
         for (const role of roles) {
           const limit = shiftLimits.find(l => 
