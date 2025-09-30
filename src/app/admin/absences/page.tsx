@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, MapPin, Heart, User, Clock, Filter, Search, Download } from 'lucide-react'
+import { Select } from '@/components/ui/select'
 import { format, parseISO, isFuture, isPast, isWithinInterval, startOfDay } from 'date-fns'
 import { it } from 'date-fns/locale'
 
@@ -286,52 +287,46 @@ export default function AdminAbsencesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo
-              </label>
-              <select
+              <Select
+                label="Tipo"
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              >
-                <option value="all">Tutti i tipi</option>
-                <option value="VACATION">Vacanze</option>
-                <option value="SICK_LEAVE">Malattia</option>
-                <option value="PERSONAL">Permesso Personale</option>
-                <option value="OTHER">Altro</option>
-              </select>
+                onChange={setFilterType}
+                options={[
+                  { value: 'all', label: 'Tutti i tipi' },
+                  { value: 'VACATION', label: 'Vacanze' },
+                  { value: 'SICK_LEAVE', label: 'Malattia' },
+                  { value: 'PERSONAL', label: 'Permesso Personale' },
+                  { value: 'OTHER', label: 'Altro' }
+                ]}
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Stato
-              </label>
-              <select
+              <Select
+                label="Stato"
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              >
-                <option value="all">Tutti gli stati</option>
-                <option value="PENDING">In Attesa</option>
-                <option value="APPROVED">Approvate</option>
-                <option value="REJECTED">Rifiutate</option>
-              </select>
+                onChange={setFilterStatus}
+                options={[
+                  { value: 'all', label: 'Tutti gli stati' },
+                  { value: 'PENDING', label: 'In Attesa' },
+                  { value: 'APPROVED', label: 'Approvate' },
+                  { value: 'REJECTED', label: 'Rifiutate' }
+                ]}
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Periodo
-              </label>
-              <select
+              <Select
+                label="Periodo"
                 value={filterTime}
-                onChange={(e) => setFilterTime(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              >
-                <option value="all">Tutti i periodi</option>
-                <option value="current">In corso</option>
-                <option value="future">Future</option>
-                <option value="past">Passate</option>
-              </select>
+                onChange={setFilterTime}
+                options={[
+                  { value: 'all', label: 'Tutti i periodi' },
+                  { value: 'current', label: 'In corso' },
+                  { value: 'future', label: 'Future' },
+                  { value: 'past', label: 'Passate' }
+                ]}
+              />
             </div>
           </div>
         </div>

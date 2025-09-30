@@ -381,13 +381,14 @@ export default function AbsencesPage() {
                   </label>
                   <Select
                     value={formData.type}
-                    onValueChange={(value) => setFormData({ ...formData, type: value as any })}
-                  >
-                    <option value="VACATION">Vacanze</option>
-                    <option value="SICK_LEAVE">Malattia</option>
-                    <option value="PERSONAL">Permesso Personale</option>
-                    <option value="OTHER">Altro</option>
-                  </Select>
+                    onChange={(value) => setFormData({ ...formData, type: value as any })}
+                    options={[
+                      { value: 'VACATION', label: 'Vacanze' },
+                      { value: 'SICK_LEAVE', label: 'Malattia' },
+                      { value: 'PERSONAL', label: 'Permesso Personale' },
+                      { value: 'OTHER', label: 'Altro' }
+                    ]}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
