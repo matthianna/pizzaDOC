@@ -16,7 +16,8 @@ import {
   ArrowRightOnRectangleIcon,
   ChartBarIcon,
   UserPlusIcon,
-  PresentationChartLineIcon
+  PresentationChartLineIcon,
+  CalendarDaysIcon
 } from '@heroicons/react/24/outline'
 import { 
   HomeIcon as HomeIconSolid,
@@ -27,7 +28,8 @@ import {
   Cog6ToothIcon as Cog6ToothIconSolid,
   ChartBarIcon as ChartBarIconSolid,
   UserPlusIcon as UserPlusIconSolid,
-  PresentationChartLineIcon as PresentationChartLineIconSolid
+  PresentationChartLineIcon as PresentationChartLineIconSolid,
+  CalendarDaysIcon as CalendarDaysIconSolid
 } from '@heroicons/react/24/solid'
 import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
@@ -81,6 +83,14 @@ export function Sidebar() {
       adminOnly: false,
       hideForAdmin: true // Admin ha la sua vista admin
     },
+    {
+      name: 'Assenze',
+      href: '/absences',
+      icon: CalendarDaysIcon,
+      iconSolid: CalendarDaysIconSolid,
+      adminOnly: false,
+      hideForAdmin: true // User only
+    },
     // Sezione Admin
     {
       name: 'Gestione Utenti',
@@ -115,6 +125,13 @@ export function Sidebar() {
       href: '/admin/substitutions',
       icon: UserPlusIcon,
       iconSolid: UserPlusIconSolid,
+      adminOnly: true
+    },
+    {
+      name: 'Assenze',
+      href: '/admin/absences',
+      icon: CalendarDaysIcon,
+      iconSolid: CalendarDaysIconSolid,
       adminOnly: true
     },
     {

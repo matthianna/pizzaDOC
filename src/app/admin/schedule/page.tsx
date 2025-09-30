@@ -127,7 +127,7 @@ export default function AdminSchedulePage() {
     }
 
     const calculatedGaps: Gap[] = []
-    const roles: Role[] = ['CUCINA', 'FATTORINO', 'SALA']
+    const roles: Role[] = ['CUCINA', 'FATTORINO', 'SALA', 'PIZZAIOLO']
     const shiftTypes: ShiftType[] = ['PRANZO', 'CENA']
     
     // Group shifts by day/shift/role
