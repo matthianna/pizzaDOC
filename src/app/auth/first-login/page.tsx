@@ -113,21 +113,23 @@ export default function FirstLoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-orange-500 rounded-full">
+          <div className="inline-flex items-center justify-center mb-6">
             <img
               src="/logo.png"
               alt="PizzaDOC Logo"
-              className="w-20 h-20 rounded-full object-cover"
+              className="w-32 h-32 object-contain"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
                 const nextEl = e.currentTarget.nextElementSibling as HTMLElement
-                if (nextEl) nextEl.style.display = 'flex'
+                if (nextEl) nextEl.style.display = 'block'
               }}
             />
-            <span className="text-white font-bold text-2xl hidden items-center justify-center">🍕</span>
+            <div className="hidden w-32 h-32 items-center justify-center bg-orange-500 rounded-full">
+              <span className="text-white font-bold text-4xl">🍕</span>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Primo Accesso</h1>
-          <p className="text-gray-600 text-sm">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Primo Accesso</h1>
+          <p className="text-gray-600">
             Ciao <span className="font-semibold text-orange-600">{session?.user.username}</span>!<br />
             Imposta una nuova password
           </p>
