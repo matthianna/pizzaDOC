@@ -115,7 +115,7 @@ model User {
   substitutionRequests  Substitution[] @relation("SubstitutionRequester")
   substitutionAsSubstitute Substitution[] @relation("SubstitutionSubstitute")
   substitutionApprovals Substitution[] @relation("SubstitutionApprover")
-  absences              Absence[]
+  absences              Absence[]      @relation("UserAbsences")
 
   @@map("users")
 }
@@ -272,22 +272,6 @@ model Substitution {
   @@map("substitutions")
 }
 
-model Absence {
-  id        String   @id @default(cuid())
-  userId    String
-  startDate DateTime
-  endDate   DateTime
-  reason    String?
-  type      AbsenceType @default(VACATION)
-  status    AbsenceStatus @default(APPROVED)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("absences")
-}
-
 enum AbsenceType {
   VACATION    // Ferie
   SICK_LEAVE  // Malattia
@@ -295,8 +279,20 @@ enum AbsenceType {
   OTHER       // Altro
 }
 
-enum AbsenceStatus {
-  PENDING   // In attesa approvazione
-  APPROVED  // Approvato
-  REJECTED  // Rifiutato
+model Absence {
+  id        String      @id @default(cuid())
+  userId    String
+  startDate DateTime    // Data inizio assenza
+  endDate   DateTime    // Data fine assenza
+  type      AbsenceType // Tipo di assenza
+  reason    String?     // Motivo (opzionale)
+  status    String      @default("APPROVED") // APPROVED, PENDING, REJECTED (per future approval)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user User @relation("UserAbsences", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("absences")
+  @@index([userId])
+  @@index([startDate, endDate])
 }

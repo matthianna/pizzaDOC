@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3 } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X } from 'lucide-react'
 import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek } from '@/lib/date-utils'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
@@ -920,109 +920,95 @@ function CoverageReport({
   shiftLimits: { dayOfWeek: number; shiftType: string; role: string; minStaff: number; maxStaff: number }[]
   currentWeek: Date
 }) {
-  const [userStats, setUserStats] = useState<Array<{
-    userId: string
-    username: string
-    primaryRole: string
-    availabilities: number
-    assigned: number
-    percentage: number
-  }> | null>(null)
+  const [availabilityStats, setAvailabilityStats] = useState<{
+    totalRequired: number
+    totalAssigned: number
+    totalAvailable: number
+    coveragePercentage: number
+    availabilityPercentage: number
+  } | null>(null)
 
   useEffect(() => {
-    fetchCoverageStats()
+    fetchAvailabilityStats()
   }, [schedule, currentWeek])
 
-  const fetchCoverageStats = async () => {
+  const fetchAvailabilityStats = async () => {
     try {
       const response = await fetch(`/api/admin/schedule/coverage-stats?weekStart=${currentWeek.toISOString()}`)
       if (response.ok) {
         const data = await response.json()
-        setUserStats(data.userStats)
+        setAvailabilityStats(data)
       }
     } catch (error) {
       console.error('Error fetching coverage stats:', error)
     }
   }
 
-  if (!userStats) return null
+  if (!availabilityStats) return null
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <div className="flex items-center mb-4">
+      <div className="flex items-center mb-3">
         <BarChart3 className="h-5 w-5 text-blue-600 mr-2" />
-        <h3 className="text-base font-semibold text-blue-900">
-          Resoconto Assegnazioni per Dipendente
+        <h3 className="text-sm font-medium text-blue-800">
+          Resoconto Copertura Turni
         </h3>
       </div>
       
-      <div className="bg-white rounded-lg p-3 max-h-96 overflow-y-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50 sticky top-0">
-            <tr>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                Dipendente
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                Ruolo
-              </th>
-              <th className="px-3 py-2 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                Disponibilità
-              </th>
-              <th className="px-3 py-2 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                Assegnati
-              </th>
-              <th className="px-3 py-2 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                % Assegnazione
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {userStats.map((user) => (
-              <tr key={user.userId} className="hover:bg-gray-50">
-                <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {user.username}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-600">
-                  {getRoleName(user.primaryRole)}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
-                  {user.availabilities}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
-                  {user.assigned}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className={`text-sm font-semibold ${
-                      user.percentage >= 70 ? 'text-green-600' :
-                      user.percentage >= 40 ? 'text-yellow-600' :
-                      'text-red-600'
-                    }`}>
-                      {user.percentage}%
-                    </span>
-                    <div className="w-16 bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${
-                          user.percentage >= 70 ? 'bg-green-500' :
-                          user.percentage >= 40 ? 'bg-yellow-500' :
-                          'bg-red-500'
-                        }`}
-                        style={{ width: `${Math.min(100, user.percentage)}%` }}
-                      />
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        
-        {userStats.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            Nessun dato disponibile per questa settimana
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-lg p-3">
+          <div className="text-xs text-gray-600 mb-1">Turni Assegnati</div>
+          <div className="text-lg font-bold text-gray-900">
+            {availabilityStats.totalAssigned}/{availabilityStats.totalRequired}
           </div>
-        )}
+          <div className="text-xs text-gray-600">
+            {availabilityStats.coveragePercentage.toFixed(1)}% copertura
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div 
+              className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(100, availabilityStats.coveragePercentage)}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-3">
+          <div className="text-xs text-gray-600 mb-1">Disponibilità Inserite</div>
+          <div className="text-lg font-bold text-gray-900">
+            {availabilityStats.totalAvailable}
+          </div>
+          <div className="text-xs text-gray-600">
+            su {availabilityStats.totalRequired} necessarie
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div 
+              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(100, availabilityStats.availabilityPercentage)}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-3">
+          <div className="text-xs text-gray-600 mb-1">Efficienza Assegnamento</div>
+          <div className="text-lg font-bold text-gray-900">
+            {availabilityStats.totalAvailable > 0 
+              ? ((availabilityStats.totalAssigned / availabilityStats.totalAvailable) * 100).toFixed(1)
+              : 0}%
+          </div>
+          <div className="text-xs text-gray-600">
+            assegnati su disponibili
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div 
+              className="bg-green-500 h-2 rounded-full transition-all duration-300"
+              style={{ 
+                width: `${Math.min(100, availabilityStats.totalAvailable > 0 
+                  ? (availabilityStats.totalAssigned / availabilityStats.totalAvailable) * 100 
+                  : 0)}%` 
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   )

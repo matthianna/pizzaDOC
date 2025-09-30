@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // Create availability records based on user selections
-      const availabilityRecords = availabilities.map((avail: { dayOfWeek: number; shiftType: string; isAvailable: boolean }) => ({
+      const availabilityRecords = availabilities.map((avail: any) => ({
         userId: session.user.id,
         weekStart: weekStartDate,
         dayOfWeek: avail.dayOfWeek,

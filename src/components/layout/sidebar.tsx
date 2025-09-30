@@ -58,14 +58,6 @@ export function Sidebar() {
       hideForAdmin: true // Admin non deve vedere questa sezione
     },
     {
-      name: 'Assenze/Ferie',
-      href: '/absences',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
-      adminOnly: false,
-      hideForAdmin: true
-    },
-    {
       name: 'Ore Lavorate',
       href: '/hours',
       icon: ClockIcon,
@@ -116,13 +108,6 @@ export function Sidebar() {
       href: '/admin/hours-summary',
       icon: PresentationChartLineIcon,
       iconSolid: PresentationChartLineIconSolid,
-      adminOnly: true
-    },
-    {
-      name: 'Assenze Dipendenti',
-      href: '/admin/absences',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
       adminOnly: true
     },
     {
