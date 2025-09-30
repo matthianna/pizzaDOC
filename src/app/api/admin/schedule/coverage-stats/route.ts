@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin } from '@/lib/auth-utils'
+import { format } from 'date-fns'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,78 +21,66 @@ export async function GET(request: NextRequest) {
     }
 
     const weekStart = new Date(weekStartParam)
+    const weekStartString = format(weekStart, 'yyyy-MM-dd')
 
-    // 1. Carica tutti i limiti di turno
-    const shiftLimits = await prisma.shiftLimits.findMany()
-    
-    // 2. Carica i turni assegnati per questa settimana
+    // 1. Carica tutti gli utenti attivi (escluso admin)
+    const users = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        NOT: { username: 'admin' }
+      },
+      select: {
+        id: true,
+        username: true,
+        primaryRole: true
+      }
+    })
+
+    // 2. Carica le disponibilità per questa settimana
+    const availabilities = await prisma.availability.findMany({
+      where: {
+        weekStart: weekStartString,
+        isAvailable: true
+      }
+    })
+
+    // 3. Carica i turni assegnati per questa settimana
     const assignedShifts = await prisma.shift.findMany({
       where: {
         schedule: {
-          weekStart: weekStart
+          weekStart: weekStartString
         }
       }
     })
 
-    // 3. Carica le disponibilità per questa settimana
-    const availabilities = await prisma.availability.findMany({
-      where: {
-        weekStart: weekStart,
-        isAvailable: true
-      },
-      include: {
-        user: {
-          include: {
-            userRoles: true
-          }
-        }
+    // 4. Calcola stats per ogni utente
+    const userStats = users.map(user => {
+      // Conta quante disponibilità ha inserito
+      const userAvailabilities = availabilities.filter(a => a.userId === user.id).length
+
+      // Conta quanti turni gli sono stati assegnati
+      const userAssignedShifts = assignedShifts.filter(s => s.userId === user.id).length
+
+      // Calcola percentuale
+      const percentage = userAvailabilities > 0 
+        ? Math.round((userAssignedShifts / userAvailabilities) * 100)
+        : 0
+
+      return {
+        userId: user.id,
+        username: user.username,
+        primaryRole: user.primaryRole,
+        availabilities: userAvailabilities,
+        assigned: userAssignedShifts,
+        percentage
       }
     })
 
-    // 4. Calcola statistiche
-    let totalRequired = 0
-    let totalAssigned = 0
-    let totalAvailable = 0
-
-    // Raggruppa turni assegnati per giorno/turno/ruolo
-    const assignedByKey = assignedShifts.reduce((acc, shift) => {
-      const key = `${shift.dayOfWeek}-${shift.shiftType}-${shift.role}`
-      acc[key] = (acc[key] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-
-    // Per ogni limite di turno, calcola required, assigned e available
-    for (const limit of shiftLimits) {
-      if (limit.minStaff > 0) {
-        const key = `${limit.dayOfWeek}-${limit.shiftType}-${limit.role}`
-        
-        // Required
-        totalRequired += limit.minStaff
-        
-        // Assigned
-        const assigned = assignedByKey[key] || 0
-        totalAssigned += assigned
-        
-        // Available (persone con il ruolo giusto disponibili per questo turno)
-        const availableForThisSlot = availabilities.filter(avail => 
-          avail.dayOfWeek === limit.dayOfWeek &&
-          avail.shiftType === limit.shiftType &&
-          avail.user.userRoles.some(role => role.role === limit.role)
-        ).length
-        
-        totalAvailable += Math.min(availableForThisSlot, limit.minStaff) // Non contare più disponibili del necessario
-      }
-    }
-
-    const coveragePercentage = totalRequired > 0 ? (totalAssigned / totalRequired) * 100 : 0
-    const availabilityPercentage = totalRequired > 0 ? (totalAvailable / totalRequired) * 100 : 0
+    // Ordina per percentuale decrescente
+    userStats.sort((a, b) => b.percentage - a.percentage)
 
     return NextResponse.json({
-      totalRequired,
-      totalAssigned,
-      totalAvailable,
-      coveragePercentage,
-      availabilityPercentage
+      userStats
     })
 
   } catch (error) {

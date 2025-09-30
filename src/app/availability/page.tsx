@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { useSession } from 'next-auth/react'
-import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock } from 'lucide-react'
-import { getWeekStart, getNextWeekStart, canEditAvailability, getWeekDays, formatDate, getDayOfWeek, getShiftTimes } from '@/lib/date-utils'
+import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock, XCircle } from 'lucide-react'
+import { getWeekStart, getNextWeekStart, getWeekDays, formatDate } from '@/lib/date-utils'
 import { getDayName, getShiftTypeName } from '@/lib/utils'
+import { addDays, format, startOfDay, endOfDay } from 'date-fns'
+import { it } from 'date-fns/locale'
+import { useToast } from '@/components/ui/toast'
 
 interface Availability {
   dayOfWeek: number
@@ -13,20 +16,30 @@ interface Availability {
   isAvailable: boolean
 }
 
+interface DayAbsence {
+  dayOfWeek: number
+  isAbsent: boolean
+  absenceInfo?: {
+    id: string
+    type: string
+    reason: string | null
+  }
+}
+
 export default function AvailabilityPage() {
   const { data: session } = useSession()
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
-  const [isAbsentWeek, setIsAbsentWeek] = useState(false)
+  const [dayAbsences, setDayAbsences] = useState<DayAbsence[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const { showToast, ToastContainer } = useToast()
 
-  const isAdmin = session?.user.roles.includes('ADMIN')
+  const isAdmin = session?.user.roles?.includes('ADMIN')
   
-  // Check if the week has already started (can't edit availability)
   const hasWeekStarted = () => {
-    const today = new Date()
-    const monday = new Date(currentWeek)
+    const today = startOfDay(new Date())
+    const monday = startOfDay(currentWeek)
     return today >= monday
   }
   
@@ -34,6 +47,7 @@ export default function AvailabilityPage() {
 
   useEffect(() => {
     fetchAvailability()
+    checkAbsences()
   }, [currentWeek])
 
   const fetchAvailability = async () => {
@@ -42,20 +56,11 @@ export default function AvailabilityPage() {
       const response = await fetch(`/api/availability?weekStart=${currentWeek.toISOString()}`)
       if (response.ok) {
         const data = await response.json()
-        
-        // Check if user is absent for the week
-        const isAbsent = data.length > 0 && data[0].isAbsentWeek
-        setIsAbsentWeek(isAbsent)
-        
-        if (!isAbsent) {
-          setAvailabilities(data.map((d: any) => ({
-            dayOfWeek: d.dayOfWeek,
-            shiftType: d.shiftType,
-            isAvailable: d.isAvailable
-          })))
-        } else {
-          setAvailabilities([])
-        }
+        setAvailabilities(data.map((d: any) => ({
+          dayOfWeek: d.dayOfWeek,
+          shiftType: d.shiftType,
+          isAvailable: d.isAvailable
+        })))
       }
     } catch (error) {
       console.error('Error fetching availability:', error)
@@ -64,259 +69,279 @@ export default function AvailabilityPage() {
     }
   }
 
+  const checkAbsences = async () => {
+    try {
+      const weekDates = getWeekDays(currentWeek)
+      const absenceChecks = await Promise.all(
+        weekDates.map(async (date, index) => {
+          const response = await fetch(`/api/absences/check?date=${date.toISOString()}`)
+          if (response.ok) {
+            const data = await response.json()
+            return {
+              dayOfWeek: index,
+              isAbsent: data.isAbsent,
+              absenceInfo: data.absences?.[0]
+            }
+          }
+          return { dayOfWeek: index, isAbsent: false }
+        })
+      )
+      setDayAbsences(absenceChecks)
+    } catch (error) {
+      console.error('Error checking absences:', error)
+    }
+  }
+
   const saveAvailability = async () => {
     setSaving(true)
     try {
       const response = await fetch('/api/availability', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           weekStart: currentWeek.toISOString(),
-          availabilities,
-          isAbsentWeek
+          availabilities
         })
       })
 
       if (response.ok) {
-        alert('Disponibilità salvata con successo!')
+        showToast('Disponibilità salvata con successo', 'success')
       } else {
-        alert('Errore durante il salvataggio')
+        showToast('Errore nel salvataggio', 'error')
       }
     } catch (error) {
-      console.error('Error saving availability:', error)
-      alert('Errore durante il salvataggio')
+      showToast('Errore nel salvataggio', 'error')
     } finally {
       setSaving(false)
     }
   }
 
   const toggleAvailability = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA') => {
-    if (isAbsentWeek) return
+    // Controlla se il giorno è in assenza
+    const dayAbsence = dayAbsences.find(d => d.dayOfWeek === dayOfWeek)
+    if (dayAbsence?.isAbsent) {
+      showToast('Non puoi inserire disponibilità durante un\'assenza', 'error')
+      return
+    }
 
-    const existing = availabilities.find(a => a.dayOfWeek === dayOfWeek && a.shiftType === shiftType)
-    
+    const existing = availabilities.find(
+      a => a.dayOfWeek === dayOfWeek && a.shiftType === shiftType
+    )
+
     if (existing) {
-      setAvailabilities(availabilities.map(a => 
+      setAvailabilities(availabilities.map(a =>
         a.dayOfWeek === dayOfWeek && a.shiftType === shiftType
           ? { ...a, isAvailable: !a.isAvailable }
           : a
       ))
     } else {
-      setAvailabilities([...availabilities, {
-        dayOfWeek,
-        shiftType,
-        isAvailable: true
-      }])
+      setAvailabilities([
+        ...availabilities,
+        { dayOfWeek, shiftType, isAvailable: true }
+      ])
     }
   }
 
   const isAvailable = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA') => {
-    return availabilities.find(a => a.dayOfWeek === dayOfWeek && a.shiftType === shiftType)?.isAvailable || false
-  }
-
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    const newWeek = new Date(currentWeek)
-    newWeek.setDate(newWeek.getDate() + (direction === 'next' ? 7 : -7))
-    setCurrentWeek(newWeek)
-  }
-
-  const weekDays = getWeekDays(currentWeek)
-  const canEdit = canEditThisWeek && canEditAvailability(currentWeek)
-
-  // Blocca l'accesso agli admin
-  if (isAdmin) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center max-w-md">
-            <Lock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Accesso Limitato
-            </h2>
-            <p className="text-gray-600">
-              La gestione delle disponibilità è riservata ai dipendenti. 
-              Gli amministratori non possono inserire la propria disponibilità.
-            </p>
-          </div>
-        </div>
-      </MainLayout>
+    const availability = availabilities.find(
+      a => a.dayOfWeek === dayOfWeek && a.shiftType === shiftType
     )
+    return availability?.isAvailable || false
   }
+
+  const isDayAbsent = (dayOfWeek: number) => {
+    return dayAbsences.find(d => d.dayOfWeek === dayOfWeek)?.isAbsent || false
+  }
+
+  const getAbsenceInfo = (dayOfWeek: number) => {
+    return dayAbsences.find(d => d.dayOfWeek === dayOfWeek)?.absenceInfo
+  }
+
+  const goToPreviousWeek = () => {
+    const prevWeek = new Date(currentWeek)
+    prevWeek.setDate(prevWeek.getDate() - 7)
+    setCurrentWeek(prevWeek)
+  }
+
+  const goToNextWeek = () => {
+    const nextWeek = new Date(currentWeek)
+    nextWeek.setDate(nextWeek.getDate() + 7)
+    setCurrentWeek(nextWeek)
+  }
+
+  const weekDates = getWeekDays(currentWeek)
+  const weekDays = weekDates.map((date, index) => ({
+    dayOfWeek: index,
+    date,
+    name: format(date, 'EEEE', { locale: it })
+  }))
 
   return (
     <MainLayout>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+      <ToastContainer />
+      
+      <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-              <Calendar className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-orange-600" />
-              Gestione Disponibilità
-            </h1>
-            <p className="text-gray-600 mt-1 text-sm sm:text-base">
-              Indica la tua disponibilità per i turni settimanali
-            </p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Disponibilità Settimanale</h1>
+            <p className="text-sm text-gray-600 mt-1">Indica quando sei disponibile a lavorare</p>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={goToPreviousWeek}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+              aria-label="Settimana precedente"
+            >
+              <ChevronLeft className="h-6 w-6 sm:h-8 sm:w-8 text-gray-700" />
+              <span className="hidden sm:inline text-sm ml-1">Precedente</span>
+            </button>
+            
+            <div className="text-center px-3">
+              <Calendar className="h-5 w-5 sm:h-6 sm:w-6 mx-auto text-orange-600" />
+              <div className="text-xs sm:text-sm font-medium text-gray-900 mt-1">
+                {formatDate(currentWeek)}
+              </div>
+            </div>
+            
+            <button
+              onClick={goToNextWeek}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+              aria-label="Settimana successiva"
+            >
+              <span className="hidden sm:inline text-sm mr-1">Successiva</span>
+              <ChevronRight className="h-6 w-6 sm:h-8 sm:w-8 text-gray-700" />
+            </button>
           </div>
         </div>
 
-        {/* Week Navigation */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 mb-4">
-            <button
-              onClick={() => navigateWeek('prev')}
-              className="flex items-center justify-center sm:justify-start px-3 py-2 text-gray-600 hover:text-gray-800 text-sm sm:text-base"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">Settimana precedente</span>
-              <span className="sm:hidden">Precedente</span>
-            </button>
-            
-            <div className="text-center">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900">
-                Settimana dal {formatDate(weekDays[0])} al {formatDate(weekDays[6])}
-              </h2>
-              {!canEdit && (
-                <div className="flex items-center justify-center mt-2 text-amber-600">
-                  <Lock className="h-4 w-4 mr-1" />
-                  <span className="text-xs sm:text-sm text-center">
-                    {!canEditThisWeek 
-                      ? "Non è possibile modificare la disponibilità per settimane già iniziate"
-                      : "Modifiche non consentite per questa settimana"
-                    }
-                  </span>
-                </div>
-              )}
+        {!canEditThisWeek && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start">
+            <Lock className="h-5 w-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+            <div className="text-sm text-yellow-800">
+              <p className="font-medium">Settimana non modificabile</p>
+              <p className="mt-1">Puoi modificare solo le settimane future.</p>
             </div>
-            
-            <button
-              onClick={() => navigateWeek('next')}
-              className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-800"
-            >
-              Settimana successiva
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </button>
           </div>
+        )}
 
-          {canEdit && (
-            <div className="mb-6">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={isAbsentWeek}
-                  onChange={(e) => {
-                    setIsAbsentWeek(e.target.checked)
-                    if (e.target.checked) {
-                      setAvailabilities([])
-                    }
-                  }}
-                  className="mr-2 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Assente tutta la settimana
-                </span>
-              </label>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
             </div>
-          )}
-
-          {/* Availability Grid */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-900">Giorno</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-900">
-                    Pranzo
-                    <div className="text-xs font-normal text-gray-500">
-                      {getShiftTimes('PRANZO').start} - {getShiftTimes('PRANZO').end}
-                    </div>
-                  </th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-900">
-                    Cena
-                    <div className="text-xs font-normal text-gray-500">
-                      {getShiftTimes('CENA').start} - {getShiftTimes('CENA').end}
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {weekDays.map((day, index) => {
-                  const dayOfWeek = getDayOfWeek(day)
-                  return (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-4 px-4">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {getDayName(dayOfWeek)}
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gradient-to-r from-orange-500 to-orange-600">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                      Giorno
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                      Pranzo
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                      Cena
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {weekDays.map(({ dayOfWeek, date, name }) => {
+                    const isAbsent = isDayAbsent(dayOfWeek)
+                    const absenceInfo = getAbsenceInfo(dayOfWeek)
+                    
+                    return (
+                      <tr key={dayOfWeek} className={isAbsent ? 'bg-red-50' : 'hover:bg-gray-50'}>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {isAbsent && <XCircle className="h-5 w-5 text-red-600 mr-2" />}
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{name}</div>
+                              <div className="text-xs text-gray-500">{format(date, 'dd/MM')}</div>
+                              {isAbsent && absenceInfo && (
+                                <div className="text-xs text-red-600 mt-1">
+                                  Assenza: {absenceInfo.type === 'VACATION' ? 'Ferie' : 
+                                           absenceInfo.type === 'SICK_LEAVE' ? 'Malattia' : 
+                                           absenceInfo.type === 'PERSONAL' ? 'Permesso' : 'Altro'}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {formatDate(day)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <button
-                          onClick={() => toggleAvailability(dayOfWeek, 'PRANZO')}
-                          disabled={!canEdit || isAbsentWeek || loading}
-                          className={`w-8 h-8 rounded-full border-2 transition-colors ${
-                            isAvailable(dayOfWeek, 'PRANZO')
-                              ? 'bg-green-500 border-green-500 text-white'
-                              : 'bg-white border-gray-300 hover:border-gray-400'
-                          } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {isAvailable(dayOfWeek, 'PRANZO') && '✓'}
-                        </button>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <button
-                          onClick={() => toggleAvailability(dayOfWeek, 'CENA')}
-                          disabled={!canEdit || isAbsentWeek || loading}
-                          className={`w-8 h-8 rounded-full border-2 transition-colors ${
-                            isAvailable(dayOfWeek, 'CENA')
-                              ? 'bg-green-500 border-green-500 text-white'
-                              : 'bg-white border-gray-300 hover:border-gray-400'
-                          } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {isAvailable(dayOfWeek, 'CENA') && '✓'}
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {canEdit && (
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={saveAvailability}
-                disabled={saving}
-                className="bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 flex items-center disabled:opacity-50"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? 'Salvando...' : 'Salva Disponibilità'}
-              </button>
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {isAbsent ? (
+                            <div className="flex items-center justify-center">
+                              <Lock className="h-5 w-5 text-red-400" />
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => toggleAvailability(dayOfWeek, 'PRANZO')}
+                              disabled={!canEditThisWeek}
+                              className={`w-20 h-10 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                                isAvailable(dayOfWeek, 'PRANZO')
+                                  ? 'bg-green-500 text-white hover:bg-green-600'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              }`}
+                            >
+                              {isAvailable(dayOfWeek, 'PRANZO') ? '✓' : '—'}
+                            </button>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {isAbsent ? (
+                            <div className="flex items-center justify-center">
+                              <Lock className="h-5 w-5 text-red-400" />
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => toggleAvailability(dayOfWeek, 'CENA')}
+                              disabled={!canEditThisWeek}
+                              className={`w-20 h-10 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                                isAvailable(dayOfWeek, 'CENA')
+                                  ? 'bg-green-500 text-white hover:bg-green-600'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              }`}
+                            >
+                              {isAvailable(dayOfWeek, 'CENA') ? '✓' : '—'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
 
-        {/* Legend */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Legenda</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-center">
-              <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
-              <span>Disponibile</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-4 h-4 rounded-full border-2 border-gray-300 mr-2"></div>
-              <span>Non disponibile</span>
-            </div>
-            <div className="flex items-center">
-              <AlertCircle className="h-4 w-4 text-amber-600 mr-2" />
-              <span>Modifiche non consentite</span>
+        {canEditThisWeek && (
+          <div className="flex justify-end">
+            <button
+              onClick={saveAvailability}
+              disabled={saving}
+              className="flex items-center px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              <Save className="h-5 w-5 mr-2" />
+              {saving ? 'Salvataggio...' : 'Salva Disponibilità'}
+            </button>
+          </div>
+        )}
+
+        {/* Legenda */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+            <div className="text-sm text-blue-800">
+              <p className="font-medium mb-2">Come funziona:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Clicca sui pulsanti per indicare la tua disponibilità</li>
+                <li><span className="font-medium text-green-600">Verde (✓)</span> = Disponibile</li>
+                <li><span className="font-medium text-gray-600">Grigio (—)</span> = Non disponibile</li>
+                <li><XCircle className="h-4 w-4 text-red-600 inline mr-1" />Giorni bloccati per assenza programmata</li>
+                <li>Ricorda di salvare le modifiche prima di cambiare settimana!</li>
+              </ul>
             </div>
           </div>
         </div>
