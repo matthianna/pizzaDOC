@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { startOfWeek } from 'date-fns'
+import { convertJsDayToOurDay } from '@/lib/date-utils'
 
 // PUT /api/user/absences/[id] - Update absence
 export async function PUT(
@@ -104,38 +106,42 @@ export async function PUT(
     // Aggiorna automaticamente le disponibilità per i giorni in assenza
     // Trova tutte le settimane che si sovrappongono con l'assenza
     const weekStarts: Date[] = []
-    let currentDate = new Date(start)
-    currentDate.setDate(currentDate.getDate() - currentDate.getDay() + 1) // Vai al lunedì
-    currentDate.setHours(0, 0, 0, 0)
+    let currentWeek = startOfWeek(start, { weekStartsOn: 1 }) // 1 = Monday
+    currentWeek.setHours(0, 0, 0, 0)
     
-    while (currentDate <= end) {
-      weekStarts.push(new Date(currentDate))
-      currentDate.setDate(currentDate.getDate() + 7)
+    while (currentWeek <= end) {
+      weekStarts.push(new Date(currentWeek))
+      currentWeek.setDate(currentWeek.getDate() + 7)
     }
 
-    // Per ogni settimana, trova i giorni in assenza e aggiorna disponibilità
-    for (const weekStart of weekStarts) {
-      for (let i = 0; i < 7; i++) {
-        const currentDay = new Date(weekStart)
-        currentDay.setDate(currentDay.getDate() + i)
-        currentDay.setHours(0, 0, 0, 0)
-        
-        // Verifica se questo giorno è nell'intervallo dell'assenza
-        if (currentDay >= start && currentDay <= end) {
-          // Aggiorna disponibilità per questo giorno (sia PRANZO che CENA)
-          await prisma.availability.updateMany({
-            where: {
-              userId: session.user.id,
-              weekStart: weekStart,
-              dayOfWeek: i, // 0=Monday, 1=Tuesday, ..., 6=Sunday
-              isAvailable: true
-            },
-            data: {
-              isAvailable: false
-            }
-          })
+    // Per ogni giorno nell'intervallo di assenza, disabilita disponibilità
+    let dayToCheck = new Date(start)
+    dayToCheck.setHours(0, 0, 0, 0)
+    
+    while (dayToCheck <= end) {
+      // Trova il lunedì di questa settimana
+      const mondayOfWeek = startOfWeek(dayToCheck, { weekStartsOn: 1 })
+      mondayOfWeek.setHours(0, 0, 0, 0)
+      
+      // Converti da JS day (0=Sunday) al nostro sistema (0=Monday)
+      const jsDay = dayToCheck.getDay()
+      const ourDay = convertJsDayToOurDay(jsDay)
+      
+      // Aggiorna disponibilità per questo giorno (sia PRANZO che CENA)
+      await prisma.availability.updateMany({
+        where: {
+          userId: session.user.id,
+          weekStart: mondayOfWeek,
+          dayOfWeek: ourDay, // 0=Monday, 1=Tuesday, ..., 6=Sunday
+          isAvailable: true
+        },
+        data: {
+          isAvailable: false
         }
-      }
+      })
+      
+      // Vai al giorno successivo
+      dayToCheck.setDate(dayToCheck.getDate() + 1)
     }
 
     return NextResponse.json(updatedAbsence)

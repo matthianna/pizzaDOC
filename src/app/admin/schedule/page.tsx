@@ -888,14 +888,14 @@ function ShiftCrew({
                 )
               })}
               {missing > 0 && (
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 group/add">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600 border border-red-200 border-dashed">
                     Mancano {missing}
                   </span>
                   {onQuickAdd && (
                     <button
                       onClick={() => onQuickAdd(dayOfWeek, shiftType, role)}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-colors"
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-all opacity-0 group-hover/add:opacity-100"
                       title={`Aggiungi ${getRoleName(role)}`}
                     >
                       <UserPlus className="h-3 w-3" />
