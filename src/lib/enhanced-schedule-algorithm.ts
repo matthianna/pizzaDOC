@@ -314,6 +314,11 @@ export class EnhancedScheduleAlgorithm {
   }
 
   private async loadUserProfiles(weekStart: Date): Promise<UserProfile[]> {
+    // Calcola weekEnd per query assenze
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+    weekEnd.setHours(23, 59, 59, 999)
+    
     const users = await prisma.user.findMany({
       where: { isActive: true },
       include: {
@@ -322,8 +327,19 @@ export class EnhancedScheduleAlgorithm {
         availabilities: {
           where: {
             weekStart,
-            isAbsentWeek: false,
-            isAvailable: true
+            isAbsentWeek: false
+          }
+        },
+        absences: {
+          where: {
+            OR: [
+              {
+                AND: [
+                  { startDate: { lte: weekEnd } },
+                  { endDate: { gte: weekStart } }
+                ]
+              }
+            ]
           }
         }
       }
@@ -331,22 +347,46 @@ export class EnhancedScheduleAlgorithm {
 
     return users
       .filter(user => !user.userRoles.some(ur => ur.role === 'ADMIN'))
-      .map(user => ({
-        id: user.id,
-        username: user.username,
-        primaryRole: user.primaryRole!,
-        roles: user.userRoles.map(ur => ur.role),
-        primaryTransport: user.primaryTransport,
-        transports: user.userTransports.map(ut => ut.transport),
-        availabilities: user.availabilities.map(av => ({
-          dayOfWeek: av.dayOfWeek,
-          shiftType: av.shiftType,
-          isAvailable: av.isAvailable
-        })),
-        weeklyHours: 0,
-        consecutiveShifts: 0,
-        lastWorkedShift: null
-      }))
+      .map(user => {
+        // Filtra disponibilità escludendo giorni in assenza
+        const filteredAvailabilities = user.availabilities
+          .filter(av => av.isAvailable)
+          .filter(av => {
+            // Calcola la data di questo giorno specifico
+            const dayDate = new Date(weekStart)
+            dayDate.setDate(dayDate.getDate() + av.dayOfWeek)
+            dayDate.setHours(0, 0, 0, 0)
+            
+            // Verifica se questo giorno è coperto da un'assenza
+            const isAbsent = user.absences.some(absence => {
+              const absStart = new Date(absence.startDate)
+              absStart.setHours(0, 0, 0, 0)
+              const absEnd = new Date(absence.endDate)
+              absEnd.setHours(23, 59, 59, 999)
+              
+              return dayDate >= absStart && dayDate <= absEnd
+            })
+            
+            return !isAbsent
+          })
+        
+        return {
+          id: user.id,
+          username: user.username,
+          primaryRole: user.primaryRole!,
+          roles: user.userRoles.map(ur => ur.role),
+          primaryTransport: user.primaryTransport,
+          transports: user.userTransports.map(ut => ut.transport),
+          availabilities: filteredAvailabilities.map(av => ({
+            dayOfWeek: av.dayOfWeek,
+            shiftType: av.shiftType,
+            isAvailable: av.isAvailable
+          })),
+          weeklyHours: 0,
+          consecutiveShifts: 0,
+          lastWorkedShift: null
+        }
+      })
   }
 
   private async loadShiftRequirements(): Promise<ShiftRequirement[]> {
