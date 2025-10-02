@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react'
 import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock } from 'lucide-react'
 import { getWeekStart, getNextWeekStart, canEditAvailability, getWeekDays, formatDate, getDayOfWeek, getShiftTimes } from '@/lib/date-utils'
 import { getDayName, getShiftTypeName } from '@/lib/utils'
+import { format } from 'date-fns'
+import { it } from 'date-fns/locale'
 
 interface Availability {
   dayOfWeek: number
