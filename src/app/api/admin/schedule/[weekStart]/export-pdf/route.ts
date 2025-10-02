@@ -120,7 +120,18 @@ function generateScheduleHTML(schedule: {
     <style>
         @page {
             size: A4 landscape;
-            margin: 15mm;
+            margin: 12mm 10mm;
+        }
+        
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            body {
+                width: 277mm;
+                height: 190mm;
+            }
         }
         
         * { 
@@ -130,160 +141,170 @@ function generateScheduleHTML(schedule: {
         }
         
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 11px;
-            line-height: 1.3;
-            color: #1f2937;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 9px;
+            line-height: 1.2;
+            color: #000;
             background: white;
         }
         
         .container {
-            max-width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            width: 100%;
+            height: 100%;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f97316;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #000;
         }
         
         .title {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 5px;
+            color: #000;
+            margin-bottom: 3px;
+            letter-spacing: 0.5px;
         }
         
         .subtitle {
-            font-size: 14px;
-            color: #6b7280;
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
         }
         
         .week-container {
-            flex: 1;
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            min-height: 0;
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
         }
         
         .day-column {
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            overflow: hidden;
-            background: white;
-            display: flex;
-            flex-direction: column;
+            display: table-cell;
+            width: 14.28%;
+            border: 2px solid #000;
+            border-right: none;
+            vertical-align: top;
+        }
+        
+        .day-column:last-child {
+            border-right: 2px solid #000;
         }
         
         .day-header {
-            background: linear-gradient(135deg, #f97316, #ea580c);
+            background: #000;
             color: white;
-            padding: 8px 6px;
+            padding: 6px 4px;
             text-align: center;
-            font-weight: 600;
-            font-size: 11px;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 0.5px;
         }
         
         .day-date {
-            font-size: 9px;
-            opacity: 0.9;
+            font-size: 8px;
             margin-top: 2px;
+            font-weight: 400;
         }
         
         .day-content {
-            flex: 1;
-            padding: 6px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            padding: 4px;
         }
         
         .shift-section {
-            background: #f8fafc;
-            border-radius: 4px;
-            padding: 6px;
+            margin-bottom: 6px;
+            page-break-inside: avoid;
+        }
+        
+        .shift-section:last-child {
+            margin-bottom: 0;
         }
         
         .shift-title {
-            font-weight: 600;
-            color: #374151;
-            font-size: 10px;
+            font-weight: 700;
+            color: #000;
+            font-size: 9px;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
-            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #999;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
         
         .shift-time {
-            color: #f97316;
-            font-weight: 500;
+            color: #000;
+            font-weight: 700;
+            font-size: 8px;
         }
         
         .workers-list {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 2px;
         }
         
         .worker {
+            padding: 3px 4px;
+            background: #f5f5f5;
+            border: 1px solid #ccc;
+            font-size: 8px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 4px 6px;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            font-size: 9px;
+            page-break-inside: avoid;
         }
         
         .worker-info {
-            display: flex;
-            flex-direction: column;
-            gap: 1px;
+            flex: 1;
+            min-width: 0;
         }
         
         .worker-name {
-            font-weight: 600;
-            color: #1f2937;
+            font-weight: 700;
+            color: #000;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .worker-role {
-            color: #6b7280;
+            color: #555;
             text-transform: uppercase;
-            font-size: 8px;
+            font-size: 7px;
             letter-spacing: 0.3px;
+            margin-top: 1px;
         }
         
         .worker-time {
-            font-weight: 600;
-            color: #f97316;
-            font-size: 9px;
+            font-weight: 700;
+            color: #000;
+            font-size: 8px;
+            margin-left: 4px;
+            white-space: nowrap;
         }
         
         .empty-shift {
             text-align: center;
-            color: #9ca3af;
+            color: #999;
             font-style: italic;
-            padding: 12px 6px;
-            font-size: 9px;
+            padding: 8px 4px;
+            font-size: 8px;
         }
         
         .summary {
-            margin-top: 15px;
-            background: #f8fafc;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            padding: 12px;
+            margin-top: 10px;
+            padding: 8px;
+            border: 2px solid #000;
+            background: #f5f5f5;
             display: flex;
             justify-content: space-around;
             align-items: center;
+            page-break-inside: avoid;
         }
         
         .summary-item {
@@ -291,32 +312,16 @@ function generateScheduleHTML(schedule: {
         }
         
         .summary-number {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
-            color: #f97316;
+            color: #000;
         }
         
         .summary-label {
             font-size: 10px;
-            color: #6b7280;
+            color: #555;
             margin-top: 2px;
-        }
-        
-        .shift-times {
-            font-size: 8px;
-            color: #6b7280;
-            text-align: center;
-            margin-top: 10px;
-        }
-        
-        @media print {
-            body { 
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .container {
-                height: auto;
-            }
+            font-weight: 500;
         }
     </style>
 </head>

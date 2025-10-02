@@ -119,6 +119,13 @@ export function Sidebar() {
       adminOnly: true
     },
     {
+      name: 'Analytics',
+      href: '/admin/analytics',
+      icon: ChartBarIcon,
+      iconSolid: ChartBarIconSolid,
+      adminOnly: true
+    },
+    {
       name: 'Sostituzioni',
       href: '/admin/substitutions',
       icon: UserPlusIcon,
