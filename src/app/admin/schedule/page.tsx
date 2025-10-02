@@ -113,7 +113,7 @@ export default function AdminSchedulePage() {
       const response = await fetch(`/api/admin/missing-availability?weekStart=${currentWeek.toISOString()}`)
       if (response.ok) {
         const data = await response.json()
-        setMissingAvailability(data.missingUsers)
+        setMissingAvailability(data.missingUsers.sort())
       }
     } catch (error) {
       console.error('Error fetching missing availability:', error)

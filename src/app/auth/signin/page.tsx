@@ -75,7 +75,7 @@ export default function SignInPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-24 h-24 mb-6 rounded-full overflow-hidden shadow-lg">
             <img
-              src="/logo.png"
+              src="./logo.png"
               alt="PizzaDOC Logo"
               className="w-full h-full object-cover"
             />

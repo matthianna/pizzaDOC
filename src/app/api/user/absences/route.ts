@@ -103,6 +103,43 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Aggiorna automaticamente le disponibilità per i giorni in assenza
+    // Trova tutte le settimane che si sovrappongono con l'assenza
+    const weekStarts: Date[] = []
+    let currentDate = new Date(start)
+    currentDate.setDate(currentDate.getDate() - currentDate.getDay() + 1) // Vai al lunedì
+    currentDate.setHours(0, 0, 0, 0)
+    
+    while (currentDate <= end) {
+      weekStarts.push(new Date(currentDate))
+      currentDate.setDate(currentDate.getDate() + 7)
+    }
+
+    // Per ogni settimana, trova i giorni in assenza e aggiorna disponibilità
+    for (const weekStart of weekStarts) {
+      for (let i = 0; i < 7; i++) {
+        const currentDay = new Date(weekStart)
+        currentDay.setDate(currentDay.getDate() + i)
+        currentDay.setHours(0, 0, 0, 0)
+        
+        // Verifica se questo giorno è nell'intervallo dell'assenza
+        if (currentDay >= start && currentDay <= end) {
+          // Aggiorna disponibilità per questo giorno (sia PRANZO che CENA)
+          await prisma.availability.updateMany({
+            where: {
+              userId: session.user.id,
+              weekStart: weekStart,
+              dayOfWeek: i, // 0=Monday, 1=Tuesday, ..., 6=Sunday
+              isAvailable: true
+            },
+            data: {
+              isAvailable: false
+            }
+          })
+        }
+      }
+    }
+
     return NextResponse.json(absence, { status: 201 })
   } catch (error) {
     console.error('Error creating absence:', error)
