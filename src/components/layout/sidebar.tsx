@@ -16,8 +16,7 @@ import {
   ArrowRightOnRectangleIcon,
   ChartBarIcon,
   UserPlusIcon,
-  PresentationChartLineIcon,
-  CalendarDaysIcon
+  PresentationChartLineIcon
 } from '@heroicons/react/24/outline'
 import { 
   HomeIcon as HomeIconSolid,
@@ -28,8 +27,7 @@ import {
   Cog6ToothIcon as Cog6ToothIconSolid,
   ChartBarIcon as ChartBarIconSolid,
   UserPlusIcon as UserPlusIconSolid,
-  PresentationChartLineIcon as PresentationChartLineIconSolid,
-  CalendarDaysIcon as CalendarDaysIconSolid
+  PresentationChartLineIcon as PresentationChartLineIconSolid
 } from '@heroicons/react/24/solid'
 import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
@@ -86,10 +84,10 @@ export function Sidebar() {
     {
       name: 'Assenze',
       href: '/absences',
-      icon: CalendarDaysIcon,
-      iconSolid: CalendarDaysIconSolid,
+      icon: CalendarIcon,
+      iconSolid: CalendarIconSolid,
       adminOnly: false,
-      hideForAdmin: true // User only
+      hideForAdmin: true
     },
     // Sezione Admin
     {
@@ -130,8 +128,8 @@ export function Sidebar() {
     {
       name: 'Assenze',
       href: '/admin/absences',
-      icon: CalendarDaysIcon,
-      iconSolid: CalendarDaysIconSolid,
+      icon: CalendarIcon,
+      iconSolid: CalendarIconSolid,
       adminOnly: true
     },
     {

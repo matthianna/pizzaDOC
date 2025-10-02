@@ -19,79 +19,66 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'weekStart parameter required' }, { status: 400 })
     }
 
-    const weekStart = weekStartParam
+    const weekStart = new Date(weekStartParam)
 
-    // 1. Carica tutti gli utenti con i loro ruoli
+    // 1. Carica tutti gli utenti non admin con i loro turni e disponibilità
     const users = await prisma.user.findMany({
       where: {
-        roles: {
-          not: 'ADMIN'
+        userRoles: {
+          none: {
+            role: 'ADMIN'
+          }
         }
       },
       include: {
-        userRoles: true
-      }
-    })
-
-    // 2. Carica le disponibilità per questa settimana
-    const availabilities = await prisma.availability.findMany({
-      where: {
-        weekStart: weekStart,
-        isAvailable: true,
-        isAbsentWeek: false
-      }
-    })
-
-    // 3. Carica i turni assegnati per questa settimana
-    const assignedShifts = await prisma.shift.findMany({
-      where: {
-        schedule: {
-          weekStart: weekStart
+        assignedShifts: {
+          where: {
+            schedule: {
+              weekStart: weekStart
+            }
+          }
         },
-        userId: {
-          not: null
+        availabilities: {
+          where: {
+            weekStart: weekStart,
+            isAvailable: true
+          }
         }
       }
     })
 
-    // 4. Calcola statistiche per utente
+    // 2. Calcola statistiche per utente
     const userStats = users.map(user => {
-      // Disponibilità inserite dall'utente
-      const userAvailabilities = availabilities.filter(a => a.userId === user.id)
-      
-      // Turni assegnati all'utente
-      const userShifts = assignedShifts.filter(s => s.userId === user.id)
-      
-      // Percentuale di assegnazione: (turni assegnati / disponibilità) * 100
-      const availabilityCount = userAvailabilities.length
-      const assignedCount = userShifts.length
-      const assignmentPercentage = availabilityCount > 0 
-        ? (assignedCount / availabilityCount) * 100 
+      const availabilitiesCount = user.availabilities.length
+      const assignedCount = user.assignedShifts.length
+      const assignmentPercentage = availabilitiesCount > 0 
+        ? Math.round((assignedCount / availabilitiesCount) * 100)
         : 0
 
       return {
         userId: user.id,
         username: user.username,
         primaryRole: user.primaryRole,
-        availabilitiesEntered: availabilityCount,
+        availabilitiesEntered: availabilitiesCount,
         shiftsAssigned: assignedCount,
-        assignmentPercentage: Math.round(assignmentPercentage)
+        assignmentPercentage
       }
-    })
+    }).filter(u => u.availabilitiesEntered > 0) // Solo utenti che hanno inserito disponibilità
+      .sort((a, b) => b.assignmentPercentage - a.assignmentPercentage)
 
-    // 5. Calcola statistiche globali
-    const totalAvailabilities = availabilities.length
-    const totalAssignments = assignedShifts.length
+    // 3. Calcola statistiche globali
+    const totalAvailabilities = userStats.reduce((sum, u) => sum + u.availabilitiesEntered, 0)
+    const totalAssignments = userStats.reduce((sum, u) => sum + u.shiftsAssigned, 0)
     const globalPercentage = totalAvailabilities > 0 
-      ? (totalAssignments / totalAvailabilities) * 100 
+      ? Math.round((totalAssignments / totalAvailabilities) * 100)
       : 0
 
     return NextResponse.json({
-      userStats: userStats.sort((a, b) => b.assignmentPercentage - a.assignmentPercentage),
+      userStats,
       global: {
         totalAvailabilities,
         totalAssignments,
-        assignmentPercentage: Math.round(globalPercentage)
+        assignmentPercentage: globalPercentage
       }
     })
 

@@ -15,13 +15,32 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
-    const type = searchParams.get('type')
+    const status = searchParams.get('status') // 'past', 'active', 'future'
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    let whereClause: Record<string, unknown> = {}
+
+    // Filtro per utente
+    if (userId) {
+      whereClause.userId = userId
+    }
+
+    // Filtro per status
+    if (status === 'past') {
+      whereClause.endDate = { lt: today }
+    } else if (status === 'active') {
+      whereClause.AND = [
+        { startDate: { lte: today } },
+        { endDate: { gte: today } }
+      ]
+    } else if (status === 'future') {
+      whereClause.startDate = { gt: today }
+    }
 
     const absences = await prisma.absence.findMany({
-      where: {
-        ...(userId && { userId }),
-        ...(type && { type: type as any })
-      },
+      where: whereClause,
       include: {
         user: {
           select: {
@@ -31,13 +50,17 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { startDate: 'desc' }
+      orderBy: {
+        startDate: 'desc'
+      }
     })
 
     return NextResponse.json(absences)
   } catch (error) {
     console.error('Error fetching absences:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
-
