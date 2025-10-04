@@ -245,7 +245,7 @@ export default function SchedulePage() {
                 </div>
 
                 {/* Shifts Content */}
-                <div className="p-4 space-y-4 min-h-[400px]">
+                <div className="p-3 space-y-3 min-h-[300px]">
                   {loading ? (
                     <div className="flex items-center justify-center h-32">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
@@ -262,68 +262,64 @@ export default function SchedulePage() {
                         return (
                           <div
                             key={shift.id}
-                            className={`rounded-xl border-2 transition-all hover:shadow-lg ${
+                            className={`rounded-lg border-2 transition-all ${
                               shiftEnded 
-                                ? 'bg-gray-100 border-gray-300 opacity-75' 
+                                ? 'bg-gray-50 border-gray-200 opacity-80' 
                                 : shift.shiftType === 'PRANZO'
-                                  ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-orange-200 hover:border-orange-400'
-                                  : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 hover:border-blue-400'
-                            } shadow-md`}
+                                  ? 'bg-orange-50 border-orange-300'
+                                  : 'bg-white border-gray-300'
+                            }`}
                           >
-                            {/* Header */}
-                            <div className={`px-3 py-3 border-b text-center ${
+                            {/* Header con badge */}
+                            <div className={`px-4 py-3 flex items-center justify-between ${
                               shiftEnded 
-                                ? 'border-gray-200 bg-gray-50' 
+                                ? 'bg-gray-100' 
                                 : shift.shiftType === 'PRANZO'
-                                  ? 'border-orange-100 bg-gradient-to-r from-amber-50 to-orange-100'
-                                  : 'border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-100'
+                                  ? 'bg-orange-100'
+                                  : 'bg-gray-50'
                             }`}>
-                              <div className="flex items-center justify-center space-x-2 mb-1">
-                                <div className={`w-3 h-3 rounded-full ${
+                              <div className="flex items-center space-x-2">
+                                <div className={`w-2.5 h-2.5 rounded-full ${
                                   shiftEnded ? 'bg-gray-400' : 
-                                  shift.shiftType === 'PRANZO' ? 'bg-orange-500' : 'bg-blue-600'
+                                  shift.shiftType === 'PRANZO' ? 'bg-orange-500' : 'bg-blue-500'
                                 }`}></div>
-                                <span className={`text-base font-bold ${
+                                <span className={`text-sm font-bold uppercase tracking-wide ${
                                   shiftEnded ? 'text-gray-600' : 'text-gray-900'
                                 }`}>
                                   {getShiftTypeName(shift.shiftType)}
                                 </span>
                               </div>
                               {shiftEnded && (
-                                <span className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                <span className="bg-gray-400 text-white px-2 py-0.5 rounded text-[10px] font-semibold">
                                   TERMINATO
                                 </span>
                               )}
                             </div>
 
-                            {/* Content */}
-                            <div className="p-3 space-y-3">
-                              {/* Time */}
-                              <div className="text-center">
-                                <div className={`text-xs font-medium ${
-                                  shiftEnded ? 'text-gray-500' : 'text-gray-600'
-                                }`}>
+                            {/* Content - Ora più grande e leggibile */}
+                            <div className="p-4 space-y-3">
+                              {/* Time - Ora molto più evidente */}
+                              <div className="text-center bg-white rounded-md py-3 border border-gray-200">
+                                <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
                                   Inizio
                                 </div>
-                                <div className={`text-xl font-bold ${
-                                  shiftEnded ? 'text-gray-600' : 'text-gray-900'
+                                <div className={`text-3xl font-bold ${
+                                  shiftEnded ? 'text-gray-500' : 'text-gray-900'
                                 }`}>
                                   {shift.startTime}
                                 </div>
                               </div>
 
                               {/* Role */}
-                              <div className="text-center">
-                                <div className="flex items-center justify-center">
-                                  <MapPin className={`h-3 w-3 mr-1 ${
-                                    shiftEnded ? 'text-gray-400' : 'text-gray-500'
-                                  }`} />
-                                  <span className={`text-sm font-medium ${
-                                    shiftEnded ? 'text-gray-500' : 'text-gray-700'
-                                  }`}>
-                                    {getRoleName(shift.role)}
-                                  </span>
-                                </div>
+                              <div className="flex items-center justify-center space-x-2 bg-white rounded-md py-2 border border-gray-200">
+                                <MapPin className={`h-4 w-4 ${
+                                  shiftEnded ? 'text-gray-400' : 'text-orange-500'
+                                }`} />
+                                <span className={`text-sm font-semibold ${
+                                  shiftEnded ? 'text-gray-500' : 'text-gray-700'
+                                }`}>
+                                  {getRoleName(shift.role)}
+                                </span>
                               </div>
 
                               {/* Hours Status */}
