@@ -15,6 +15,12 @@ interface DashboardStats {
   pendingHours?: number
   thisWeekSchedules?: number
   pendingSubstitutions?: number
+  activeAbsences?: number
+  availabilityCompletion?: {
+    completed: number
+    total: number
+    percentage: number
+  }
   
   // User stats
   myShiftsThisWeek?: number
@@ -306,7 +312,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
           {isAdmin ? (
             <>
               <StatCard
@@ -336,6 +342,20 @@ export default function DashboardPage() {
                 icon={Calendar}
                 color="green"
                 subtitle="Generati"
+              />
+              <StatCard
+                title="Assenze Attive"
+                value={stats.activeAbsences || 0}
+                icon={CalendarDays}
+                color="red"
+                subtitle="In corso oggi"
+              />
+              <StatCard
+                title="Disponibilità"
+                value={`${stats.availabilityCompletion?.percentage || 0}%`}
+                icon={BarChart3}
+                color="teal"
+                subtitle={`${stats.availabilityCompletion?.completed || 0}/${stats.availabilityCompletion?.total || 0} compilate`}
               />
             </>
           ) : (
@@ -566,7 +586,9 @@ function StatCard({
     green: 'text-green-600', 
     yellow: 'text-yellow-600',
     purple: 'text-purple-600',
-    orange: 'text-orange-600'
+    orange: 'text-orange-600',
+    red: 'text-red-600',
+    teal: 'text-teal-600'
   }
 
   return (

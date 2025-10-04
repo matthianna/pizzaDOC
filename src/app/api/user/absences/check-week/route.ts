@@ -23,8 +23,10 @@ export async function GET(request: NextRequest) {
     }
 
     const weekStart = new Date(weekStartParam)
+    weekStart.setHours(0, 0, 0, 0)
     const weekEnd = new Date(weekStart)
     weekEnd.setDate(weekEnd.getDate() + 6)
+    weekEnd.setHours(23, 59, 59, 999)
 
     // Trova assenze che si sovrappongono con questa settimana
     const absences = await prisma.absence.findMany({

@@ -19,7 +19,6 @@ export default function AvailabilityPage() {
   const { data: session } = useSession()
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [availabilities, setAvailabilities] = useState<Availability[]>([])
-  const [isAbsentWeek, setIsAbsentWeek] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [disabledDays, setDisabledDays] = useState<number[]>([])
@@ -48,19 +47,11 @@ export default function AvailabilityPage() {
       if (response.ok) {
         const data = await response.json()
         
-        // Check if user is absent for the week
-        const isAbsent = data.length > 0 && data[0].isAbsentWeek
-        setIsAbsentWeek(isAbsent)
-        
-        if (!isAbsent) {
-          setAvailabilities(data.map((d: any) => ({
-            dayOfWeek: d.dayOfWeek,
-            shiftType: d.shiftType,
-            isAvailable: d.isAvailable
-          })))
-        } else {
-          setAvailabilities([])
-        }
+        setAvailabilities(data.map((d: any) => ({
+          dayOfWeek: d.dayOfWeek,
+          shiftType: d.shiftType,
+          isAvailable: d.isAvailable
+        })))
       }
     } catch (error) {
       console.error('Error fetching availability:', error)
@@ -92,8 +83,7 @@ export default function AvailabilityPage() {
         },
         body: JSON.stringify({
           weekStart: currentWeek.toISOString(),
-          availabilities,
-          isAbsentWeek
+          availabilities
         })
       })
 
@@ -111,7 +101,6 @@ export default function AvailabilityPage() {
   }
 
   const toggleAvailability = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA') => {
-    if (isAbsentWeek) return
     if (disabledDays.includes(dayOfWeek)) return // Non permettere toggle per giorni in assenza
 
     const existing = availabilities.find(a => a.dayOfWeek === dayOfWeek && a.shiftType === shiftType)
@@ -245,27 +234,6 @@ export default function AvailabilityPage() {
             </div>
           )}
 
-          {canEdit && (
-            <div className="mb-6">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={isAbsentWeek}
-                  onChange={(e) => {
-                    setIsAbsentWeek(e.target.checked)
-                    if (e.target.checked) {
-                      setAvailabilities([])
-                    }
-                  }}
-                  className="mr-2 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Assente tutta la settimana
-                </span>
-              </label>
-            </div>
-          )}
-
           {/* Availability Grid */}
           <div className="overflow-x-auto">
             <table className="min-w-full">
@@ -317,12 +285,12 @@ export default function AvailabilityPage() {
                         ) : (
                           <button
                             onClick={() => toggleAvailability(dayOfWeek, 'PRANZO')}
-                            disabled={!canEdit || isAbsentWeek || loading}
+                            disabled={!canEdit || loading}
                             className={`w-8 h-8 rounded-full border-2 transition-colors ${
                               isAvailable(dayOfWeek, 'PRANZO')
                                 ? 'bg-green-500 border-green-500 text-white'
                                 : 'bg-white border-gray-300 hover:border-gray-400'
-                            } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            } ${!canEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
                             {isAvailable(dayOfWeek, 'PRANZO') && '✓'}
                           </button>
@@ -337,12 +305,12 @@ export default function AvailabilityPage() {
                         ) : (
                           <button
                             onClick={() => toggleAvailability(dayOfWeek, 'CENA')}
-                            disabled={!canEdit || isAbsentWeek || loading}
+                            disabled={!canEdit || loading}
                             className={`w-8 h-8 rounded-full border-2 transition-colors ${
                               isAvailable(dayOfWeek, 'CENA')
                                 ? 'bg-green-500 border-green-500 text-white'
                                 : 'bg-white border-gray-300 hover:border-gray-400'
-                            } ${!canEdit || isAbsentWeek ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            } ${!canEdit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
                             {isAvailable(dayOfWeek, 'CENA') && '✓'}
                           </button>

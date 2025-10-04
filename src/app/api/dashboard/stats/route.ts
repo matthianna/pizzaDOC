@@ -29,7 +29,9 @@ export async function GET() {
         activeUsers,
         pendingHours,
         thisWeekSchedules,
-        pendingSubstitutions
+        pendingSubstitutions,
+        activeAbsences,
+        availabilityCompletion
       ] = await Promise.all([
         prisma.user.count(),
         prisma.user.count({ where: { isActive: true } }),
@@ -42,7 +44,37 @@ export async function GET() {
             }
           }
         }),
-        prisma.substitution.count({ where: { status: 'PENDING' } })
+        prisma.substitution.count({ where: { status: 'PENDING' } }),
+        // Conta assenze attive (che includono oggi)
+        prisma.absence.count({
+          where: {
+            startDate: { lte: now },
+            endDate: { gte: now }
+          }
+        }),
+        // Calcola il tasso di compilazione disponibilità per la prossima settimana
+        (async () => {
+          const nextWeekStart = new Date(weekStart)
+          nextWeekStart.setDate(nextWeekStart.getDate() + 7)
+          
+          const totalActiveUsers = await prisma.user.count({ where: { isActive: true } })
+          const usersWithAvailability = await prisma.availability.groupBy({
+            by: ['userId'],
+            where: {
+              weekStart: nextWeekStart
+            }
+          })
+          
+          const percentage = totalActiveUsers > 0 
+            ? Math.round((usersWithAvailability.length / totalActiveUsers) * 100)
+            : 0
+          
+          return {
+            completed: usersWithAvailability.length,
+            total: totalActiveUsers,
+            percentage
+          }
+        })()
       ])
 
       stats = {
@@ -50,7 +82,9 @@ export async function GET() {
         activeUsers,
         pendingHours,
         thisWeekSchedules,
-        pendingSubstitutions
+        pendingSubstitutions,
+        activeAbsences,
+        availabilityCompletion
       }
     } else {
       // User stats

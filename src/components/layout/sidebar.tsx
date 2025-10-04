@@ -119,7 +119,7 @@ export function Sidebar() {
       adminOnly: true
     },
     {
-      name: 'Analytics',
+      name: 'Analytics (DEV)',
       href: '/admin/analytics',
       icon: ChartBarIcon,
       iconSolid: ChartBarIconSolid,
