@@ -61,7 +61,8 @@ export async function GET(request: NextRequest) {
 
     workedHours.forEach(wh => {
       const shiftDate = new Date(wh.shift.schedule.weekStart)
-      shiftDate.setDate(shiftDate.getDate() + (wh.shift.dayOfWeek === 0 ? 6 : wh.shift.dayOfWeek - 1))
+      // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
+      shiftDate.setDate(shiftDate.getDate() + wh.shift.dayOfWeek)
       
       const monthKey = format(shiftDate, 'yyyy-MM')
       const monthName = format(shiftDate, 'MMMM yyyy', { locale: it })

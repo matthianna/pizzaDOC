@@ -43,9 +43,10 @@ export default function SettingsPage() {
   const shifts = ['PRANZO', 'CENA']
   const roles = ['PIZZAIOLO', 'CUCINA', 'FATTORINO', 'SALA']
 
-  // Converte l'indice dell'array (0=Lunedì) in dayOfWeek del database (1=Lunedì, 0=Domenica)
+  // L'indice dell'array corrisponde direttamente al dayOfWeek del database
+  // 0=Lunedì, 1=Martedì, ..., 6=Domenica (come definito in date-utils.ts)
   const getDbDayOfWeek = (arrayIndex: number) => {
-    return arrayIndex === 6 ? 0 : arrayIndex + 1 // Domenica = 0, altri giorni = arrayIndex + 1
+    return arrayIndex // Nessuna conversione necessaria!
   }
 
   useEffect(() => {

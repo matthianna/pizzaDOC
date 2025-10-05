@@ -32,11 +32,8 @@ export async function GET() {
       },
       include: {
         schedule: true
-      },
-      orderBy: [
-        { dayOfWeek: 'asc' },
-        { shiftType: 'asc' }
-      ]
+      }
+      // NON ordiniamo qui perché Prisma non può ordinare per campi nested
     })
 
     // Trasforma i turni in un formato più leggibile e filtra solo i FUTURI
@@ -44,6 +41,7 @@ export async function GET() {
       .map(shift => {
         const weekStartDate = new Date(shift.schedule.weekStart)
         const shiftDate = new Date(weekStartDate)
+        // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
         shiftDate.setDate(weekStartDate.getDate() + shift.dayOfWeek)
         shiftDate.setHours(0, 0, 0, 0)
         
@@ -65,6 +63,14 @@ export async function GET() {
         }
       })
       .filter(shift => !shift.isPast) // FILTRA SOLO TURNI FUTURI O OGGI
+      .sort((a, b) => {
+        // Ordina per data effettiva (prima per data, poi per tipo turno)
+        const dateCompare = a.shiftDateObj.getTime() - b.shiftDateObj.getTime()
+        if (dateCompare !== 0) return dateCompare
+        // Se stesso giorno, PRANZO prima di CENA
+        return a.shiftType === 'PRANZO' ? -1 : 1
+      })
+      .slice(0, 10) // Mostra max 10 turni prossimi
       .map(({ shiftDateObj, ...shift }) => shift) // Rimuovi shiftDateObj dal risultato
 
     return NextResponse.json({

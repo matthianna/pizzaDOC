@@ -131,8 +131,9 @@ export default function SchedulePage() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(currentWeek, i))
 
   // Raggruppa i turni per giorno
+  // dayOfWeek è già nel formato corretto: 0=Lunedì, 6=Domenica (come definito in date-utils.ts)
   const shiftsByDay = shifts.reduce((acc, shift) => {
-    const day = shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1 // Converti domenica (0) a sabato (6)
+    const day = shift.dayOfWeek
     if (!acc[day]) acc[day] = []
     acc[day].push(shift)
     return acc
@@ -149,7 +150,7 @@ export default function SchedulePage() {
   const isShiftEnded = (shift: Shift) => {
     const now = new Date()
     const currentTime = now.getHours()
-    const shiftDate = addDays(currentWeek, shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1)
+    const shiftDate = addDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
     
     // Se il turno non è oggi, controlla se è passato
     if (!isToday(shiftDate)) {
@@ -253,7 +254,7 @@ export default function SchedulePage() {
                   ) : dayShifts.length > 0 ? (
                     <div className="space-y-2">
                       {dayShifts.map((shift) => {
-                        const shiftDate = addDays(currentWeek, shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1)
+                        const shiftDate = addDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
                         const isFutureShift = !isPast(shiftDate)
                         const substitutionRequest = getSubstitutionForShift(shift.id)
                         const shiftEnded = isShiftEnded(shift)
@@ -450,7 +451,7 @@ export default function SchedulePage() {
                     {getDayName(selectedShift.dayOfWeek)} - {getShiftTypeName(selectedShift.shiftType)}
                   </div>
                   <div className="text-xs text-gray-600 mt-1">
-                    {format(addDays(currentWeek, selectedShift.dayOfWeek === 0 ? 6 : selectedShift.dayOfWeek - 1), 'dd/MM/yyyy', { locale: it })}
+                    {format(addDays(currentWeek, selectedShift.dayOfWeek), 'dd/MM/yyyy', { locale: it })}
                   </div>
                   <div className="text-xs text-gray-600">
                     {selectedShift.startTime} • {getRoleName(selectedShift.role)}

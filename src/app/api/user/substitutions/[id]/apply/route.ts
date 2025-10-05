@@ -69,7 +69,8 @@ export async function POST(
 
     // Check if shift is in the future
     const weekStart = new Date(substitution.shift.schedule.weekStart)
-    const shiftDate = addDays(weekStart, substitution.shift.dayOfWeek === 0 ? 6 : substitution.shift.dayOfWeek - 1)
+    // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
+    const shiftDate = addDays(weekStart, substitution.shift.dayOfWeek)
     
     if (shiftDate <= new Date()) {
       return NextResponse.json(

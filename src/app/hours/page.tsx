@@ -417,7 +417,7 @@ function ShiftCard({
   const [endTime, setEndTime] = useState('')
 
   // Calculate the actual date of the shift
-  const shiftDate = addDays(currentWeek, shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1)
+  const shiftDate = addDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
   const isPastShift = shiftDate < new Date()
 
   // Set default times based on shift type

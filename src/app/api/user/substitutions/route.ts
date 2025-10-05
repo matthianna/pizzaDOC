@@ -59,7 +59,8 @@ export async function GET() {
     // Filter out past shifts
     const futureAvailable = availableSubstitutions.filter(sub => {
       const weekStart = new Date(sub.shift.schedule.weekStart)
-      const shiftDate = addDays(weekStart, sub.shift.dayOfWeek === 0 ? 6 : sub.shift.dayOfWeek - 1)
+      // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
+      const shiftDate = addDays(weekStart, sub.shift.dayOfWeek)
       return shiftDate > now
     })
 
@@ -147,7 +148,8 @@ export async function POST(request: NextRequest) {
 
     // Check if shift is in the future
     const weekStart = new Date(shift.schedule.weekStart)
-    const shiftDate = addDays(weekStart, shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1)
+    // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
+    const shiftDate = addDays(weekStart, shift.dayOfWeek)
     const now = new Date()
 
     if (shiftDate <= now) {

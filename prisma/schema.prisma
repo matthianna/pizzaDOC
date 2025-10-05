@@ -142,7 +142,7 @@ model UserTransport {
 
 model ShiftLimits {
   id          String    @id @default(cuid())
-  dayOfWeek   Int       // 0 = Sunday, 1 = Monday, etc.
+  dayOfWeek   Int       // 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
   shiftType   ShiftType
   role        Role
   minStaff    Int
@@ -158,7 +158,7 @@ model Availability {
   id          String    @id @default(cuid())
   userId      String
   weekStart   DateTime  // Start of the week (Monday)
-  dayOfWeek   Int       // 0 = Sunday, 1 = Monday, etc.
+  dayOfWeek   Int       // 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
   shiftType   ShiftType
   isAvailable Boolean   @default(false)
   isAbsentWeek Boolean  @default(false) // Checkbox "Assente tutta la settimana"
@@ -186,7 +186,7 @@ model Shift {
   id           String      @id @default(cuid())
   scheduleId   String
   userId       String
-  dayOfWeek    Int         // 0 = Sunday, 1 = Monday, etc.
+  dayOfWeek    Int         // 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
   shiftType    ShiftType
   role         Role
   status       ShiftStatus @default(ASSIGNED)
