@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format, addDays } from 'date-fns'
+import { format, addDays, startOfWeek } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 export async function GET(
@@ -17,10 +17,11 @@ export async function GET(
     }
 
     const resolvedParams = await params
-    const weekStart = new Date(resolvedParams.weekStart)
-
+    const rawWeekStart = new Date(resolvedParams.weekStart)
+    
+    // Query con la data dal database
     const schedule = await prisma.schedule.findUnique({
-      where: { weekStart },
+      where: { weekStart: rawWeekStart },
       include: {
         shifts: {
           include: {
@@ -48,6 +49,9 @@ export async function GET(
       )
     }
 
+    // Normalizza weekStart a LUNEDÌ per il calcolo delle date
+    const weekStart = startOfWeek(rawWeekStart, { weekStartsOn: 1 })
+    
     // Genera l'HTML per il PDF
     const html = generateScheduleHTML(schedule, weekStart)
 
@@ -250,18 +254,18 @@ function generateScheduleHTML(schedule: {
         
         .workers-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 3px;
         }
         
         .worker-item {
-            padding: 5px 6px;
+            padding: 4px 5px;
             background: #fafafa;
             border-left: 3px solid #666;
             display: flex;
             flex-direction: column;
             gap: 2px;
-            font-size: 9px;
+            font-size: 8px;
         }
         
         .worker-item.pizzaiolo {
@@ -287,7 +291,7 @@ function generateScheduleHTML(schedule: {
         .worker-name {
             font-weight: 700;
             color: #000;
-            font-size: 10px;
+            font-size: 9px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -300,7 +304,7 @@ function generateScheduleHTML(schedule: {
         }
         
         .worker-role {
-            font-size: 8px;
+            font-size: 7px;
             text-transform: uppercase;
             color: #666;
             font-weight: 600;
@@ -309,7 +313,7 @@ function generateScheduleHTML(schedule: {
         .worker-time {
             font-weight: 700;
             color: #000;
-            font-size: 9px;
+            font-size: 8px;
             white-space: nowrap;
         }
         
@@ -321,88 +325,13 @@ function generateScheduleHTML(schedule: {
             font-size: 10px;
         }
         
-        .summary-section {
-            margin-top: 15px;
-            page-break-inside: avoid;
-        }
-        
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .summary-card {
-            padding: 12px;
-            border: 2px solid #000;
-            background: #f5f5f5;
-            text-align: center;
-        }
-        
-        .summary-number {
-            font-size: 24px;
-            font-weight: 700;
-            color: #000;
-            margin-bottom: 4px;
-        }
-        
-        .summary-label {
-            font-size: 10px;
-            color: #555;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
         .footer {
-            margin-top: 15px;
-            padding-top: 10px;
+            margin-top: 12px;
+            padding-top: 8px;
             border-top: 1px solid #ccc;
             text-align: center;
             font-size: 9px;
             color: #666;
-        }
-        
-        .legend {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 10px;
-        }
-        
-        .legend-color {
-            width: 20px;
-            height: 12px;
-            border-left: 3px solid;
-        }
-        
-        .legend-color.pizzaiolo {
-            border-left-color: #dc2626;
-            background: #fef2f2;
-        }
-        
-        .legend-color.cucina {
-            border-left-color: #ea580c;
-            background: #fff7ed;
-        }
-        
-        .legend-color.fattorino {
-            border-left-color: #0284c7;
-            background: #f0f9ff;
-        }
-        
-        .legend-color.sala {
-            border-left-color: #16a34a;
-            background: #f0fdf4;
         }
     </style>
 </head>
@@ -474,48 +403,8 @@ function generateScheduleHTML(schedule: {
             </tbody>
         </table>
 
-        <div class="summary-section">
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <div class="summary-number">${totalWorkers}</div>
-                    <div class="summary-label">Turni Totali</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-number">${uniqueWorkers}</div>
-                    <div class="summary-label">Dipendenti</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-number">${Math.round(totalWorkers / 14)}</div>
-                    <div class="summary-label">Media Turni/Giorno</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-number">${uniqueWorkers > 0 ? Math.round(totalWorkers / uniqueWorkers) : 0}</div>
-                    <div class="summary-label">Media per Persona</div>
-                </div>
-            </div>
-            
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color pizzaiolo"></div>
-                    <span>Pizzaiolo (${roleCount['PIZZAIOLO'] || 0})</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color cucina"></div>
-                    <span>Cucina (${roleCount['CUCINA'] || 0})</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color fattorino"></div>
-                    <span>Fattorino (${roleCount['FATTORINO'] || 0})</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color sala"></div>
-                    <span>Sala (${roleCount['SALA'] || 0})</span>
-                </div>
-            </div>
-        </div>
-
         <div class="footer">
-            Piano di lavoro generato il ${format(new Date(), 'dd/MM/yyyy')} alle ${format(new Date(), 'HH:mm', { locale: it })}
+            Piano di lavoro generato il ${format(new Date(), 'dd/MM/yyyy')} alle ${format(new Date(), 'HH:mm', { locale: it })} • Turni: ${totalWorkers} • Dipendenti: ${uniqueWorkers}
         </div>
     </div>
 </body>
