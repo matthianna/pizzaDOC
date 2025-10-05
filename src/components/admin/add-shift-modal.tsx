@@ -253,18 +253,6 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
               onChange={(value) => setSelectedShiftType(value as string)}
             />
 
-            {/* Start Time Selection */}
-            <Select
-              label="Orario Inizio"
-              options={[
-                { value: '', label: 'Seleziona orario di inizio' },
-                ...getAvailableStartTimes(selectedShiftType, selectedRole)
-              ]}
-              value={selectedStartTime}
-              onChange={(value) => setSelectedStartTime(value as string)}
-              disabled={!selectedRole}
-            />
-
             {/* Role Selection */}
             <Select
               label="Ruolo"
@@ -278,6 +266,18 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
               value={selectedRole}
               onChange={(value) => setSelectedRole(value as string)}
               disabled={!selectedUserId}
+            />
+
+            {/* Start Time Selection */}
+            <Select
+              label="Orario Inizio"
+              options={[
+                { value: '', label: 'Seleziona orario di inizio' },
+                ...getAvailableStartTimes(selectedShiftType, selectedRole)
+              ]}
+              value={selectedStartTime}
+              onChange={(value) => setSelectedStartTime(value as string)}
+              disabled={!selectedRole}
             />
 
             {/* Selected User Info */}

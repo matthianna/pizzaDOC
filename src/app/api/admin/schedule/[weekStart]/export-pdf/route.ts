@@ -48,9 +48,9 @@ export async function GET(
         { status: 404 }
       )
     }
-
-    // Normalizza weekStart a LUNEDÌ per il calcolo delle date
-    const weekStart = startOfWeek(rawWeekStart, { weekStartsOn: 1 })
+    
+    // Usa la weekStart dal database (già corretta)
+    const weekStart = new Date(schedule.weekStart)
     
     // Genera l'HTML per il PDF
     const html = generateScheduleHTML(schedule, weekStart)
@@ -81,6 +81,7 @@ function generateScheduleHTML(schedule: {
       primaryRole: string;
     };
   }>;
+  weekStart: Date;
 }, weekStart: Date): string {
   
   const weekEnd = addDays(weekStart, 6)
@@ -104,12 +105,21 @@ function generateScheduleHTML(schedule: {
     }
   }
 
-  // Raggruppa i turni
+  // Raggruppa i turni E ORDINA PER ORARIO
   schedule.shifts.forEach(shift => {
     if (shift.user) {
       shiftsByDayAndType[shift.dayOfWeek][shift.shiftType].push(shift)
     }
   })
+  
+  // ORDINA ogni gruppo per startTime (ordine cronologico)
+  for (let day = 0; day <= 6; day++) {
+    ['PRANZO', 'CENA'].forEach(shiftType => {
+      shiftsByDayAndType[day][shiftType].sort((a, b) => {
+        return a.startTime.localeCompare(b.startTime)
+      })
+    })
+  }
 
   // Calcola statistiche
   const totalWorkers = schedule.shifts.filter(s => s.user).length
