@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format } from 'date-fns'
+import { format, startOfWeek as getStartOfWeek } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 export async function GET() {
@@ -16,8 +16,8 @@ export async function GET() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
-    const startOfWeek = new Date(today)
-    startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7))
+    // Usa date-fns per calcolare correttamente l'inizio della settimana (lunedì)
+    const startOfWeek = getStartOfWeek(today, { weekStartsOn: 1 })
     startOfWeek.setHours(0, 0, 0, 0)
 
     // Trova i turni dell'utente FUTURI (dalla settimana corrente in poi)
