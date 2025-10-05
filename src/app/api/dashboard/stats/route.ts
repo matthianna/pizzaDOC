@@ -23,15 +23,17 @@ export async function GET() {
     let stats: any = {}
 
     if (isAdmin) {
-      // Admin stats
+      // Admin stats - statistiche complete
       const [
         totalUsers,
         activeUsers,
         pendingHours,
         thisWeekSchedules,
         pendingSubstitutions,
-        activeAbsences,
-        availabilityCompletion
+        totalShiftsThisWeek,
+        totalAbsencesActive,
+        availabilitiesThisWeek,
+        approvedSubstitutions
       ] = await Promise.all([
         prisma.user.count(),
         prisma.user.count({ where: { isActive: true } }),
@@ -45,36 +47,32 @@ export async function GET() {
           }
         }),
         prisma.substitution.count({ where: { status: 'PENDING' } }),
-        // Conta assenze attive (che includono oggi)
+        prisma.shift.count({
+          where: {
+            schedule: {
+              weekStart: {
+                gte: weekStart,
+                lte: weekEnd
+              }
+            }
+          }
+        }),
         prisma.absence.count({
           where: {
             startDate: { lte: now },
             endDate: { gte: now }
           }
         }),
-        // Calcola il tasso di compilazione disponibilità per la prossima settimana
-        (async () => {
-          const nextWeekStart = new Date(weekStart)
-          nextWeekStart.setDate(nextWeekStart.getDate() + 7)
-          
-          const totalActiveUsers = await prisma.user.count({ where: { isActive: true } })
-          const usersWithAvailability = await prisma.availability.groupBy({
-            by: ['userId'],
-            where: {
-              weekStart: nextWeekStart
-            }
-          })
-          
-          const percentage = totalActiveUsers > 0 
-            ? Math.round((usersWithAvailability.length / totalActiveUsers) * 100)
-            : 0
-          
-          return {
-            completed: usersWithAvailability.length,
-            total: totalActiveUsers,
-            percentage
+        prisma.availability.count({
+          where: {
+            weekStart: {
+              gte: weekStart,
+              lte: weekEnd
+            },
+            isAvailable: true
           }
-        })()
+        }),
+        prisma.substitution.count({ where: { status: 'APPROVED' } })
       ])
 
       stats = {
@@ -83,8 +81,10 @@ export async function GET() {
         pendingHours,
         thisWeekSchedules,
         pendingSubstitutions,
-        activeAbsences,
-        availabilityCompletion
+        totalShiftsThisWeek,
+        totalAbsencesActive,
+        availabilitiesThisWeek,
+        approvedSubstitutions
       }
     } else {
       // User stats

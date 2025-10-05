@@ -224,34 +224,34 @@ export default function SchedulePage() {
         </div>
 
         {/* Schedule Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
           {days.map((day, dayIndex) => {
             const dayShifts = shiftsByDay[dayIndex] || []
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
 
             return (
-              <div key={dayIndex} className={`bg-white rounded-xl shadow-lg border overflow-hidden ${isToday ? 'ring-3 ring-orange-400 border-orange-300' : 'border-gray-200'}`}>
+              <div key={dayIndex} className={`bg-white rounded-lg shadow-md border overflow-hidden ${isToday ? 'ring-2 ring-orange-400 border-orange-300' : 'border-gray-200'}`}>
                 {/* Day Header */}
-                <div className={`px-4 py-4 text-center ${isToday ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' : 'bg-gradient-to-r from-gray-50 to-gray-100'}`}>
-                  <div className={`text-lg font-bold ${isToday ? 'text-white' : 'text-gray-900'}`}>
-                    {format(day, 'EEEE', { locale: it })}
+                <div className={`px-3 py-2 text-center ${isToday ? 'bg-orange-500 text-white' : 'bg-gray-100'}`}>
+                  <div className={`text-base font-bold ${isToday ? 'text-white' : 'text-gray-900'}`}>
+                    {format(day, 'EEE', { locale: it }).toUpperCase()}
                   </div>
-                  <div className={`text-sm ${isToday ? 'text-orange-100' : 'text-gray-600'}`}>
+                  <div className={`text-xs ${isToday ? 'text-orange-100' : 'text-gray-600'}`}>
                     {format(day, 'dd/MM', { locale: it })}
                   </div>
                   {isToday && (
-                    <div className="text-xs text-orange-200 mt-1 font-bold">OGGI</div>
+                    <div className="text-xs text-white mt-0.5 font-bold bg-orange-600 rounded px-2 py-0.5 inline-block">OGGI</div>
                   )}
                 </div>
 
                 {/* Shifts Content */}
-                <div className="p-3 space-y-3 min-h-[300px]">
+                <div className="p-2 space-y-2 min-h-[200px]">
                   {loading ? (
                     <div className="flex items-center justify-center h-32">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
                     </div>
                   ) : dayShifts.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       {dayShifts.map((shift) => {
                         const shiftDate = addDays(currentWeek, shift.dayOfWeek === 0 ? 6 : shift.dayOfWeek - 1)
                         const isFutureShift = !isPast(shiftDate)
@@ -262,79 +262,74 @@ export default function SchedulePage() {
                         return (
                           <div
                             key={shift.id}
-                            className={`rounded-lg border-2 transition-all ${
+                            className={`rounded-lg border transition-all hover:shadow-md ${
                               shiftEnded 
-                                ? 'bg-gray-50 border-gray-200 opacity-80' 
+                                ? 'bg-gray-50 border-gray-300' 
                                 : shift.shiftType === 'PRANZO'
-                                  ? 'bg-orange-50 border-orange-300'
-                                  : 'bg-white border-gray-300'
+                                  ? 'bg-amber-50 border-orange-300'
+                                  : 'bg-blue-50 border-blue-300'
                             }`}
                           >
-                            {/* Header con badge */}
-                            <div className={`px-4 py-3 flex items-center justify-between ${
+                            {/* Header */}
+                            <div className={`px-2 py-1.5 border-b text-center ${
                               shiftEnded 
-                                ? 'bg-gray-100' 
+                                ? 'border-gray-200 bg-gray-100' 
                                 : shift.shiftType === 'PRANZO'
-                                  ? 'bg-orange-100'
-                                  : 'bg-gray-50'
+                                  ? 'border-orange-200 bg-orange-100'
+                                  : 'border-blue-200 bg-blue-100'
                             }`}>
-                              <div className="flex items-center space-x-2">
-                                <div className={`w-2.5 h-2.5 rounded-full ${
+                              <div className="flex items-center justify-center space-x-1.5">
+                                <div className={`w-2 h-2 rounded-full ${
                                   shiftEnded ? 'bg-gray-400' : 
-                                  shift.shiftType === 'PRANZO' ? 'bg-orange-500' : 'bg-blue-500'
+                                  shift.shiftType === 'PRANZO' ? 'bg-orange-500' : 'bg-blue-600'
                                 }`}></div>
-                                <span className={`text-sm font-bold uppercase tracking-wide ${
+                                <span className={`text-sm font-bold ${
                                   shiftEnded ? 'text-gray-600' : 'text-gray-900'
                                 }`}>
                                   {getShiftTypeName(shift.shiftType)}
                                 </span>
+                                {shiftEnded && (
+                                  <span className="bg-gray-500 text-white px-1.5 py-0.5 rounded text-xs font-medium ml-1">
+                                    FINITO
+                                  </span>
+                                )}
                               </div>
-                              {shiftEnded && (
-                                <span className="bg-gray-400 text-white px-2 py-0.5 rounded text-[10px] font-semibold">
-                                  TERMINATO
-                                </span>
-                              )}
                             </div>
 
-                            {/* Content - Ora più grande e leggibile */}
-                            <div className="p-4 space-y-3">
-                              {/* Time - Ora molto più evidente */}
-                              <div className="text-center bg-white rounded-md py-3 border border-gray-200">
-                                <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                                  Inizio
-                                </div>
-                                <div className={`text-3xl font-bold ${
-                                  shiftEnded ? 'text-gray-500' : 'text-gray-900'
+                            {/* Content */}
+                            <div className="p-2 space-y-1.5">
+                              {/* Time & Role */}
+                              <div className="text-center">
+                                <div className={`text-lg font-bold ${
+                                  shiftEnded ? 'text-gray-600' : 'text-gray-900'
                                 }`}>
                                   {shift.startTime}
                                 </div>
-                              </div>
-
-                              {/* Role */}
-                              <div className="flex items-center justify-center space-x-2 bg-white rounded-md py-2 border border-gray-200">
-                                <MapPin className={`h-4 w-4 ${
-                                  shiftEnded ? 'text-gray-400' : 'text-orange-500'
-                                }`} />
-                                <span className={`text-sm font-semibold ${
-                                  shiftEnded ? 'text-gray-500' : 'text-gray-700'
-                                }`}>
-                                  {getRoleName(shift.role)}
-                                </span>
+                                <div className="flex items-center justify-center mt-0.5">
+                                  <MapPin className={`h-3 w-3 mr-1 ${
+                                    shiftEnded ? 'text-gray-400' : 'text-gray-500'
+                                  }`} />
+                                  <span className={`text-xs font-medium ${
+                                    shiftEnded ? 'text-gray-500' : 'text-gray-700'
+                                  }`}>
+                                    {getRoleName(shift.role)}
+                                  </span>
+                                </div>
                               </div>
 
                               {/* Hours Status */}
                               {shift.workedHours && (
-                                <div className={`p-2 rounded-lg border text-center ${
-                                  shift.workedHours.status === 'PENDING' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                                  shift.workedHours.status === 'APPROVED' ? 'bg-green-50 border-green-200 text-green-800' :
-                                  'bg-red-50 border-red-200 text-red-800'
+                                <div className={`p-1.5 rounded border text-center text-xs ${
+                                  shift.workedHours.status === 'PENDING' ? 'bg-yellow-50 border-yellow-300 text-yellow-900' :
+                                  shift.workedHours.status === 'APPROVED' ? 'bg-green-50 border-green-300 text-green-900' :
+                                  'bg-red-50 border-red-300 text-red-900'
                                 }`}>
-                                  <div className="text-xs font-bold">
+                                  <div className="font-bold">
                                     {shift.workedHours.status === 'PENDING' && '⏳ In attesa'}
                                     {shift.workedHours.status === 'APPROVED' && '✅ Approvate'}
                                     {shift.workedHours.status === 'REJECTED' && '❌ Rifiutate'}
                                   </div>
-                                  <div className="text-sm font-bold">
+                                  <div className="text-sm font-bold mt-0.5">
                                     {shift.workedHours.totalHours}h
                                   </div>
                                 </div>
@@ -342,16 +337,16 @@ export default function SchedulePage() {
 
                               {/* Need Hours Entry Alert */}
                               {needsHours && (
-                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                  <div className="text-center mb-2">
-                                    <AlertCircle className="h-4 w-4 text-red-500 mx-auto" />
+                                <div className="bg-red-50 border border-red-300 rounded p-2">
+                                  <div className="text-center mb-1">
+                                    <AlertCircle className="h-3 w-3 text-red-500 mx-auto" />
                                     <span className="text-xs font-bold text-red-800 block">
                                       Ore mancanti
                                     </span>
                                   </div>
                                   <a 
                                     href="/hours"
-                                    className="inline-flex items-center justify-center w-full px-3 py-2 text-xs font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                                    className="inline-flex items-center justify-center w-full px-2 py-1.5 text-xs font-bold text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
                                   >
                                     <FileText className="h-3 w-3 mr-1" />
                                     Inserisci
@@ -361,16 +356,16 @@ export default function SchedulePage() {
 
                               {/* Substitution Status */}
                               {substitutionRequest && (
-                                <div className={`p-2 rounded-lg border text-center ${
-                                  substitutionRequest.status === 'PENDING' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                                  substitutionRequest.status === 'APPLIED' ? 'bg-blue-50 border-blue-200 text-blue-800' :
-                                  substitutionRequest.status === 'APPROVED' ? 'bg-green-50 border-green-200 text-green-800' :
-                                  'bg-red-50 border-red-200 text-red-800'
+                                <div className={`p-1.5 rounded border text-center text-xs ${
+                                  substitutionRequest.status === 'PENDING' ? 'bg-yellow-50 border-yellow-300 text-yellow-900' :
+                                  substitutionRequest.status === 'APPLIED' ? 'bg-blue-50 border-blue-300 text-blue-900' :
+                                  substitutionRequest.status === 'APPROVED' ? 'bg-green-50 border-green-300 text-green-900' :
+                                  'bg-red-50 border-red-300 text-red-900'
                                 }`}>
-                                  <div className="text-xs font-bold">
-                                    {substitutionRequest.status === 'PENDING' && '⏳ In attesa'}
+                                  <div className="font-bold">
+                                    {substitutionRequest.status === 'PENDING' && '⏳ Sostituzione in attesa'}
                                     {substitutionRequest.status === 'APPLIED' && `✋ ${substitutionRequest.substitute?.username}`}
-                                    {substitutionRequest.status === 'APPROVED' && '✅ Approvata'}
+                                    {substitutionRequest.status === 'APPROVED' && '✅ Sostituzione OK'}
                                     {substitutionRequest.status === 'REJECTED' && '❌ Rifiutata'}
                                   </div>
                                 </div>

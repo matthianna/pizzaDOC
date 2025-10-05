@@ -1,7 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { EnhancedScheduleAlgorithm } from '@/lib/enhanced-schedule-algorithm'
+import { MaxCoverageAlgorithm } from '@/lib/max-coverage-algorithm'
+import { prisma } from '@/lib/prisma'
+
+async function saveSchedule(weekStart: Date, shifts: any[]): Promise<string> {
+  // Elimina schedule esistente se presente
+  const existingSchedule = await prisma.schedule.findUnique({
+    where: { weekStart },
+    include: { shifts: true }
+  })
+
+  if (existingSchedule) {
+    await prisma.shift.deleteMany({
+      where: { scheduleId: existingSchedule.id }
+    })
+    await prisma.schedule.delete({
+      where: { id: existingSchedule.id }
+    })
+  }
+
+  // Crea nuovo schedule
+  const schedule = await prisma.schedule.create({
+    data: {
+      weekStart,
+      shifts: {
+        create: shifts.map(shift => ({
+          userId: shift.userId,
+          dayOfWeek: shift.dayOfWeek,
+          shiftType: shift.shiftType,
+          role: shift.role,
+          startTime: shift.startTime,
+          endTime: shift.endTime
+        }))
+      }
+    }
+  })
+
+  return schedule.id
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,13 +58,13 @@ export async function POST(request: NextRequest) {
     }
 
     const weekStartDate = new Date(weekStart)
-    const algorithm = new EnhancedScheduleAlgorithm()
+    const algorithm = new MaxCoverageAlgorithm()
     
-    // Generate perfect schedule
-    const result = await algorithm.generatePerfectSchedule(weekStartDate)
+    // Generate max coverage schedule
+    const result = await algorithm.generateMaxCoverageSchedule(weekStartDate)
     
     // Save schedule
-    const scheduleId = await algorithm.saveSchedule(weekStartDate, result.shifts)
+    const scheduleId = await saveSchedule(weekStartDate, result.shifts)
 
     return NextResponse.json({
       scheduleId,

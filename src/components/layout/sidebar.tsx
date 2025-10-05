@@ -140,6 +140,13 @@ export function Sidebar() {
       adminOnly: true
     },
     {
+      name: 'Disponibilità Utenti',
+      href: '/admin/availability-overview',
+      icon: UsersIcon,
+      iconSolid: UsersIconSolid,
+      adminOnly: true
+    },
+    {
       name: 'Configurazioni',
       href: '/admin/settings',
       icon: Cog6ToothIcon,

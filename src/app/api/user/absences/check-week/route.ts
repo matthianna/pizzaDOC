@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
 
     const weekStart = new Date(weekStartParam)
     weekStart.setHours(0, 0, 0, 0)
+    
     const weekEnd = new Date(weekStart)
     weekEnd.setDate(weekEnd.getDate() + 6)
     weekEnd.setHours(23, 59, 59, 999)
@@ -48,17 +49,21 @@ export async function GET(request: NextRequest) {
     
     for (let i = 0; i < 7; i++) {
       const currentDay = new Date(weekStart)
-      currentDay.setDate(currentDay.getDate() + i)
-      currentDay.setHours(0, 0, 0, 0)
+      currentDay.setDate(weekStart.getDate() + i)
+      currentDay.setHours(12, 0, 0, 0) // Usa mezzogiorno per evitare problemi timezone
       
       // Controlla se questo giorno è coperto da un'assenza
       const isDayDisabled = absences.some(absence => {
         const start = new Date(absence.startDate)
         const end = new Date(absence.endDate)
-        start.setHours(0, 0, 0, 0)
-        end.setHours(0, 0, 0, 0)
         
-        return currentDay >= start && currentDay <= end
+        // Normalizza le date a mezzogiorno per confronto
+        start.setHours(12, 0, 0, 0)
+        end.setHours(12, 0, 0, 0)
+        
+        const isDisabled = currentDay >= start && currentDay <= end
+        
+        return isDisabled
       })
       
       if (isDayDisabled) {

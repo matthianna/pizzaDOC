@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { useSession } from 'next-auth/react'
-import { Users, Calendar, Clock, BarChart3, UserCheck, TrendingUp, CalendarDays } from 'lucide-react'
+import { Users, Calendar, Clock, BarChart3, UserCheck, TrendingUp, CalendarDays, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getRoleName } from '@/lib/utils'
@@ -15,12 +15,10 @@ interface DashboardStats {
   pendingHours?: number
   thisWeekSchedules?: number
   pendingSubstitutions?: number
-  activeAbsences?: number
-  availabilityCompletion?: {
-    completed: number
-    total: number
-    percentage: number
-  }
+  totalShiftsThisWeek?: number
+  totalAbsencesActive?: number
+  availabilitiesThisWeek?: number
+  approvedSubstitutions?: number
   
   // User stats
   myShiftsThisWeek?: number
@@ -312,7 +310,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${isAdmin ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {isAdmin ? (
             <>
               <StatCard
@@ -321,6 +319,13 @@ export default function DashboardPage() {
                 icon={Users}
                 color="blue"
                 subtitle={`${stats.activeUsers || 0} attivi`}
+              />
+              <StatCard
+                title="Turni Settimana"
+                value={stats.totalShiftsThisWeek || 0}
+                icon={Calendar}
+                color="green"
+                subtitle="Assegnati"
               />
               <StatCard
                 title="Ore in Attesa"
@@ -334,28 +339,7 @@ export default function DashboardPage() {
                 value={stats.pendingSubstitutions || 0}
                 icon={UserCheck}
                 color="purple"
-                subtitle="In attesa"
-              />
-              <StatCard
-                title="Piani Settimana"
-                value={stats.thisWeekSchedules || 0}
-                icon={Calendar}
-                color="green"
-                subtitle="Generati"
-              />
-              <StatCard
-                title="Assenze Attive"
-                value={stats.activeAbsences || 0}
-                icon={CalendarDays}
-                color="red"
-                subtitle="In corso oggi"
-              />
-              <StatCard
-                title="Disponibilità"
-                value={`${stats.availabilityCompletion?.percentage || 0}%`}
-                icon={BarChart3}
-                color="teal"
-                subtitle={`${stats.availabilityCompletion?.completed || 0}/${stats.availabilityCompletion?.total || 0} compilate`}
+                subtitle={`${stats.approvedSubstitutions || 0} approvate`}
               />
             </>
           ) : (
@@ -391,6 +375,33 @@ export default function DashboardPage() {
             </>
           )}
         </div>
+
+        {/* Additional Admin Stats */}
+        {isAdmin && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <StatCard
+              title="Assenze Attive"
+              value={stats.totalAbsencesActive || 0}
+              icon={AlertCircle}
+              color="orange"
+              subtitle="In corso oggi"
+            />
+            <StatCard
+              title="Disponibilità"
+              value={stats.availabilitiesThisWeek || 0}
+              icon={Calendar}
+              color="green"
+              subtitle="Questa settimana"
+            />
+            <StatCard
+              title="Piani Generati"
+              value={stats.thisWeekSchedules || 0}
+              icon={BarChart3}
+              color="blue"
+              subtitle="Settimana corrente"
+            />
+          </div>
+        )}
 
         {/* Recent Activities */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -586,9 +597,7 @@ function StatCard({
     green: 'text-green-600', 
     yellow: 'text-yellow-600',
     purple: 'text-purple-600',
-    orange: 'text-orange-600',
-    red: 'text-red-600',
-    teal: 'text-teal-600'
+    orange: 'text-orange-600'
   }
 
   return (

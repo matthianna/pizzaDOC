@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format, addDays } from 'date-fns'
+import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 export async function GET() {
@@ -15,12 +15,12 @@ export async function GET() {
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-
-    // Trova tutti i turni dell'utente dalla settimana corrente in poi
+    
     const startOfWeek = new Date(today)
     startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7))
     startOfWeek.setHours(0, 0, 0, 0)
 
+    // Trova i turni dell'utente FUTURI (dalla settimana corrente in poi)
     const myShifts = await prisma.shift.findMany({
       where: {
         userId: session.user.id,
@@ -34,18 +34,18 @@ export async function GET() {
         schedule: true
       },
       orderBy: [
-        { schedule: { weekStart: 'asc' } },
         { dayOfWeek: 'asc' },
         { shiftType: 'asc' }
-      ],
-      take: 10 // Limita ai prossimi 10 turni
+      ]
     })
 
-    // Trasforma i turni in un formato più leggibile e filtra solo i futuri
+    // Trasforma i turni in un formato più leggibile e filtra solo i FUTURI
     const formattedShifts = myShifts
       .map(shift => {
-        const weekStart = new Date(shift.schedule.weekStart)
-        const shiftDate = addDays(weekStart, shift.dayOfWeek)
+        const weekStartDate = new Date(shift.schedule.weekStart)
+        const shiftDate = new Date(weekStartDate)
+        shiftDate.setDate(weekStartDate.getDate() + shift.dayOfWeek)
+        shiftDate.setHours(0, 0, 0, 0)
         
         const dayName = format(shiftDate, 'EEEE', { locale: it })
         const dateStr = format(shiftDate, 'd MMMM', { locale: it })
@@ -59,13 +59,13 @@ export async function GET() {
           role: shift.role,
           startTime: shift.startTime,
           endTime: shift.endTime,
-          shiftDate: shiftDate,
           isToday: shiftDate.toDateString() === today.toDateString(),
-          isPast: shiftDate < today
+          isPast: shiftDate < today,
+          shiftDateObj: shiftDate
         }
       })
-      .filter(shift => !shift.isPast) // Filtra solo i turni futuri o di oggi
-      .map(({ shiftDate, ...rest }) => rest) // Rimuovi shiftDate dal risultato finale
+      .filter(shift => !shift.isPast) // FILTRA SOLO TURNI FUTURI O OGGI
+      .map(({ shiftDateObj, ...shift }) => shift) // Rimuovi shiftDateObj dal risultato
 
     return NextResponse.json({
       shifts: formattedShifts,
