@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, ChevronLeft, ChevronRight, Users, Check, X } from 'lucide-react'
 import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns'
