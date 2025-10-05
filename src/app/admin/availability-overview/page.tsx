@@ -230,22 +230,22 @@ export default function AvailabilityOverviewPage() {
                           const cenaAvail = user.availabilities.find(a => a.dayOfWeek === dayIdx && a.shiftType === 'CENA')
 
                           return (
-                            <>
-                              <td key={`${dayIdx}-p`} className="px-2 py-3 text-center border-l border-gray-200">
+                            <React.Fragment key={`${user.id}-${dayIdx}`}>
+                              <td className="px-2 py-3 text-center border-l border-gray-200">
                                 {pranzoAvail?.isAvailable ? (
                                   <Check className="h-5 w-5 text-green-600 mx-auto" />
                                 ) : (
                                   <X className="h-5 w-5 text-gray-300 mx-auto" />
                                 )}
                               </td>
-                              <td key={`${dayIdx}-c`} className="px-2 py-3 text-center">
+                              <td className="px-2 py-3 text-center">
                                 {cenaAvail?.isAvailable ? (
                                   <Check className="h-5 w-5 text-green-600 mx-auto" />
                                 ) : (
                                   <X className="h-5 w-5 text-gray-300 mx-auto" />
                                 )}
                               </td>
-                            </>
+                            </React.Fragment>
                           )
                         })}
                       </tr>
