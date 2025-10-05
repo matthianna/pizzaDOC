@@ -289,7 +289,7 @@ async function setupShiftLimits() {
     { dayOfWeek: 0, shiftType: 'PRANZO', role: 'CUCINA', min: 2, max: 2 },
     { dayOfWeek: 0, shiftType: 'PRANZO', role: 'SALA', min: 1, max: 1 },
     { dayOfWeek: 0, shiftType: 'PRANZO', role: 'PIZZAIOLO', min: 1, max: 1 },
-    { dayOfWeek: 0, shiftType: 'CENA', role: 'FATTORINO', min: 5, max: 5 },
+    { dayOfWeek: 0, shiftType: 'CENA', role: 'FATTORINO', min: 3, max: 3 },
     { dayOfWeek: 0, shiftType: 'CENA', role: 'CUCINA', min: 2, max: 2 },
     { dayOfWeek: 0, shiftType: 'CENA', role: 'SALA', min: 1, max: 1 },
     { dayOfWeek: 0, shiftType: 'CENA', role: 'PIZZAIOLO', min: 1, max: 1 },
