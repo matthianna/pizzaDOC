@@ -18,7 +18,7 @@ export async function GET() {
         userRoles: {
           some: {
             role: {
-              in: ['FATTORINO', 'CUCINA', 'SALA'] // Exclude ADMIN from scheduling
+              in: ['FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO'] // Exclude ADMIN from scheduling
             }
           }
         }
@@ -27,7 +27,7 @@ export async function GET() {
         userRoles: {
           where: {
             role: {
-              in: ['FATTORINO', 'CUCINA', 'SALA']
+              in: ['FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO']
             }
           }
         }
