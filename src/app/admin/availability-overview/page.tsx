@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, ChevronLeft, ChevronRight, Users, Check, X } from 'lucide-react'
-import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns'
+import { format, startOfWeek, addWeeks, subWeeks, addDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName } from '@/lib/utils'
 
@@ -200,24 +200,21 @@ export default function AvailabilityOverviewPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredUsers.map((user) => {
-                    // Controlla assenze per questa settimana
-                    const weekEnd = addWeeks(currentWeek, 1)
-                    const hasAbsence = user.absences.some(abs => {
-                      const absStart = new Date(abs.startDate)
-                      const absEnd = new Date(abs.endDate)
-                      return absStart <= weekEnd && absEnd >= currentWeek
-                    })
+                    // Funzione helper per controllare se un giorno specifico è in assenza
+                    const isAbsentOnDay = (dayIdx: number): boolean => {
+                      const dayDate = addDays(currentWeek, dayIdx)
+                      return user.absences.some(abs => {
+                        const absStart = new Date(abs.startDate)
+                        const absEnd = new Date(abs.endDate)
+                        return dayDate >= absStart && dayDate <= absEnd
+                      })
+                    }
 
                     return (
                       <tr key={user.userId} className="hover:bg-gray-50">
                         <td className="sticky left-0 z-10 bg-white hover:bg-gray-50 px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{user.username}</div>
-                              {hasAbsence && (
-                                <div className="text-xs text-red-600 font-medium">ASSENTE</div>
-                              )}
-                            </div>
+                            <div className="text-sm font-medium text-gray-900">{user.username}</div>
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -228,18 +225,23 @@ export default function AvailabilityOverviewPage() {
                         {days.map((_, dayIdx) => {
                           const pranzoAvail = user.availabilities.find(a => a.dayOfWeek === dayIdx && a.shiftType === 'PRANZO')
                           const cenaAvail = user.availabilities.find(a => a.dayOfWeek === dayIdx && a.shiftType === 'CENA')
+                          const isAbsent = isAbsentOnDay(dayIdx)
 
                           return (
                             <React.Fragment key={`${user.id}-${dayIdx}`}>
                               <td className="px-2 py-3 text-center border-l border-gray-200">
-                                {pranzoAvail?.isAvailable ? (
+                                {isAbsent ? (
+                                  <span className="text-red-600 font-bold text-sm">A</span>
+                                ) : pranzoAvail?.isAvailable ? (
                                   <Check className="h-5 w-5 text-green-600 mx-auto" />
                                 ) : (
                                   <X className="h-5 w-5 text-gray-300 mx-auto" />
                                 )}
                               </td>
                               <td className="px-2 py-3 text-center">
-                                {cenaAvail?.isAvailable ? (
+                                {isAbsent ? (
+                                  <span className="text-red-600 font-bold text-sm">A</span>
+                                ) : cenaAvail?.isAvailable ? (
                                   <Check className="h-5 w-5 text-green-600 mx-auto" />
                                 ) : (
                                   <X className="h-5 w-5 text-gray-300 mx-auto" />
@@ -267,7 +269,7 @@ export default function AvailabilityOverviewPage() {
         {/* Legend */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="text-sm font-medium text-blue-900 mb-2">Legenda</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
             <div className="flex items-center">
               <Check className="h-4 w-4 text-green-600 mr-2" />
               <span className="text-gray-700">Disponibile</span>
@@ -275,6 +277,10 @@ export default function AvailabilityOverviewPage() {
             <div className="flex items-center">
               <X className="h-4 w-4 text-gray-300 mr-2" />
               <span className="text-gray-700">Non disponibile</span>
+            </div>
+            <div className="flex items-center">
+              <span className="text-red-600 font-bold text-sm mr-2">A</span>
+              <span className="text-gray-700">Assente</span>
             </div>
             <div className="flex items-center">
               <span className="text-xs text-gray-600">P = Pranzo | C = Cena</span>
