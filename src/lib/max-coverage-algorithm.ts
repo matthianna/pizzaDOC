@@ -224,8 +224,7 @@ export class MaxCoverageAlgorithm {
         userTransports: true,
         availabilities: {
           where: {
-            weekStart,
-            isAbsentWeek: false
+            weekStart
           }
         },
         absences: {
