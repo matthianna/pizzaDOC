@@ -181,7 +181,7 @@ export class MaxCoverageAlgorithm {
   }
 
   async generateMaxCoverageSchedule(weekStart: Date): Promise<ScheduleResult> {
-    console.log('🚀 Generazione schedule con algoritmo MAX COVERAGE...')
+    console.log('🚀 Generazione schedule con algoritmo MAX COVERAGE AVANZATO...')
     
     // 1. Carica dati
     const users = await this.loadUserProfiles(weekStart)
@@ -195,20 +195,93 @@ export class MaxCoverageAlgorithm {
     // 2. Ordina requisiti per priorità
     const sortedRequirements = this.prioritizeRequirements(requirements)
     
-    // 3. Assegna turni con unico obiettivo: MASSIMA COPERTURA
-    console.log('\n🎯 Assegnamento turni (massima copertura)...')
-    const finalSchedule = await this.assignShiftsMaxCoverage(users, sortedRequirements, existingShifts)
+    // 3. PASSAGGIO 1: Assegna con ruoli PRIMARI
+    console.log('\n🥇 PASSAGGIO 1: Assegnamento con ruoli primari...')
+    let schedule = await this.assignShiftsMaxCoverage(users, sortedRequirements, existingShifts, 'primary')
     
-    // 4. Calcola statistiche
-    const statistics = this.calculateStatistics(finalSchedule, requirements, users)
+    // 4. PASSAGGIO 2: Completa con ruoli SECONDARI per gap rimanenti
+    const gaps1 = this.findGaps(schedule, requirements)
+    if (gaps1.length > 0) {
+      console.log(`\n🥈 PASSAGGIO 2: Completamento con ruoli secondari (${gaps1.length} gap rimanenti)...`)
+      schedule = await this.assignShiftsMaxCoverage(users, this.gapsToRequirements(gaps1, requirements), schedule, 'secondary')
+    }
     
-    console.log(`✅ Schedule generato: ${finalSchedule.length} turni`)
+    // 5. PASSAGGIO 3: Riempimento AGGRESSIVO - qualsiasi persona disponibile
+    const gaps2 = this.findGaps(schedule, requirements)
+    if (gaps2.length > 0) {
+      console.log(`\n🥉 PASSAGGIO 3: Riempimento aggressivo (${gaps2.length} gap rimanenti)...`)
+      schedule = await this.assignShiftsMaxCoverage(users, this.gapsToRequirements(gaps2, requirements), schedule, 'aggressive')
+    }
+    
+    // 6. Calcola statistiche finali
+    const statistics = this.calculateStatistics(schedule, requirements, users)
+    
+    const finalGaps = this.findGaps(schedule, requirements)
+    console.log(`\n✅ Schedule generato: ${schedule.length} turni`)
     console.log(`📊 Copertura: ${(statistics.quality.coverageScore * 100).toFixed(1)}%`)
+    console.log(`⚠️  Gap rimanenti: ${finalGaps.length}`)
+    
+    if (finalGaps.length > 0) {
+      console.log('\n📋 Gap non risolti:')
+      finalGaps.slice(0, 5).forEach(gap => {
+        console.log(`   - ${this.getDayName(gap.dayOfWeek)} ${gap.shiftType} ${gap.role}: mancano ${gap.missing}`)
+      })
+    }
     
     return {
-      shifts: finalSchedule,
+      shifts: schedule,
       statistics
     }
+  }
+
+  private getDayName(dayOfWeek: number): string {
+    const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+    return days[dayOfWeek] || 'Unknown'
+  }
+
+  private findGaps(schedule: ScheduleShift[], requirements: ShiftRequirement[]): ScheduleResult['statistics']['gaps'] {
+    const gaps: ScheduleResult['statistics']['gaps'] = []
+    
+    requirements.forEach(req => {
+      const assigned = schedule.filter(s => 
+        s.dayOfWeek === req.dayOfWeek && 
+        s.shiftType === req.shiftType && 
+        s.role === req.role
+      ).length
+
+      const missing = Math.max(0, req.minStaff - assigned)
+      if (missing > 0) {
+        gaps.push({
+          dayOfWeek: req.dayOfWeek,
+          shiftType: req.shiftType,
+          role: req.role,
+          required: req.minStaff,
+          assigned,
+          missing
+        })
+      }
+    })
+
+    return gaps
+  }
+
+  private gapsToRequirements(gaps: ScheduleResult['statistics']['gaps'], originalRequirements: ShiftRequirement[]): ShiftRequirement[] {
+    return gaps.map(gap => {
+      const original = originalRequirements.find(r => 
+        r.dayOfWeek === gap.dayOfWeek && 
+        r.shiftType === gap.shiftType && 
+        r.role === gap.role
+      )
+      
+      return {
+        dayOfWeek: gap.dayOfWeek,
+        shiftType: gap.shiftType,
+        role: gap.role,
+        minStaff: gap.missing,
+        maxStaff: original?.maxStaff || gap.missing,
+        priority: original?.priority || 1
+      }
+    })
   }
 
   private async loadUserProfiles(weekStart: Date): Promise<UserProfile[]> {
@@ -327,11 +400,14 @@ export class MaxCoverageAlgorithm {
   private async assignShiftsMaxCoverage(
     users: UserProfile[], 
     requirements: ShiftRequirement[], 
-    existingShifts: ScheduleShift[]
+    existingShifts: ScheduleShift[],
+    mode: 'primary' | 'secondary' | 'aggressive' = 'primary'
   ): Promise<ScheduleShift[]> {
     const schedule: ScheduleShift[] = [...existingShifts]
     const assignedStartTimes = new Map<string, number>()
     const transportLimits = await this.getTransportLimits()
+
+    console.log(`   Modalità: ${mode}`)
 
     // Inizializza contatori orari esistenti
     existingShifts.forEach(shift => {
@@ -351,10 +427,10 @@ export class MaxCoverageAlgorithm {
 
       if (needed <= 0) continue
 
-      // Trova TUTTI i candidati disponibili (sia ruolo primario che secondario)
-      const candidates = this.findAllAvailableCandidates(users, req, schedule)
+      // Trova candidati in base alla modalità
+      const candidates = this.findAllAvailableCandidates(users, req, schedule, mode)
       
-      console.log(`📋 ${req.dayOfWeek} ${req.shiftType} ${req.role}: trovati ${candidates.length} candidati per ${needed} posizioni`)
+      console.log(`   📋 ${this.getDayName(req.dayOfWeek)} ${req.shiftType} ${req.role}: trovati ${candidates.length} candidati per ${needed} posizioni`)
       
       // Assegna candidati
       let assignedThisReq = 0
@@ -398,7 +474,7 @@ export class MaxCoverageAlgorithm {
         const key = `${req.dayOfWeek}_${req.shiftType}_${req.role}_${startTime}`
         assignedStartTimes.set(key, (assignedStartTimes.get(key) || 0) + 1)
         
-        console.log(`✅ Assegnato ${candidate.username} (${candidate.primaryRole === req.role ? 'primario' : 'secondario'}) a ${req.dayOfWeek} ${req.shiftType} ${req.role} alle ${startTime}`)
+        console.log(`   ✅ ${candidate.username} (${candidate.primaryRole === req.role ? 'primario' : 'secondario'}) → ${this.getDayName(req.dayOfWeek)} ${req.shiftType} ${req.role} ${startTime}`)
       }
       
       if (assignedThisReq < needed) {
@@ -412,13 +488,22 @@ export class MaxCoverageAlgorithm {
   private findAllAvailableCandidates(
     users: UserProfile[], 
     requirement: ShiftRequirement,
-    currentSchedule: ScheduleShift[]
+    currentSchedule: ScheduleShift[],
+    mode: 'primary' | 'secondary' | 'aggressive' = 'primary'
   ): (UserProfile & { score: number })[] {
     
     const candidates = users
       .filter(user => {
         // 1. Deve avere il ruolo richiesto (primario O secondario)
         if (!user.roles.includes(requirement.role)) return false
+        
+        // MODALITÀ PRIMARY: solo ruoli primari
+        if (mode === 'primary' && user.primaryRole !== requirement.role) return false
+        
+        // MODALITÀ SECONDARY: solo ruoli secondari (non primari)
+        if (mode === 'secondary' && user.primaryRole === requirement.role) return false
+        
+        // MODALITÀ AGGRESSIVE: tutti (già filtrato al punto 1)
         
         // 2. Deve essere disponibile
         const availability = user.availabilities.find(av => 
@@ -427,29 +512,62 @@ export class MaxCoverageAlgorithm {
         )
         if (!availability?.isAvailable) return false
         
-        // 3. Non deve già essere assegnato a QUESTO SPECIFICO RUOLO in questo turno
-        // (può fare doppi turni con ruoli diversi!)
-        const alreadyAssigned = currentSchedule.some(shift => 
+        // 3. VINCOLO FONDAMENTALE: Una persona può fare SOLO UN RUOLO per turno
+        // Non può fare sala+cucina allo stesso turno (stesso giorno + stesso shiftType)
+        // MA può fare sala a pranzo e cucina a cena (turni diversi)
+        const alreadyAssignedThisShift = currentSchedule.some(shift => 
           shift.userId === user.id && 
           shift.dayOfWeek === requirement.dayOfWeek && 
-          shift.shiftType === requirement.shiftType &&
-          shift.role === requirement.role
+          shift.shiftType === requirement.shiftType
         )
-        if (alreadyAssigned) return false
+        if (alreadyAssignedThisShift) return false
+        
+        // 4. VINCOLO RIPOSO: Non può fare cena + pranzo giorno dopo (turni consecutivi)
+        if (requirement.shiftType === 'PRANZO') {
+          const workedPrevEvening = currentSchedule.some(shift => 
+            shift.userId === user.id && 
+            shift.dayOfWeek === (requirement.dayOfWeek - 1 + 7) % 7 && 
+            shift.shiftType === 'CENA'
+          )
+          if (workedPrevEvening) return false
+        }
+        
+        if (requirement.shiftType === 'CENA') {
+          const worksNextMorning = currentSchedule.some(shift => 
+            shift.userId === user.id && 
+            shift.dayOfWeek === (requirement.dayOfWeek + 1) % 7 && 
+            shift.shiftType === 'PRANZO'
+          )
+          if (worksNextMorning) return false
+        }
         
         return true
       })
       .map(user => {
-        // Score semplice: priorità a chi ha il ruolo primario
+        // Score dinamico in base alla modalità
         let score = 100
         
         if (user.primaryRole === requirement.role) {
-          score += 30 // Bonus ruolo primario
+          score += 50 // Grande bonus ruolo primario
+        } else {
+          // Ruolo secondario
+          score += 20 // Bonus minore per ruolo secondario
         }
         
-        // Conta quanti turni ha già assegnati (per bilanciamento leggero)
+        // Conta quanti turni ha già assegnati
         const userShifts = currentSchedule.filter(s => s.userId === user.id).length
-        score -= userShifts * 2 // Leggera penalità per chi ha già molti turni
+        
+        // In modalità aggressive, penalizza MOLTO MENO chi ha già turni
+        if (mode === 'aggressive') {
+          score -= userShifts * 0.5 // Penalità minima
+        } else {
+          score -= userShifts * 2 // Penalità normale
+        }
+        
+        // Bonus se ha pochi turni (distribuzione equa)
+        if (userShifts === 0) {
+          score += 10
+        }
         
         return { ...user, score }
       })
