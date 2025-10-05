@@ -250,18 +250,18 @@ function generateScheduleHTML(schedule: {
         
         .workers-grid {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 4px;
         }
         
         .worker-item {
-            padding: 6px 8px;
+            padding: 5px 6px;
             background: #fafafa;
             border-left: 3px solid #666;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 10px;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 9px;
         }
         
         .worker-item.pizzaiolo {
@@ -287,22 +287,29 @@ function generateScheduleHTML(schedule: {
         .worker-name {
             font-weight: 700;
             color: #000;
-            flex: 1;
+            font-size: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .worker-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .worker-role {
-            font-size: 9px;
+            font-size: 8px;
             text-transform: uppercase;
             color: #666;
-            margin-left: 8px;
             font-weight: 600;
         }
         
         .worker-time {
             font-weight: 700;
             color: #000;
-            font-size: 10px;
-            margin-left: 8px;
+            font-size: 9px;
             white-space: nowrap;
         }
         
@@ -432,9 +439,11 @@ function generateScheduleHTML(schedule: {
                         <div class="workers-grid">
                             ${pranzoShifts.map(shift => `
                             <div class="worker-item ${shift.role.toLowerCase()}">
-                                <span class="worker-name">${shift.user.username}</span>
-                                <span class="worker-role">${getRoleShort(shift.role)}</span>
-                                <span class="worker-time">${shift.startTime}</span>
+                                <div class="worker-name">${shift.user.username}</div>
+                                <div class="worker-meta">
+                                    <span class="worker-role">${getRoleShort(shift.role)}</span>
+                                    <span class="worker-time">${shift.startTime}</span>
+                                </div>
                             </div>
                             `).join('')}
                         </div>
@@ -447,9 +456,11 @@ function generateScheduleHTML(schedule: {
                         <div class="workers-grid">
                             ${cenaShifts.map(shift => `
                             <div class="worker-item ${shift.role.toLowerCase()}">
-                                <span class="worker-name">${shift.user.username}</span>
-                                <span class="worker-role">${getRoleShort(shift.role)}</span>
-                                <span class="worker-time">${shift.startTime}</span>
+                                <div class="worker-name">${shift.user.username}</div>
+                                <div class="worker-meta">
+                                    <span class="worker-role">${getRoleShort(shift.role)}</span>
+                                    <span class="worker-time">${shift.startTime}</span>
+                                </div>
                             </div>
                             `).join('')}
                         </div>
