@@ -116,17 +116,19 @@ function generateScheduleHTML(schedule: {
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Piano di Lavoro - ${format(weekStart, 'dd/MM/yyyy', { locale: it })}</title>
     <style>
         @page {
             size: A4 landscape;
-            margin: 12mm 10mm;
+            margin: 15mm;
         }
         
         @media print {
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                color-adjust: exact !important;
             }
             body {
                 width: 277mm;
@@ -141,10 +143,10 @@ function generateScheduleHTML(schedule: {
         }
         
         body { 
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            font-size: 9px;
-            line-height: 1.2;
-            color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 10px;
+            line-height: 1.3;
+            color: #1a1a1a;
             background: white;
         }
         
@@ -161,17 +163,18 @@ function generateScheduleHTML(schedule: {
         }
         
         .title {
-            font-size: 20px;
-            font-weight: 700;
+            font-size: 24px;
+            font-weight: 800;
             color: #000;
-            margin-bottom: 3px;
-            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
         
         .subtitle {
-            font-size: 12px;
-            color: #333;
-            font-weight: 500;
+            font-size: 14px;
+            color: #444;
+            font-weight: 600;
         }
         
         .week-container {
@@ -194,27 +197,30 @@ function generateScheduleHTML(schedule: {
         }
         
         .day-header {
-            background: #000;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             color: white;
-            padding: 6px 4px;
+            padding: 8px 6px;
             text-align: center;
-            font-weight: 700;
-            font-size: 10px;
-            letter-spacing: 0.5px;
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
         }
         
         .day-date {
-            font-size: 8px;
-            margin-top: 2px;
-            font-weight: 400;
+            font-size: 9px;
+            margin-top: 3px;
+            font-weight: 500;
+            opacity: 0.9;
         }
         
         .day-content {
-            padding: 4px;
+            padding: 6px;
+            min-height: 120px;
         }
         
         .shift-section {
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             page-break-inside: avoid;
         }
         
@@ -223,40 +229,48 @@ function generateScheduleHTML(schedule: {
         }
         
         .shift-title {
-            font-weight: 700;
+            font-weight: 800;
             color: #000;
-            font-size: 9px;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-            padding-bottom: 3px;
-            border-bottom: 1px solid #999;
+            letter-spacing: 0.8px;
+            margin-bottom: 5px;
+            padding: 4px 5px;
+            background: #f8f8f8;
+            border-left: 3px solid #ff6b35;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
         
         .shift-time {
-            color: #000;
+            color: #ff6b35;
             font-weight: 700;
-            font-size: 8px;
+            font-size: 9px;
         }
         
         .workers-list {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 3px;
         }
         
         .worker {
-            padding: 3px 4px;
-            background: #f5f5f5;
-            border: 1px solid #ccc;
-            font-size: 8px;
+            padding: 5px 6px;
+            background: white;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 9px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             page-break-inside: avoid;
+            transition: all 0.2s;
+        }
+        
+        .worker:hover {
+            border-color: #ff6b35;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .worker-info {
@@ -266,62 +280,83 @@ function generateScheduleHTML(schedule: {
         
         .worker-name {
             font-weight: 700;
-            color: #000;
+            color: #1a1a1a;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            font-size: 10px;
         }
         
         .worker-role {
-            color: #555;
+            color: #666;
             text-transform: uppercase;
-            font-size: 7px;
-            letter-spacing: 0.3px;
-            margin-top: 1px;
+            font-size: 8px;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+            font-weight: 600;
         }
         
         .worker-time {
-            font-weight: 700;
-            color: #000;
-            font-size: 8px;
-            margin-left: 4px;
+            font-weight: 800;
+            color: #ff6b35;
+            font-size: 10px;
+            margin-left: 6px;
             white-space: nowrap;
+            padding: 2px 6px;
+            background: #fff5f2;
+            border-radius: 3px;
         }
         
         .empty-shift {
             text-align: center;
             color: #999;
             font-style: italic;
-            padding: 8px 4px;
-            font-size: 8px;
+            padding: 12px 6px;
+            font-size: 9px;
+            background: #fafafa;
+            border-radius: 4px;
         }
         
         .summary {
-            margin-top: 10px;
-            padding: 8px;
+            margin-top: 15px;
+            padding: 12px;
             border: 2px solid #000;
-            background: #f5f5f5;
+            background: linear-gradient(135deg, #f8f8f8 0%, #ffffff 100%);
             display: flex;
             justify-content: space-around;
             align-items: center;
             page-break-inside: avoid;
+            border-radius: 6px;
         }
         
         .summary-item {
             text-align: center;
+            padding: 0 10px;
         }
         
         .summary-number {
-            font-size: 16px;
-            font-weight: 700;
-            color: #000;
+            font-size: 22px;
+            font-weight: 800;
+            color: #ff6b35;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
         
         .summary-label {
-            font-size: 10px;
-            color: #555;
-            margin-top: 2px;
-            font-weight: 500;
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .shift-times {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 9px;
+            color: #888;
+            padding: 8px;
+            border-top: 1px solid #ddd;
         }
     </style>
 </head>
