@@ -13,19 +13,24 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // NORMALIZZA LA DATA per evitare problemi di timezone su Vercel
+    // NORMALIZZA LA DATA al fuso orario italiano (Europe/Rome) per evitare problemi su Vercel
     const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const jsDay = today.getDay() // JavaScript: 0=Sunday, 1=Monday, etc.
+    // Ottieni la data nel fuso orario italiano
+    const italianDateString = now.toLocaleString('en-US', { timeZone: 'Europe/Rome' })
+    const italianDate = new Date(italianDateString)
+    
+    const jsDay = italianDate.getDay() // JavaScript: 0=Sunday, 1=Monday, etc.
     const dayOfWeek = convertJsDayToOurDay(jsDay) // Our system: 0=Monday, 1=Tuesday, ..., 6=Sunday
     
-    // Calcola l'inizio della settimana corrente (lunedì)
-    const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 })
+    // Calcola l'inizio della settimana corrente (lunedì) con la data italiana
+    const currentWeekStart = startOfWeek(italianDate, { weekStartsOn: 1 })
     currentWeekStart.setHours(0, 0, 0, 0) // Normalizza ora
 
     console.log('Today shifts debug:', {
-      today: format(today, 'yyyy-MM-dd HH:mm'),
+      utcNow: format(now, 'yyyy-MM-dd HH:mm'),
+      italianDate: format(italianDate, 'yyyy-MM-dd HH:mm'),
       dayOfWeek,
+      jsDay,
       weekStart: format(currentWeekStart, 'yyyy-MM-dd')
     })
 

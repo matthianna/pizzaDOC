@@ -963,7 +963,7 @@ function ShiftCrew({
 
         return (
           <div key={role}>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1 group/role">
               <div className="flex items-center gap-2">
                 <div className="text-xs font-medium text-gray-700">
                   {getRoleName(role)} ({assigned}/{required})
@@ -971,7 +971,7 @@ function ShiftCrew({
                 {onQuickAdd && (
                   <button
                     onClick={() => onQuickAdd(dayOfWeek, shiftType, role)}
-                    className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-all"
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-all opacity-0 group-hover/role:opacity-100"
                     title={`Aggiungi ${getRoleName(role)}`}
                   >
                     <UserPlus className="h-2.5 w-2.5" />
