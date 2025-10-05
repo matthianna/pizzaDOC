@@ -109,11 +109,14 @@ export default function DashboardPage() {
   const isAdmin = session?.user.roles.includes('ADMIN')
 
   useEffect(() => {
+    // Aspetta che la sessione sia caricata prima di fare le chiamate API
+    if (!session) return
+    
     fetchStats()
     fetchTodayShifts()
-    if (!isAdmin && session) {
+    if (!isAdmin) {
       fetchMyShifts()
-    } else if (isAdmin && session) {
+    } else {
       fetchPendingHours()
     }
   }, [session, isAdmin])
