@@ -75,7 +75,7 @@ export async function GET() {
     }, {} as Record<string, typeof todayShifts>)
 
     return NextResponse.json({
-      date: today.toISOString(),
+      date: italianDate.toISOString(),
       dayOfWeek,
       shifts: groupedShifts,
       totalWorkers: todayShifts.length
