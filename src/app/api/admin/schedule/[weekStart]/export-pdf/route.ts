@@ -49,8 +49,9 @@ export async function GET(
       )
     }
     
-    // Usa la weekStart dal database (già corretta)
-    const weekStart = new Date(schedule.weekStart)
+    // NORMALIZZA a LUNEDÌ (la weekStart dal DB potrebbe essere domenica)
+    const dbWeekStart = new Date(schedule.weekStart)
+    const weekStart = startOfWeek(dbWeekStart, { weekStartsOn: 1 })
     
     // Genera l'HTML per il PDF
     const html = generateScheduleHTML(schedule, weekStart)
