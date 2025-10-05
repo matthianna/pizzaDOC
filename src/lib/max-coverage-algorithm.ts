@@ -200,17 +200,31 @@ export class MaxCoverageAlgorithm {
     let schedule = await this.assignShiftsMaxCoverage(users, sortedRequirements, existingShifts, 'primary')
     
     // 4. PASSAGGIO 2: Completa con ruoli SECONDARI per gap rimanenti
-    const gaps1 = this.findGaps(schedule, requirements)
-    if (gaps1.length > 0) {
-      console.log(`\n🥈 PASSAGGIO 2: Completamento con ruoli secondari (${gaps1.length} gap rimanenti)...`)
-      schedule = await this.assignShiftsMaxCoverage(users, this.gapsToRequirements(gaps1, requirements), schedule, 'secondary')
+    let gaps = this.findGaps(schedule, requirements)
+    if (gaps.length > 0) {
+      console.log(`\n🥈 PASSAGGIO 2: Completamento con ruoli secondari (${gaps.length} gap)...`)
+      schedule = await this.assignShiftsMaxCoverage(users, this.gapsToRequirements(gaps, requirements), schedule, 'secondary')
     }
     
-    // 5. PASSAGGIO 3: Riempimento AGGRESSIVO - qualsiasi persona disponibile
-    const gaps2 = this.findGaps(schedule, requirements)
-    if (gaps2.length > 0) {
-      console.log(`\n🥉 PASSAGGIO 3: Riempimento aggressivo (${gaps2.length} gap rimanenti)...`)
-      schedule = await this.assignShiftsMaxCoverage(users, this.gapsToRequirements(gaps2, requirements), schedule, 'aggressive')
+    // 5. PASSAGGIO 3: Riempimento AGGRESSIVO - chiunque disponibile
+    gaps = this.findGaps(schedule, requirements)
+    if (gaps.length > 0) {
+      console.log(`\n🥉 PASSAGGIO 3: Riempimento aggressivo (${gaps.length} gap)...`)
+      schedule = await this.assignShiftsMaxCoverage(users, this.gapsToRequirements(gaps, requirements), schedule, 'aggressive')
+    }
+    
+    // 6. PASSAGGIO 4: Riempimento ULTRA-AGGRESSIVO - ignora vincoli riposo
+    gaps = this.findGaps(schedule, requirements)
+    if (gaps.length > 0) {
+      console.log(`\n🔥 PASSAGGIO 4: Ultra-aggressivo senza vincoli riposo (${gaps.length} gap)...`)
+      schedule = await this.assignShiftsMaxCoverage(users, this.gapsToRequirements(gaps, requirements), schedule, 'ultra')
+    }
+    
+    // 7. PASSAGGIO 5: Tentativo FINALE - considera anche chi ha già turni simili
+    gaps = this.findGaps(schedule, requirements)
+    if (gaps.length > 0) {
+      console.log(`\n⚡ PASSAGGIO 5: Tentativo finale massimo (${gaps.length} gap)...`)
+      schedule = await this.assignShiftsMaxCoverage(users, this.gapsToRequirements(gaps, requirements), schedule, 'final')
     }
     
     // 6. Calcola statistiche finali
@@ -401,7 +415,7 @@ export class MaxCoverageAlgorithm {
     users: UserProfile[], 
     requirements: ShiftRequirement[], 
     existingShifts: ScheduleShift[],
-    mode: 'primary' | 'secondary' | 'aggressive' = 'primary'
+    mode: 'primary' | 'secondary' | 'aggressive' | 'ultra' | 'final' = 'primary'
   ): Promise<ScheduleShift[]> {
     const schedule: ScheduleShift[] = [...existingShifts]
     const assignedStartTimes = new Map<string, number>()
@@ -489,7 +503,7 @@ export class MaxCoverageAlgorithm {
     users: UserProfile[], 
     requirement: ShiftRequirement,
     currentSchedule: ScheduleShift[],
-    mode: 'primary' | 'secondary' | 'aggressive' = 'primary'
+    mode: 'primary' | 'secondary' | 'aggressive' | 'ultra' | 'final' = 'primary'
   ): (UserProfile & { score: number })[] {
     
     const candidates = users
@@ -523,22 +537,25 @@ export class MaxCoverageAlgorithm {
         if (alreadyAssignedThisShift) return false
         
         // 4. VINCOLO RIPOSO: Non può fare cena + pranzo giorno dopo (turni consecutivi)
-        if (requirement.shiftType === 'PRANZO') {
-          const workedPrevEvening = currentSchedule.some(shift => 
-            shift.userId === user.id && 
-            shift.dayOfWeek === (requirement.dayOfWeek - 1 + 7) % 7 && 
-            shift.shiftType === 'CENA'
-          )
-          if (workedPrevEvening) return false
-        }
-        
-        if (requirement.shiftType === 'CENA') {
-          const worksNextMorning = currentSchedule.some(shift => 
-            shift.userId === user.id && 
-            shift.dayOfWeek === (requirement.dayOfWeek + 1) % 7 && 
-            shift.shiftType === 'PRANZO'
-          )
-          if (worksNextMorning) return false
+        // ULTRA e FINAL: ignorano questo vincolo per massimizzare copertura
+        if (mode !== 'ultra' && mode !== 'final') {
+          if (requirement.shiftType === 'PRANZO') {
+            const workedPrevEvening = currentSchedule.some(shift => 
+              shift.userId === user.id && 
+              shift.dayOfWeek === (requirement.dayOfWeek - 1 + 7) % 7 && 
+              shift.shiftType === 'CENA'
+            )
+            if (workedPrevEvening) return false
+          }
+          
+          if (requirement.shiftType === 'CENA') {
+            const worksNextMorning = currentSchedule.some(shift => 
+              shift.userId === user.id && 
+              shift.dayOfWeek === (requirement.dayOfWeek + 1) % 7 && 
+              shift.shiftType === 'PRANZO'
+            )
+            if (worksNextMorning) return false
+          }
         }
         
         return true
@@ -557,15 +574,17 @@ export class MaxCoverageAlgorithm {
         // Conta quanti turni ha già assegnati
         const userShifts = currentSchedule.filter(s => s.userId === user.id).length
         
-        // In modalità aggressive, penalizza MOLTO MENO chi ha già turni
-        if (mode === 'aggressive') {
+        // Penalità workload in base alla modalità
+        if (mode === 'ultra' || mode === 'final') {
+          score -= userShifts * 0.1 // Penalità quasi nulla (massima copertura)
+        } else if (mode === 'aggressive') {
           score -= userShifts * 0.5 // Penalità minima
         } else {
           score -= userShifts * 2 // Penalità normale
         }
         
-        // Bonus se ha pochi turni (distribuzione equa)
-        if (userShifts === 0) {
+        // Bonus se ha pochi turni (distribuzione equa) - solo in modi non estremi
+        if (userShifts === 0 && mode !== 'ultra' && mode !== 'final') {
           score += 10
         }
         

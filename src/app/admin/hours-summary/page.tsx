@@ -126,7 +126,9 @@ export default function AdminHoursSummaryPage() {
   }
 
   const exportToPDF = async () => {
-    try {
+    alert('Funzione in fase di implementazione')
+    return
+    /* try {
       let url = `/api/admin/hours-summary/export-pdf?year=${selectedYear}`
       if (selectedUserId !== 'ALL') {
         url += `&userId=${selectedUserId}`
@@ -158,11 +160,13 @@ export default function AdminHoursSummaryPage() {
     } catch (error) {
       console.error('Error exporting PDF:', error)
       alert('Errore durante l\'esportazione del PDF')
-    }
+    } */
   }
 
   const exportUserMonthPDF = async (userId: string, monthStr: string) => {
-    try {
+    alert('Funzione in fase di implementazione')
+    return
+    /* try {
       const [year, month] = monthStr.split('-')
       const url = `/api/admin/hours-summary/export-user-pdf?userId=${userId}&year=${year}&month=${month}`
       
@@ -185,11 +189,13 @@ export default function AdminHoursSummaryPage() {
     } catch (error) {
       console.error('Error exporting user PDF:', error)
       alert('Errore durante l\'esportazione del PDF')
-    }
+    } */
   }
 
   const exportUserYearPDF = async (userId: string) => {
-    try {
+    alert('Funzione in fase di implementazione')
+    return
+    /* try {
       const url = `/api/admin/hours-summary/export-user-pdf?userId=${userId}&year=${selectedYear}`
       
       const response = await fetch(url, {
@@ -211,7 +217,7 @@ export default function AdminHoursSummaryPage() {
     } catch (error) {
       console.error('Error exporting user year PDF:', error)
       alert('Errore durante l\'esportazione del PDF')
-    }
+    } */
   }
 
   const currentYearOptions = Array.from({ length: 5 }, (_, i) => {
