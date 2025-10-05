@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
     weekEnd.setDate(weekEnd.getDate() + 6)
     weekEnd.setHours(23, 59, 59, 999)
 
+    console.log(`🔍 Cercando disponibilità per weekStart: ${weekStart.toISOString()}`)
+
     // Carica tutti gli utenti attivi (no admin) con le loro disponibilità
     const users = await prisma.user.findMany({
       where: {
@@ -38,7 +40,10 @@ export async function GET(request: NextRequest) {
       include: {
         availabilities: {
           where: {
-            weekStart: weekStart
+            weekStart: {
+              gte: weekStart,
+              lt: new Date(weekStart.getTime() + 24 * 60 * 60 * 1000) // Stesso giorno
+            }
           }
         },
         absences: {
@@ -75,6 +80,9 @@ export async function GET(request: NextRequest) {
         reason: abs.reason
       }))
     }))
+
+    console.log(`✅ Trovati ${users.length} utenti`)
+    console.log(`📊 Disponibilità totali: ${users.reduce((sum, u) => sum + u.availabilities.length, 0)}`)
 
     return NextResponse.json({
       users: usersAvailability,
