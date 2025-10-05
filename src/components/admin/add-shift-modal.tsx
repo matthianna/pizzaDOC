@@ -12,6 +12,11 @@ interface User {
   username: string
   primaryRole: string
   availableRoles: string[]
+  availabilities?: {
+    dayOfWeek: number
+    shiftType: string
+    isAvailable: boolean
+  }[]
 }
 
 interface AddShiftModalProps {
@@ -150,6 +155,14 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
   const selectedUser = users.find(u => u.id === selectedUserId)
   const availableRoles = selectedUser?.availableRoles || []
 
+  // Helper per controllare se un utente è disponibile
+  const isUserAvailable = (user: User): boolean => {
+    const availability = user.availabilities?.find(
+      a => a.dayOfWeek === selectedDay && a.shiftType === selectedShiftType
+    )
+    return availability?.isAvailable || false
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -228,10 +241,14 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
               label="Dipendente"
               options={[
                 { value: '', label: 'Seleziona un dipendente' },
-                ...users.map(user => ({
-                  value: user.id,
-                  label: `${user.username} (${getRoleName(user.primaryRole)})`
-                }))
+                ...users.map(user => {
+                  const available = isUserAvailable(user)
+                  const availStatus = available ? ' ✅ Disponibile' : ' ⛔ Non disponibile'
+                  return {
+                    value: user.id,
+                    label: `${user.username} (${getRoleName(user.primaryRole)})${availStatus}`
+                  }
+                })
               ]}
               value={selectedUserId}
               onChange={(value) => setSelectedUserId(value as string)}

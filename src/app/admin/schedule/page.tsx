@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3 } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit } from 'lucide-react'
 import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek } from '@/lib/date-utils'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
@@ -66,6 +66,12 @@ export default function AdminSchedulePage() {
   const [newStartTime, setNewStartTime] = useState('')
   const [, setNewEndTime] = useState('')
   const [updatingTime, setUpdatingTime] = useState(false)
+
+  // Stati per modifica ruolo
+  const [showRoleEditModal, setShowRoleEditModal] = useState(false)
+  const [editingRoleShift, setEditingRoleShift] = useState<ScheduleShift | null>(null)
+  const [newRole, setNewRole] = useState<Role | ''>('')
+  const [updatingRole, setUpdatingRole] = useState(false)
 
   useEffect(() => {
     fetchSchedule()
@@ -333,6 +339,43 @@ export default function AdminSchedulePage() {
     }
   }
 
+  const handleEditRole = (shift: ScheduleShift) => {
+    setEditingRoleShift(shift)
+    setNewRole(shift.role)
+    setShowRoleEditModal(true)
+  }
+
+  const confirmRoleUpdate = async () => {
+    if (!editingRoleShift || !newRole) return
+
+    setUpdatingRole(true)
+    try {
+      const response = await fetch(`/api/admin/shifts/${editingRoleShift.id}/role`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          role: newRole
+        })
+      })
+
+      if (response.ok) {
+        setShowRoleEditModal(false)
+        setEditingRoleShift(null)
+        fetchSchedule() // Ricarica il piano
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Errore nell\'aggiornamento del ruolo')
+      }
+    } catch (error) {
+      console.error('Error updating shift role:', error)
+      alert('Errore nell\'aggiornamento del ruolo')
+    } finally {
+      setUpdatingRole(false)
+    }
+  }
+
   const handleQuickAdd = (dayOfWeek: number, shiftType: ShiftType, role: Role) => {
     // Imposta i parametri precompilati
     setPrefilledShiftData({
@@ -551,6 +594,7 @@ export default function AdminSchedulePage() {
                             shiftLimits={shiftLimits}
                             onRemoveShift={handleRemoveShift}
                             onEditTime={handleEditShiftTime}
+                            onEditRole={handleEditRole}
                             onQuickAdd={handleQuickAdd}
                           />
                         </td>
@@ -563,6 +607,7 @@ export default function AdminSchedulePage() {
                             shiftLimits={shiftLimits}
                             onRemoveShift={handleRemoveShift}
                             onEditTime={handleEditShiftTime}
+                            onEditRole={handleEditRole}
                             onQuickAdd={handleQuickAdd}
                           />
                         </td>
@@ -755,6 +800,80 @@ export default function AdminSchedulePage() {
           </div>
         </div>
       )}
+
+      {/* Modal Modifica Ruolo */}
+      {showRoleEditModal && editingRoleShift && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Modifica Ruolo Turno
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowRoleEditModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {/* User Info */}
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-purple-900 text-sm mb-2">
+                    Modificando il ruolo per {editingRoleShift.user.username}:
+                  </h4>
+                  <div className="space-y-1 text-sm text-purple-800">
+                    <p><strong>Giorno:</strong> {getDayName(editingRoleShift.dayOfWeek)}</p>
+                    <p><strong>Turno:</strong> {getShiftTypeName(editingRoleShift.shiftType)}</p>
+                    <p><strong>Ruolo attuale:</strong> {getRoleName(editingRoleShift.role)}</p>
+                    <p><strong>Ruolo principale:</strong> {getRoleName(editingRoleShift.user.primaryRole)}</p>
+                  </div>
+                </div>
+
+                {/* Role Selection */}
+                <Select
+                  label="Nuovo Ruolo"
+                  options={[
+                    { value: '', label: 'Seleziona ruolo' },
+                    { value: 'FATTORINO', label: getRoleName('FATTORINO') },
+                    { value: 'CUCINA', label: getRoleName('CUCINA') },
+                    { value: 'SALA', label: getRoleName('SALA') },
+                    { value: 'PIZZAIOLO', label: getRoleName('PIZZAIOLO') }
+                  ]}
+                  value={newRole}
+                  onChange={(value) => setNewRole(value as Role)}
+                />
+
+                <p className="text-sm text-gray-600">
+                  💡 Verifica che l'utente possa svolgere questo ruolo
+                </p>
+
+                {/* Submit Buttons */}
+                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowRoleEditModal(false)}
+                  >
+                    Annulla
+                  </Button>
+                  <Button
+                    onClick={confirmRoleUpdate}
+                    disabled={!newRole || updatingRole}
+                    isLoading={updatingRole}
+                  >
+                    Aggiorna Ruolo
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   )
 }
@@ -786,6 +905,7 @@ function ShiftCrew({
   shiftLimits,
   onRemoveShift,
   onEditTime,
+  onEditRole,
   onQuickAdd
 }: { 
   shifts: ScheduleShift[]
@@ -795,6 +915,7 @@ function ShiftCrew({
   shiftLimits: { dayOfWeek: number; shiftType: string; role: string; minStaff: number; maxStaff: number }[]
   onRemoveShift?: (shift: ScheduleShift) => void
   onEditTime?: (shift: ScheduleShift) => void
+  onEditRole?: (shift: ScheduleShift) => void
   onQuickAdd?: (dayOfWeek: number, shiftType: ShiftType, role: Role) => void
 }) {
   // Group by role
@@ -810,7 +931,7 @@ function ShiftCrew({
   // Add roles from shift limits
   shiftLimits.forEach(limit => {
     if (limit.dayOfWeek === dayOfWeek && limit.shiftType === shiftType && limit.minStaff > 0) {
-      allRoles.add(limit.role)
+      allRoles.add(limit.role as Role)
     }
   })
   
@@ -843,8 +964,19 @@ function ShiftCrew({
         return (
           <div key={role}>
             <div className="flex items-center justify-between mb-1">
-              <div className="text-xs font-medium text-gray-700">
-                {getRoleName(role)} ({assigned}/{required})
+              <div className="flex items-center gap-2">
+                <div className="text-xs font-medium text-gray-700">
+                  {getRoleName(role)} ({assigned}/{required})
+                </div>
+                {onQuickAdd && (
+                  <button
+                    onClick={() => onQuickAdd(dayOfWeek, shiftType, role)}
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-all"
+                    title={`Aggiungi ${getRoleName(role)}`}
+                  >
+                    <UserPlus className="h-2.5 w-2.5" />
+                  </button>
+                )}
               </div>
               {missing > 0 && (
                 <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded">
@@ -877,6 +1009,15 @@ function ShiftCrew({
                           <Clock className="h-3 w-3" />
                         </button>
                       )}
+                      {onEditRole && (
+                        <button
+                          onClick={() => onEditRole(shift)}
+                          className="text-purple-600 hover:text-purple-800"
+                          title="Modifica ruolo"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </button>
+                      )}
                       {onRemoveShift && (
                         <button
                           onClick={() => onRemoveShift(shift)}
@@ -891,19 +1032,10 @@ function ShiftCrew({
                 )
               })}
               {missing > 0 && (
-                <div className="inline-flex items-center gap-1 group/add">
+                <div className="inline-flex items-center gap-1">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600 border border-red-200 border-dashed">
                     Mancano {missing}
                   </span>
-                  {onQuickAdd && (
-                    <button
-                      onClick={() => onQuickAdd(dayOfWeek, shiftType, role)}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-all opacity-0 group-hover/add:opacity-100"
-                      title={`Aggiungi ${getRoleName(role)}`}
-                    >
-                      <UserPlus className="h-3 w-3" />
-                    </button>
-                  )}
                 </div>
               )}
             </div>

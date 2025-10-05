@@ -13,7 +13,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const today = new Date()
+    // NORMALIZZA LA DATA per evitare problemi di timezone su Vercel
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const jsDay = today.getDay() // JavaScript: 0=Sunday, 1=Monday, etc.
     const dayOfWeek = convertJsDayToOurDay(jsDay) // Our system: 0=Monday, 1=Tuesday, ..., 6=Sunday
     

@@ -11,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch all active users with their roles (excluding admins for scheduling)
+    // Fetch all active users with their roles and availabilities (excluding admins for scheduling)
     const users = await prisma.user.findMany({
       where: {
         isActive: true,
@@ -30,6 +30,13 @@ export async function GET() {
               in: ['FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO']
             }
           }
+        },
+        availabilities: {
+          select: {
+            dayOfWeek: true,
+            shiftType: true,
+            isAvailable: true
+          }
         }
       },
       orderBy: {
@@ -42,7 +49,8 @@ export async function GET() {
       id: user.id,
       username: user.username,
       primaryRole: user.primaryRole,
-      availableRoles: user.userRoles.map(ur => ur.role)
+      availableRoles: user.userRoles.map(ur => ur.role),
+      availabilities: user.availabilities
     }))
 
     return NextResponse.json(availableUsers)
