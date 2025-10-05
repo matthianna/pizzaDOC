@@ -187,14 +187,14 @@ export default function AvailabilityOverviewPage() {
                     <th className="sticky left-0 z-10 bg-gray-50"></th>
                     <th className="bg-gray-50"></th>
                     {days.map((_, dayIdx) => (
-                      <>
-                        <th key={`${dayIdx}-p`} className="px-1 py-2 text-center text-xs text-gray-600 border-l border-gray-300">
+                      <React.Fragment key={dayIdx}>
+                        <th className="px-1 py-2 text-center text-xs text-gray-600 border-l border-gray-300">
                           P
                         </th>
-                        <th key={`${dayIdx}-c`} className="px-1 py-2 text-center text-xs text-gray-600">
+                        <th className="px-1 py-2 text-center text-xs text-gray-600">
                           C
                         </th>
-                      </>
+                      </React.Fragment>
                     ))}
                   </tr>
                 </thead>
