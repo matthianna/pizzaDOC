@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeDate } from '@/lib/normalize-date'
 import { isAdmin } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'weekStart parameter required' }, { status: 400 })
     }
 
-    const weekStart = new Date(weekStartParam)
+    const weekStart = normalizeDate(weekStartParam)
 
     // 1. Carica tutti gli utenti non admin con i loro turni e disponibilità
     const users = await prisma.user.findMany({

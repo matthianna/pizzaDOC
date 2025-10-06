@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeDate } from '@/lib/normalize-date'
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Week start parameter is required' }, { status: 400 })
     }
 
-    const weekStart = new Date(weekStartParam)
+    const weekStart = normalizeDate(weekStartParam)
 
     // Trova il piano per questa settimana
     const schedule = await prisma.schedule.findUnique({

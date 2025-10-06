@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { format, addDays, startOfWeek } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { normalizeDate } from '@/lib/normalize-date'
 
 export async function GET(
   request: NextRequest,
@@ -17,7 +18,7 @@ export async function GET(
     }
 
     const resolvedParams = await params
-    const rawWeekStart = new Date(resolvedParams.weekStart)
+    const rawWeekStart = normalizeDate(resolvedParams.weekStart)
     
     // Query con la data dal database
     const schedule = await prisma.schedule.findUnique({
