@@ -13,38 +13,54 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          return null
-        }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            username: credentials.username
-          },
-          include: {
-            userRoles: true
+        try {
+          if (!credentials?.username || !credentials?.password) {
+            console.error('[AUTH] Missing credentials')
+            return null
           }
-        })
 
-        if (!user || !user.isActive) {
-          return null
-        }
+          console.log('[AUTH] Attempting login for:', credentials.username)
+          
+          if (!prisma) {
+            console.error('[AUTH] Prisma client is undefined!')
+            throw new Error('Database connection failed - Prisma client not initialized')
+          }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
+          const user = await prisma.user.findUnique({
+            where: {
+              username: credentials.username
+            },
+            include: {
+              userRoles: true
+            }
+          })
 
-        if (!isPasswordValid) {
-          return null
-        }
+          if (!user || !user.isActive) {
+            console.error('[AUTH] User not found or inactive:', credentials.username)
+            return null
+          }
 
-        return {
-          id: user.id,
-          username: user.username,
-          isFirstLogin: user.isFirstLogin,
-          primaryRole: user.primaryRole,
-          roles: user.userRoles.map(ur => ur.role)
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          )
+
+          if (!isPasswordValid) {
+            console.error('[AUTH] Invalid password for:', credentials.username)
+            return null
+          }
+
+          console.log('[AUTH] Login successful for:', credentials.username)
+          return {
+            id: user.id,
+            username: user.username,
+            isFirstLogin: user.isFirstLogin,
+            primaryRole: user.primaryRole,
+            roles: user.userRoles.map(ur => ur.role)
+          }
+        } catch (error) {
+          console.error('[AUTH] Authorization error:', error)
+          throw error
         }
       }
     })
