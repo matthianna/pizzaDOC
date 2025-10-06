@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build --turbopack",
+    "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "vercel-build": "prisma generate && prisma db push && next build",
+    "postinstall": "prisma generate",
     "seed": "tsx scripts/seed.ts",
     "setup:database": "tsx scripts/setup-database.ts",
     "generate:availability": "tsx scripts/generate-availability.ts",
