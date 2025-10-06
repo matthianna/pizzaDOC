@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { startOfWeek } from 'date-fns'
 import { convertJsDayToOurDay } from '@/lib/date-utils'
+import { normalizeDate } from '@/lib/normalize-date'
 
 // PUT /api/user/absences/[id] - Update absence
 export async function PUT(
@@ -43,8 +44,8 @@ export async function PUT(
 
     const { startDate, endDate, reason, notes } = await request.json()
 
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = normalizeDate(startDate)
+    const end = normalizeDate(endDate)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 

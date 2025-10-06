@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { normalizeDate } from '@/lib/normalize-date'
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
     }> = {}
 
     workedHours.forEach(wh => {
-      const shiftDate = new Date(wh.shift.schedule.weekStart)
+      const shiftDate = normalizeDate(wh.shift.schedule.weekStart)
       // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
       shiftDate.setDate(shiftDate.getDate() + wh.shift.dayOfWeek)
       

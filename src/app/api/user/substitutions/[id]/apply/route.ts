@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { addDays } from 'date-fns'
+import { normalizeDate } from '@/lib/normalize-date'
 
 export async function POST(
   request: NextRequest,
@@ -68,7 +69,7 @@ export async function POST(
     }
 
     // Check if shift is in the future
-    const weekStart = new Date(substitution.shift.schedule.weekStart)
+    const weekStart = normalizeDate(substitution.shift.schedule.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
     const shiftDate = addDays(weekStart, substitution.shift.dayOfWeek)
     

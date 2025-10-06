@@ -40,7 +40,7 @@ export async function GET() {
     // Trasforma i turni in un formato più leggibile e filtra solo i FUTURI
     const formattedShifts = myShifts
       .map(shift => {
-        const weekStartDate = new Date(shift.schedule.weekStart)
+        const weekStartDate = normalizeDate(shift.schedule.weekStart)
         const shiftDate = new Date(weekStartDate)
         // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
         shiftDate.setDate(weekStartDate.getDate() + shift.dayOfWeek)
