@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, Filter, User } from 'lucide-react'
+import { Calendar, Filter, User, Edit, Trash2, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { Button } from '@/components/ui/button'
 
 interface Absence {
   id: string
@@ -25,6 +26,14 @@ export default function AdminAbsencesPage() {
   const [absences, setAbsences] = useState<Absence[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'past' | 'active' | 'future'>('all')
+  const [editingAbsence, setEditingAbsence] = useState<Absence | null>(null)
+  const [deletingAbsence, setDeletingAbsence] = useState<Absence | null>(null)
+  const [editForm, setEditForm] = useState({
+    startDate: '',
+    endDate: '',
+    reason: '',
+    notes: ''
+  })
 
   useEffect(() => {
     fetchAbsences()
@@ -58,6 +67,64 @@ export default function AdminAbsencesPage() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     return new Date(absence.endDate) < today
+  }
+
+  const handleEdit = (absence: Absence) => {
+    setEditingAbsence(absence)
+    const start = new Date(absence.startDate)
+    const end = new Date(absence.endDate)
+    setEditForm({
+      startDate: format(start, 'yyyy-MM-dd'),
+      endDate: format(end, 'yyyy-MM-dd'),
+      reason: absence.reason || '',
+      notes: absence.notes || ''
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingAbsence) return
+
+    try {
+      const response = await fetch(`/api/user/absences/${editingAbsence.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      })
+
+      if (response.ok) {
+        alert('Assenza modificata con successo!')
+        setEditingAbsence(null)
+        fetchAbsences()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Errore nella modifica')
+      }
+    } catch (error) {
+      console.error('Error updating absence:', error)
+      alert('Errore nella modifica dell\'assenza')
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deletingAbsence) return
+
+    try {
+      const response = await fetch(`/api/user/absences/${deletingAbsence.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        alert('Assenza eliminata con successo!')
+        setDeletingAbsence(null)
+        fetchAbsences()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Errore nell\'eliminazione')
+      }
+    } catch (error) {
+      console.error('Error deleting absence:', error)
+      alert('Errore nell\'eliminazione dell\'assenza')
+    }
   }
 
   return (
@@ -122,6 +189,8 @@ export default function AdminAbsencesPage() {
                 absence={absence}
                 isActive={isActive(absence)}
                 isPast={isPast(absence)}
+                onEdit={() => handleEdit(absence)}
+                onDelete={() => setDeletingAbsence(absence)}
               />
             ))}
           </div>
@@ -131,6 +200,152 @@ export default function AdminAbsencesPage() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="text-sm text-blue-800">
               <strong>Totale:</strong> {absences.length} {absences.length === 1 ? 'assenza' : 'assenze'}
+            </div>
+          </div>
+        )}
+
+        {/* Modal Modifica */}
+        {editingAbsence && (
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Modifica Assenza - {editingAbsence.user.username}
+                  </h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditingAbsence(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Data Inizio
+                    </label>
+                    <input
+                      type="date"
+                      value={editForm.startDate}
+                      onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Data Fine
+                    </label>
+                    <input
+                      type="date"
+                      value={editForm.endDate}
+                      onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Motivo
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.reason}
+                      onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
+                      placeholder="Motivo dell'assenza"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Note
+                    </label>
+                    <textarea
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      placeholder="Note aggiuntive"
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditingAbsence(null)}
+                    >
+                      Annulla
+                    </Button>
+                    <Button onClick={handleSaveEdit}>
+                      Salva Modifiche
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Elimina */}
+        {deletingAbsence && (
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Conferma Eliminazione
+                  </h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeletingAbsence(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-gray-700">
+                    Sei sicuro di voler eliminare l'assenza di <strong>{deletingAbsence.user.username}</strong>?
+                  </p>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-sm text-red-800">
+                      <strong>Periodo:</strong> {format(new Date(deletingAbsence.startDate), 'dd/MM/yyyy')} - {format(new Date(deletingAbsence.endDate), 'dd/MM/yyyy')}
+                    </p>
+                    {deletingAbsence.reason && (
+                      <p className="text-sm text-red-800 mt-1">
+                        <strong>Motivo:</strong> {deletingAbsence.reason}
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Questa azione non può essere annullata.
+                  </p>
+
+                  <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDeletingAbsence(null)}
+                    >
+                      Annulla
+                    </Button>
+                    <Button
+                      onClick={handleDelete}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Elimina
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -174,11 +389,15 @@ function FilterButton({
 function AbsenceCard({
   absence,
   isActive,
-  isPast
+  isPast,
+  onEdit,
+  onDelete
 }: {
   absence: Absence
   isActive: boolean
   isPast: boolean
+  onEdit: () => void
+  onDelete: () => void
 }) {
   const startDate = new Date(absence.startDate)
   const endDate = new Date(absence.endDate)
@@ -194,17 +413,35 @@ function AbsenceCard({
     }`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-3">
-            <User className={`h-5 w-5 ${
-              isActive ? 'text-green-600' : isPast ? 'text-gray-500' : 'text-blue-600'
-            }`} />
-            <div>
-              <h3 className="font-bold text-gray-900">
-                {absence.user.username}
-              </h3>
-              <span className="text-xs text-gray-600">
-                {absence.user.primaryRole}
-              </span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <User className={`h-5 w-5 ${
+                isActive ? 'text-green-600' : isPast ? 'text-gray-500' : 'text-blue-600'
+              }`} />
+              <div>
+                <h3 className="font-bold text-gray-900">
+                  {absence.user.username}
+                </h3>
+                <span className="text-xs text-gray-600">
+                  {absence.user.primaryRole}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onEdit}
+                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Modifica assenza"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+              <button
+                onClick={onDelete}
+                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                title="Elimina assenza"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           </div>
 

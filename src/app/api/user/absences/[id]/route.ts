@@ -20,7 +20,7 @@ export async function PUT(
     const resolvedParams = await params
     const absenceId = resolvedParams.id
 
-    // Controlla che l'assenza esista e appartenga all'utente
+    // Controlla che l'assenza esista
     const existingAbsence = await prisma.absence.findUnique({
       where: { id: absenceId }
     })
@@ -32,7 +32,9 @@ export async function PUT(
       )
     }
 
-    if (existingAbsence.userId !== session.user.id) {
+    // Gli admin possono modificare qualsiasi assenza, gli utenti solo le proprie
+    const isAdmin = session.user.roles.includes('ADMIN')
+    if (!isAdmin && existingAbsence.userId !== session.user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -46,16 +48,16 @@ export async function PUT(
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Non permettere di modificare assenze che sono già iniziate
-    if (existingAbsence.startDate < today) {
+    // Solo per utenti normali (non admin): non permettere di modificare assenze già iniziate
+    if (!isAdmin && existingAbsence.startDate < today) {
       return NextResponse.json(
         { error: 'Non puoi modificare assenze già iniziate o nel passato' },
         { status: 400 }
       )
     }
 
-    // Non permettere nuove date nel passato
-    if (start < today) {
+    // Solo per utenti normali (non admin): non permettere nuove date nel passato
+    if (!isAdmin && start < today) {
       return NextResponse.json(
         { error: 'Non puoi spostare l\'assenza nel passato' },
         { status: 400 }
@@ -70,10 +72,10 @@ export async function PUT(
       )
     }
 
-    // Controlla sovrapposizioni (escludendo questa assenza)
+    // Controlla sovrapposizioni (escludendo questa assenza) - usa userId dell'assenza, non della sessione
     const overlappingAbsences = await prisma.absence.findMany({
       where: {
-        userId: session.user.id,
+        userId: existingAbsence.userId,
         id: { not: absenceId },
         OR: [
           {
@@ -127,10 +129,10 @@ export async function PUT(
       const jsDay = dayToCheck.getDay()
       const ourDay = convertJsDayToOurDay(jsDay)
       
-      // Aggiorna disponibilità per questo giorno (sia PRANZO che CENA)
+      // Aggiorna disponibilità per questo giorno (sia PRANZO che CENA) - usa userId dell'assenza
       await prisma.availability.updateMany({
         where: {
-          userId: session.user.id,
+          userId: existingAbsence.userId,
           weekStart: mondayOfWeek,
           dayOfWeek: ourDay, // 0=Monday, 1=Tuesday, ..., 6=Sunday
           isAvailable: true
@@ -169,7 +171,7 @@ export async function DELETE(
     const resolvedParams = await params
     const absenceId = resolvedParams.id
 
-    // Controlla che l'assenza esista e appartenga all'utente
+    // Controlla che l'assenza esista
     const existingAbsence = await prisma.absence.findUnique({
       where: { id: absenceId }
     })
@@ -181,7 +183,9 @@ export async function DELETE(
       )
     }
 
-    if (existingAbsence.userId !== session.user.id) {
+    // Gli admin possono eliminare qualsiasi assenza, gli utenti solo le proprie
+    const isAdmin = session.user.roles.includes('ADMIN')
+    if (!isAdmin && existingAbsence.userId !== session.user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -191,8 +195,8 @@ export async function DELETE(
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Non permettere di eliminare assenze già iniziate
-    if (existingAbsence.startDate < today) {
+    // Solo per utenti normali (non admin): non permettere di eliminare assenze già iniziate
+    if (!isAdmin && existingAbsence.startDate < today) {
       return NextResponse.json(
         { error: 'Non puoi eliminare assenze già iniziate o nel passato' },
         { status: 400 }
