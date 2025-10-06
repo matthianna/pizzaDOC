@@ -6,10 +6,11 @@ import { isAdmin } from '@/lib/auth-utils'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session?.user || !isAdmin(session)) {
       return NextResponse.json(
@@ -30,7 +31,7 @@ export async function PUT(
     }
 
     const distribution = await prisma.shiftStartTimeDistribution.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(targetCount !== undefined && { targetCount }),
         ...(isActive !== undefined && { isActive })
@@ -49,10 +50,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session?.user || !isAdmin(session)) {
       return NextResponse.json(
@@ -62,7 +64,7 @@ export async function DELETE(
     }
 
     await prisma.shiftStartTimeDistribution.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     return NextResponse.json({ message: 'Distribution deleted' })

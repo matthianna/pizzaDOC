@@ -7,10 +7,11 @@ import { calculateHours } from '@/lib/utils'
 // PUT /api/hours/[id] - Update worked hours
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -28,7 +29,7 @@ export async function PUT(
     // Check if hours exist and belong to user
     const existingHours = await prisma.workedHours.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: session.user.id,
         status: 'PENDING' // Can only edit pending hours
       }
@@ -50,7 +51,7 @@ export async function PUT(
     }
 
     const updatedHours = await prisma.workedHours.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         startTime,
         endTime,
@@ -72,10 +73,11 @@ export async function PUT(
 // DELETE /api/hours/[id] - Delete worked hours
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -84,7 +86,7 @@ export async function DELETE(
     // Check if hours exist and belong to user
     const existingHours = await prisma.workedHours.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: session.user.id,
         status: 'PENDING' // Can only delete pending hours
       }
@@ -98,7 +100,7 @@ export async function DELETE(
     }
 
     await prisma.workedHours.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     return NextResponse.json({ success: true })

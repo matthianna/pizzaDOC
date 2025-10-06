@@ -6,10 +6,11 @@ import { prisma } from '@/lib/prisma'
 // POST /api/substitutions/[id]/reject - Reject substitution
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -18,7 +19,7 @@ export async function POST(
     const { responseNote } = await request.json()
 
     const substitution = await prisma.substitution.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         shift: {
           include: {
@@ -54,7 +55,7 @@ export async function POST(
     }
 
     await prisma.substitution.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         status: 'REJECTED',
         approverId: session.user.id,

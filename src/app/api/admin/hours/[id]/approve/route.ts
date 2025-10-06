@@ -6,17 +6,18 @@ import { prisma } from '@/lib/prisma'
 // POST /api/admin/hours/[id]/approve - Approve worked hours
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const workedHours = await prisma.workedHours.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!workedHours) {
@@ -34,7 +35,7 @@ export async function POST(
     }
 
     const updatedHours = await prisma.workedHours.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         status: 'APPROVED',
         reviewedAt: new Date()

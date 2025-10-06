@@ -6,7 +6,7 @@ import { isAdmin } from '@/lib/auth-utils'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -18,6 +18,7 @@ export async function PUT(
       )
     }
 
+    const { id } = await params
     const body = await request.json()
     const { startTime, endTime } = body
 
@@ -44,7 +45,7 @@ export async function PUT(
     }
 
     const shift = await prisma.shift.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         startTime,
         endTime

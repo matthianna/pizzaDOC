@@ -6,10 +6,11 @@ import { isAdmin } from '@/lib/auth-utils'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session?.user || !isAdmin(session)) {
       return NextResponse.json(
@@ -22,7 +23,7 @@ export async function PUT(
     const { startTime, endTime, priority, description, isActive } = body
 
     const template = await prisma.shiftTimeTemplate.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         startTime,
         endTime,
@@ -44,10 +45,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session?.user || !isAdmin(session)) {
       return NextResponse.json(
@@ -57,7 +59,7 @@ export async function DELETE(
     }
 
     await prisma.shiftTimeTemplate.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     return NextResponse.json({ message: 'Template deleted' })

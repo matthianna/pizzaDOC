@@ -6,10 +6,11 @@ import { prisma } from '@/lib/prisma'
 // PUT /api/admin/users/[id] - Update user
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -26,16 +27,16 @@ export async function PUT(
 
     // Delete existing roles and transports
     await prisma.userRole.deleteMany({
-      where: { userId: params.id }
+      where: { userId: id }
     })
 
     await prisma.userTransport.deleteMany({
-      where: { userId: params.id }
+      where: { userId: id }
     })
 
     // Update user with new data
     const user = await prisma.user.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         primaryRole,
         primaryTransport: primaryTransport || null,
@@ -66,10 +67,11 @@ export async function PUT(
 // DELETE /api/admin/users/[id] - Delete user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -77,7 +79,7 @@ export async function DELETE(
 
     // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     if (!user) {
@@ -96,7 +98,7 @@ export async function DELETE(
     }
 
     await prisma.user.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
     return NextResponse.json({ success: true })

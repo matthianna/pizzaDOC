@@ -6,10 +6,11 @@ import { prisma } from '@/lib/prisma'
 // PUT - Update rejected worked hours
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
+    const { id } = await params
     
     if (!session || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -27,7 +28,7 @@ export async function PUT(
     // Verify the worked hours record exists and belongs to this user
     const existingWorkedHours = await prisma.workedHours.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: session.user.id,
         status: 'REJECTED' // Only allow updates on rejected hours
       },
@@ -91,7 +92,7 @@ export async function PUT(
 
     // Update worked hours record
     const updatedWorkedHours = await prisma.workedHours.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         startTime,
         endTime,
