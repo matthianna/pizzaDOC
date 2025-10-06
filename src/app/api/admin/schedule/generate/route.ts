@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { MaxCoverageAlgorithm } from '@/lib/max-coverage-algorithm'
 import { prisma } from '@/lib/prisma'
+import { normalizeDate } from '@/lib/normalize-date'
 
 async function saveSchedule(weekStart: Date, shifts: any[]): Promise<string> {
   // Elimina schedule esistente se presente
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const weekStartDate = new Date(weekStart)
+    const weekStartDate = normalizeDate(weekStart)
     const algorithm = new MaxCoverageAlgorithm()
     
     // Generate max coverage schedule

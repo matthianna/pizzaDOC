@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeDate } from '@/lib/normalize-date'
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +16,7 @@ export async function POST(
     }
 
     const resolvedParams = await params
-    const weekStart = new Date(resolvedParams.weekStart)
+    const weekStart = normalizeDate(resolvedParams.weekStart)
     const { userId, dayOfWeek, shiftType, role, startTime } = await request.json()
 
     // Validazione input

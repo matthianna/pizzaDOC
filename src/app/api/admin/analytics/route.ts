@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { startOfWeek, endOfWeek, differenceInHours, differenceInDays } from 'date-fns'
+import { normalizeDate } from '@/lib/normalize-date'
 
 const DAY_NAMES = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
 
@@ -21,8 +22,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'weekStart parameter is required' }, { status: 400 })
     }
 
-    const weekStart = new Date(weekStartParam)
-    weekStart.setHours(0, 0, 0, 0)
+    // Normalizza la data eliminando l'orario per evitare problemi di timezone
+    const weekStart = normalizeDate(weekStartParam)
+    
     const weekEnd = new Date(weekStart)
     weekEnd.setDate(weekEnd.getDate() + 6)
     weekEnd.setHours(23, 59, 59, 999)

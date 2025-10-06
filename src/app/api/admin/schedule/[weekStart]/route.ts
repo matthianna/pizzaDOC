@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeDate } from '@/lib/normalize-date'
 
 // GET /api/admin/schedule/[weekStart] - Get schedule for a specific week
 export async function GET(
@@ -16,7 +17,7 @@ export async function GET(
     }
 
     const resolvedParams = await params
-    const weekStart = new Date(resolvedParams.weekStart)
+    const weekStart = normalizeDate(resolvedParams.weekStart)
 
     const schedule = await prisma.schedule.findUnique({
       where: { weekStart },
@@ -76,7 +77,7 @@ export async function DELETE(
     }
 
     const resolvedParams = await params
-    const weekStart = new Date(resolvedParams.weekStart)
+    const weekStart = normalizeDate(resolvedParams.weekStart)
 
     const schedule = await prisma.schedule.findUnique({
       where: { weekStart }
