@@ -36,6 +36,32 @@ export async function GET() {
       weekStart: format(currentWeekStart, 'yyyy-MM-dd')
     })
 
+    // DEBUG: Verifica quali schedules esistono nel database
+    const allSchedules = await prisma.schedule.findMany({
+      select: {
+        weekStart: true,
+        _count: {
+          select: { shifts: true }
+        }
+      }
+    })
+    console.log('All schedules in DB:', allSchedules.map(s => ({
+      weekStart: format(new Date(s.weekStart), 'yyyy-MM-dd'),
+      shiftsCount: s._count.shifts
+    })))
+
+    // DEBUG: Verifica tutti i turni per il dayOfWeek corrente
+    const allShiftsForDay = await prisma.shift.findMany({
+      where: { dayOfWeek },
+      include: { schedule: { select: { weekStart: true } } },
+      take: 10
+    })
+    console.log(`All shifts for dayOfWeek=${dayOfWeek}:`, allShiftsForDay.map(s => ({
+      weekStart: format(new Date(s.schedule.weekStart), 'yyyy-MM-dd'),
+      shiftType: s.shiftType,
+      role: s.role
+    })))
+
     // Trova i turni di oggi
     const todayShifts = await prisma.shift.findMany({
       where: {
@@ -65,6 +91,8 @@ export async function GET() {
         { role: 'asc' }
       ]
     })
+    
+    console.log(`Found ${todayShifts.length} shifts for today`)
 
     // Raggruppa per tipo di turno
     const groupedShifts = todayShifts.reduce((acc, shift) => {
