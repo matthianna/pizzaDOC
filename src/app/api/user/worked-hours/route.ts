@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeDate } from '@/lib/normalize-date'
 
 // GET - Fetch worked hours for a user
 export async function GET(request: NextRequest) {
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Week start parameter is required' }, { status: 400 })
     }
 
-    const weekStart = new Date(weekStartParam)
+    const weekStart = normalizeDate(weekStartParam)
 
     // Find all worked hours for user's shifts in this week
     const workedHours = await prisma.workedHours.findMany({

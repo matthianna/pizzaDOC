@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getWeekStart } from '@/lib/date-utils'
+import { normalizeDate } from '@/lib/normalize-date'
 
 // GET /api/availability - Get user's availability for a specific week
 export async function GET(request: NextRequest) {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Week start required' }, { status: 400 })
     }
 
-    const weekStart = new Date(weekStartParam)
+    const weekStart = normalizeDate(weekStartParam)
 
     const availabilities = await prisma.availability.findMany({
       where: {
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Week start required' }, { status: 400 })
     }
 
-    const weekStartDate = new Date(weekStart)
+    const weekStartDate = normalizeDate(weekStart)
 
     // Delete existing availabilities for this week
     await prisma.availability.deleteMany({
