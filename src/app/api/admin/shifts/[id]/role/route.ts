@@ -31,8 +31,7 @@ export async function PUT(
           select: {
             id: true,
             username: true,
-            primaryRole: true,
-            secondaryRole: true
+            primaryRole: true
           }
         }
       }
