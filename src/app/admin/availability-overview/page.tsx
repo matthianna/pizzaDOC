@@ -203,10 +203,16 @@ export default function AvailabilityOverviewPage() {
                     // Funzione helper per controllare se un giorno specifico è in assenza
                     const isAbsentOnDay = (dayIdx: number): boolean => {
                       const dayDate = addDays(currentWeek, dayIdx)
+                      // Normalizza tutte le date a mezzanotte per confronto corretto
+                      const dayDateNormalized = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate())
+                      
                       return user.absences.some(abs => {
-                        const absStart = new Date(abs.startDate)
-                        const absEnd = new Date(abs.endDate)
-                        return dayDate >= absStart && dayDate <= absEnd
+                        const absStartDate = new Date(abs.startDate)
+                        const absEndDate = new Date(abs.endDate)
+                        const absStart = new Date(absStartDate.getFullYear(), absStartDate.getMonth(), absStartDate.getDate())
+                        const absEnd = new Date(absEndDate.getFullYear(), absEndDate.getMonth(), absEndDate.getDate())
+                        
+                        return dayDateNormalized >= absStart && dayDateNormalized <= absEnd
                       })
                     }
 
