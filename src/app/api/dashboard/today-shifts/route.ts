@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { startOfWeek, format } from 'date-fns'
 import { convertJsDayToOurDay } from '@/lib/date-utils'
+import { normalizeDate } from '@/lib/normalize-date'
 
 export async function GET() {
   try {
@@ -23,8 +24,9 @@ export async function GET() {
     const dayOfWeek = convertJsDayToOurDay(jsDay) // Our system: 0=Monday, 1=Tuesday, ..., 6=Sunday
     
     // Calcola l'inizio della settimana corrente (lunedì) con la data italiana
-    const currentWeekStart = startOfWeek(italianDate, { weekStartsOn: 1 })
-    currentWeekStart.setHours(0, 0, 0, 0) // Normalizza ora
+    const currentWeekStartRaw = startOfWeek(italianDate, { weekStartsOn: 1 })
+    // NORMALIZZA la data per matching con il database (rimuove timezone)
+    const currentWeekStart = normalizeDate(currentWeekStartRaw)
 
     console.log('Today shifts debug:', {
       utcNow: format(now, 'yyyy-MM-dd HH:mm'),

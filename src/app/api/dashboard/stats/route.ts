@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns'
+import { normalizeDate } from '@/lib/normalize-date'
 
 export async function GET() {
   try {
@@ -15,8 +16,8 @@ export async function GET() {
     const now = new Date()
     const monthStart = startOfMonth(now)
     const monthEnd = endOfMonth(now)
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
+    const weekStart = normalizeDate(startOfWeek(now, { weekStartsOn: 1 }))
+    const weekEnd = normalizeDate(endOfWeek(now, { weekStartsOn: 1 }))
 
     const isAdmin = session.user.roles.includes('ADMIN')
 
