@@ -21,8 +21,9 @@ export async function GET() {
     const result = await prisma.$queryRaw`SELECT 1 as health`
     console.log('[HEALTH] Database query successful:', result)
 
-    // Conta gli utenti per verificare che il DB abbia dati
-    const userCount = await prisma.user.count()
+    // Conta gli utenti usando query raw per evitare problemi con modelli non generati
+    const userCountResult: any = await prisma.$queryRaw`SELECT COUNT(*) as count FROM users`
+    const userCount = parseInt(userCountResult[0]?.count || '0')
     console.log('[HEALTH] User count:', userCount)
 
     return NextResponse.json({

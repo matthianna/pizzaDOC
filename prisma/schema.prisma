@@ -20,7 +20,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  users             users   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -30,7 +30,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  users        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SystemSettings {
@@ -59,7 +59,7 @@ model absences {
   createdAt DateTime @default(now())
   updatedAt DateTime
   notes     String?
-  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model availabilities {
@@ -72,7 +72,7 @@ model availabilities {
   isAbsentWeek Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime
-  users        users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, weekStart, dayOfWeek, shiftType])
 }
@@ -136,7 +136,7 @@ model shifts {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime
   schedules     schedules       @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  users         users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   substitutions substitutions[]
   worked_hours  worked_hours?
 }
@@ -153,17 +153,17 @@ model substitutions {
   deadline                                DateTime
   createdAt                               DateTime           @default(now())
   updatedAt                               DateTime
-  users_substitutions_approverIdTousers   users?             @relation("substitutions_approverIdTousers", fields: [approverId], references: [id])
-  users_substitutions_requesterIdTousers  users              @relation("substitutions_requesterIdTousers", fields: [requesterId], references: [id], onDelete: Cascade)
+  approver   User?             @relation("substitutions_approverIdTousers", fields: [approverId], references: [id])
+  requester  User              @relation("substitutions_requesterIdTousers", fields: [requesterId], references: [id], onDelete: Cascade)
   shifts                                  shifts             @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  users_substitutions_substituteIdTousers users?             @relation("substitutions_substituteIdTousers", fields: [substituteId], references: [id])
+  substitute User?             @relation("substitutions_substituteIdTousers", fields: [substituteId], references: [id])
 }
 
 model user_roles {
   id     String @id
   userId String
   role   Role
-  users  users  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, role])
 }
@@ -172,12 +172,12 @@ model user_transports {
   id        String        @id
   userId    String
   transport TransportType
-  users     users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, transport])
 }
 
-model users {
+model User {
   id                                              String            @id
   username                                        String            @unique
   password                                        String
@@ -192,12 +192,14 @@ model users {
   absences                                        absences[]
   availabilities                                  availabilities[]
   shifts                                          shifts[]
-  substitutions_substitutions_approverIdTousers   substitutions[]   @relation("substitutions_approverIdTousers")
-  substitutions_substitutions_requesterIdTousers  substitutions[]   @relation("substitutions_requesterIdTousers")
-  substitutions_substitutions_substituteIdTousers substitutions[]   @relation("substitutions_substituteIdTousers")
+  approvedSubstitutions   substitutions[]   @relation("substitutions_approverIdTousers")
+  requestedSubstitutions  substitutions[]   @relation("substitutions_requesterIdTousers")
+  substituteSubstitutions substitutions[]   @relation("substitutions_substituteIdTousers")
   user_roles                                      user_roles[]
   user_transports                                 user_transports[]
   worked_hours                                    worked_hours[]
+
+  @@map("users")  // Mantiene il nome della tabella nel database
 }
 
 model worked_hours {
@@ -214,7 +216,7 @@ model worked_hours {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime
   shifts          shifts      @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  users           users       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum HoursStatus {
