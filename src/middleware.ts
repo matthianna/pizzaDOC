@@ -8,11 +8,12 @@ export default withAuth(
     const isAuthPage = req.nextUrl.pathname.startsWith('/auth')
     const isApiAuth = req.nextUrl.pathname.startsWith('/api/auth')
     const isApiSeed = req.nextUrl.pathname.startsWith('/api/seed')
+    const isApiHealth = req.nextUrl.pathname.startsWith('/api/health')
     const isApiUser = req.nextUrl.pathname.startsWith('/api/user')
     const isApiAdmin = req.nextUrl.pathname.startsWith('/api/admin')
     
-    // Allow API auth routes, user routes, admin routes, and seed
-    if (isApiAuth || isApiSeed || isApiUser || isApiAdmin) {
+    // Allow API auth routes, health check, user routes, admin routes, and seed
+    if (isApiAuth || isApiSeed || isApiHealth || isApiUser || isApiAdmin) {
       return NextResponse.next()
     }
 

@@ -23,20 +23,42 @@ export default function SignInPage() {
   useEffect(() => {
     const checkDatabaseHealth = async () => {
       try {
+        console.log('[LOGIN] Checking database health...')
         const response = await fetch('/api/health')
+        console.log('[LOGIN] Health response status:', response.status)
+        
+        if (!response.ok) {
+          console.error('[LOGIN] Health check failed with status:', response.status)
+          setDbStatus('error')
+          setDbMessage(`Errore HTTP ${response.status}`)
+          return
+        }
+
+        const contentType = response.headers.get('content-type')
+        console.log('[LOGIN] Content-Type:', contentType)
+        
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text()
+          console.error('[LOGIN] Non-JSON response:', text.substring(0, 200))
+          setDbStatus('error')
+          setDbMessage('Risposta non valida dal server')
+          return
+        }
+        
         const data = await response.json()
+        console.log('[LOGIN] Health check data:', data)
         
         if (data.status === 'ok') {
           setDbStatus('ok')
           setDbMessage(`Database OK (${data.userCount} utenti)`)
         } else {
           setDbStatus('error')
-          setDbMessage(`Errore DB: ${data.message}`)
+          setDbMessage(`Errore DB: ${data.message || 'Sconosciuto'}`)
         }
-      } catch (error) {
-        console.error('Health check failed:', error)
+      } catch (error: any) {
+        console.error('[LOGIN] Health check exception:', error)
         setDbStatus('error')
-        setDbMessage('Impossibile verificare il database')
+        setDbMessage(`Errore: ${error.message || 'Connessione fallita'}`)
       }
     }
 
