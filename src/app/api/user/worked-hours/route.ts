@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       where: {
         userId: session.user.id,
         shift: {
-          schedule: {
+          schedules: {
             weekStart: weekStart
           }
         }
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       include: {
         shift: {
           include: {
-            schedule: true
+            schedules: true
           }
         }
       },

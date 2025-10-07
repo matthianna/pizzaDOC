@@ -26,11 +26,11 @@ export async function GET() {
           }
         },
         // Don't show shifts that already have hours submitted
-        workedHours: null
+        worked_hours: null
       },
       include: {
         schedule: true,
-        workedHours: true
+        worked_hours: true
       },
       orderBy: [
         { schedule: { weekStart: 'desc' } },

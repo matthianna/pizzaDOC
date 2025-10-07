@@ -98,7 +98,7 @@ export async function GET() {
         prisma.shifts.count({
           where: {
             userId: session.user.id,
-            schedule: {
+            schedules: {
               weekStart: {
                 gte: weekStart,
                 lte: weekEnd

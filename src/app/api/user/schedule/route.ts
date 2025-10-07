@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
                 username: true
               }
             },
-            workedHours: {
+            worked_hours: {
               select: {
                 id: true,
                 status: true,

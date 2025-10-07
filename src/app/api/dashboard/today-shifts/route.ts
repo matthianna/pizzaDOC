@@ -66,7 +66,7 @@ export async function GET() {
     const todayShifts = await prisma.shifts.findMany({
       where: {
         dayOfWeek: dayOfWeek,
-        schedule: {
+        schedules: {
           weekStart: currentWeekStart
         }
       },
@@ -84,7 +84,7 @@ export async function GET() {
             }
           }
         },
-        schedule: true
+        schedules: true
       },
       orderBy: [
         { shiftType: 'asc' },

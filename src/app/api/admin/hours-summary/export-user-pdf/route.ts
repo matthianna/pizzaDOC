@@ -92,7 +92,7 @@ function generatePDFHtml(
     username: string;
     primaryRole: string;
   }, 
-  workedHours: Array<{
+  worked_hours: Array<{
     id: string;
     totalHours: number;
     status: string;

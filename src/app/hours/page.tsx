@@ -78,7 +78,7 @@ export default function HoursPage() {
         // Merge shifts with their worked hours and sort by day
         const shiftsWithHours = shiftsData.map((shift: Shift) => ({
           ...shift,
-          workedHours: hoursData.find((wh: WorkedHours) => wh.shiftId === shift.id)
+          worked_hours: hoursData.find((wh: WorkedHours) => wh.shiftId === shift.id)
         }))
         
         // Sort shifts by day of week (Monday = 1, Sunday = 0 -> 7)

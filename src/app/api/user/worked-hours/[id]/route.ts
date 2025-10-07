@@ -106,7 +106,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      workedHours: updatedWorkedHours
+      worked_hours: updatedWorkedHours
     })
   } catch (error) {
     console.error('Error updating worked hours:', error)

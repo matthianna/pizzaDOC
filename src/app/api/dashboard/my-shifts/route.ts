@@ -25,14 +25,14 @@ export async function GET() {
     const myShifts = await prisma.shifts.findMany({
       where: {
         userId: session.user.id,
-        schedule: {
+        schedules: {
           weekStart: {
             gte: startOfWeek
           }
         }
       },
       include: {
-        schedule: true
+        schedules: true
       }
       // NON ordiniamo qui perché Prisma non può ordinare per campi nested
     })
@@ -40,7 +40,7 @@ export async function GET() {
     // Trasforma i turni in un formato più leggibile e filtra solo i FUTURI
     const formattedShifts = myShifts
       .map(shift => {
-        const weekStartDate = normalizeDate(shift.schedule.weekStart)
+        const weekStartDate = normalizeDate(shift.schedules.weekStart)
         const shiftDate = new Date(weekStartDate)
         // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
         shiftDate.setDate(weekStartDate.getDate() + shift.dayOfWeek)

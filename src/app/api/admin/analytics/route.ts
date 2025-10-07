@@ -43,8 +43,8 @@ export async function GET(request: NextRequest) {
             username: true
           }
         },
-        workedHours: true,
-        schedule: true
+        worked_hours: true,
+        schedules: true
       }
     })
 
