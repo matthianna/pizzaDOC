@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     })
 
     // 4. Carica assenze (della settimana e storiche per alcune statistiche)
-    const absences = await prisma.absence.findMany({
+    const absences = await prisma.absences.findMany({
       where: {
         OR: [
           {

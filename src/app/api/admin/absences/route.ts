@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       whereClause.startDate = { gt: today }
     }
 
-    const absences = await prisma.absence.findMany({
+    const absences = await prisma.absences.findMany({
       where: whereClause,
       include: {
         user: {

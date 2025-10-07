@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const absences = await prisma.absence.findMany({
+    const absences = await prisma.absences.findMany({
       where: {
         userId: session.user.id
       },
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Controlla sovrapposizioni con assenze esistenti
-    const overlappingAbsences = await prisma.absence.findMany({
+    const overlappingAbsences = await prisma.absences.findMany({
       where: {
         userId: session.user.id,
         OR: [
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const absence = await prisma.absence.create({
+    const absence = await prisma.absences.create({
       data: {
         userId: session.user.id,
         startDate: start,

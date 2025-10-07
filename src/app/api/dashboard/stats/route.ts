@@ -58,7 +58,7 @@ export async function GET() {
             }
           }
         }),
-        prisma.absence.count({
+        prisma.absences.count({
           where: {
             startDate: { lte: now },
             endDate: { gte: now }

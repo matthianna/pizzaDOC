@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     weekEnd.setHours(23, 59, 59, 999)
 
     // Trova assenze che si sovrappongono con questa settimana
-    const absences = await prisma.absence.findMany({
+    const absences = await prisma.absences.findMany({
       where: {
         userId: session.user.id,
         OR: [

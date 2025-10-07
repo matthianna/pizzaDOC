@@ -22,7 +22,7 @@ export async function PUT(
     const absenceId = resolvedParams.id
 
     // Controlla che l'assenza esista
-    const existingAbsence = await prisma.absence.findUnique({
+    const existingAbsence = await prisma.absences.findUnique({
       where: { id: absenceId }
     })
 
@@ -74,7 +74,7 @@ export async function PUT(
     }
 
     // Controlla sovrapposizioni (escludendo questa assenza) - usa userId dell'assenza, non della sessione
-    const overlappingAbsences = await prisma.absence.findMany({
+    const overlappingAbsences = await prisma.absences.findMany({
       where: {
         userId: existingAbsence.userId,
         id: { not: absenceId },
@@ -96,7 +96,7 @@ export async function PUT(
       )
     }
 
-    const updatedAbsence = await prisma.absence.update({
+    const updatedAbsence = await prisma.absences.update({
       where: { id: absenceId },
       data: {
         startDate: start,
@@ -173,7 +173,7 @@ export async function DELETE(
     const absenceId = resolvedParams.id
 
     // Controlla che l'assenza esista
-    const existingAbsence = await prisma.absence.findUnique({
+    const existingAbsence = await prisma.absences.findUnique({
       where: { id: absenceId }
     })
 
@@ -204,7 +204,7 @@ export async function DELETE(
       )
     }
 
-    await prisma.absence.delete({
+    await prisma.absences.delete({
       where: { id: absenceId }
     })
 
