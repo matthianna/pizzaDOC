@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { startOfWeek } from 'date-fns'
-import { convertJsDayToOurDay } from '@/lib/date-utils'
+import { convertJsDayToOurDay, getWeekStart } from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
 
 // PUT /api/user/absences/[id] - Update absence
@@ -108,7 +107,7 @@ export async function PUT(
     // Aggiorna automaticamente le disponibilità per i giorni in assenza
     // Trova tutte le settimane che si sovrappongono con l'assenza
     const weekStarts: Date[] = []
-    let currentWeek = normalizeDate(startOfWeek(start, { weekStartsOn: 1 })) // 1 = Monday
+    let currentWeek = getWeekStart(start) // Calcola lunedì della settimana
     
     while (currentWeek <= end) {
       weekStarts.push(new Date(currentWeek))
@@ -120,7 +119,7 @@ export async function PUT(
     
     while (dayToCheck <= end) {
       // Trova il lunedì di questa settimana
-      const mondayOfWeek = normalizeDate(startOfWeek(dayToCheck, { weekStartsOn: 1 }))
+      const mondayOfWeek = getWeekStart(dayToCheck)
       
       // Converti da JS day (0=Sunday) al nostro sistema (0=Monday)
       const jsDay = dayToCheck.getUTCDay()

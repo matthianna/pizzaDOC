@@ -19,9 +19,16 @@ if (!process.env.DATABASE_URL) {
 // Funzione per creare il client
 const createPrismaClient = (): PrismaClient => {
   console.log('[PRISMA] Creating new PrismaClient instance')
+  
   const client = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   })
+  
   console.log('[PRISMA] ✅ PrismaClient created successfully')
   return client
 }
@@ -41,3 +48,11 @@ if (!prisma) {
 }
 
 console.log('[PRISMA] ✅ Prisma export ready')
+
+// Cleanup delle connessioni in development quando il server viene riavviato
+if (process.env.NODE_ENV === 'development') {
+  process.on('beforeExit', async () => {
+    console.log('[PRISMA] Cleaning up connections before exit...')
+    await prisma.$disconnect()
+  })
+}

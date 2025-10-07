@@ -38,14 +38,20 @@ export async function GET(request: NextRequest) {
             schedules: true
           }
         }
-      },
-      orderBy: [
-        { shifts: { dayOfWeek: 'asc' } },
-        { shifts: { shiftType: 'asc' } }
-      ]
+      }
+      // Note: Cannot use nested orderBy with Prisma, will sort in JavaScript below
     })
 
-    return NextResponse.json(workedHours)
+    // Sort in JavaScript since Prisma doesn't support nested orderBy
+    const sortedHours = workedHours.sort((a: any, b: any) => {
+      if (a.shifts.dayOfWeek !== b.shifts.dayOfWeek) {
+        return a.shifts.dayOfWeek - b.shifts.dayOfWeek
+      }
+      // If same day, sort by shift type (PRANZO before CENA)
+      return a.shifts.shiftType === 'PRANZO' ? -1 : 1
+    })
+
+    return NextResponse.json(sortedHours)
   } catch (error) {
     console.error('Error fetching worked hours:', error)
     return NextResponse.json(

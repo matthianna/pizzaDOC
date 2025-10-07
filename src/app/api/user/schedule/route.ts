@@ -56,7 +56,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([])
     }
 
-    return NextResponse.json(schedule.shifts)
+    // Map worked_hours to workedHours for frontend compatibility
+    const shiftsWithMappedHours = schedule.shifts.map((shift: any) => ({
+      ...shift,
+      workedHours: shift.worked_hours,
+      schedule: { weekStart: schedule.weekStart.toISOString() }
+    }))
+
+    return NextResponse.json(shiftsWithMappedHours)
   } catch (error) {
     console.error('Error fetching user schedule:', error)
     return NextResponse.json(

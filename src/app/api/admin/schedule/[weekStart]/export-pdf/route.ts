@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format, addDays, startOfWeek } from 'date-fns'
+import { format, addDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
 
@@ -50,9 +50,8 @@ export async function GET(
       )
     }
     
-    // NORMALIZZA a LUNEDÌ (la weekStart dal DB potrebbe essere domenica)
-    const dbWeekStart = new Date(schedule.weekStart)
-    const weekStart = startOfWeek(dbWeekStart, { weekStartsOn: 1 })
+    // weekStart dal DB è già normalizzato a lunedì UTC
+    const weekStart = normalizeDate(schedule.weekStart)
     
     // Genera l'HTML per il PDF
     const html = generateScheduleHTML(schedule, weekStart)

@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { startOfWeek, format } from 'date-fns'
-import { convertJsDayToOurDay } from '@/lib/date-utils'
+import { format } from 'date-fns'
+import { convertJsDayToOurDay, getWeekStart } from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
 
 export async function GET() {
@@ -21,9 +21,8 @@ export async function GET() {
     const jsDay = today.getUTCDay() // JavaScript: 0=Sunday, 1=Monday, etc. in UTC
     const dayOfWeek = convertJsDayToOurDay(jsDay) // Our system: 0=Monday, 1=Tuesday, ..., 6=Sunday
     
-    // Calcola l'inizio della settimana corrente (lunedì)
-    const currentWeekStartRaw = startOfWeek(today, { weekStartsOn: 1 })
-    const currentWeekStart = normalizeDate(currentWeekStartRaw)
+    // Calcola l'inizio della settimana corrente (lunedì) - USA getWeekStart per evitare bug timezone
+    const currentWeekStart = getWeekStart(now)
 
     console.log('Today shifts debug:', {
       utcNow: format(now, 'yyyy-MM-dd HH:mm'),

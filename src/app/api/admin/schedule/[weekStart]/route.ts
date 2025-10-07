@@ -18,7 +18,7 @@ export async function GET(
 
     const resolvedParams = await params
     const weekStart = normalizeDate(resolvedParams.weekStart)
-
+    
     const schedule = await prisma.schedules.findUnique({
       where: { weekStart },
       include: {

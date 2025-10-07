@@ -93,6 +93,8 @@ export default function AdminSchedulePage() {
         const data = await response.json()
         setSchedule(data)
       } else if (response.status === 404) {
+        // Piano non ancora generato - comportamento normale
+        console.log(`📅 Nessun piano trovato per la settimana del ${currentWeek.toISOString().split('T')[0]} - clicca "Genera Piano" per crearlo`)
         setSchedule(null)
       }
     } catch (error) {
@@ -569,10 +571,7 @@ export default function AdminSchedulePage() {
                     const dayOfWeek = getDayOfWeek(day)
                     const pranzoCrew = shiftGroups[`${dayOfWeek}-PRANZO`] || []
                     const cenaCrew = shiftGroups[`${dayOfWeek}-CENA`] || []
-                    console.log("aaaaaa weekDays", weekDays)
-                    console.log("aaaaaa shiftGroups", shiftGroups)
-                    console.log("dayOfWeek", dayOfWeek)
-                    console.log("aaaaaa dayOfWeek", dayOfWeek)
+                    
                     return (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">

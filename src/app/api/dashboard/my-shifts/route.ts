@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format, startOfWeek as getStartOfWeek } from 'date-fns'
+import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
+import { getWeekStart } from '@/lib/date-utils'
 
 export async function GET() {
   try {
@@ -16,9 +17,8 @@ export async function GET() {
 
     const today = normalizeDate(new Date())
     
-    // Usa date-fns per calcolare correttamente l'inizio della settimana (lunedì)
-    // NORMALIZZA per matching con database (rimuove timezone)
-    const startOfWeek = normalizeDate(getStartOfWeek(today, { weekStartsOn: 1 }))
+    // Usa getWeekStart per calcolare correttamente l'inizio della settimana
+    const startOfWeek = getWeekStart(new Date())
 
     // Trova i turni dell'utente FUTURI (dalla settimana corrente in poi)
     const myShifts = await prisma.shifts.findMany({

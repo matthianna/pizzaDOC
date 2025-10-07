@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin } from '@/lib/auth-utils'
+import { normalizeDate } from '@/lib/normalize-date'
 
 // GET /api/admin/absences - Get all absences (admin only)
 export async function GET(request: NextRequest) {
