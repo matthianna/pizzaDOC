@@ -14,6 +14,10 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
+          console.log('[AUTH] Authorize called')
+          console.log('[AUTH] Prisma defined:', !!prisma)
+          console.log('[AUTH] Credentials present:', !!credentials)
+          
           if (!credentials?.username || !credentials?.password) {
             console.error('[AUTH] Missing credentials')
             return null
@@ -21,11 +25,14 @@ export const authOptions: NextAuthOptions = {
 
           console.log('[AUTH] Attempting login for:', credentials.username)
           
-          if (!prisma) {
-            console.error('[AUTH] Prisma client is undefined!')
+          // Verifica critica che Prisma sia inizializzato
+          if (typeof prisma === 'undefined' || !prisma) {
+            console.error('[AUTH] CRITICAL: Prisma client is undefined!')
+            console.error('[AUTH] This should never happen - check src/lib/prisma.ts')
             throw new Error('Database connection failed - Prisma client not initialized')
           }
 
+          console.log('[AUTH] Prisma client OK, querying user...')
           const user = await prisma.user.findUnique({
             where: {
               username: credentials.username

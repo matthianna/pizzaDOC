@@ -6,27 +6,29 @@ declare global {
 }
 
 // Log per debug
+console.log('[PRISMA] Initializing Prisma Client...')
+console.log('[PRISMA] NODE_ENV:', process.env.NODE_ENV)
+console.log('[PRISMA] VERCEL:', process.env.VERCEL ? 'Yes' : 'No')
+console.log('[PRISMA] DATABASE_URL present:', !!process.env.DATABASE_URL)
+
 if (!process.env.DATABASE_URL) {
-  console.error('[PRISMA] DATABASE_URL is not defined!')
-} else {
-  console.log('[PRISMA] DATABASE_URL is configured')
+  console.error('[PRISMA] ⚠️ CRITICAL: DATABASE_URL is not defined!')
+  throw new Error('DATABASE_URL environment variable is required')
 }
 
-// Crea o riusa l'istanza globale
-const prismaClientSingleton = () => {
+// Crea o riusa l'istanza globale - SINGLETON PATTERN
+const createPrismaClient = () => {
+  console.log('[PRISMA] Creating new PrismaClient instance')
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
 }
 
-export const prisma = globalThis.prisma ?? prismaClientSingleton()
+// Usa singleton pattern sia in dev che in prod
+export const prisma = globalThis.prisma || createPrismaClient()
 
-// In development, salva il client in cache per hot reload
-if (process.env.NODE_ENV !== 'production') {
+// Salva in globalThis per riuso (importante sia in dev che prod)
+if (!globalThis.prisma) {
   globalThis.prisma = prisma
+  console.log('[PRISMA] ✅ Prisma Client cached in globalThis')
 }
-
-// Verifica connessione al primo utilizzo
-prisma.$connect()
-  .then(() => console.log('[PRISMA] Database connected successfully'))
-  .catch((e) => console.error('[PRISMA] Database connection failed:', e))
