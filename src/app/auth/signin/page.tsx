@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Database } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -14,8 +14,38 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [dbStatus, setDbStatus] = useState<'checking' | 'ok' | 'error'>('checking')
+  const [dbMessage, setDbMessage] = useState('Verificando connessione...')
   const router = useRouter()
   const { showToast, ToastContainer } = useToast()
+
+  // Verifica lo stato del database all'avvio
+  useEffect(() => {
+    const checkDatabaseHealth = async () => {
+      try {
+        const response = await fetch('/api/health')
+        const data = await response.json()
+        
+        if (data.status === 'ok') {
+          setDbStatus('ok')
+          setDbMessage(`Database OK (${data.userCount} utenti)`)
+        } else {
+          setDbStatus('error')
+          setDbMessage(`Errore DB: ${data.message}`)
+        }
+      } catch (error) {
+        console.error('Health check failed:', error)
+        setDbStatus('error')
+        setDbMessage('Impossibile verificare il database')
+      }
+    }
+
+    checkDatabaseHealth()
+    
+    // Ricontrolla ogni 30 secondi
+    const interval = setInterval(checkDatabaseHealth, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -158,6 +188,22 @@ export default function SignInPage() {
           <p className="text-xs text-gray-500">
             © 2025 PizzaDOC
           </p>
+        </div>
+
+        {/* Database Status Badge */}
+        <div className="mt-4">
+          <div className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-xs font-medium ${
+            dbStatus === 'ok' 
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : dbStatus === 'error'
+              ? 'bg-red-50 text-red-700 border border-red-200'
+              : 'bg-gray-50 text-gray-700 border border-gray-200'
+          }`}>
+            <Database className={`h-4 w-4 ${
+              dbStatus === 'checking' ? 'animate-pulse' : ''
+            }`} />
+            <span>{dbMessage}</span>
+          </div>
         </div>
       </div>
       
