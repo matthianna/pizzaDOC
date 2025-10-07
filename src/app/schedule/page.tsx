@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Users, AlertCircle, FileText } from 'lucide-react'
-import { format, startOfWeek, addDays, addWeeks, subWeeks, isPast, isToday } from 'date-fns'
+import { format, addDays, addWeeks, subWeeks, isPast, isToday } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
+import { getWeekStart } from '@/lib/date-utils'
 import { Role, ShiftType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,8 +33,7 @@ interface Shift {
 export default function SchedulePage() {
   const { data: session } = useSession()
   const [currentWeek, setCurrentWeek] = useState(() => {
-    const now = new Date()
-    return startOfWeek(now, { weekStartsOn: 1 }) // Lunedì
+    return getWeekStart(new Date()) // Lunedì UTC normalizzato
   })
   const [shifts, setShifts] = useState<Shift[]>([])
   const [substitutionRequests, setSubstitutionRequests] = useState<any[]>([])
@@ -81,7 +81,7 @@ export default function SchedulePage() {
   }
 
   const goToCurrentWeek = () => {
-    setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))
+    setCurrentWeek(getWeekStart(new Date()))
   }
 
   const openSubstitutionModal = (shift: Shift) => {
