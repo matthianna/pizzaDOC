@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAfter, endOfDay } from 'date-fns'
+import { normalizeDate } from '@/lib/normalize-date'
 
 // GET /api/shifts/available - Get available shifts for user to submit hours
 export async function GET() {
@@ -41,12 +42,21 @@ export async function GET() {
 
     // Filter shifts that have actually ended
     const availableShifts = shifts.filter(shift => {
-      const shiftDate = new Date(shift.schedule.weekStart)
-      shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
+      const weekStartDate = normalizeDate(shift.schedule.weekStart)
+      // Calcola la data del turno in UTC
+      const shiftDate = new Date(Date.UTC(
+        weekStartDate.getUTCFullYear(),
+        weekStartDate.getUTCMonth(),
+        weekStartDate.getUTCDate() + shift.dayOfWeek
+      ))
       
       const [endHour, endMin] = shift.endTime.split(':').map(Number)
-      const shiftEndTime = new Date(shiftDate)
-      shiftEndTime.setHours(endHour, endMin, 0, 0)
+      const shiftEndTime = new Date(Date.UTC(
+        shiftDate.getUTCFullYear(),
+        shiftDate.getUTCMonth(),
+        shiftDate.getUTCDate(),
+        endHour, endMin, 0, 0
+      ))
       
       return isAfter(now, shiftEndTime)
     })

@@ -61,9 +61,14 @@ export async function GET(request: NextRequest) {
     }> = {}
 
     workedHours.forEach((wh: any) => {
-      const shiftDate = normalizeDate(wh.shifts.schedules.weekStart)
+      const weekStartDate = normalizeDate(wh.shifts.schedules.weekStart)
       // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-      shiftDate.setDate(shiftDate.getDate() + wh.shifts.dayOfWeek)
+      // Usa UTC per calcolare la data del turno
+      const shiftDate = new Date(Date.UTC(
+        weekStartDate.getUTCFullYear(),
+        weekStartDate.getUTCMonth(),
+        weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
+      ))
       
       const monthKey = format(shiftDate, 'yyyy-MM')
       const monthName = format(shiftDate, 'MMMM yyyy', { locale: it })

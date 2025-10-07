@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { addDays } from 'date-fns'
+import { normalizeDate } from '@/lib/normalize-date'
 
 // GET /api/substitutions - Get substitutions for user
 export async function GET(request: NextRequest) {
@@ -155,8 +156,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Set deadline (e.g., 24 hours before shift start)
-    const shiftDate = new Date(shift.schedule.weekStart)
-    shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
+    const weekStartDate = normalizeDate(shift.schedule.weekStart)
+    // Calcola la data del turno in UTC
+    const shiftDate = new Date(Date.UTC(
+      weekStartDate.getUTCFullYear(),
+      weekStartDate.getUTCMonth(),
+      weekStartDate.getUTCDate() + shift.dayOfWeek
+    ))
     const deadline = addDays(shiftDate, -1) // 1 day before
 
     if (new Date() > deadline) {

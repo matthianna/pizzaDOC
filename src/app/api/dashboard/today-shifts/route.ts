@@ -14,23 +14,20 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // NORMALIZZA LA DATA al fuso orario italiano (Europe/Rome) per evitare problemi su Vercel
+    // Usa UTC per consistenza con tutto il resto dell'app
     const now = new Date()
-    // Ottieni la data nel fuso orario italiano
-    const italianDateString = now.toLocaleString('en-US', { timeZone: 'Europe/Rome' })
-    const italianDate = new Date(italianDateString)
+    const today = normalizeDate(now)
     
-    const jsDay = italianDate.getDay() // JavaScript: 0=Sunday, 1=Monday, etc.
+    const jsDay = today.getUTCDay() // JavaScript: 0=Sunday, 1=Monday, etc. in UTC
     const dayOfWeek = convertJsDayToOurDay(jsDay) // Our system: 0=Monday, 1=Tuesday, ..., 6=Sunday
     
-    // Calcola l'inizio della settimana corrente (lunedì) con la data italiana
-    const currentWeekStartRaw = startOfWeek(italianDate, { weekStartsOn: 1 })
-    // NORMALIZZA la data per matching con il database (rimuove timezone)
+    // Calcola l'inizio della settimana corrente (lunedì)
+    const currentWeekStartRaw = startOfWeek(today, { weekStartsOn: 1 })
     const currentWeekStart = normalizeDate(currentWeekStartRaw)
 
     console.log('Today shifts debug:', {
       utcNow: format(now, 'yyyy-MM-dd HH:mm'),
-      italianDate: format(italianDate, 'yyyy-MM-dd HH:mm'),
+      todayNormalized: format(today, 'yyyy-MM-dd'),
       dayOfWeek,
       jsDay,
       weekStart: format(currentWeekStart, 'yyyy-MM-dd')
@@ -105,7 +102,7 @@ export async function GET() {
     }, {} as Record<string, typeof todayShifts>)
 
     return NextResponse.json({
-      date: italianDate.toISOString(),
+      date: today.toISOString(),
       dayOfWeek,
       shifts: groupedShifts,
       totalWorkers: todayShifts.length

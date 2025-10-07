@@ -25,9 +25,13 @@ export async function GET(request: NextRequest) {
     // Normalizza la data eliminando l'orario per evitare problemi di timezone
     const weekStart = normalizeDate(weekStartParam)
     
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 6)
-    weekEnd.setHours(23, 59, 59, 999)
+    // Calcola weekEnd in UTC
+    const weekEnd = new Date(Date.UTC(
+      weekStart.getUTCFullYear(),
+      weekStart.getUTCMonth(),
+      weekStart.getUTCDate() + 6,
+      23, 59, 59, 999
+    ))
 
     // 1. Carica turni della settimana
     const shifts = await prisma.shifts.findMany({

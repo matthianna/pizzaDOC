@@ -25,9 +25,13 @@ export async function GET(request: NextRequest) {
 
     const weekStart = normalizeDate(weekStartParam)
     
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 6)
-    weekEnd.setHours(23, 59, 59, 999)
+    // Calcola weekEnd in UTC
+    const weekEnd = new Date(Date.UTC(
+      weekStart.getUTCFullYear(),
+      weekStart.getUTCMonth(),
+      weekStart.getUTCDate() + 6,
+      23, 59, 59, 999
+    ))
 
     // Trova assenze che si sovrappongono con questa settimana
     const absences = await prisma.absences.findMany({
@@ -48,18 +52,17 @@ export async function GET(request: NextRequest) {
     const disabledDays: number[] = []
     
     for (let i = 0; i < 7; i++) {
-      const currentDay = new Date(weekStart)
-      currentDay.setDate(weekStart.getDate() + i)
-      currentDay.setHours(12, 0, 0, 0) // Usa mezzogiorno per evitare problemi timezone
+      // Calcola il giorno corrente in UTC
+      const currentDay = new Date(Date.UTC(
+        weekStart.getUTCFullYear(),
+        weekStart.getUTCMonth(),
+        weekStart.getUTCDate() + i
+      ))
       
       // Controlla se questo giorno è coperto da un'assenza
       const isDayDisabled = absences.some(absence => {
-        const start = new Date(absence.startDate)
-        const end = new Date(absence.endDate)
-        
-        // Normalizza le date a mezzogiorno per confronto
-        start.setHours(12, 0, 0, 0)
-        end.setHours(12, 0, 0, 0)
+        const start = normalizeDate(absence.startDate)
+        const end = normalizeDate(absence.endDate)
         
         const isDisabled = currentDay >= start && currentDay <= end
         
