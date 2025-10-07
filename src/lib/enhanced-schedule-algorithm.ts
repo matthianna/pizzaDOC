@@ -322,8 +322,8 @@ export class EnhancedScheduleAlgorithm {
     const users = await prisma.user.findMany({
       where: { isActive: true },
       include: {
-        userRoles: true,
-        userTransports: true,
+        user_roles: true,
+        user_transports: true,
         availabilities: {
           where: {
             weekStart,
@@ -346,7 +346,7 @@ export class EnhancedScheduleAlgorithm {
     })
 
     return users
-      .filter(user => !user.userRoles.some(ur => ur.role === 'ADMIN'))
+      .filter(user => !user.user_roles.some(ur => ur.role === 'ADMIN'))
       .map(user => {
         // Filtra disponibilità escludendo giorni in assenza
         const filteredAvailabilities = user.availabilities
@@ -374,9 +374,9 @@ export class EnhancedScheduleAlgorithm {
           id: user.id,
           username: user.username,
           primaryRole: user.primaryRole!,
-          roles: user.userRoles.map(ur => ur.role),
+          roles: user.user_roles.map(ur => ur.role),
           primaryTransport: user.primaryTransport,
-          transports: user.userTransports.map(ut => ut.transport),
+          transports: user.user_transports.map(ut => ut.transport),
           availabilities: filteredAvailabilities.map(av => ({
             dayOfWeek: av.dayOfWeek,
             shiftType: av.shiftType,

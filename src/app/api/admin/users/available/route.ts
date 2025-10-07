@@ -15,7 +15,7 @@ export async function GET() {
     const users = await prisma.user.findMany({
       where: {
         isActive: true,
-        userRoles: {
+        user_roles: {
           some: {
             role: {
               in: ['FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO'] // Exclude ADMIN from scheduling
@@ -24,7 +24,7 @@ export async function GET() {
         }
       },
       include: {
-        userRoles: {
+        user_roles: {
           where: {
             role: {
               in: ['FATTORINO', 'CUCINA', 'SALA', 'PIZZAIOLO']
@@ -49,7 +49,7 @@ export async function GET() {
       id: user.id,
       username: user.username,
       primaryRole: user.primaryRole,
-      availableRoles: user.userRoles.map(ur => ur.role),
+      availableRoles: user.user_roles.map(ur => ur.role),
       availabilities: user.availabilities
     }))
 

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // Get all non-admin users
     const allUsers = await prisma.user.findMany({
       where: {
-        userRoles: {
+        user_roles: {
           none: {
             role: 'ADMIN'
           }

@@ -41,16 +41,16 @@ export async function PUT(
         primaryRole,
         primaryTransport: primaryTransport || null,
         isActive,
-        userRoles: {
+        user_roles: {
           create: roles.map((role: string) => ({ role }))
         },
-        userTransports: transports?.length > 0 ? {
+        user_transports: transports?.length > 0 ? {
           create: transports.map((transport: string) => ({ transport }))
         } : undefined
       },
       include: {
-        userRoles: true,
-        userTransports: true
+        user_roles: true,
+        user_transports: true
       }
     })
 

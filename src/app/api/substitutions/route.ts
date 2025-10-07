@@ -142,11 +142,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has the required role
-    const userRoles = await prisma.userRole.findMany({
+    const user_roles = await prisma.userRole.findMany({
       where: { userId: session.user.id }
     })
     
-    const hasRequiredRole = userRoles.some(ur => ur.role === shift.role)
+    const hasRequiredRole = user_roles.some(ur => ur.role === shift.role)
     if (!hasRequiredRole) {
       return NextResponse.json(
         { error: 'You do not have the required role for this shift' },

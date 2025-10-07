@@ -77,7 +77,7 @@ export async function GET() {
             username: true,
             primaryRole: true,
             primaryTransport: true,
-            userTransports: {
+            user_transports: {
               select: {
                 transport: true
               }

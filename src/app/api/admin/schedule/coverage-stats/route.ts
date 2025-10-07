@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // 1. Carica tutti gli utenti non admin con i loro turni e disponibilità
     const users = await prisma.user.findMany({
       where: {
-        userRoles: {
+        user_roles: {
           none: {
             role: 'ADMIN'
           }

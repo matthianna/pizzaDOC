@@ -81,12 +81,12 @@ export async function POST(
     }
 
     // Check if user can perform the required role
-    const userRoles = await prisma.userRole.findMany({
+    const user_roles = await prisma.userRole.findMany({
       where: { userId: session.user.id },
       select: { role: true }
     })
 
-    const canPerformRole = userRoles.some(ur => ur.role === substitution.shift.role)
+    const canPerformRole = user_roles.some(ur => ur.role === substitution.shift.role)
     
     if (!canPerformRole) {
       return NextResponse.json(

@@ -31,7 +31,7 @@ export async function POST(
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userRoles: true
+        user_roles: true
       }
     })
 
@@ -43,8 +43,8 @@ export async function POST(
     }
 
     // Verifica che l'utente possa fare il ruolo richiesto
-    const userRoles = user.userRoles.map(ur => ur.role)
-    if (!userRoles.includes(role)) {
+    const user_roles = user.user_roles.map(ur => ur.role)
+    if (!user_roles.includes(role)) {
       return NextResponse.json(
         { error: `L'utente ${user.username} non può fare il ruolo ${role}` },
         { status: 400 }

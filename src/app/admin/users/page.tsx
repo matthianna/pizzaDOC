@@ -16,8 +16,8 @@ interface User {
   primaryRole: Role
   primaryTransport: TransportType | null
   createdAt: string
-  userRoles: { role: Role }[]
-  userTransports: { transport: TransportType }[]
+  user_roles: { role: Role }[]
+  user_transports: { transport: TransportType }[]
 }
 
 export default function UsersPage() {
@@ -147,7 +147,7 @@ export default function UsersPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex flex-wrap gap-1">
-                      {user.userRoles.map((userRole, index) => (
+                      {user.user_roles.map((userRole, index) => (
                         <span
                           key={index}
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -166,7 +166,7 @@ export default function UsersPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex flex-wrap gap-1">
-                      {user.userTransports.map((userTransport, index) => (
+                      {user.user_transports.map((userTransport, index) => (
                         <span
                           key={index}
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -270,9 +270,9 @@ function UserFormModal({
 }) {
   const [formData, setFormData] = useState({
     username: user?.username || '',
-    roles: user?.userRoles.map(ur => ur.role) || [],
+    roles: user?.user_roles.map(ur => ur.role) || [],
     primaryRole: user?.primaryRole || '',
-    transports: user?.userTransports.map(ut => ut.transport) || [],
+    transports: user?.user_transports.map(ut => ut.transport) || [],
     primaryTransport: user?.primaryTransport || '',
     isActive: user?.isActive ?? true
   })

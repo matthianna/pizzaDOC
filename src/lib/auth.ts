@@ -38,7 +38,7 @@ export const authOptions: NextAuthOptions = {
               username: credentials.username
             },
             include: {
-              userRoles: true
+              user_roles: true
             }
           })
 
@@ -63,7 +63,7 @@ export const authOptions: NextAuthOptions = {
             username: user.username,
             isFirstLogin: user.isFirstLogin,
             primaryRole: user.primaryRole,
-            roles: user.userRoles.map(ur => ur.role)
+            roles: user.user_roles.map(ur => ur.role)
           }
         } catch (error) {
           console.error('[AUTH] Authorization error:', error)
@@ -93,7 +93,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const currentUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            include: { userRoles: true }
+            include: { user_roles: true }
           })
           
           if (!currentUser || !currentUser.isActive) {
@@ -104,7 +104,7 @@ export const authOptions: NextAuthOptions = {
           // Update token with latest user data
           token.isFirstLogin = currentUser.isFirstLogin
           token.primaryRole = currentUser.primaryRole
-          token.roles = currentUser.userRoles.map(ur => ur.role)
+          token.roles = currentUser.user_roles.map(ur => ur.role)
           token.lastActivity = Date.now()
         } catch (error) {
           console.error('Error refreshing user data:', error)
@@ -116,13 +116,13 @@ export const authOptions: NextAuthOptions = {
       if (trigger === 'update' && session) {
         const updatedUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          include: { userRoles: true }
+          include: { user_roles: true }
         })
         
         if (updatedUser) {
           token.isFirstLogin = updatedUser.isFirstLogin
           token.primaryRole = updatedUser.primaryRole
-          token.roles = updatedUser.userRoles.map(ur => ur.role)
+          token.roles = updatedUser.user_roles.map(ur => ur.role)
           token.lastActivity = Date.now()
         }
       }

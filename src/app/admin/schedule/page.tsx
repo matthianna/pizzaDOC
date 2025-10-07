@@ -23,7 +23,7 @@ interface ScheduleShift {
     username: string
     primaryRole: Role
     primaryTransport: TransportType
-    userTransports: { transport: TransportType }[]
+    user_transports: { transport: TransportType }[]
   }
 }
 

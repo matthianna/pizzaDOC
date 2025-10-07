@@ -15,8 +15,8 @@ export async function GET() {
 
     const users = await prisma.user.findMany({
       include: {
-        userRoles: true,
-        userTransports: true
+        user_roles: true,
+        user_transports: true
       },
       orderBy: {
         createdAt: 'desc'
@@ -72,16 +72,16 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         primaryRole,
         primaryTransport: primaryTransport || null,
-        userRoles: {
+        user_roles: {
           create: roles.map((role: string) => ({ role }))
         },
-        userTransports: transports?.length > 0 ? {
+        user_transports: transports?.length > 0 ? {
           create: transports.map((transport: string) => ({ transport }))
         } : undefined
       },
       include: {
-        userRoles: true,
-        userTransports: true
+        user_roles: true,
+        user_transports: true
       }
     })
 

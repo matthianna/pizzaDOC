@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userRoles: true
+        user_roles: true
       }
     })
 
@@ -456,7 +456,7 @@ function generatePDFHtml(
             </div>
             <div class="employee-item">
                 <label>Ruoli</label>
-                <span>${user.userRoles.map((ur: {role: string}) => {
+                <span>${user.user_roles.map((ur: {role: string}) => {
                   const roleNames: Record<string, string> = {
                     'ADMIN': 'Amministratore',
                     'FATTORINO': 'Fattorino', 

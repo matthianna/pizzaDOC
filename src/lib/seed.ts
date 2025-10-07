@@ -7,7 +7,7 @@ export async function seedDatabase() {
     // Check if admin already exists
     const existingAdmin = await prisma.user.findFirst({
       where: {
-        userRoles: {
+        user_roles: {
           some: {
             role: Role.ADMIN
           }
@@ -30,7 +30,7 @@ export async function seedDatabase() {
         isFirstLogin: true,
         isActive: true,
         primaryRole: Role.ADMIN,
-        userRoles: {
+        user_roles: {
           create: {
             role: Role.ADMIN
           }
