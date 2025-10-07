@@ -26,7 +26,7 @@ export async function PUT(
     }
 
     // Verify the worked hours record exists and belongs to this user
-    const existingWorkedHours = await prisma.workedHours.findFirst({
+    const existingWorkedHours = await prisma.worked_hours.findFirst({
       where: {
         id: id,
         userId: session.user.id,
@@ -91,7 +91,7 @@ export async function PUT(
     }
 
     // Update worked hours record
-    const updatedWorkedHours = await prisma.workedHours.update({
+    const updatedWorkedHours = await prisma.worked_hours.update({
       where: { id: id },
       data: {
         startTime,

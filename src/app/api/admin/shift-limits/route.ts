@@ -12,7 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const shiftLimits = await prisma.shiftLimits.findMany({
+    const shiftLimits = await prisma.shift_limits.findMany({
       orderBy: [
         { dayOfWeek: 'asc' },
         { shiftType: 'asc' },
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Update each shift limit
     for (const limit of limits) {
-      await prisma.shiftLimits.upsert({
+      await prisma.shift_limits.upsert({
         where: {
           dayOfWeek_shiftType_role: {
             dayOfWeek: limit.dayOfWeek,

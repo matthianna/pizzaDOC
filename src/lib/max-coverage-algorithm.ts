@@ -365,7 +365,7 @@ export class MaxCoverageAlgorithm {
   }
 
   private async loadShiftRequirements(): Promise<ShiftRequirement[]> {
-    const shiftLimits = await prisma.shiftLimits.findMany()
+    const shiftLimits = await prisma.shift_limits.findMany()
     
     return shiftLimits.map(limit => ({
       dayOfWeek: limit.dayOfWeek,

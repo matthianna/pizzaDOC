@@ -38,7 +38,7 @@ export async function GET() {
       ] = await Promise.all([
         prisma.user.count(),
         prisma.user.count({ where: { isActive: true } }),
-        prisma.workedHours.count({ where: { status: 'PENDING' } }),
+        prisma.worked_hours.count({ where: { status: 'PENDING' } }),
         prisma.schedule.count({
           where: {
             weekStart: {
@@ -106,7 +106,7 @@ export async function GET() {
             }
           }
         }),
-        prisma.workedHours.aggregate({
+        prisma.worked_hours.aggregate({
           where: {
             userId: session.user.id,
             submittedAt: {
@@ -122,7 +122,7 @@ export async function GET() {
             status: 'PENDING'
           }
         }),
-        prisma.workedHours.aggregate({
+        prisma.worked_hours.aggregate({
           where: {
             userId: session.user.id,
             status: 'APPROVED',

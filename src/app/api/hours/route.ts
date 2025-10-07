@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const workedHours = await prisma.workedHours.findMany({
+    const workedHours = await prisma.worked_hours.findMany({
       where: {
         userId: session.user.id,
         ...dateFilter
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if hours already submitted
-    const existingHours = await prisma.workedHours.findUnique({
+    const existingHours = await prisma.worked_hours.findUnique({
       where: { shiftId }
     })
 
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const workedHours = await prisma.workedHours.create({
+    const workedHours = await prisma.worked_hours.create({
       data: {
         shiftId,
         userId: session.user.id,

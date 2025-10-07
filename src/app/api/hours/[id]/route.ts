@@ -27,7 +27,7 @@ export async function PUT(
     }
 
     // Check if hours exist and belong to user
-    const existingHours = await prisma.workedHours.findFirst({
+    const existingHours = await prisma.worked_hours.findFirst({
       where: {
         id: id,
         userId: session.user.id,
@@ -50,7 +50,7 @@ export async function PUT(
       )
     }
 
-    const updatedHours = await prisma.workedHours.update({
+    const updatedHours = await prisma.worked_hours.update({
       where: { id: id },
       data: {
         startTime,
@@ -84,7 +84,7 @@ export async function DELETE(
     }
 
     // Check if hours exist and belong to user
-    const existingHours = await prisma.workedHours.findFirst({
+    const existingHours = await prisma.worked_hours.findFirst({
       where: {
         id: id,
         userId: session.user.id,
@@ -99,7 +99,7 @@ export async function DELETE(
       )
     }
 
-    await prisma.workedHours.delete({
+    await prisma.worked_hours.delete({
       where: { id: id }
     })
 

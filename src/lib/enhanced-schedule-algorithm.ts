@@ -390,7 +390,7 @@ export class EnhancedScheduleAlgorithm {
   }
 
   private async loadShiftRequirements(): Promise<ShiftRequirement[]> {
-    const limits = await prisma.shiftLimits.findMany({
+    const limits = await prisma.shift_limits.findMany({
       where: { minStaff: { gt: 0 } }
     })
 

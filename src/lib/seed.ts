@@ -98,7 +98,7 @@ export async function seedDatabase() {
     ]
 
     for (const limit of defaultLimits) {
-      await prisma.shiftLimits.create({
+      await prisma.shift_limits.create({
         data: {
           dayOfWeek: limit.dayOfWeek,
           shiftType: limit.shiftType as any,

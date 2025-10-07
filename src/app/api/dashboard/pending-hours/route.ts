@@ -17,7 +17,7 @@ export async function GET() {
     }
 
     // Trova tutte le ore in attesa raggruppate per utente
-    const pendingHours = await prisma.workedHours.findMany({
+    const pendingHours = await prisma.worked_hours.findMany({
       where: {
         status: 'PENDING'
       },

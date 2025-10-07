@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get worked hours with user and shift info
-    const workedHours = await prisma.workedHours.findMany({
+    const workedHours = await prisma.worked_hours.findMany({
       where,
       include: {
         user: {

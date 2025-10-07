@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const endDate = month ? endOfMonth(new Date(year, month - 1)) : new Date(year, 11, 31)
 
     // Ottieni ore lavorate del periodo
-    const workedHours = await prisma.workedHours.findMany({
+    const workedHours = await prisma.worked_hours.findMany({
       where: {
         userId: userId,
         shift: {

@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const workedHours = await prisma.workedHours.findMany({
+    const workedHours = await prisma.worked_hours.findMany({
       where: whereClause,
       include: {
         user: {

@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     })
 
     // 2. Carica limiti turni
-    const shiftLimits = await prisma.shiftLimits.findMany()
+    const shiftLimits = await prisma.shift_limits.findMany()
 
     // 3. Carica sostituzioni
     const substitutions = await prisma.substitution.findMany({

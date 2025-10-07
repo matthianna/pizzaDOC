@@ -16,7 +16,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const workedHours = await prisma.workedHours.findUnique({
+    const workedHours = await prisma.worked_hours.findUnique({
       where: { id: id }
     })
 
@@ -34,7 +34,7 @@ export async function POST(
       )
     }
 
-    const updatedHours = await prisma.workedHours.update({
+    const updatedHours = await prisma.worked_hours.update({
       where: { id: id },
       data: {
         status: 'APPROVED',

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const targetYear = year ? parseInt(year) : new Date().getFullYear()
 
     // Get approved worked hours grouped by month
-    const workedHours = await prisma.workedHours.findMany({
+    const workedHours = await prisma.worked_hours.findMany({
       where: {
         shift: {
           userId: session.user.id
