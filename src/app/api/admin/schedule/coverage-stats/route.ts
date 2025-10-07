@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
         }
       },
       include: {
-        assignedShifts: {
+        shifts: {
           where: {
-            schedule: {
+            schedules: {
               weekStart: weekStart
             }
           }
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     // 2. Calcola statistiche per utente
     const userStats = users.map(user => {
       const availabilitiesCount = user.availabilities.length
-      const assignedCount = user.assignedShifts.length
+      const assignedCount = user.shifts.length
       const assignmentPercentage = availabilitiesCount > 0 
         ? Math.round((assignedCount / availabilitiesCount) * 100)
         : 0

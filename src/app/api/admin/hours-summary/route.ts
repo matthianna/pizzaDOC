@@ -57,12 +57,12 @@ export async function GET(request: NextRequest) {
             primaryRole: true
           }
         },
-        shift: {
+        shifts: {
           select: {
             dayOfWeek: true,
             shiftType: true,
             role: true,
-            schedule: {
+            schedules: {
               select: {
                 weekStart: true
               }
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
         endTime: wh.endTime,
         totalHours: wh.totalHours,
         submittedAt: wh.submittedAt,
-        shift: wh.shift
+        shift: wh.shifts
       })
       
       summary[userId].yearlyTotal += wh.totalHours

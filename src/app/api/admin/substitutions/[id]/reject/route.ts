@@ -45,12 +45,13 @@ export async function POST(
         status: 'REJECTED',
         approverId: session.user.id,
         responseNote: responseNote || null,
-        substituteId: null // Remove substitute assignment
+        substituteId: null, // Remove substitute assignment
+        updatedAt: new Date()
       },
       include: {
-        shift: {
+        shifts: {
           include: {
-            schedule: {
+            schedules: {
               select: {
                 weekStart: true
               }

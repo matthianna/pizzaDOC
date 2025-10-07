@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     // Get approved worked hours grouped by month
     const workedHours = await prisma.worked_hours.findMany({
       where: {
-        shift: {
+        shifts: {
           userId: session.user.id
         },
         status: 'APPROVED',
@@ -33,9 +33,9 @@ export async function GET(request: NextRequest) {
         }
       },
       include: {
-        shift: {
+        shifts: {
           include: {
-            schedule: true
+            schedules: true
           }
         }
       },
@@ -60,10 +60,10 @@ export async function GET(request: NextRequest) {
       }>
     }> = {}
 
-    workedHours.forEach(wh => {
-      const shiftDate = normalizeDate(wh.shift.schedule.weekStart)
+    workedHours.forEach((wh: any) => {
+      const shiftDate = normalizeDate(wh.shifts.schedules.weekStart)
       // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-      shiftDate.setDate(shiftDate.getDate() + wh.shift.dayOfWeek)
+      shiftDate.setDate(shiftDate.getDate() + wh.shifts.dayOfWeek)
       
       const monthKey = format(shiftDate, 'yyyy-MM')
       const monthName = format(shiftDate, 'MMMM yyyy', { locale: it })
@@ -82,8 +82,8 @@ export async function GET(request: NextRequest) {
       monthlyData[monthKey].shiftsCount += 1
       monthlyData[monthKey].details.push({
         date: format(shiftDate, 'dd/MM/yyyy'),
-        role: wh.shift.role,
-        shiftType: wh.shift.shiftType,
+        role: wh.shifts.role,
+        shiftType: wh.shifts.shiftType,
         hours: wh.totalHours,
         startTime: wh.startTime,
         endTime: wh.endTime

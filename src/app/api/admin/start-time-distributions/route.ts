@@ -15,7 +15,7 @@ export async function GET() {
       )
     }
 
-    const distributions = await prisma.shiftStartTimeDistribution.findMany({
+    const distributions = await prisma.shift_start_time_distributions.findMany({
       orderBy: [
         { shiftType: 'asc' },
         { role: 'asc' },
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const distribution = await prisma.shiftStartTimeDistribution.upsert({
+    const distribution = await prisma.shift_start_time_distributions.upsert({
       where: {
         shiftType_role_startTime: {
           shiftType,
@@ -74,14 +74,17 @@ export async function POST(request: NextRequest) {
       },
       update: {
         targetCount,
-        isActive: true
+        isActive: true,
+        updatedAt: new Date()
       },
       create: {
+        id: crypto.randomUUID(),
         shiftType,
         role,
         startTime,
         targetCount,
-        isActive: true
+        isActive: true,
+        updatedAt: new Date()
       }
     })
 

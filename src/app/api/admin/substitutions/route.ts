@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
     const substitutions = await prisma.substitutions.findMany({
       where,
       include: {
-        shift: {
+        shifts: {
           include: {
-            schedule: {
+            schedules: {
               select: {
                 weekStart: true
               }

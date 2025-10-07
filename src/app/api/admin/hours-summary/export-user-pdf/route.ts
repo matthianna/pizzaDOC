@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
     const workedHours = await prisma.worked_hours.findMany({
       where: {
         userId: userId,
-        shift: {
-          schedule: {
+        shifts: {
+          schedules: {
             weekStart: {
               gte: startDate,
               lte: endDate
@@ -55,15 +55,15 @@ export async function GET(request: NextRequest) {
         }
       },
       include: {
-        shift: {
+        shifts: {
           include: {
-            schedule: true
+            schedules: true
           }
         }
       },
       orderBy: {
-        shift: {
-          schedule: {
+        shifts: {
+          schedules: {
             weekStart: 'asc'
           }
         }
@@ -97,11 +97,11 @@ function generatePDFHtml(
     totalHours: number;
     status: string;
     submittedAt: Date;
-    shift: {
+    shifts: {
       dayOfWeek: number;
       shiftType: string;
       role: string;
-      schedule: {
+      schedules: {
         weekStart: Date;
       };
     };
@@ -116,10 +116,10 @@ function generatePDFHtml(
 
   // Raggruppa per settimana
   const weeklyData = workedHours.reduce((acc, wh) => {
-    const weekKey = format(wh.shift.schedule.weekStart, 'yyyy-MM-dd')
+    const weekKey = format(wh.shifts.schedules.weekStart, 'yyyy-MM-dd')
     if (!acc[weekKey]) {
       acc[weekKey] = {
-        weekStart: wh.shift.schedule.weekStart,
+        weekStart: wh.shifts.schedules.weekStart,
         shifts: []
       }
     }

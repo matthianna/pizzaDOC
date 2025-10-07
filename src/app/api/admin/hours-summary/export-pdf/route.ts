@@ -57,12 +57,12 @@ export async function GET(request: NextRequest) {
             primaryRole: true
           }
         },
-        shift: {
+        shifts: {
           select: {
             dayOfWeek: true,
             shiftType: true,
             role: true,
-            schedule: {
+            schedules: {
               select: {
                 weekStart: true
               }

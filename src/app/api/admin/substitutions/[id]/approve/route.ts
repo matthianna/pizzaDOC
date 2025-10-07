@@ -21,9 +21,9 @@ export async function POST(
     const substitution = await prisma.substitutions.findUnique({
       where: { id: substitutionId },
       include: {
-        shift: {
+        shifts: {
           include: {
-            schedule: true
+            schedules: true
           }
         }
       }
@@ -47,24 +47,26 @@ export async function POST(
     // Use transaction to ensure data consistency
     const result = await prisma.$transaction(async (tx) => {
       // 1. Update the shift to assign it to the substitute
-      await tx.shift.update({
+      await tx.shifts.update({
         where: { id: substitution.shiftId },
         data: {
-          userId: substitution.substituteId!
+          userId: substitution.substituteId!,
+          updatedAt: new Date()
         }
       })
 
       // 2. Update the substitution status
-      const updatedSubstitution = await tx.substitution.update({
+      const updatedSubstitution = await tx.substitutions.update({
         where: { id: substitutionId },
         data: {
           status: 'APPROVED',
-          approverId: session.user.id
+          approverId: session.user.id,
+          updatedAt: new Date()
         },
         include: {
-          shift: {
+          shifts: {
             include: {
-              schedule: {
+              schedules: {
                 select: {
                   weekStart: true
                 }
@@ -87,7 +89,7 @@ export async function POST(
       })
 
       // 3. Cancel any existing worked hours for the original user for this shift
-      await tx.workedHours.deleteMany({
+      await tx.worked_hours.deleteMany({
         where: {
           shiftId: substitution.shiftId,
           userId: substitution.requesterId

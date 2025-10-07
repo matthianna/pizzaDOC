@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
     if (month && year) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1)
       const endDate = new Date(parseInt(year), parseInt(month), 0)
-      whereClause.shift = {
-        schedule: {
+      whereClause.shifts = {
+        schedules: {
           weekStart: {
             gte: startDate,
             lte: endDate
@@ -51,9 +51,9 @@ export async function GET(request: NextRequest) {
             primaryRole: true
           }
         },
-        shift: {
+        shifts: {
           include: {
-            schedule: true
+            schedules: true
           }
         }
       },

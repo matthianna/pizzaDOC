@@ -17,8 +17,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     const status = searchParams.get('status') // 'past', 'active', 'future'
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const today = normalizeDate(new Date())
 
     let whereClause: Record<string, unknown> = {}
 

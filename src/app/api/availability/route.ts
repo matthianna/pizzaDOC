@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
     if (isAbsentWeek) {
       // Create availability records marking user as absent for the whole week
       const availabilityRecords = []
+      const now = new Date()
       for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
         for (const shiftType of ['PRANZO', 'CENA']) {
           availabilityRecords.push({
@@ -77,7 +78,8 @@ export async function POST(request: NextRequest) {
             dayOfWeek,
             shiftType: shiftType as 'PRANZO' | 'CENA',
             isAvailable: false,
-            isAbsentWeek: true
+            isAbsentWeek: true,
+            updatedAt: now
           })
         }
       }
@@ -87,6 +89,7 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // Create availability records based on user selections
+      const now = new Date()
       const availabilityRecords = availabilities.map((avail: any) => ({
         id: crypto.randomUUID(),
         userId: session.user.id,
@@ -94,7 +97,8 @@ export async function POST(request: NextRequest) {
         dayOfWeek: avail.dayOfWeek,
         shiftType: avail.shiftType,
         isAvailable: avail.isAvailable,
-        isAbsentWeek: false
+        isAbsentWeek: false,
+        updatedAt: now
       }))
 
       if (availabilityRecords.length > 0) {

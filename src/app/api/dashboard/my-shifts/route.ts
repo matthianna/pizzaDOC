@@ -14,8 +14,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const today = normalizeDate(new Date())
     
     // Usa date-fns per calcolare correttamente l'inizio della settimana (lunedì)
     // NORMALIZZA per matching con database (rimuove timezone)
@@ -41,10 +40,12 @@ export async function GET() {
     const formattedShifts = myShifts
       .map(shift => {
         const weekStartDate = normalizeDate(shift.schedules.weekStart)
-        const shiftDate = new Date(weekStartDate)
-        // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-        shiftDate.setDate(weekStartDate.getDate() + shift.dayOfWeek)
-        shiftDate.setHours(0, 0, 0, 0)
+        // Usa UTC per calcolare la data del turno
+        const shiftDate = new Date(Date.UTC(
+          weekStartDate.getUTCFullYear(), 
+          weekStartDate.getUTCMonth(), 
+          weekStartDate.getUTCDate() + shift.dayOfWeek
+        ))
         
         const dayName = format(shiftDate, 'EEEE', { locale: it })
         const dateStr = format(shiftDate, 'd MMMM', { locale: it })

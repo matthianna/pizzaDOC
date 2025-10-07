@@ -2,7 +2,9 @@ import { startOfWeek, addDays, format, isAfter, isBefore } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 export function getWeekStart(date: Date = new Date()): Date {
-  return startOfWeek(date, { weekStartsOn: 1 }) // Monday as first day
+  const weekStart = startOfWeek(date, { weekStartsOn: 1 }) // Monday as first day
+  // Normalizza a UTC per consistenza
+  return new Date(Date.UTC(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate(), 0, 0, 0, 0))
 }
 
 export function getNextWeekStart(): Date {

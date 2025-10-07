@@ -59,8 +59,9 @@ export async function POST(
     if (!schedule) {
       schedule = await prisma.schedules.create({
         data: {
+          id: crypto.randomUUID(),
           weekStart,
-          generatedAt: new Date()
+          updatedAt: new Date()
         }
       })
     }
@@ -88,6 +89,7 @@ export async function POST(
     // Crea il nuovo turno
     const newShift = await prisma.shifts.create({
       data: {
+        id: crypto.randomUUID(),
         scheduleId: schedule.id,
         userId: userId,
         dayOfWeek: dayOfWeek,
@@ -95,7 +97,8 @@ export async function POST(
         role: role,
         startTime: startTime,
         endTime: endTime,
-        status: 'ASSIGNED'
+        status: 'ASSIGNED',
+        updatedAt: new Date()
       },
       include: {
         user: {

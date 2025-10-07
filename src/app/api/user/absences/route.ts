@@ -55,8 +55,7 @@ export async function POST(request: NextRequest) {
 
     const start = normalizeDate(startDate)
     const end = normalizeDate(endDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const today = normalizeDate(new Date())
 
     // Non permettere assenze nel passato
     if (start < today) {
@@ -103,32 +102,30 @@ export async function POST(request: NextRequest) {
         startDate: start,
         endDate: end,
         reason: reason || null,
-        notes: notes || null
+        notes: notes || null,
+        updatedAt: new Date()
       }
     })
 
     // Aggiorna automaticamente le disponibilità per i giorni in assenza
     // Trova tutte le settimane che si sovrappongono con l'assenza
     const weekStarts: Date[] = []
-    let currentWeek = startOfWeek(start, { weekStartsOn: 1 }) // 1 = Monday
-    currentWeek.setHours(0, 0, 0, 0)
+    let currentWeek = normalizeDate(startOfWeek(start, { weekStartsOn: 1 })) // 1 = Monday
     
     while (currentWeek <= end) {
       weekStarts.push(new Date(currentWeek))
-      currentWeek.setDate(currentWeek.getDate() + 7)
+      currentWeek = new Date(Date.UTC(currentWeek.getUTCFullYear(), currentWeek.getUTCMonth(), currentWeek.getUTCDate() + 7))
     }
 
     // Per ogni giorno nell'intervallo di assenza, disabilita disponibilità
     let dayToCheck = new Date(start)
-    dayToCheck.setHours(0, 0, 0, 0)
     
     while (dayToCheck <= end) {
       // Trova il lunedì di questa settimana
-      const mondayOfWeek = startOfWeek(dayToCheck, { weekStartsOn: 1 })
-      mondayOfWeek.setHours(0, 0, 0, 0)
+      const mondayOfWeek = normalizeDate(startOfWeek(dayToCheck, { weekStartsOn: 1 }))
       
       // Converti da JS day (0=Sunday) al nostro sistema (0=Monday)
-      const jsDay = dayToCheck.getDay()
+      const jsDay = dayToCheck.getUTCDay()
       const ourDay = convertJsDayToOurDay(jsDay)
       
       // Aggiorna disponibilità per questo giorno (sia PRANZO che CENA)
@@ -144,8 +141,8 @@ export async function POST(request: NextRequest) {
         }
       })
       
-      // Vai al giorno successivo
-      dayToCheck.setDate(dayToCheck.getDate() + 1)
+      // Vai al giorno successivo (usa UTC)
+      dayToCheck = new Date(Date.UTC(dayToCheck.getUTCFullYear(), dayToCheck.getUTCMonth(), dayToCheck.getUTCDate() + 1))
     }
 
     return NextResponse.json(absence, { status: 201 })
