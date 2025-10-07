@@ -405,7 +405,7 @@ export class EnhancedScheduleAlgorithm {
   }
 
   private async loadExistingShifts(weekStart: Date): Promise<ScheduleShift[]> {
-    const existingSchedule = await prisma.schedule.findUnique({
+    const existingSchedule = await prisma.schedules.findUnique({
       where: { weekStart },
       include: {
         shifts: {
@@ -809,12 +809,12 @@ export class EnhancedScheduleAlgorithm {
 
   async saveSchedule(weekStart: Date, shifts: ScheduleShift[]): Promise<string> {
     // Elimina schedule esistente per questa settimana
-    await prisma.schedule.deleteMany({
+    await prisma.schedules.deleteMany({
       where: { weekStart }
     })
 
     // Crea nuovo schedule
-    const schedule = await prisma.schedule.create({
+    const schedule = await prisma.schedules.create({
       data: {
         weekStart,
         shifts: {

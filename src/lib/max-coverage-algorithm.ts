@@ -379,7 +379,7 @@ export class MaxCoverageAlgorithm {
   }
 
   private async loadExistingShifts(weekStart: Date): Promise<ScheduleShift[]> {
-    const schedule = await prisma.schedule.findUnique({
+    const schedule = await prisma.schedules.findUnique({
       where: { weekStart },
       include: {
         shifts: true

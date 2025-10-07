@@ -37,7 +37,7 @@ export async function GET() {
     })
 
     // DEBUG: Verifica quali schedules esistono nel database
-    const allSchedules = await prisma.schedule.findMany({
+    const allSchedules = await prisma.schedules.findMany({
       select: {
         weekStart: true,
         _count: {

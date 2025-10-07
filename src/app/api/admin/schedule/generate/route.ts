@@ -7,7 +7,7 @@ import { normalizeDate } from '@/lib/normalize-date'
 
 async function saveSchedule(weekStart: Date, shifts: any[]): Promise<string> {
   // Elimina schedule esistente se presente
-  const existingSchedule = await prisma.schedule.findUnique({
+  const existingSchedule = await prisma.schedules.findUnique({
     where: { weekStart },
     include: { shifts: true }
   })
@@ -16,13 +16,13 @@ async function saveSchedule(weekStart: Date, shifts: any[]): Promise<string> {
     await prisma.shift.deleteMany({
       where: { scheduleId: existingSchedule.id }
     })
-    await prisma.schedule.delete({
+    await prisma.schedules.delete({
       where: { id: existingSchedule.id }
     })
   }
 
   // Crea nuovo schedule
-  const schedule = await prisma.schedule.create({
+  const schedule = await prisma.schedules.create({
     data: {
       weekStart,
       shifts: {

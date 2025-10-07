@@ -19,7 +19,7 @@ export async function GET(
     const resolvedParams = await params
     const weekStart = normalizeDate(resolvedParams.weekStart)
 
-    const schedule = await prisma.schedule.findUnique({
+    const schedule = await prisma.schedules.findUnique({
       where: { weekStart },
       include: {
         shifts: {
@@ -79,7 +79,7 @@ export async function DELETE(
     const resolvedParams = await params
     const weekStart = normalizeDate(resolvedParams.weekStart)
 
-    const schedule = await prisma.schedule.findUnique({
+    const schedule = await prisma.schedules.findUnique({
       where: { weekStart }
     })
 
@@ -94,7 +94,7 @@ export async function DELETE(
       where: { scheduleId: schedule.id }
     })
 
-    await prisma.schedule.delete({
+    await prisma.schedules.delete({
       where: { id: schedule.id }
     })
 

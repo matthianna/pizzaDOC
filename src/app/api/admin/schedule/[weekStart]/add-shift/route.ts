@@ -52,12 +52,12 @@ export async function POST(
     }
 
     // Trova o crea il schedule per questa settimana
-    let schedule = await prisma.schedule.findUnique({
+    let schedule = await prisma.schedules.findUnique({
       where: { weekStart }
     })
 
     if (!schedule) {
-      schedule = await prisma.schedule.create({
+      schedule = await prisma.schedules.create({
         data: {
           weekStart,
           generatedAt: new Date()

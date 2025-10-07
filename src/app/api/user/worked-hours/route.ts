@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: [
-        { shift: { dayOfWeek: 'asc' } },
-        { shift: { shiftType: 'asc' } }
+        { shifts: { dayOfWeek: 'asc' } },
+        { shifts: { shiftType: 'asc' } }
       ]
     })
 

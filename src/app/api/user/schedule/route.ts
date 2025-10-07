@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const weekStart = normalizeDate(weekStartParam)
 
     // Trova il piano per questa settimana
-    const schedule = await prisma.schedule.findUnique({
+    const schedule = await prisma.schedules.findUnique({
       where: { weekStart },
       include: {
         shifts: {

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const weekStart = normalizeDate(weekStartParam)
 
-    const availabilities = await prisma.availability.findMany({
+    const availabilities = await prisma.availabilities.findMany({
       where: {
         userId: session.user.id,
         weekStart
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const weekStartDate = normalizeDate(weekStart)
 
     // Delete existing availabilities for this week
-    await prisma.availability.deleteMany({
+    await prisma.availabilities.deleteMany({
       where: {
         userId: session.user.id,
         weekStart: weekStartDate
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      await prisma.availability.createMany({
+      await prisma.availabilities.createMany({
         data: availabilityRecords
       })
     } else {
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       }))
 
       if (availabilityRecords.length > 0) {
-        await prisma.availability.createMany({
+        await prisma.availabilities.createMany({
           data: availabilityRecords
         })
       }

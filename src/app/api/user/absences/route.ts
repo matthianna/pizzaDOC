@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       const ourDay = convertJsDayToOurDay(jsDay)
       
       // Aggiorna disponibilità per questo giorno (sia PRANZO che CENA)
-      await prisma.availability.updateMany({
+      await prisma.availabilities.updateMany({
         where: {
           userId: session.user.id,
           weekStart: mondayOfWeek,

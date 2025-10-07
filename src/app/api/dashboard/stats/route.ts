@@ -39,7 +39,7 @@ export async function GET() {
         prisma.user.count(),
         prisma.user.count({ where: { isActive: true } }),
         prisma.worked_hours.count({ where: { status: 'PENDING' } }),
-        prisma.schedule.count({
+        prisma.schedules.count({
           where: {
             weekStart: {
               gte: weekStart,
@@ -64,7 +64,7 @@ export async function GET() {
             endDate: { gte: now }
           }
         }),
-        prisma.availability.count({
+        prisma.availabilities.count({
           where: {
             weekStart: {
               gte: weekStart,

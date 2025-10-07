@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Get users who have submitted availability for this week
-    const usersWithAvailability = await prisma.availability.findMany({
+    const usersWithAvailability = await prisma.availabilities.findMany({
       where: {
         weekStart: weekStart
       },
