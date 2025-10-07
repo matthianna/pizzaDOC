@@ -30,7 +30,7 @@ export async function GET() {
         }
       },
       include: {
-        shift: {
+        shifts: {
           include: {
             schedules: {
               select: {
@@ -71,7 +71,7 @@ export async function GET() {
         requesterId: session.user.id
       },
       include: {
-        shift: {
+        shifts: {
           include: {
             schedules: {
               select: {

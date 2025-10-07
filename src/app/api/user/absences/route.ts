@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
 
     const absence = await prisma.absences.create({
       data: {
+        id: crypto.randomUUID(),
         userId: session.user.id,
         startDate: start,
         endDate: end,

@@ -26,14 +26,14 @@ export async function GET(request: NextRequest) {
     const workedHours = await prisma.worked_hours.findMany({
       where: {
         userId: session.user.id,
-        shift: {
+        shifts: {
           schedules: {
             weekStart: weekStart
           }
         }
       },
       include: {
-        shift: {
+        shifts: {
           include: {
             schedules: true
           }

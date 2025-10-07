@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
       for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
         for (const shiftType of ['PRANZO', 'CENA']) {
           availabilityRecords.push({
+            id: crypto.randomUUID(),
             userId: session.user.id,
             weekStart: weekStartDate,
             dayOfWeek,
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Create availability records based on user selections
       const availabilityRecords = availabilities.map((avail: any) => ({
+        id: crypto.randomUUID(),
         userId: session.user.id,
         weekStart: weekStartDate,
         dayOfWeek: avail.dayOfWeek,
