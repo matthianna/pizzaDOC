@@ -50,7 +50,7 @@ export async function GET() {
         prisma.substitutions.count({ where: { status: 'PENDING' } }),
         prisma.shifts.count({
           where: {
-            schedule: {
+            schedules: {
               weekStart: {
                 gte: weekStart,
                 lte: weekEnd

@@ -53,11 +53,11 @@ export async function GET() {
     // DEBUG: Verifica tutti i turni per il dayOfWeek corrente
     const allShiftsForDay = await prisma.shifts.findMany({
       where: { dayOfWeek },
-      include: { schedule: { select: { weekStart: true } } },
+      include: { schedules: { select: { weekStart: true } } },
       take: 10
     })
     console.log(`All shifts for dayOfWeek=${dayOfWeek}:`, allShiftsForDay.map(s => ({
-      weekStart: format(new Date(s.schedule.weekStart), 'yyyy-MM-dd'),
+      weekStart: format(new Date(s.schedules.weekStart), 'yyyy-MM-dd'),
       shiftType: s.shiftType,
       role: s.role
     })))
