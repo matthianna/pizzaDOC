@@ -185,7 +185,7 @@ export default function HoursPage() {
 
   const goToPreviousWeek = () => setCurrentWeek(prev => subWeeks(prev, 1))
   const goToNextWeek = () => setCurrentWeek(prev => addWeeks(prev, 1))
-  const goToCurrentWeek = () => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))
+  const goToCurrentWeek = () => setCurrentWeek(getWeekStart(new Date()))
 
   const weekEnd = addDays(currentWeek, 6)
 

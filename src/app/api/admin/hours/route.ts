@@ -62,7 +62,18 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json(workedHours)
+    // Map shifts -> shift and schedules -> schedule for frontend compatibility
+    const mapped = workedHours.map((wh: any) => ({
+      ...wh,
+      shift: {
+        ...wh.shifts,
+        schedule: {
+          weekStart: wh.shifts.schedules.weekStart
+        }
+      }
+    }))
+
+    return NextResponse.json(mapped)
   } catch (error) {
     console.error('Error fetching hours for review:', error)
     return NextResponse.json(

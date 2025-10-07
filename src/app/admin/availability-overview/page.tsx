@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, ChevronLeft, ChevronRight, Users, Check, X } from 'lucide-react'
-import { format, startOfWeek, addWeeks, subWeeks, addDays } from 'date-fns'
+import { format, addWeeks, subWeeks, addDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName } from '@/lib/utils'
+import { getWeekStart } from '@/lib/date-utils'
 
 interface UserAvailability {
   userId: string
@@ -26,8 +27,7 @@ interface UserAvailability {
 
 export default function AvailabilityOverviewPage() {
   const [currentWeek, setCurrentWeek] = useState(() => {
-    const now = new Date()
-    return startOfWeek(now, { weekStartsOn: 1 })
+    return getWeekStart(new Date())
   })
   const [usersAvailability, setUsersAvailability] = useState<UserAvailability[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,7 +61,7 @@ export default function AvailabilityOverviewPage() {
   }
 
   const goToCurrentWeek = () => {
-    setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))
+    setCurrentWeek(getWeekStart(new Date()))
   }
 
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']

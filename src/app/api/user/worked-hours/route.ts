@@ -142,12 +142,14 @@ export async function POST(request: NextRequest) {
     // Create worked hours record
     const workedHours = await prisma.worked_hours.create({
       data: {
+        id: crypto.randomUUID(),
         shiftId,
         userId: session.user.id,
         startTime,
         endTime,
         totalHours: calculatedHours,
-        status: 'PENDING'
+        status: 'PENDING',
+        updatedAt: new Date()
       }
     })
 

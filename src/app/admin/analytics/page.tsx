@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { BarChart3, TrendingUp, Users, Clock, Calendar, AlertTriangle, Award, DollarSign, Percent, ChevronDown, ChevronUp } from 'lucide-react'
-import { format, startOfWeek, addWeeks, subWeeks, differenceInDays } from 'date-fns'
+import { format, addWeeks, subWeeks, differenceInDays } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { getWeekStart } from '@/lib/date-utils'
 
 interface AnalyticsData {
   // Statistiche generali
@@ -104,9 +105,7 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [weekStart, setWeekStart] = useState(() => {
-    const today = new Date()
-    const monday = startOfWeek(today, { weekStartsOn: 1 })
-    return monday
+    return getWeekStart(new Date())
   })
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     general: true,
