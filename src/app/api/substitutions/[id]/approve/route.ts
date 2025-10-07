@@ -18,7 +18,7 @@ export async function POST(
 
     const { responseNote } = await request.json()
 
-    const substitution = await prisma.substitution.findUnique({
+    const substitution = await prisma.substitutions.findUnique({
       where: { id: id },
       include: {
         shift: {

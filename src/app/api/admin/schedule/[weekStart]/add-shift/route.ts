@@ -66,7 +66,7 @@ export async function POST(
     }
 
     // Verifica se l'utente ha già un turno nello stesso giorno e turno
-    const existingShift = await prisma.shift.findFirst({
+    const existingShift = await prisma.shifts.findFirst({
       where: {
         scheduleId: schedule.id,
         userId: userId,
@@ -86,7 +86,7 @@ export async function POST(
     const endTime = shiftType === 'PRANZO' ? '14:00' : '22:00'
 
     // Crea il nuovo turno
-    const newShift = await prisma.shift.create({
+    const newShift = await prisma.shifts.create({
       data: {
         scheduleId: schedule.id,
         userId: userId,

@@ -19,7 +19,7 @@ export async function POST(
     const { responseNote } = await request.json()
 
     // Get the substitution request
-    const substitution = await prisma.substitution.findUnique({
+    const substitution = await prisma.substitutions.findUnique({
       where: { id: substitutionId }
     })
 
@@ -39,7 +39,7 @@ export async function POST(
     }
 
     // Update substitution status to rejected
-    const updatedSubstitution = await prisma.substitution.update({
+    const updatedSubstitution = await prisma.substitutions.update({
       where: { id: substitutionId },
       data: {
         status: 'REJECTED',

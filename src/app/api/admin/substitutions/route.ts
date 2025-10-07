@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       where.status = status
     }
 
-    const substitutions = await prisma.substitution.findMany({
+    const substitutions = await prisma.substitutions.findMany({
       where,
       include: {
         shift: {

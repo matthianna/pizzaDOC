@@ -22,7 +22,7 @@ export async function GET() {
     const startOfWeek = normalizeDate(getStartOfWeek(today, { weekStartsOn: 1 }))
 
     // Trova i turni dell'utente FUTURI (dalla settimana corrente in poi)
-    const myShifts = await prisma.shift.findMany({
+    const myShifts = await prisma.shifts.findMany({
       where: {
         userId: session.user.id,
         schedule: {

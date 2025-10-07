@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if shift belongs to user
-    const shift = await prisma.shift.findFirst({
+    const shift = await prisma.shifts.findFirst({
       where: {
         id: shiftId,
         userId: session.user.id

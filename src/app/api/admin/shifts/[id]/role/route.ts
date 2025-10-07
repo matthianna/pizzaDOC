@@ -24,7 +24,7 @@ export async function PUT(
     }
 
     // Verifica che il turno esista
-    const shift = await prisma.shift.findUnique({
+    const shift = await prisma.shifts.findUnique({
       where: { id },
       include: {
         user: {
@@ -42,7 +42,7 @@ export async function PUT(
     }
 
     // Aggiorna il ruolo del turno
-    const updatedShift = await prisma.shift.update({
+    const updatedShift = await prisma.shifts.update({
       where: { id },
       data: { role }
     })

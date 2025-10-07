@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     weekEnd.setHours(23, 59, 59, 999)
 
     // 1. Carica turni della settimana
-    const shifts = await prisma.shift.findMany({
+    const shifts = await prisma.shifts.findMany({
       where: {
         schedule: {
           weekStart: weekStart
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const shiftLimits = await prisma.shift_limits.findMany()
 
     // 3. Carica sostituzioni
-    const substitutions = await prisma.substitution.findMany({
+    const substitutions = await prisma.substitutions.findMany({
       where: {
         shift: {
           schedule: {

@@ -16,7 +16,7 @@ export async function GET() {
     const now = new Date()
 
     // Get user's shifts where they can submit hours
-    const shifts = await prisma.shift.findMany({
+    const shifts = await prisma.shifts.findMany({
       where: {
         userId: session.user.id,
         // Only shifts that have ended (schedule date + shift end time is past)

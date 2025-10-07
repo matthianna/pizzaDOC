@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the shift belongs to this user
-    const shift = await prisma.shift.findFirst({
+    const shift = await prisma.shifts.findFirst({
       where: {
         id: shiftId,
         userId: session.user.id

@@ -90,7 +90,7 @@ export async function DELETE(
       )
     }
 
-    await prisma.shift.deleteMany({
+    await prisma.shifts.deleteMany({
       where: { scheduleId: schedule.id }
     })
 

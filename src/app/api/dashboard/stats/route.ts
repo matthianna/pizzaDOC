@@ -47,8 +47,8 @@ export async function GET() {
             }
           }
         }),
-        prisma.substitution.count({ where: { status: 'PENDING' } }),
-        prisma.shift.count({
+        prisma.substitutions.count({ where: { status: 'PENDING' } }),
+        prisma.shifts.count({
           where: {
             schedule: {
               weekStart: {
@@ -73,7 +73,7 @@ export async function GET() {
             isAvailable: true
           }
         }),
-        prisma.substitution.count({ where: { status: 'APPROVED' } })
+        prisma.substitutions.count({ where: { status: 'APPROVED' } })
       ])
 
       stats = {
@@ -95,7 +95,7 @@ export async function GET() {
         myPendingSubstitutions,
         myApprovedHours
       ] = await Promise.all([
-        prisma.shift.count({
+        prisma.shifts.count({
           where: {
             userId: session.user.id,
             schedule: {
@@ -116,7 +116,7 @@ export async function GET() {
           },
           _sum: { totalHours: true }
         }),
-        prisma.substitution.count({
+        prisma.substitutions.count({
           where: {
             requesterId: session.user.id,
             status: 'PENDING'

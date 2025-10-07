@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     if (type === 'available') {
       // Get available shifts for substitution (not expired, not the user's own shifts)
-      const availableShifts = await prisma.shift.findMany({
+      const availableShifts = await prisma.shifts.findMany({
         where: {
           userId: { not: session.user.id },
           substitutions: {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(availableShifts)
     } else {
       // Get user's substitution requests
-      const substitutions = await prisma.substitution.findMany({
+      const substitutions = await prisma.substitutions.findMany({
         where: {
           requesterId: session.user.id
         },
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if shift exists and user can substitute
-    const shift = await prisma.shift.findFirst({
+    const shift = await prisma.shifts.findFirst({
       where: {
         id: shiftId,
         userId: { not: session.user.id }, // Cannot substitute own shift
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const substitution = await prisma.substitution.create({
+    const substitution = await prisma.substitutions.create({
       data: {
         shiftId,
         requesterId: session.user.id,

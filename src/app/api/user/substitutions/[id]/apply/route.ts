@@ -20,7 +20,7 @@ export async function POST(
     const substitutionId = resolvedParams.id
 
     // Get the substitution request
-    const substitution = await prisma.substitution.findUnique({
+    const substitution = await prisma.substitutions.findUnique({
       where: { id: substitutionId },
       include: {
         shift: {
@@ -96,7 +96,7 @@ export async function POST(
     }
 
     // Check if user is already working another shift at the same time
-    const conflictingShift = await prisma.shift.findFirst({
+    const conflictingShift = await prisma.shifts.findFirst({
       where: {
         userId: session.user.id,
         schedule: {
@@ -115,7 +115,7 @@ export async function POST(
     }
 
     // Update substitution request with applicant
-    const updatedSubstitution = await prisma.substitution.update({
+    const updatedSubstitution = await prisma.substitutions.update({
       where: { id: substitutionId },
       data: {
         substituteId: session.user.id,

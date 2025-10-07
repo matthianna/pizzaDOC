@@ -44,7 +44,7 @@ export async function PUT(
       )
     }
 
-    const shift = await prisma.shift.update({
+    const shift = await prisma.shifts.update({
       where: { id },
       data: {
         startTime,

@@ -13,7 +13,7 @@ async function saveSchedule(weekStart: Date, shifts: any[]): Promise<string> {
   })
 
   if (existingSchedule) {
-    await prisma.shift.deleteMany({
+    await prisma.shifts.deleteMany({
       where: { scheduleId: existingSchedule.id }
     })
     await prisma.schedules.delete({

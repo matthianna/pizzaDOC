@@ -16,7 +16,7 @@ export async function GET() {
     const now = new Date()
 
     // Get user's future shifts (not past and not already requested for substitution)
-    const shifts = await prisma.shift.findMany({
+    const shifts = await prisma.shifts.findMany({
       where: {
         userId: session.user.id,
         schedule: {

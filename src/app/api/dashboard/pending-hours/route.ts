@@ -29,14 +29,14 @@ export async function GET() {
             primaryRole: true
           }
         },
-        shift: {
+        shifts: {
           select: {
             dayOfWeek: true,
             shiftType: true,
             role: true,
             startTime: true,
             endTime: true,
-            schedule: {
+            schedules: {
               select: {
                 weekStart: true
               }
@@ -68,7 +68,7 @@ export async function GET() {
         endTime: workedHour.endTime,
         totalHours: workedHour.totalHours,
         submittedAt: workedHour.submittedAt,
-        shift: workedHour.shift
+        shift: workedHour.shifts
       })
       
       acc[userId].totalHours += workedHour.totalHours

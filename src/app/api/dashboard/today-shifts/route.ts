@@ -51,7 +51,7 @@ export async function GET() {
     })))
 
     // DEBUG: Verifica tutti i turni per il dayOfWeek corrente
-    const allShiftsForDay = await prisma.shift.findMany({
+    const allShiftsForDay = await prisma.shifts.findMany({
       where: { dayOfWeek },
       include: { schedule: { select: { weekStart: true } } },
       take: 10
@@ -63,7 +63,7 @@ export async function GET() {
     })))
 
     // Trova i turni di oggi
-    const todayShifts = await prisma.shift.findMany({
+    const todayShifts = await prisma.shifts.findMany({
       where: {
         dayOfWeek: dayOfWeek,
         schedule: {

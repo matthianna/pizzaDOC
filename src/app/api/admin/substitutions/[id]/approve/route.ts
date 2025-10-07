@@ -18,7 +18,7 @@ export async function POST(
     const substitutionId = resolvedParams.id
 
     // Get the substitution request
-    const substitution = await prisma.substitution.findUnique({
+    const substitution = await prisma.substitutions.findUnique({
       where: { id: substitutionId },
       include: {
         shift: {

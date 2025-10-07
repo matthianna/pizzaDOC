@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Delete the shift
-    await prisma.shift.delete({
+    await prisma.shifts.delete({
       where: { id: shiftId }
     })
 
