@@ -59,7 +59,7 @@ export async function GET() {
 
     // Filter out past shifts
     const futureAvailable = availableSubstitutions.filter(sub => {
-      const weekStart = normalizeDate(sub.shifts.scheduless.weekStart)
+      const weekStart = normalizeDate(sub.shift.schedules.weekStart)
       // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
       const shiftDate = addDays(weekStart, sub.shift.dayOfWeek)
       return shiftDate > now

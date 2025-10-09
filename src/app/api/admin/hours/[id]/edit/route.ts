@@ -15,55 +15,35 @@ export async function PUT(
     }
 
     const { id } = await params
-    const { startTime, endTime } = await request.json()
-
-    console.log('[ADMIN HOURS UPDATE] ID:', id)
-    console.log('[ADMIN HOURS UPDATE] Start:', startTime, 'End:', endTime)
+    const body = await request.json()
+    const { startTime, endTime } = body
 
     if (!startTime || !endTime) {
       return NextResponse.json(
-        { error: 'Orari di inizio e fine sono richiesti' },
+        { error: 'Start time and end time are required' },
         { status: 400 }
       )
     }
 
-    // Valida formato orario (HH:MM)
-    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/
-    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
-      return NextResponse.json(
-        { error: 'Formato orario non valido. Usa HH:MM' },
-        { status: 400 }
-      )
-    }
-
-    // Calcola nuove ore totali
+    // Calcola le ore totali
     const [startHour, startMin] = startTime.split(':').map(Number)
     const [endHour, endMin] = endTime.split(':').map(Number)
     
-    let totalHours = (endHour + endMin / 60) - (startHour + startMin / 60)
-    if (totalHours < 0) {
-      totalHours += 24 // Gestisce turni che attraversano la mezzanotte
+    let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin)
+    if (totalMinutes < 0) {
+      totalMinutes += 24 * 60 // Gestisce i turni che passano la mezzanotte
     }
+    
+    const totalHours = totalMinutes / 60
 
     if (totalHours <= 0 || totalHours > 24) {
       return NextResponse.json(
-        { error: 'Le ore totali devono essere tra 0 e 24' },
+        { error: 'Invalid time range' },
         { status: 400 }
       )
     }
 
-    // Verifica che il record esista
-    const existingHours = await prisma.worked_hours.findUnique({
-      where: { id }
-    })
-
-    if (!existingHours) {
-      return NextResponse.json(
-        { error: 'Ore lavorate non trovate' },
-        { status: 404 }
-      )
-    }
-
+    // Aggiorna le ore lavorate
     const updatedHours = await prisma.worked_hours.update({
       where: { id },
       data: {
@@ -76,7 +56,8 @@ export async function PUT(
         user: {
           select: {
             id: true,
-            username: true
+            username: true,
+            primaryRole: true
           }
         },
         shifts: {
@@ -88,10 +69,10 @@ export async function PUT(
     })
 
     return NextResponse.json(updatedHours)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating worked hours:', error)
     return NextResponse.json(
-      { error: error.message || 'Errore durante l\'aggiornamento' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

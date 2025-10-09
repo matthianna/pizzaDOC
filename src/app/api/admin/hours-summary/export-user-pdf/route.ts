@@ -39,19 +39,16 @@ export async function GET(request: NextRequest) {
 
     // Calcola range (mese specifico o anno intero)
     const startDate = month ? startOfMonth(new Date(year, month - 1)) : new Date(year, 0, 1)
-    const endDate = month ? endOfMonth(new Date(year, month - 1)) : new Date(year, 11, 31)
+    const endDate = month ? endOfMonth(new Date(year, month - 1)) : new Date(year, 11, 31, 23, 59, 59)
 
     // Ottieni ore lavorate del periodo
     const workedHours = await prisma.worked_hours.findMany({
       where: {
         userId: userId,
-        shifts: {
-          schedules: {
-            weekStart: {
-              gte: startDate,
-              lte: endDate
-            }
-          }
+        status: 'APPROVED',
+        submittedAt: {
+          gte: startDate,
+          lte: endDate
         }
       },
       include: {
@@ -62,11 +59,7 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: {
-        shifts: {
-          schedules: {
-            weekStart: 'asc'
-          }
-        }
+        submittedAt: 'asc'
       }
     })
 
@@ -91,15 +84,15 @@ function generatePDFHtml(
     id: string;
     username: string;
     primaryRole: string;
-    isActive?: boolean;
-    user_roles?: Array<{role: string}>;
+    user_roles: Array<{role: string}>;
+    isActive: boolean;
   }, 
   workedHours: Array<{
     id: string;
-    totalHours: number;
-    status: string;
     startTime: string;
     endTime: string;
+    totalHours: number;
+    status: string;
     submittedAt: Date;
     shifts: {
       dayOfWeek: number;
@@ -131,7 +124,19 @@ function generatePDFHtml(
     return acc
   }, {} as Record<string, { 
     weekStart: Date; 
-    shifts: typeof workedHours
+    shifts: Array<{
+      id: string;
+      startTime: string;
+      endTime: string;
+      totalHours: number;
+      status: string;
+      submittedAt: Date;
+      shifts: {
+        dayOfWeek: number;
+        shiftType: string;
+        role: string;
+      };
+    }> 
   }>)
 
   const weeks = Object.values(weeklyData).sort((a, b) => 
@@ -505,7 +510,7 @@ function generatePDFHtml(
                         </tr>
                     </thead>
                     <tbody>
-                        ${week.shifts.map(wh => {
+                        ${week.shifts.map(shift => {
                           const dayNames = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
                           const statusLabels: Record<string, string> = {
                             'APPROVED': 'Approvato',
@@ -516,16 +521,17 @@ function generatePDFHtml(
                             'ADMIN': 'Admin',
                             'FATTORINO': 'Fattorino',
                             'CUCINA': 'Cucina', 
-                            'SALA': 'Sala'
+                            'SALA': 'Sala',
+                            'PIZZAIOLO': 'Pizzaiolo'
                           }
                           return `
                             <tr>
-                                <td>${dayNames[wh.shifts.dayOfWeek]}</td>
-                                <td>${wh.shifts.shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}</td>
-                                <td>${roleNames[wh.shifts.role] || wh.shifts.role}</td>
-                                <td>${wh.startTime} - ${wh.endTime}</td>
-                                <td>${wh.totalHours.toFixed(1)}h</td>
-                                <td><span class="status-badge status-${wh.status.toLowerCase()}">${statusLabels[wh.status] || wh.status}</span></td>
+                                <td>${dayNames[shift.shifts.dayOfWeek]}</td>
+                                <td>${shift.shifts.shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}</td>
+                                <td>${roleNames[shift.shifts.role] || shift.shifts.role}</td>
+                                <td>${shift.startTime} - ${shift.endTime}</td>
+                                <td>${shift.totalHours.toFixed(1)}h</td>
+                                <td><span class="status-badge status-${shift.status.toLowerCase()}">${statusLabels[shift.status] || shift.status}</span></td>
                             </tr>
                           `
                         }).join('')}

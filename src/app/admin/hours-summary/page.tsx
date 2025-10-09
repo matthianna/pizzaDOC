@@ -23,7 +23,7 @@ interface ShiftDetail {
   endTime: string
   totalHours: number
   submittedAt: string
-  shifts: {
+  shift: {
     dayOfWeek: number
     shiftType: ShiftType
     role: Role
@@ -137,7 +137,7 @@ export default function AdminHoursSummaryPage() {
       
       const response = await fetch(url, {
         method: 'GET',
-        credentials: 'include' // Include cookies for authentication
+        credentials: 'include'
       })
       
       if (response.ok) {
@@ -146,7 +146,6 @@ export default function AdminHoursSummaryPage() {
         if (newWindow) {
           newWindow.document.write(htmlContent)
           newWindow.document.close()
-          // Trigger print dialog after a short delay
           setTimeout(() => {
             newWindow.print()
           }, 500)
@@ -425,10 +424,10 @@ export default function AdminHoursSummaryPage() {
                                         <Clock className="h-4 w-4 text-gray-400" />
                                         <div>
                                           <div className="text-sm font-medium text-gray-900">
-                                            {getDayName(detail.shifts.dayOfWeek)} - {getShiftTypeName(detail.shifts.shiftType)}
+                                            {getDayName(detail.shift.dayOfWeek)} - {getShiftTypeName(detail.shift.shiftType)}
                                           </div>
                                           <div className="text-xs text-gray-500">
-                                            {format(parseISO(detail.shifts.schedules.weekStart), 'dd/MM/yyyy', { locale: it })} • {getRoleName(detail.shifts.role)}
+                                            {format(parseISO(detail.shift.schedules.weekStart), 'dd/MM/yyyy', { locale: it })} • {getRoleName(detail.shift.role)}
                                           </div>
                                         </div>
                                       </div>

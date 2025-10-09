@@ -69,7 +69,7 @@ export async function POST(
     }
 
     // Check if shift is in the future
-    const weekStart = normalizeDate(substitution.shifts.schedules.weekStart)
+    const weekStart = normalizeDate(substitution.shift.schedule.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
     const shiftDate = addDays(weekStart, substitution.shift.dayOfWeek)
     
@@ -100,7 +100,7 @@ export async function POST(
       where: {
         userId: session.user.id,
         schedule: {
-          weekStart: substitution.shifts.schedules.weekStart
+          weekStart: substitution.shift.schedule.weekStart
         },
         dayOfWeek: substitution.shift.dayOfWeek,
         shiftType: substitution.shift.shiftType
