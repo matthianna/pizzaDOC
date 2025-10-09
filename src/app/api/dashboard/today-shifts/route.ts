@@ -29,7 +29,9 @@ export async function GET() {
       todayNormalized: format(today, 'yyyy-MM-dd'),
       dayOfWeek,
       jsDay,
-      weekStart: format(currentWeekStart, 'yyyy-MM-dd')
+      weekStart: format(currentWeekStart, 'yyyy-MM-dd'),
+      weekStartISO: currentWeekStart.toISOString(),
+      weekStartTimestamp: currentWeekStart.getTime()
     })
 
     // DEBUG: Verifica quali schedules esistono nel database
@@ -43,6 +45,8 @@ export async function GET() {
     })
     console.log('All schedules in DB:', allSchedules.map(s => ({
       weekStart: format(new Date(s.weekStart), 'yyyy-MM-dd'),
+      weekStartISO: new Date(s.weekStart).toISOString(),
+      weekStartTimestamp: new Date(s.weekStart).getTime(),
       shiftsCount: s._count.shifts
     })))
 
@@ -59,11 +63,18 @@ export async function GET() {
     })))
 
     // Trova i turni di oggi
+    // Usa un range per il weekStart per gestire differenze di timezone
+    const nextWeekStart = new Date(currentWeekStart)
+    nextWeekStart.setDate(nextWeekStart.getDate() + 7)
+    
     const todayShifts = await prisma.shifts.findMany({
       where: {
         dayOfWeek: dayOfWeek,
         schedules: {
-          weekStart: currentWeekStart
+          weekStart: {
+            gte: currentWeekStart,
+            lt: nextWeekStart
+          }
         }
       },
       include: {
