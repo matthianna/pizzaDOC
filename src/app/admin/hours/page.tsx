@@ -123,7 +123,10 @@ export default function AdminHoursPage() {
   }
 
   const saveEditHours = async () => {
-    if (!editingId) return
+    if (!editingId || !editStartTime || !editEndTime) {
+      alert('Inserisci orario di inizio e fine')
+      return
+    }
 
     try {
       const response = await fetch(`/api/admin/hours/${editingId}`, {
@@ -157,6 +160,23 @@ export default function AdminHoursPage() {
     setEditingId(null)
     setEditStartTime('')
     setEditEndTime('')
+  }
+
+  const calculateTotalHours = (start: string, end: string): number => {
+    if (!start || !end) return 0
+    
+    const [startHour, startMin] = start.split(':').map(Number)
+    const [endHour, endMin] = end.split(':').map(Number)
+    
+    const startMinutes = startHour * 60 + startMin
+    const endMinutes = endHour * 60 + endMin
+    
+    let totalMinutes = endMinutes - startMinutes
+    if (totalMinutes < 0) {
+      totalMinutes += 24 * 60 // Turni notturni
+    }
+    
+    return Math.round((totalMinutes / 60) * 2) / 2 // Arrotonda a 0.5h
   }
 
   const getShiftDate = (shift: Shift): Date => {
@@ -327,35 +347,17 @@ export default function AdminHoursPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {hours.shift.startTime} - {hours.shift.endTime}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {editingId === hours.id ? (
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="time"
-                                value={editStartTime}
-                                onChange={(e) => setEditStartTime(e.target.value)}
-                                className="border rounded px-2 py-1 text-xs"
-                              />
-                              <span>-</span>
-                              <input
-                                type="time"
-                                value={editEndTime}
-                                onChange={(e) => setEditEndTime(e.target.value)}
-                                className="border rounded px-2 py-1 text-xs"
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex items-center space-x-2">
-                              <span>{hours.startTime} - {hours.endTime}</span>
-                              <button
-                                onClick={() => startEditHours(hours)}
-                                className="text-blue-600 hover:text-blue-900"
-                                title="Modifica orari"
-                              >
-                                <Edit className="h-3 w-3" />
-                              </button>
-                            </div>
-                          )}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="flex items-center space-x-2">
+                            <span>{hours.startTime} - {hours.endTime}</span>
+                            <button
+                              onClick={() => startEditHours(hours)}
+                              className="text-blue-600 hover:text-blue-900 transition-colors"
+                              title="Modifica orari"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {hours.totalHours.toFixed(1)}h
@@ -372,24 +374,7 @@ export default function AdminHoursPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {editingId === hours.id ? (
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={saveEditHours}
-                                className="text-green-600 hover:text-green-900"
-                                title="Salva modifiche"
-                              >
-                                <Check className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={cancelEdit}
-                                className="text-red-600 hover:text-red-900"
-                                title="Annulla"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ) : hours.status === 'PENDING' ? (
+                          {hours.status === 'PENDING' && (
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => approveHours(hours.id)}
@@ -406,11 +391,12 @@ export default function AdminHoursPage() {
                                 <X className="h-4 w-4" />
                               </button>
                             </div>
-                          ) : hours.status !== 'PENDING' && hours.reviewedAt ? (
+                          )}
+                          {hours.status !== 'PENDING' && hours.reviewedAt && (
                             <div className="text-xs text-gray-500">
                               {new Date(hours.reviewedAt).toLocaleDateString('it-IT')}
                             </div>
-                          ) : null}
+                          )}
                         </td>
                       </tr>
                     )
@@ -514,6 +500,212 @@ export default function AdminHoursPage() {
                 >
                   <X className="h-4 w-4" />
                   <span>Rifiuta Ore</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Hours Modal */}
+      {editingId && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-2xl w-full transform transition-all">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Edit className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Modifica Orari Lavorati
+                    </h2>
+                    <p className="text-sm text-blue-600">
+                      Aggiorna gli orari di inizio e fine turno
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={cancelEdit}
+                  className="w-8 h-8 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-colors"
+                >
+                  <X className="h-4 w-4 text-blue-600" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Info turno */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <Clock className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-blue-900 mb-1">
+                      {workedHours.find(h => h.id === editingId) && (
+                        <>
+                          {workedHours.find(h => h.id === editingId)!.user.username} • {' '}
+                          {getDayName(workedHours.find(h => h.id === editingId)!.shift.dayOfWeek)} {' '}
+                          {getShiftTypeName(workedHours.find(h => h.id === editingId)!.shift.shiftType)}
+                        </>
+                      )}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      {workedHours.find(h => h.id === editingId) && (
+                        <>
+                          Orario turno: {workedHours.find(h => h.id === editingId)!.shift.startTime} - {' '}
+                          {workedHours.find(h => h.id === editingId)!.shift.endTime}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Time inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Ora Inizio */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Ora Inizio
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={editStartTime.split(':')[0] || ''}
+                      onChange={(e) => {
+                        const newHour = e.target.value.padStart(2, '0')
+                        const currentMin = editStartTime.split(':')[1] || '00'
+                        setEditStartTime(`${newHour}:${currentMin}`)
+                      }}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none font-medium"
+                    >
+                      <option value="">Ora</option>
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <option key={i} value={i.toString().padStart(2, '0')}>
+                          {i.toString().padStart(2, '0')}
+                        </option>
+                      ))}
+                    </select>
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Minuti Inizio */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Minuti Inizio
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={editStartTime.split(':')[1] || ''}
+                      onChange={(e) => {
+                        const currentHour = editStartTime.split(':')[0] || '00'
+                        const newMin = e.target.value.padStart(2, '0')
+                        setEditStartTime(`${currentHour}:${newMin}`)
+                      }}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none font-medium"
+                    >
+                      <option value="">Min</option>
+                      {['00', '15', '30', '45'].map(min => (
+                        <option key={min} value={min}>{min}</option>
+                      ))}
+                    </select>
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Ora Fine */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Ora Fine
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={editEndTime.split(':')[0] || ''}
+                      onChange={(e) => {
+                        const newHour = e.target.value.padStart(2, '0')
+                        const currentMin = editEndTime.split(':')[1] || '00'
+                        setEditEndTime(`${newHour}:${currentMin}`)
+                      }}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none font-medium"
+                    >
+                      <option value="">Ora</option>
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <option key={i} value={i.toString().padStart(2, '0')}>
+                          {i.toString().padStart(2, '0')}
+                        </option>
+                      ))}
+                    </select>
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Minuti Fine */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Minuti Fine
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={editEndTime.split(':')[1] || ''}
+                      onChange={(e) => {
+                        const currentHour = editEndTime.split(':')[0] || '00'
+                        const newMin = e.target.value.padStart(2, '0')
+                        setEditEndTime(`${currentHour}:${newMin}`)
+                      }}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none font-medium"
+                    >
+                      <option value="">Min</option>
+                      {['00', '15', '30', '45'].map(min => (
+                        <option key={min} value={min}>{min}</option>
+                      ))}
+                    </select>
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Ore totali calcolate */}
+              {editStartTime && editEndTime && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <Clock className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-green-900">Ore Totali</p>
+                        <p className="text-xs text-green-700">
+                          {editStartTime} - {editEndTime}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {calculateTotalHours(editStartTime, editEndTime).toFixed(1)}h
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-xl">
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={cancelEdit}
+                  className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={saveEditHours}
+                  disabled={!editStartTime || !editEndTime}
+                  className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center space-x-2"
+                >
+                  <Check className="h-4 w-4" />
+                  <span>Salva Modifiche</span>
                 </button>
               </div>
             </div>
