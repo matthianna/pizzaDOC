@@ -91,11 +91,15 @@ function generatePDFHtml(
     id: string;
     username: string;
     primaryRole: string;
+    isActive?: boolean;
+    user_roles?: Array<{role: string}>;
   }, 
-  worked_hours: Array<{
+  workedHours: Array<{
     id: string;
     totalHours: number;
     status: string;
+    startTime: string;
+    endTime: string;
     submittedAt: Date;
     shifts: {
       dayOfWeek: number;
@@ -127,17 +131,7 @@ function generatePDFHtml(
     return acc
   }, {} as Record<string, { 
     weekStart: Date; 
-    shifts: Array<{
-      id: string;
-      totalHours: number;
-      status: string;
-      submittedAt: Date;
-      shift: {
-        dayOfWeek: number;
-        shiftType: string;
-        role: string;
-      };
-    }> 
+    shifts: typeof workedHours
   }>)
 
   const weeks = Object.values(weeklyData).sort((a, b) => 
@@ -511,8 +505,8 @@ function generatePDFHtml(
                         </tr>
                     </thead>
                     <tbody>
-                        ${week.shifts.map(shift => {
-                          const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
+                        ${week.shifts.map(wh => {
+                          const dayNames = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
                           const statusLabels: Record<string, string> = {
                             'APPROVED': 'Approvato',
                             'PENDING': 'In Attesa',
@@ -526,12 +520,12 @@ function generatePDFHtml(
                           }
                           return `
                             <tr>
-                                <td>${dayNames[shift.shift.dayOfWeek]}</td>
-                                <td>${shift.shift.shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}</td>
-                                <td>${roleNames[shift.shift.role] || shift.shift.role}</td>
-                                <td>${shift.startTime} - ${shift.endTime}</td>
-                                <td>${shift.totalHours.toFixed(1)}h</td>
-                                <td><span class="status-badge status-${shift.status.toLowerCase()}">${statusLabels[shift.status] || shift.status}</span></td>
+                                <td>${dayNames[wh.shifts.dayOfWeek]}</td>
+                                <td>${wh.shifts.shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}</td>
+                                <td>${roleNames[wh.shifts.role] || wh.shifts.role}</td>
+                                <td>${wh.startTime} - ${wh.endTime}</td>
+                                <td>${wh.totalHours.toFixed(1)}h</td>
+                                <td><span class="status-badge status-${wh.status.toLowerCase()}">${statusLabels[wh.status] || wh.status}</span></td>
                             </tr>
                           `
                         }).join('')}

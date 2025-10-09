@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Clock, Check, X, AlertCircle } from 'lucide-react'
+import { Clock, Check, X, AlertCircle, Edit } from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { formatDate } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
@@ -15,7 +15,7 @@ interface Shift {
   role: Role
   startTime: string
   endTime: string
-  schedule: {
+  schedules: {
     weekStart: string
   }
 }
@@ -46,6 +46,9 @@ export default function AdminHoursPage() {
   const [loading, setLoading] = useState(true)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editStartTime, setEditStartTime] = useState('')
+  const [editEndTime, setEditEndTime] = useState('')
 
   useEffect(() => {
     fetchWorkedHours()
@@ -113,8 +116,51 @@ export default function AdminHoursPage() {
     }
   }
 
+  const startEditHours = (hours: WorkedHours) => {
+    setEditingId(hours.id)
+    setEditStartTime(hours.startTime)
+    setEditEndTime(hours.endTime)
+  }
+
+  const saveEditHours = async () => {
+    if (!editingId) return
+
+    try {
+      const response = await fetch(`/api/admin/hours/${editingId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          startTime: editStartTime, 
+          endTime: editEndTime 
+        })
+      })
+
+      if (response.ok) {
+        setEditingId(null)
+        setEditStartTime('')
+        setEditEndTime('')
+        fetchWorkedHours()
+        alert('Orari modificati con successo')
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Errore durante la modifica')
+      }
+    } catch (error) {
+      console.error('Error editing hours:', error)
+      alert('Errore durante la modifica')
+    }
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditStartTime('')
+    setEditEndTime('')
+  }
+
   const getShiftDate = (shift: Shift): Date => {
-    const weekStart = new Date(shift.schedule.weekStart)
+    const weekStart = new Date(shift.schedules.weekStart)
     const shiftDate = new Date(weekStart)
     shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
     return shiftDate
@@ -281,8 +327,35 @@ export default function AdminHoursPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {hours.shift.startTime} - {hours.shift.endTime}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {hours.startTime} - {hours.endTime}
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {editingId === hours.id ? (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="time"
+                                value={editStartTime}
+                                onChange={(e) => setEditStartTime(e.target.value)}
+                                className="border rounded px-2 py-1 text-xs"
+                              />
+                              <span>-</span>
+                              <input
+                                type="time"
+                                value={editEndTime}
+                                onChange={(e) => setEditEndTime(e.target.value)}
+                                className="border rounded px-2 py-1 text-xs"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2">
+                              <span>{hours.startTime} - {hours.endTime}</span>
+                              <button
+                                onClick={() => startEditHours(hours)}
+                                className="text-blue-600 hover:text-blue-900"
+                                title="Modifica orari"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {hours.totalHours.toFixed(1)}h
@@ -299,7 +372,24 @@ export default function AdminHoursPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {hours.status === 'PENDING' && (
+                          {editingId === hours.id ? (
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={saveEditHours}
+                                className="text-green-600 hover:text-green-900"
+                                title="Salva modifiche"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={cancelEdit}
+                                className="text-red-600 hover:text-red-900"
+                                title="Annulla"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : hours.status === 'PENDING' ? (
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => approveHours(hours.id)}
@@ -316,12 +406,11 @@ export default function AdminHoursPage() {
                                 <X className="h-4 w-4" />
                               </button>
                             </div>
-                          )}
-                          {hours.status !== 'PENDING' && hours.reviewedAt && (
+                          ) : hours.status !== 'PENDING' && hours.reviewedAt ? (
                             <div className="text-xs text-gray-500">
                               {new Date(hours.reviewedAt).toLocaleDateString('it-IT')}
                             </div>
-                          )}
+                          ) : null}
                         </td>
                       </tr>
                     )

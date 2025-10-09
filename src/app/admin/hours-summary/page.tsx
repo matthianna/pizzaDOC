@@ -23,11 +23,11 @@ interface ShiftDetail {
   endTime: string
   totalHours: number
   submittedAt: string
-  shift: {
+  shifts: {
     dayOfWeek: number
     shiftType: ShiftType
     role: Role
-    schedule: {
+    schedules: {
       weekStart: string
     }
   }
@@ -126,9 +126,7 @@ export default function AdminHoursSummaryPage() {
   }
 
   const exportToPDF = async () => {
-    alert('Funzione in fase di implementazione')
-    return
-    /* try {
+    try {
       let url = `/api/admin/hours-summary/export-pdf?year=${selectedYear}`
       if (selectedUserId !== 'ALL') {
         url += `&userId=${selectedUserId}`
@@ -160,13 +158,11 @@ export default function AdminHoursSummaryPage() {
     } catch (error) {
       console.error('Error exporting PDF:', error)
       alert('Errore durante l\'esportazione del PDF')
-    } */
+    }
   }
 
   const exportUserMonthPDF = async (userId: string, monthStr: string) => {
-    alert('Funzione in fase di implementazione')
-    return
-    /* try {
+    try {
       const [year, month] = monthStr.split('-')
       const url = `/api/admin/hours-summary/export-user-pdf?userId=${userId}&year=${year}&month=${month}`
       
@@ -181,6 +177,9 @@ export default function AdminHoursSummaryPage() {
         if (newWindow) {
           newWindow.document.write(htmlContent)
           newWindow.document.close()
+          setTimeout(() => {
+            newWindow.print()
+          }, 500)
         }
       } else {
         console.error('Failed to export user PDF:', response.statusText)
@@ -189,13 +188,11 @@ export default function AdminHoursSummaryPage() {
     } catch (error) {
       console.error('Error exporting user PDF:', error)
       alert('Errore durante l\'esportazione del PDF')
-    } */
+    }
   }
 
   const exportUserYearPDF = async (userId: string) => {
-    alert('Funzione in fase di implementazione')
-    return
-    /* try {
+    try {
       const url = `/api/admin/hours-summary/export-user-pdf?userId=${userId}&year=${selectedYear}`
       
       const response = await fetch(url, {
@@ -209,6 +206,9 @@ export default function AdminHoursSummaryPage() {
         if (newWindow) {
           newWindow.document.write(htmlContent)
           newWindow.document.close()
+          setTimeout(() => {
+            newWindow.print()
+          }, 500)
         }
       } else {
         console.error('Failed to export user year PDF:', response.statusText)
@@ -217,7 +217,7 @@ export default function AdminHoursSummaryPage() {
     } catch (error) {
       console.error('Error exporting user year PDF:', error)
       alert('Errore durante l\'esportazione del PDF')
-    } */
+    }
   }
 
   const currentYearOptions = Array.from({ length: 5 }, (_, i) => {
@@ -428,7 +428,7 @@ export default function AdminHoursSummaryPage() {
                                             {getDayName(detail.shift.dayOfWeek)} - {getShiftTypeName(detail.shift.shiftType)}
                                           </div>
                                           <div className="text-xs text-gray-500">
-                                            {format(parseISO(detail.shift.schedule.weekStart), 'dd/MM/yyyy', { locale: it })} • {getRoleName(detail.shift.role)}
+                                            {format(parseISO(detail.shifts.schedules.weekStart), 'dd/MM/yyyy', { locale: it })} • {getRoleName(detail.shift.role)}
                                           </div>
                                         </div>
                                       </div>
