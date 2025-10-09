@@ -17,6 +17,9 @@ export async function PUT(
     const { id } = await params
     const { startTime, endTime } = await request.json()
 
+    console.log('[ADMIN HOURS UPDATE] ID:', id)
+    console.log('[ADMIN HOURS UPDATE] Start:', startTime, 'End:', endTime)
+
     if (!startTime || !endTime) {
       return NextResponse.json(
         { error: 'Orari di inizio e fine sono richiesti' },
@@ -46,6 +49,18 @@ export async function PUT(
       return NextResponse.json(
         { error: 'Le ore totali devono essere tra 0 e 24' },
         { status: 400 }
+      )
+    }
+
+    // Verifica che il record esista
+    const existingHours = await prisma.worked_hours.findUnique({
+      where: { id }
+    })
+
+    if (!existingHours) {
+      return NextResponse.json(
+        { error: 'Ore lavorate non trovate' },
+        { status: 404 }
       )
     }
 
