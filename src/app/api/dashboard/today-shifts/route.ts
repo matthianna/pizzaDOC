@@ -63,17 +63,26 @@ export async function GET() {
     })))
 
     // Trova i turni di oggi
-    // Usa un range per il weekStart per gestire differenze di timezone
-    const nextWeekStart = new Date(currentWeekStart)
-    nextWeekStart.setDate(nextWeekStart.getDate() + 7)
+    // Usa un range più ampio per gestire differenze di timezone
+    // Il database potrebbe avere 2025-10-05T22:00:00Z (6 ottobre mezzanotte UTC+2)
+    // mentre noi cerchiamo 2025-10-06T00:00:00Z
+    const searchStart = new Date(currentWeekStart)
+    searchStart.setHours(searchStart.getHours() - 24) // -1 giorno
+    const searchEnd = new Date(currentWeekStart)
+    searchEnd.setHours(searchEnd.getHours() + 24) // +1 giorno
+    
+    console.log('Search range:', {
+      start: searchStart.toISOString(),
+      end: searchEnd.toISOString()
+    })
     
     const todayShifts = await prisma.shifts.findMany({
       where: {
         dayOfWeek: dayOfWeek,
         schedules: {
           weekStart: {
-            gte: currentWeekStart,
-            lt: nextWeekStart
+            gte: searchStart,
+            lt: searchEnd
           }
         }
       },
