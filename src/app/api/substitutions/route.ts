@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Set deadline (e.g., 24 hours before shift start)
-    const weekStartDate = normalizeDate(shift.schedule.weekStart)
+    const weekStartDate = normalizeDate(shift.schedules.weekStart)
     // Calcola la data del turno in UTC
     const shiftDate = new Date(Date.UTC(
       weekStartDate.getUTCFullYear(),

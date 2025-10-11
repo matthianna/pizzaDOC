@@ -170,7 +170,7 @@ export default function AdminHoursPage() {
   }
 
   const getShiftDate = (shift: Shift): Date => {
-    const weekStart = new Date(shift.schedule.weekStart)
+    const weekStart = new Date(shift.schedules.weekStart)
     const shiftDate = new Date(weekStart)
     shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
     return shiftDate

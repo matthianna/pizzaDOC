@@ -136,7 +136,7 @@ export default function AdminSubstitutionsPage() {
   }
 
   const getShiftDate = (shift: Shift) => {
-    const weekStart = new Date(shift.schedule.weekStart)
+    const weekStart = new Date(shift.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
     return addDays(weekStart, shift.dayOfWeek)
   }

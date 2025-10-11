@@ -42,7 +42,7 @@ export async function GET() {
 
     // Filter shifts that have actually ended
     const availableShifts = shifts.filter(shift => {
-      const weekStartDate = normalizeDate(shift.schedule.weekStart)
+      const weekStartDate = normalizeDate(shift.schedules.weekStart)
       // Calcola la data del turno in UTC
       const shiftDate = new Date(Date.UTC(
         weekStartDate.getUTCFullYear(),
