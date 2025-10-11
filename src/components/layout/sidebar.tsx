@@ -91,7 +91,7 @@ export function Sidebar() {
       adminOnly: false,
       hideForAdmin: true
     },
-    // Sezione Admin
+    // Sezione Admin - Gestione Personale
     {
       name: 'Gestione Utenti',
       href: '/admin/users',
@@ -100,12 +100,35 @@ export function Sidebar() {
       adminOnly: true
     },
     {
+      name: 'Disponibilità Utenti',
+      href: '/admin/availability-overview',
+      icon: UsersIcon,
+      iconSolid: UsersIconSolid,
+      adminOnly: true
+    },
+    // Sezione Admin - Pianificazione
+    {
       name: 'Piano Lavoro',
       href: '/admin/schedule',
       icon: ChartBarIcon,
       iconSolid: ChartBarIconSolid,
       adminOnly: true
     },
+    {
+      name: 'Assenze',
+      href: '/admin/absences',
+      icon: CalendarIcon,
+      iconSolid: CalendarIconSolid,
+      adminOnly: true
+    },
+    {
+      name: 'Sostituzioni',
+      href: '/admin/substitutions',
+      icon: UserPlusIcon,
+      iconSolid: UserPlusIconSolid,
+      adminOnly: true
+    },
+    // Sezione Admin - Ore Lavorate
     {
       name: 'Gestione Ore',
       href: '/admin/hours',
@@ -120,34 +143,7 @@ export function Sidebar() {
       iconSolid: PresentationChartLineIconSolid,
       adminOnly: true
     },
-    {
-      name: 'Analytics (DEV)',
-      href: '/admin/analytics',
-      icon: ChartBarIcon,
-      iconSolid: ChartBarIconSolid,
-      adminOnly: true
-    },
-    {
-      name: 'Sostituzioni',
-      href: '/admin/substitutions',
-      icon: UserPlusIcon,
-      iconSolid: UserPlusIconSolid,
-      adminOnly: true
-    },
-    {
-      name: 'Assenze',
-      href: '/admin/absences',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
-      adminOnly: true
-    },
-    {
-      name: 'Disponibilità Utenti',
-      href: '/admin/availability-overview',
-      icon: UsersIcon,
-      iconSolid: UsersIconSolid,
-      adminOnly: true
-    },
+    // Sezione Admin - Sistema
     {
       name: 'Configurazioni',
       href: '/admin/settings',
@@ -160,6 +156,13 @@ export function Sidebar() {
       href: '/admin/system',
       icon: ShieldCheckIcon,
       iconSolid: ShieldCheckIconSolid,
+      adminOnly: true
+    },
+    {
+      name: 'Analytics (DEV)',
+      href: '/admin/analytics',
+      icon: ChartBarIcon,
+      iconSolid: ChartBarIconSolid,
       adminOnly: true
     }
   ]
