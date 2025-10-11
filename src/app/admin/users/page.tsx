@@ -195,7 +195,7 @@ export default function UsersPage() {
                       ))}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         user.isActive
@@ -206,8 +206,8 @@ export default function UsersPage() {
                       {user.isActive ? 'Attivo' : 'Disattivato'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-1 sm:space-x-2">
                       <button
                         onClick={() => setEditingUser(user)}
                         className="text-indigo-600 hover:text-indigo-900"
@@ -235,6 +235,7 @@ export default function UsersPage() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {users.length === 0 && (
             <div className="text-center py-12">
