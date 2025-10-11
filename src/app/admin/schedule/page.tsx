@@ -409,43 +409,43 @@ export default function AdminSchedulePage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-              <Calendar className="h-8 w-8 mr-3 text-orange-600" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+              <Calendar className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-orange-600" />
               Piano di Lavoro
             </h1>
-            <p className="text-gray-800 mt-1">
+            <p className="text-sm sm:text-base text-gray-800 mt-1">
               Genera e gestisci il piano settimanale dei turni
             </p>
           </div>
-          <div className="flex space-x-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {schedule && (
               <>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center"
+                  className="bg-red-600 text-white px-3 py-2 text-sm rounded-md hover:bg-red-700 flex items-center"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Elimina Piano
+                  <Trash2 className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Elimina Piano</span>
                 </button>
                 <button
                   onClick={exportToPDF}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
+                  className="bg-blue-600 text-white px-3 py-2 text-sm rounded-md hover:bg-blue-700 flex items-center"
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  Esporta PDF
+                  <Download className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Esporta PDF</span>
                 </button>
               </>
             )}
             <button
               onClick={() => setShowGenerateConfirm(true)}
               disabled={generating}
-              className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 flex items-center disabled:opacity-50"
+              className="bg-orange-600 text-white px-3 py-2 text-sm rounded-md hover:bg-orange-700 flex items-center disabled:opacity-50"
             >
-              <Play className="h-4 w-4 mr-2" />
+              <Play className="h-4 w-4 mr-1 sm:mr-2" />
               {generating ? 'Generando...' : 'Genera Piano'}
             </button>
             <button
@@ -453,36 +453,38 @@ export default function AdminSchedulePage() {
                 setPrefilledShiftData(null)
                 setShowAddShiftModal(true)
               }}
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center"
+              className="bg-green-600 text-white px-3 py-2 text-sm rounded-md hover:bg-green-700 flex items-center"
             >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Aggiungi Turno
+              <UserPlus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Aggiungi Turno</span>
             </button>
           </div>
         </div>
 
         {/* Week Navigation */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <button
               onClick={() => navigateWeek('prev')}
-              className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-800"
+              className="flex items-center px-3 py-2 text-sm sm:text-base text-gray-600 hover:text-gray-800 w-full sm:w-auto justify-center sm:justify-start"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Settimana precedente
+              <span className="hidden sm:inline">Settimana precedente</span>
+              <span className="sm:hidden">Precedente</span>
             </button>
             
-            <div className="text-center">
-              <h2 className="text-lg font-bold text-2xl font-bold text-gray-900">
-                Settimana dal {formatDate(weekDays[0])} al {formatDate(weekDays[6])}
+            <div className="text-center order-first sm:order-none">
+              <h2 className="text-base sm:text-lg md:text-2xl font-bold text-gray-900">
+                {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
               </h2>
             </div>
             
             <button
               onClick={() => navigateWeek('next')}
-              className="flex items-center px-3 py-2 text-gray-600 hover:text-gray-800"
+              className="flex items-center px-3 py-2 text-sm sm:text-base text-gray-600 hover:text-gray-800 w-full sm:w-auto justify-center sm:justify-end"
             >
-              Settimana successiva
+              <span className="hidden sm:inline">Settimana successiva</span>
+              <span className="sm:hidden">Successiva</span>
               <ChevronRight className="h-4 w-4 ml-1" />
             </button>
           </div>
@@ -556,14 +558,14 @@ export default function AdminSchedulePage() {
               <table className="min-w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Giorno
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Pranzo (11:30-14:00)
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pranzo
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cena (18:00-22:00)
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cena
                     </th>
                   </tr>
                 </thead>
@@ -575,17 +577,17 @@ export default function AdminSchedulePage() {
                     
                     return (
                       <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                           <div>
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-xs sm:text-sm font-medium text-gray-900">
                               {getDayName(dayOfWeek)}
                             </div>
-                            <div className="text-sm text-gray-700">
+                            <div className="text-xs sm:text-sm text-gray-700">
                               {formatDate(day)}
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-4">
                           <ShiftCrew 
                             shifts={pranzoCrew} 
                             dayOfWeek={dayOfWeek}

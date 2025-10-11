@@ -407,25 +407,25 @@ export default function DashboardPage() {
         )}
 
         {/* Recent Activities */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h2 className="text-base sm:text-lg font-medium text-gray-900">
                 {isAdmin ? 'Attività Recenti' : 'I Miei Prossimi Turni'}
               </h2>
             </div>
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {isAdmin ? (
                 <p className="text-gray-700 text-center py-8">
                   Nessuna attività recente
                 </p>
               ) : (
                 myShifts && myShifts.total > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {myShifts.shifts.map((shift) => (
                       <div
                         key={shift.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border gap-2 ${
                           shift.isToday 
                             ? 'bg-orange-50 border-orange-200' 
                             : shift.isPast 
@@ -433,15 +433,15 @@ export default function DashboardPage() {
                             : 'bg-blue-50 border-blue-200'
                         }`}
                       >
-                        <div>
-                          <p className="font-medium text-gray-900">
+                        <div className="flex-1">
+                          <p className="text-sm sm:text-base font-medium text-gray-900">
                             {shift.dayName} {shift.date}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs sm:text-sm text-gray-600">
                             {shift.shiftType.toLowerCase()} - {getRoleName(shift.role as any)}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className="flex items-center justify-between sm:block sm:text-right">
                           <p className="text-sm font-medium text-gray-900">
                             Inizio: {shift.startTime}
                           </p>
@@ -462,9 +462,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-base sm:text-lg font-medium text-gray-900">
                   {isAdmin ? 'Ore da Approvare' : 'Le Mie Ore'}
                 </h2>
                 {isAdmin && pendingHours && pendingHours.totalShifts > 0 && (
@@ -474,27 +474,27 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {isAdmin ? (
                 pendingHours && pendingHours.users.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {pendingHours.users.map((userPending) => (
                       <div 
                         key={userPending.user.id}
-                        className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors"
+                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors gap-2"
                       >
                         <div className="flex items-center space-x-3">
-                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0"></div>
                           <div>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm sm:text-base font-medium text-gray-900">
                               {userPending.user.username}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-xs sm:text-sm text-gray-600">
                               {getRoleName(userPending.user.primaryRole as any)}
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left sm:text-right pl-5 sm:pl-0">
                           <p className="text-sm font-medium text-orange-800">
                             {userPending.shiftsCount} {userPending.shiftsCount === 1 ? 'turno' : 'turni'}
                           </p>
@@ -529,9 +529,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Azioni Rapide</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Azioni Rapide</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {isAdmin ? (
               <>
                 <ActionButton
@@ -604,14 +604,14 @@ function StatCard({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-lg shadow p-4 sm:p-6">
       <div className="flex items-center">
         <div className="flex-shrink-0">
-          <Icon className={`h-8 w-8 ${colorClasses[color as keyof typeof colorClasses]}`} />
+          <Icon className={`h-6 w-6 sm:h-8 sm:w-8 ${colorClasses[color as keyof typeof colorClasses]}`} />
         </div>
-        <div className="ml-4 flex-1">
-          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-          <p className={`text-2xl font-bold ${colorClasses[color as keyof typeof colorClasses]}`}>
+        <div className="ml-3 sm:ml-4 flex-1">
+          <h3 className="text-sm sm:text-lg font-medium text-gray-900">{title}</h3>
+          <p className={`text-xl sm:text-2xl font-bold ${colorClasses[color as keyof typeof colorClasses]}`}>
             {value}
           </p>
           {subtitle && (
@@ -637,13 +637,13 @@ function ActionButton({
   return (
     <a
       href={href}
-      className="block p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors"
+      className="block p-3 sm:p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors"
     >
-      <div className="flex items-center mb-2">
-        <Icon className="h-5 w-5 text-orange-600 mr-2" />
-        <h3 className="font-medium text-gray-900">{title}</h3>
+      <div className="flex items-center mb-1 sm:mb-2">
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 mr-2" />
+        <h3 className="text-sm sm:text-base font-medium text-gray-900">{title}</h3>
       </div>
-      <p className="text-sm text-gray-800">{description}</p>
+      <p className="text-xs sm:text-sm text-gray-800">{description}</p>
     </a>
   )
 }
