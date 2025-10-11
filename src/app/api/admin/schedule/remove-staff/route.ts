@@ -20,15 +20,37 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get shift data before deleting (to get username)
+    const shift = await prisma.shifts.findUnique({
+      where: { id: shiftId },
+      include: {
+        user: {
+          select: {
+            username: true
+          }
+        }
+      }
+    })
+
+    if (!shift) {
+      return NextResponse.json(
+        { error: 'Turno non trovato' },
+        { status: 404 }
+      )
+    }
+
     // Delete the shift
     await prisma.shifts.delete({
       where: { id: shiftId }
     })
 
     // Optionally log the removal reason
-    console.log(`Shift ${shiftId} removed by ${session.user.username}. Reason: ${reason || 'N/A'}`)
+    console.log(`Shift ${shiftId} removed by ${session.user.username}. User: ${shift.user.username}. Reason: ${reason || 'N/A'}`)
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      username: shift.user.username
+    })
   } catch (error) {
     console.error('Error removing staff:', error)
     return NextResponse.json(
