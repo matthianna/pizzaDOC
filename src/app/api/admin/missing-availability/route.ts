@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const weekStart = normalizeDate(weekStartParam)
 
     // Get all non-admin users
-    const allUsers = await prisma.user.findMany({
+    const allUsers = await prisma.User.findMany({
       where: {
         user_roles: {
           none: {

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     console.log(`🔍 Cercando disponibilità per weekStart: ${weekStart.toISOString()}`)
 
     // Carica tutti gli utenti attivi (no admin) con le loro disponibilità
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       where: {
         isActive: true,
         user_roles: {

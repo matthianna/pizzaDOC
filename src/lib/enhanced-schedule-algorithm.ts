@@ -319,7 +319,7 @@ export class EnhancedScheduleAlgorithm {
     weekEnd.setDate(weekEnd.getDate() + 6)
     weekEnd.setHours(23, 59, 59, 999)
     
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       where: { isActive: true },
       include: {
         user_roles: true,

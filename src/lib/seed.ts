@@ -5,7 +5,7 @@ import { Role } from '@prisma/client'
 export async function seedDatabase() {
   try {
     // Check if admin already exists
-    const existingAdmin = await prisma.user.findFirst({
+    const existingAdmin = await prisma.User.findFirst({
       where: {
         user_roles: {
           some: {
@@ -23,7 +23,7 @@ export async function seedDatabase() {
     // Create admin user
     const adminPassword = await hashPassword('admin')
     
-    const admin = await prisma.user.create({
+    const admin = await prisma.User.create({
       data: {
         username: 'admin',
         password: adminPassword,

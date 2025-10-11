@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(newPassword)
     
     console.log('Updating user in database...')
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.User.update({
       where: { id: userId },
       data: {
         password: hashedPassword,

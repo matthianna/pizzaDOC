@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     // Fetch all active users with their roles and availabilities (excluding admins for scheduling)
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       where: {
         isActive: true,
         user_roles: {

@@ -27,16 +27,16 @@ export async function PUT(
     }
 
     // Delete existing roles and transports
-    await prisma.userRole.deleteMany({
+    await prisma.user_roles.deleteMany({
       where: { userId: id }
     })
 
-    await prisma.userTransport.deleteMany({
+    await prisma.user_transports.deleteMany({
       where: { userId: id }
     })
 
     // Update user with new data
-    const user = await prisma.user.update({
+    const user = await prisma.User.update({
       where: { id: id },
       data: {
         primaryRole,
@@ -101,7 +101,7 @@ export async function DELETE(
     }
 
     // Check if user exists
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: id }
     })
 
@@ -120,7 +120,7 @@ export async function DELETE(
       )
     }
 
-    await prisma.user.delete({
+    await prisma.User.delete({
       where: { id: id }
     })
 

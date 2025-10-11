@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Ottieni dati utente
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: userId },
       include: {
         user_roles: true

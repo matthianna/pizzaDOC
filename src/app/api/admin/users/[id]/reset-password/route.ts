@@ -17,7 +17,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: id }
     })
 
@@ -31,7 +31,7 @@ export async function POST(
     // Reset password to username (lowercase)
     const hashedPassword = await hashPassword(user.username.toLowerCase())
 
-    await prisma.user.update({
+    await prisma.User.update({
       where: { id: id },
       data: {
         password: hashedPassword,

@@ -14,7 +14,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       include: {
         user_roles: true,
         user_transports: true
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if username already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.User.findUnique({
       where: { username }
     })
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     // Create user with password = username (lowercase)
     const hashedPassword = await hashPassword(username.toLowerCase())
 
-    const user = await prisma.user.create({
+    const user = await prisma.User.create({
       data: {
         id: crypto.randomUUID(),
         username,

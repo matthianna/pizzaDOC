@@ -293,7 +293,7 @@ export async function GET(request: NextRequest) {
     // Conta trasporti dai turni FATTORINO
     const fattorinoShifts = shifts.filter(s => s.role === 'FATTORINO')
     for (const shift of fattorinoShifts) {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.User.findUnique({
         where: { id: shift.userId },
         select: { primaryTransport: true }
       })

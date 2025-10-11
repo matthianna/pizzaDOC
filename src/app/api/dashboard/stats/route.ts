@@ -37,8 +37,8 @@ export async function GET() {
         availabilitiesThisWeek,
         approvedSubstitutions
       ] = await Promise.all([
-        prisma.user.count(),
-        prisma.user.count({ where: { isActive: true } }),
+        prisma.User.count(),
+        prisma.User.count({ where: { isActive: true } }),
         prisma.worked_hours.count({ where: { status: 'PENDING' } }),
         prisma.schedules.count({
           where: {
