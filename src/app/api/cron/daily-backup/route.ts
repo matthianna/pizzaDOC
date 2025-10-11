@@ -6,7 +6,7 @@ import { createDatabaseBackup, cleanOldBackups } from '@/lib/database-backup'
  * 
  * Configurazione su Vercel:
  * 1. Vai su Project Settings > Cron Jobs
- * 2. Aggiungi: */api/cron/daily-backup
+ * 2. Aggiungi path: /api/cron/daily-backup
  * 3. Schedule: 0 2 * * * (ogni giorno alle 2 AM)
  * 
  * Per sicurezza, usa un Authorization header secret
