@@ -59,7 +59,7 @@ interface ScheduleResult {
 export class MaxCoverageAlgorithm {
   
   private async getTransportLimits(): Promise<{ maxScooter: number }> {
-    const scooterSetting = await prisma.systemSettings.findUnique({
+    const scooterSetting = await prisma.SystemSettings.findUnique({
       where: { key: 'scooter_count' }
     })
     
@@ -95,7 +95,7 @@ export class MaxCoverageAlgorithm {
     // Per ogni fattorino assegnato, verifica il trasporto
     let scooterCount = 0
     for (const shift of sameShiftFattorini) {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.User.findUnique({
         where: { id: shift.userId },
         select: { primaryTransport: true }
       })
@@ -126,7 +126,7 @@ export class MaxCoverageAlgorithm {
     }
 
     // Per CENA, usa le distribuzioni configurate
-    const distributions = await prisma.shiftStartTimeDistribution.findMany({
+    const distributions = await prisma.shift_start_time_distributions.findMany({
       where: {
         shiftType: 'CENA',
         role: role
@@ -304,7 +304,7 @@ export class MaxCoverageAlgorithm {
     weekEnd.setDate(weekEnd.getDate() + 6)
     weekEnd.setHours(23, 59, 59, 999)
     
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       where: { isActive: true },
       include: {
         user_roles: true,

@@ -16,7 +16,8 @@ import {
   ArrowRightOnRectangleIcon,
   ChartBarIcon,
   UserPlusIcon,
-  PresentationChartLineIcon
+  PresentationChartLineIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline'
 import { 
   HomeIcon as HomeIconSolid,
@@ -27,7 +28,8 @@ import {
   Cog6ToothIcon as Cog6ToothIconSolid,
   ChartBarIcon as ChartBarIconSolid,
   UserPlusIcon as UserPlusIconSolid,
-  PresentationChartLineIcon as PresentationChartLineIconSolid
+  PresentationChartLineIcon as PresentationChartLineIconSolid,
+  ShieldCheckIcon as ShieldCheckIconSolid
 } from '@heroicons/react/24/solid'
 import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
@@ -151,6 +153,13 @@ export function Sidebar() {
       href: '/admin/settings',
       icon: Cog6ToothIcon,
       iconSolid: Cog6ToothIconSolid,
+      adminOnly: true
+    },
+    {
+      name: 'Sistema e Sicurezza',
+      href: '/admin/system',
+      icon: ShieldCheckIcon,
+      iconSolid: ShieldCheckIconSolid,
       adminOnly: true
     }
   ]

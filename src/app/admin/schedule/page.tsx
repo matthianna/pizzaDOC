@@ -9,6 +9,7 @@ import { Role, ShiftType, TransportType } from '@prisma/client'
 import { AddShiftModal } from '@/components/admin/add-shift-modal'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
+import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 
 interface ScheduleShift {
   id: string
@@ -50,6 +51,8 @@ export default function AdminSchedulePage() {
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [showAddShiftModal, setShowAddShiftModal] = useState(false)
+  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [prefilledShiftData, setPrefilledShiftData] = useState<{
     dayOfWeek?: number
     shiftType?: ShiftType
@@ -209,8 +212,6 @@ export default function AdminSchedulePage() {
   }
 
   const deleteSchedule = async () => {
-    if (!confirm('Sei sicuro di voler eliminare il piano di questa settimana?')) return
-
     try {
       const response = await fetch(`/api/admin/schedule/${currentWeek.toISOString()}`, {
         method: 'DELETE'
@@ -424,7 +425,7 @@ export default function AdminSchedulePage() {
             {schedule && (
               <>
                 <button
-                  onClick={deleteSchedule}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -440,7 +441,7 @@ export default function AdminSchedulePage() {
               </>
             )}
             <button
-              onClick={generateSchedule}
+              onClick={() => setShowGenerateConfirm(true)}
               disabled={generating}
               className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 flex items-center disabled:opacity-50"
             >
@@ -621,7 +622,7 @@ export default function AdminSchedulePage() {
               <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-700 mb-4">Nessun piano generato per questa settimana</p>
               <button
-                onClick={generateSchedule}
+                onClick={() => setShowGenerateConfirm(true)}
                 disabled={generating}
                 className="bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50"
               >
@@ -873,6 +874,51 @@ export default function AdminSchedulePage() {
           </div>
         </div>
       )}
+
+      {/* Generate Schedule Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showGenerateConfirm}
+        onClose={() => setShowGenerateConfirm(false)}
+        onConfirm={async () => {
+          await generateSchedule()
+          setShowGenerateConfirm(false)
+        }}
+        title="Genera Piano Settimanale"
+        description="Stai per generare un nuovo piano settimanale. Se esiste già un piano per questa settimana, verrà sostituito. Questa azione è irreversibile."
+        confirmPhrase="GENERA PIANO"
+        confirmButtonText="Genera Piano"
+        isDangerous={true}
+        metadata={
+          <div className="text-sm space-y-1">
+            <p><strong>Settimana:</strong> {formatDate(currentWeek)} - {formatDate(new Date(currentWeek.getTime() + 6 * 24 * 60 * 60 * 1000))}</p>
+            <p><strong>Modalità:</strong> Algoritmo massima copertura</p>
+            {missingAvailability.length > 0 && (
+              <p className="text-amber-600"><strong>⚠️ Attenzione:</strong> {missingAvailability.length} utenti senza disponibilità</p>
+            )}
+          </div>
+        }
+      />
+
+      {/* Delete Schedule Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={async () => {
+          await deleteSchedule()
+          setShowDeleteConfirm(false)
+        }}
+        title="Elimina Piano Settimanale"
+        description="Stai per eliminare completamente il piano di questa settimana. Tutti i turni assegnati verranno rimossi. Questa azione NON può essere annullata."
+        confirmPhrase="ELIMINA PIANO"
+        confirmButtonText="Elimina Piano"
+        isDangerous={true}
+        metadata={
+          <div className="text-sm space-y-1">
+            <p><strong>Settimana:</strong> {formatDate(currentWeek)} - {formatDate(new Date(currentWeek.getTime() + 6 * 24 * 60 * 60 * 1000))}</p>
+            {schedule && <p><strong>Turni da eliminare:</strong> {schedule.shifts.length}</p>}
+          </div>
+        }
+      />
     </MainLayout>
   )
 }
