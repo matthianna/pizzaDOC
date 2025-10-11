@@ -23,11 +23,12 @@ async function saveSchedule(weekStart: Date, shifts: any[]): Promise<string> {
   }
 
   // Crea nuovo schedule
+  const now = new Date()
   const schedule = await prisma.schedules.create({
     data: {
       id: crypto.randomUUID(),
       weekStart,
-      updatedAt: new Date(),
+      updatedAt: now,
       shifts: {
         create: shifts.map(shift => ({
           id: crypto.randomUUID(),
@@ -36,7 +37,8 @@ async function saveSchedule(weekStart: Date, shifts: any[]): Promise<string> {
           shiftType: shift.shiftType,
           role: shift.role,
           startTime: shift.startTime,
-          endTime: shift.endTime
+          endTime: shift.endTime,
+          updatedAt: now
         }))
       }
     }
