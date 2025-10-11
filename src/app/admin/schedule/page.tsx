@@ -1018,10 +1018,10 @@ function ShiftCrew({
                 {onQuickAdd && (
                   <button
                     onClick={() => onQuickAdd(dayOfWeek, shiftType, role)}
-                    className="inline-flex items-center justify-center w-5 h-5 sm:w-4 sm:h-4 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-all opacity-100 sm:opacity-0 sm:group-hover/role:opacity-100"
+                    className="inline-flex items-center justify-center w-5 h-5 md:w-4 md:h-4 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-all opacity-100 md:opacity-0 md:group-hover/role:opacity-100"
                     title={`Aggiungi ${getRoleName(role)}`}
                   >
-                    <UserPlus className="h-3 w-3 sm:h-2.5 sm:w-2.5" />
+                    <UserPlus className="h-3 w-3 md:h-2.5 md:w-2.5" />
                   </button>
                 )}
               </div>
@@ -1046,7 +1046,7 @@ function ShiftCrew({
                         {shift.startTime}
                       </span>
                     </span>
-                    <div className="flex items-center gap-1 ml-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 ml-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       {onEditTime && (
                         <button
                           onClick={() => onEditTime(shift)}
