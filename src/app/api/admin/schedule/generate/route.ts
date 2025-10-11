@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { MaxCoverageAlgorithm } from '@/lib/max-coverage-algorithm'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
+import { logAuditAction } from '@/lib/audit-logger'
 
 async function saveSchedule(weekStart: Date, shifts: any[]): Promise<string> {
   // Elimina schedule esistente se presente
@@ -66,6 +67,20 @@ export async function POST(request: NextRequest) {
     
     // Save schedule
     const scheduleId = await saveSchedule(weekStartDate, result.shifts)
+
+    // Log audit
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'SCHEDULE_GENERATE',
+      description: `Generato piano settimanale per ${weekStartDate.toISOString().split('T')[0]}`,
+      metadata: {
+        weekStart: weekStartDate.toISOString(),
+        shiftsGenerated: result.shifts.length,
+        totalShifts: result.statistics.totalShifts,
+        quality: result.statistics.quality
+      }
+    })
 
     return NextResponse.json({
       scheduleId,

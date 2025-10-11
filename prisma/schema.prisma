@@ -190,6 +190,7 @@ model User {
   Account                                         Account[]
   Session                                         Session[]
   absences                                        absences[]
+  audit_logs                                      audit_logs[]
   availabilities                                  availabilities[]
   shifts                                          shifts[]
   approvedSubstitutions   substitutions[]   @relation("substitutions_approverIdTousers")
@@ -217,6 +218,23 @@ model worked_hours {
   updatedAt       DateTime
   shifts          shifts      @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model audit_logs {
+  id           String          @id
+  userId       String
+  userUsername String
+  action       AuditActionType
+  description  String
+  ipAddress    String?
+  userAgent    String?
+  metadata     Json?
+  createdAt    DateTime        @default(now())
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 enum HoursStatus {
@@ -256,4 +274,26 @@ enum SubstitutionStatus {
 enum TransportType {
   AUTO
   SCOOTER
+}
+
+enum AuditActionType {
+  SCHEDULE_GENERATE
+  SCHEDULE_DELETE
+  SHIFT_ADD
+  SHIFT_DELETE
+  SHIFT_EDIT
+  USER_CREATE
+  USER_DELETE
+  USER_EDIT
+  HOURS_APPROVE
+  HOURS_REJECT
+  HOURS_EDIT
+  ABSENCE_CREATE
+  ABSENCE_DELETE
+  ABSENCE_EDIT
+  SUBSTITUTION_APPROVE
+  SUBSTITUTION_REJECT
+  DATABASE_RESET
+  DATABASE_BACKUP
+  SETTINGS_CHANGE
 }
