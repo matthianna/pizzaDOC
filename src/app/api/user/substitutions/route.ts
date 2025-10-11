@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id
       },
       include: {
-        schedule: true
+        schedules: true
       }
     })
 
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if shift is in the future
-    const weekStart = normalizeDate(shift.schedule.weekStart)
+    const weekStart = normalizeDate(shift.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
     const shiftDate = addDays(weekStart, shift.dayOfWeek)
     const now = new Date()
