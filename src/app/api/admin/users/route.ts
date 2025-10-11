@@ -68,15 +68,23 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.create({
       data: {
+        id: crypto.randomUUID(),
         username,
         password: hashedPassword,
         primaryRole,
         primaryTransport: primaryTransport || null,
+        updatedAt: new Date(),
         user_roles: {
-          create: roles.map((role: string) => ({ role }))
+          create: roles.map((role: string) => ({ 
+            id: crypto.randomUUID(),
+            role 
+          }))
         },
         user_transports: transports?.length > 0 ? {
-          create: transports.map((transport: string) => ({ transport }))
+          create: transports.map((transport: string) => ({ 
+            id: crypto.randomUUID(),
+            transport 
+          }))
         } : undefined
       },
       include: {

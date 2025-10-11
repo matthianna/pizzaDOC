@@ -184,11 +184,13 @@ export async function POST(request: NextRequest) {
     // Create substitution request
     const substitution = await prisma.substitutions.create({
       data: {
+        id: crypto.randomUUID(),
         shiftId,
         requesterId: session.user.id,
         requestNote: requestNote || null,
         deadline,
-        status: 'PENDING'
+        status: 'PENDING',
+        updatedAt: new Date()
       },
       include: {
         shift: {

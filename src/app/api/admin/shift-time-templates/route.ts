@@ -49,13 +49,15 @@ export async function POST(request: NextRequest) {
 
     const template = await prisma.shiftTimeTemplate.create({
       data: {
+        id: crypto.randomUUID(),
         shiftType,
         role,
         startTime,
         endTime,
         priority: priority || 0,
         description,
-        isActive: isActive !== undefined ? isActive : true
+        isActive: isActive !== undefined ? isActive : true,
+        updatedAt: new Date()
       }
     })
 

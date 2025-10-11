@@ -124,11 +124,13 @@ export async function POST(request: NextRequest) {
 
     const workedHours = await prisma.worked_hours.create({
       data: {
+        id: crypto.randomUUID(),
         shiftId,
         userId: session.user.id,
         startTime,
         endTime,
-        totalHours
+        totalHours,
+        updatedAt: new Date()
       }
     })
 
