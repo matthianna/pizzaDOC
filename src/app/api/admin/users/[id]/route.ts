@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logAuditAction } from '@/lib/audit-logger'
 
 // PUT /api/admin/users/[id] - Update user
 export async function PUT(
@@ -41,16 +42,38 @@ export async function PUT(
         primaryRole,
         primaryTransport: primaryTransport || null,
         isActive,
+        updatedAt: new Date(),
         user_roles: {
-          create: roles.map((role: string) => ({ role }))
+          create: roles.map((role: string) => ({ 
+            id: crypto.randomUUID(),
+            role 
+          }))
         },
         user_transports: transports?.length > 0 ? {
-          create: transports.map((transport: string) => ({ transport }))
+          create: transports.map((transport: string) => ({ 
+            id: crypto.randomUUID(),
+            transport 
+          }))
         } : undefined
       },
       include: {
         user_roles: true,
         user_transports: true
+      }
+    })
+
+    // Log audit
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'USER_EDIT',
+      description: `Modificato utente: ${user.username}`,
+      metadata: {
+        userId: user.id,
+        roles: roles,
+        primaryRole: primaryRole,
+        transports: transports || [],
+        isActive: isActive
       }
     })
 
@@ -99,6 +122,18 @@ export async function DELETE(
 
     await prisma.user.delete({
       where: { id: id }
+    })
+
+    // Log audit
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'USER_DELETE',
+      description: `Eliminato utente: ${user.username}`,
+      metadata: {
+        userId: user.id,
+        username: user.username
+      }
     })
 
     return NextResponse.json({ success: true })

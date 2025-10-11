@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logAuditAction } from '@/lib/audit-logger'
 
 export async function PUT(
   request: NextRequest,
@@ -65,6 +66,21 @@ export async function PUT(
             schedules: true
           }
         }
+      }
+    })
+
+    // Log audit
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'HOURS_EDIT',
+      description: `Modificate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`,
+      metadata: {
+        workedHoursId: updatedHours.id,
+        userId: updatedHours.userId,
+        startTime,
+        endTime,
+        totalHours
       }
     })
 

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/utils'
+import { logAuditAction } from '@/lib/audit-logger'
 
 // GET /api/admin/users - Get all users
 export async function GET() {
@@ -90,6 +91,21 @@ export async function POST(request: NextRequest) {
       include: {
         user_roles: true,
         user_transports: true
+      }
+    })
+
+    // Log audit
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'USER_CREATE',
+      description: `Creato utente: ${username} (${primaryRole})`,
+      metadata: {
+        userId: user.id,
+        username: user.username,
+        roles: roles,
+        primaryRole: primaryRole,
+        transports: transports || []
       }
     })
 

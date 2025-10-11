@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logAuditAction } from '@/lib/audit-logger'
 
 // POST /api/admin/hours/[id]/approve - Approve worked hours
 export async function POST(
@@ -38,7 +39,24 @@ export async function POST(
       where: { id: id },
       data: {
         status: 'APPROVED',
-        reviewedAt: new Date()
+        reviewedAt: new Date(),
+        updatedAt: new Date()
+      },
+      include: {
+        user: { select: { username: true } }
+      }
+    })
+
+    // Log audit
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'HOURS_APPROVE',
+      description: `Approvate ore di ${updatedHours.user.username}: ${updatedHours.totalHours}h`,
+      metadata: {
+        workedHoursId: updatedHours.id,
+        userId: updatedHours.userId,
+        totalHours: updatedHours.totalHours
       }
     })
 

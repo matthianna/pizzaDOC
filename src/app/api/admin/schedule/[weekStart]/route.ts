@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
+import { logAuditAction } from '@/lib/audit-logger'
 
 // GET /api/admin/schedule/[weekStart] - Get schedule for a specific week
 export async function GET(
@@ -90,12 +91,29 @@ export async function DELETE(
       )
     }
 
+    // Conta turni prima di eliminare
+    const shiftsCount = await prisma.shifts.count({
+      where: { scheduleId: schedule.id }
+    })
+
     await prisma.shifts.deleteMany({
       where: { scheduleId: schedule.id }
     })
 
     await prisma.schedules.delete({
       where: { id: schedule.id }
+    })
+
+    // Log audit
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'SCHEDULE_DELETE',
+      description: `Eliminato piano settimanale: ${weekStart.toISOString().split('T')[0]} (${shiftsCount} turni)`,
+      metadata: {
+        weekStart: weekStart.toISOString(),
+        shiftsDeleted: shiftsCount
+      }
     })
 
     return NextResponse.json({ success: true })

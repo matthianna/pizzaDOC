@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logAuditAction } from '@/lib/audit-logger'
 
 // POST /api/admin/hours/[id]/reject - Reject worked hours
 export async function POST(
@@ -48,7 +49,25 @@ export async function POST(
       data: {
         status: 'REJECTED',
         rejectionReason: reason,
-        reviewedAt: new Date()
+        reviewedAt: new Date(),
+        updatedAt: new Date()
+      },
+      include: {
+        user: { select: { username: true } }
+      }
+    })
+
+    // Log audit
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'HOURS_REJECT',
+      description: `Rifiutate ore di ${updatedHours.user.username}: ${reason}`,
+      metadata: {
+        workedHoursId: updatedHours.id,
+        userId: updatedHours.userId,
+        totalHours: updatedHours.totalHours,
+        rejectionReason: reason
       }
     })
 
