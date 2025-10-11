@@ -27,6 +27,7 @@ async function saveSchedule(weekStart: Date, shifts: any[]): Promise<string> {
     data: {
       id: crypto.randomUUID(),
       weekStart,
+      updatedAt: new Date(),
       shifts: {
         create: shifts.map(shift => ({
           id: crypto.randomUUID(),
