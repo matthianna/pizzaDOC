@@ -8,6 +8,7 @@ import { Role, TransportType } from '@prisma/client'
 import { Select } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 
 interface User {
   id: string
@@ -25,6 +26,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingUser, setDeletingUser] = useState<User | null>(null)
 
   useEffect(() => {
     fetchUsers()
@@ -44,16 +47,24 @@ export default function UsersPage() {
     }
   }
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questo utente?')) return
+  const openDeleteConfirm = (user: User) => {
+    setDeletingUser(user)
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return
 
     try {
+      const userId = deletingUser.id
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE'
       })
 
       if (response.ok) {
         setUsers(users.filter(u => u.id !== userId))
+        setShowDeleteConfirm(false)
+        setDeletingUser(null)
       } else {
         alert('Errore durante l\'eliminazione')
       }
@@ -211,7 +222,7 @@ export default function UsersPage() {
                         <RotateCcw className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteUser(user.id)}
+                        onClick={() => openDeleteConfirm(user)}
                         className="text-red-600 hover:text-red-900"
                         title="Elimina"
                       >
@@ -254,6 +265,31 @@ export default function UsersPage() {
           }}
         />
       )}
+
+      {/* Delete User Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setDeletingUser(null)
+        }}
+        onConfirm={handleDeleteUser}
+        title="Elimina Utente"
+        description="Stai per eliminare definitivamente questo utente. Tutti i suoi dati associati (disponibilità, ore lavorate, turni) verranno eliminati. Questa azione NON può essere annullata."
+        confirmPhrase="ELIMINA UTENTE"
+        confirmButtonText="Elimina Utente"
+        isDangerous={true}
+        metadata={
+          deletingUser && (
+            <div className="text-sm space-y-1">
+              <p><strong>Username:</strong> {deletingUser.username}</p>
+              <p><strong>Ruolo:</strong> {getRoleName(deletingUser.primaryRole)}</p>
+              <p><strong>Ruoli:</strong> {deletingUser.user_roles.map(r => getRoleName(r.role)).join(', ')}</p>
+              <p><strong>Stato:</strong> {deletingUser.isActive ? 'Attivo' : 'Disattivato'}</p>
+            </div>
+          )
+        }
+      />
     </MainLayout>
   )
 }
