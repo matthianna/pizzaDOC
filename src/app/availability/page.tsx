@@ -159,11 +159,11 @@ export default function AvailabilityPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+            <h1 className="text-xl sm:text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <Calendar className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-orange-600" />
               Gestione Disponibilità
             </h1>
@@ -174,7 +174,7 @@ export default function AvailabilityPage() {
         </div>
 
         {/* Week Navigation */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 mb-4">
             <button
               onClick={() => navigateWeek('prev')}
@@ -338,7 +338,7 @@ export default function AvailabilityPage() {
         </div>
 
         {/* Legend */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Legenda</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div className="flex items-center">

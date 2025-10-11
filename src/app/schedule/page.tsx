@@ -172,11 +172,11 @@ export default function SchedulePage() {
 
   return (
     <MainLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <Calendar className="h-6 w-6 text-orange-500 mr-2" />
               Il Mio Piano di Lavoro
             </h1>
@@ -187,11 +187,11 @@ export default function SchedulePage() {
         </div>
 
         {/* Week Navigation */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <button
               onClick={goToPreviousWeek}
-              className="flex items-center px-4 py-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+              className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
             >
               <ChevronLeft className="h-5 w-5 mr-1" />
               Settimana precedente
@@ -215,7 +215,7 @@ export default function SchedulePage() {
               </button>
               <button
                 onClick={goToNextWeek}
-                className="flex items-center px-4 py-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
               >
                 Settimana successiva
                 <ChevronRight className="h-5 w-5 ml-1" />
@@ -396,7 +396,7 @@ export default function SchedulePage() {
                   ) : (
                     <div className="flex items-center justify-center h-32 text-center">
                       <div className="text-gray-400">
-                        <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <Calendar className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm font-medium">Nessun turno</p>
                         <p className="text-xs text-gray-500">Riposo!</p>
                       </div>
@@ -410,11 +410,11 @@ export default function SchedulePage() {
 
         {/* Summary */}
         {shifts.length > 0 && (
-          <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl shadow-lg border border-orange-200 p-6">
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl shadow-lg border border-orange-200 p-4 sm:p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
               Riepilogo Settimana
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:p-6">
               <div className="text-center bg-white rounded-xl p-6 shadow-md border border-orange-200">
                 <div className="text-3xl font-bold text-orange-600 mb-1">
                   {shifts.length}
@@ -441,7 +441,7 @@ export default function SchedulePage() {
         {showSubstitutionModal && selectedShift && (
           <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Cerca un Sostituto
                 </h3>

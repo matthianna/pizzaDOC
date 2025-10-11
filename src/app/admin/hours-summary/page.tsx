@@ -236,11 +236,11 @@ export default function AdminHoursSummaryPage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <BarChart3 className="h-6 w-6 text-orange-500 mr-2" />
               Riepilogo Ore Lavorate
             </h1>
@@ -255,7 +255,7 @@ export default function AdminHoursSummaryPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <ReactSelect
               label="Dipendente"
@@ -297,7 +297,7 @@ export default function AdminHoursSummaryPage() {
             <div className="flex items-end">
               <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 w-full">
                 <div className="text-sm text-orange-600 font-medium">Ore Totali</div>
-                <div className="text-2xl font-bold text-orange-700">{totalHoursAllUsers.toFixed(1)}h</div>
+                <div className="text-xl sm:text-2xl font-bold text-orange-700">{totalHoursAllUsers.toFixed(1)}h</div>
               </div>
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function AdminHoursSummaryPage() {
         <div className="space-y-4">
           {loading ? (
             <div className="bg-white rounded-lg shadow p-12 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
               <p className="text-gray-500">Caricamento riepilogo...</p>
             </div>
           ) : summary.length === 0 ? (

@@ -213,7 +213,7 @@ export default function SettingsPage() {
     return (
       <MainLayout adminOnly>
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+          <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-600"></div>
         </div>
       </MainLayout>
     )
@@ -221,11 +221,11 @@ export default function SettingsPage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Cog6ToothIcon className="h-8 w-8 mr-3 text-orange-600" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+            <Cog6ToothIcon className="h-6 w-6 sm:h-8 sm:w-8 mr-3 text-orange-600" />
             Configurazioni Sistema
           </h1>
           <p className="text-gray-600 mt-1">
@@ -267,7 +267,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Shift Limits Configuration */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
@@ -384,7 +384,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Contenuto principale */}
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {shifts.map(shiftType => (
               <div key={shiftType} className="mb-8 last:mb-0">
                 {/* Intestazione turno */}

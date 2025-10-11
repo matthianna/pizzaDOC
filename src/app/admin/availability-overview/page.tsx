@@ -81,11 +81,11 @@ export default function AvailabilityOverviewPage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Users className="h-8 w-8 mr-3 text-orange-600" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
+            <Users className="h-6 w-6 sm:h-8 sm:w-8 mr-3 text-orange-600" />
             Disponibilità Utenti
           </h1>
           <p className="text-gray-600 mt-1">
@@ -147,15 +147,15 @@ export default function AvailabilityOverviewPage() {
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="text-sm text-blue-700 font-medium">Utenti</div>
-              <div className="text-2xl font-bold text-blue-900">{filteredUsers.length}</div>
+              <div className="text-xl sm:text-2xl font-bold text-blue-900">{filteredUsers.length}</div>
             </div>
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <div className="text-sm text-green-700 font-medium">Disponibilità Totali</div>
-              <div className="text-2xl font-bold text-green-900">{totalAvailabilities}</div>
+              <div className="text-xl sm:text-2xl font-bold text-green-900">{totalAvailabilities}</div>
             </div>
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
               <div className="text-sm text-orange-700 font-medium">Copertura</div>
-              <div className="text-2xl font-bold text-orange-900">{availabilityPercentage.toFixed(1)}%</div>
+              <div className="text-xl sm:text-2xl font-bold text-orange-900">{availabilityPercentage.toFixed(1)}%</div>
             </div>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function AvailabilityOverviewPage() {
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-600"></div>
             </div>
           ) : (
             <div className="overflow-x-auto">

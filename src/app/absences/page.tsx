@@ -151,10 +151,10 @@ export default function AbsencesPage() {
 
   return (
     <MainLayout title="Assenze e Vacanze">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Assenze e Vacanze</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Assenze e Vacanze</h1>
             <p className="text-sm text-gray-600 mt-1">
               Gestisci i tuoi periodi di assenza
             </p>
@@ -178,7 +178,7 @@ export default function AbsencesPage() {
         </div>
 
         {showForm && (
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               {editingAbsence ? 'Modifica Assenza' : 'Nuova Assenza'}
             </h3>
@@ -272,10 +272,10 @@ export default function AbsencesPage() {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-600"></div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {activeAbsences.length > 0 && (
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">🟢 Assenze Attive</h2>

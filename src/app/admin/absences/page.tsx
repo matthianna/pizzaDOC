@@ -129,9 +129,9 @@ export default function AdminAbsencesPage() {
 
   return (
     <MainLayout title="Gestione Assenze">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestione Assenze e Vacanze</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gestione Assenze e Vacanze</h1>
           <p className="text-sm text-gray-600 mt-1">
             Visualizza tutte le assenze programmate dai dipendenti
           </p>
@@ -171,7 +171,7 @@ export default function AdminAbsencesPage() {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-600"></div>
           </div>
         ) : absences.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -208,7 +208,7 @@ export default function AdminAbsencesPage() {
         {editingAbsence && (
           <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-900">
                     Modifica Assenza - {editingAbsence.user.username}
@@ -296,7 +296,7 @@ export default function AdminAbsencesPage() {
         {deletingAbsence && (
           <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold text-gray-900">
                     Conferma Eliminazione

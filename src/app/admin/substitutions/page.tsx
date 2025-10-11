@@ -190,11 +190,11 @@ export default function AdminSubstitutionsPage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <Users className="h-6 w-6 text-orange-500 mr-2" />
               Gestione Sostituzioni
             </h1>
@@ -212,7 +212,7 @@ export default function AdminSubstitutionsPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
           <div className="flex items-center space-x-4">
             <div className="w-48">
               <ReactSelect
@@ -243,7 +243,7 @@ export default function AdminSubstitutionsPage() {
         <div className="space-y-4">
           {loading ? (
             <div className="bg-white rounded-lg shadow p-12 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
               <p className="text-gray-800">Caricamento sostituzioni...</p>
             </div>
           ) : substitutions.length === 0 ? (
@@ -260,7 +260,7 @@ export default function AdminSubstitutionsPage() {
               
               return (
                 <div key={substitution.id} className="bg-white rounded-lg shadow overflow-hidden">
-                  <div className="p-6">
+                  <div className="p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
                         {getStatusIcon(substitution.status)}
@@ -273,7 +273,7 @@ export default function AdminSubstitutionsPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:p-6">
                       {/* Shift Info */}
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-2">Turno</h3>
@@ -373,7 +373,7 @@ export default function AdminSubstitutionsPage() {
         {showRejectModal && selectedSubstitution && (
           <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Rifiuta Sostituzione
                 </h3>

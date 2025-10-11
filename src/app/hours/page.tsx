@@ -228,11 +228,11 @@ export default function HoursPage() {
 
   return (
     <MainLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <Clock className="h-6 w-6 text-orange-500 mr-2" />
               Ore Lavorate
             </h1>
@@ -257,7 +257,7 @@ export default function HoursPage() {
 
         {/* Week Navigation - Hidden when showing history */}
         {!showHistory && (
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <Button variant="outline" onClick={goToPreviousWeek}>
                 ← Settimana precedente
@@ -304,13 +304,13 @@ export default function HoursPage() {
             
             {historyLoading ? (
               <div className="p-12 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
                 <p className="text-gray-800">Caricamento storico...</p>
               </div>
             ) : historyData && historyData.months.length > 0 ? (
               <div className="divide-y divide-gray-200">
                 {historyData.months.map((month: any, index: number) => (
-                  <div key={index} className="p-6">
+                  <div key={index} className="p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-semibold text-gray-900 capitalize">
                         {month.month}
@@ -364,7 +364,7 @@ export default function HoursPage() {
           <div className="space-y-4">
             {loading ? (
               <div className="bg-white rounded-lg shadow p-12 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
                 <p className="text-gray-800">Caricamento turni...</p>
               </div>
             ) : shifts.length === 0 ? (
@@ -499,7 +499,7 @@ function ShiftCard({
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
 
         {shift.workedHours && shift.workedHours.status !== 'REJECTED' ? (
           // Show submitted hours (PENDING or APPROVED only)
@@ -549,7 +549,7 @@ function ShiftCard({
                 }
               </h4>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:p-6">
               {/* Orario Inizio */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
@@ -683,7 +683,7 @@ function ShiftCard({
         ) : (
           // Future shift
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-            <Calendar className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+            <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 mx-auto mb-2" />
             <p className="text-blue-700 font-medium">Turno futuro</p>
             <p className="text-blue-600 text-sm">Potrai inserire le ore dopo aver completato il turno</p>
           </div>
