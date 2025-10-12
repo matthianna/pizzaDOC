@@ -200,6 +200,7 @@ export class MaxCoverageAlgorithm {
 
   async generateMaxCoverageSchedule(weekStart: Date): Promise<ScheduleResult> {
     console.log('🚀 Generazione schedule con algoritmo MAX COVERAGE AVANZATO...')
+    console.log(`📅 Settimana: ${weekStart.toISOString().split('T')[0]}`)
     
     // 1. Carica dati
     const users = await this.loadUserProfiles(weekStart)
@@ -209,6 +210,17 @@ export class MaxCoverageAlgorithm {
     console.log(`👥 Utenti caricati: ${users.length}`)
     console.log(`📋 Requisiti caricati: ${requirements.length}`)
     console.log(`🔄 Turni esistenti: ${existingShifts.length}`)
+    
+    // Log dettagliato disponibilità
+    const totalAvailabilities = users.reduce((sum, u) => sum + u.availabilities.filter(a => a.isAvailable).length, 0)
+    const usersWithAvailabilities = users.filter(u => u.availabilities.some(a => a.isAvailable)).length
+    console.log(`✅ Disponibilità TOTALI per questa settimana: ${totalAvailabilities}`)
+    console.log(`✅ Utenti con almeno 1 disponibilità: ${usersWithAvailabilities}/${users.length}`)
+    
+    if (usersWithAvailabilities === 0) {
+      console.warn('⚠️  ATTENZIONE: NESSUN utente ha disponibilità per questa settimana!')
+      console.warn(`⚠️  Verifica che gli utenti abbiano inserito disponibilità per ${weekStart.toISOString().split('T')[0]}`)
+    }
     
     // 2. Ordina requisiti per priorità
     const sortedRequirements = this.prioritizeRequirements(requirements)
@@ -338,19 +350,21 @@ export class MaxCoverageAlgorithm {
   }
 
   private async loadUserProfiles(weekStart: Date): Promise<UserProfile[]> {
+    console.log(`📥 Caricamento profili utenti per settimana: ${weekStart.toISOString().split('T')[0]}`)
+    
     // Calcola weekEnd per query assenze
     const weekEnd = new Date(weekStart)
     weekEnd.setDate(weekEnd.getDate() + 6)
     weekEnd.setHours(23, 59, 59, 999)
     
-    const users = await prisma.User.findMany({
+    const users = await prisma.user.findMany({
       where: { isActive: true },
       include: {
         user_roles: true,
         user_transports: true,
         availabilities: {
           where: {
-            weekStart
+            weekStart // ⭐ FILTRA DISPONIBILITÀ PER QUESTA SETTIMANA SPECIFICA
           }
         },
         absences: {
