@@ -449,32 +449,34 @@ export default function AdminHoursPage() {
               </div>
 
               {/* Edit times */}
-              <div className="grid grid-cols-2 gap-4 sm:p-6" lang="it-IT">
+              <div className="grid grid-cols-2 gap-4 sm:p-6">
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-gray-800">
-                    Ora Inizio *
+                    Ora Inizio * <span className="text-xs text-gray-500">(formato 24h)</span>
                   </label>
                   <input
                     type="time"
                     value={editStartTime}
                     onChange={(e) => setEditStartTime(e.target.value)}
                     step="60"
-                    lang="it-IT"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-datetime-edit-ampm-field]:hidden"
+                    pattern="[0-9]{2}:[0-9]{2}"
+                    placeholder="18:00"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-datetime-edit-ampm-field]:hidden"
                     style={{ colorScheme: 'light' }}
                   />
                 </div>
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-gray-800">
-                    Ora Fine *
+                    Ora Fine * <span className="text-xs text-gray-500">(formato 24h)</span>
                   </label>
                   <input
                     type="time"
                     value={editEndTime}
                     onChange={(e) => setEditEndTime(e.target.value)}
                     step="60"
-                    lang="it-IT"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-datetime-edit-ampm-field]:hidden"
+                    pattern="[0-9]{2}:[0-9]{2}"
+                    placeholder="22:00"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-datetime-edit-ampm-field]:hidden"
                     style={{ colorScheme: 'light' }}
                   />
                 </div>
