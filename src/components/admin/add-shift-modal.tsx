@@ -32,6 +32,7 @@ interface AddShiftModalProps {
 
 export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData }: AddShiftModalProps) {
   const [users, setUsers] = useState<User[]>([])
+  const [existingShifts, setExistingShifts] = useState<{ userId: string; role: string }[]>([])
   const [selectedUserId, setSelectedUserId] = useState('')
   const [selectedDay, setSelectedDay] = useState(0) // 0 = Monday (our system)
   const [selectedShiftType, setSelectedShiftType] = useState('PRANZO')
@@ -104,6 +105,11 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
   }, [])
 
   useEffect(() => {
+    // Carica i turni esistenti quando cambiano giorno o turno
+    fetchExistingShifts()
+  }, [selectedDay, selectedShiftType, weekStart])
+
+  useEffect(() => {
     // Imposta i valori precompilati se forniti
     if (prefilledData) {
       if (prefilledData.dayOfWeek !== undefined) {
@@ -152,6 +158,34 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
     }
   }
 
+  const fetchExistingShifts = async () => {
+    try {
+      const weekStartStr = weekStart.toISOString().split('T')[0]
+      const response = await fetch(`/api/admin/schedule/${weekStartStr}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.schedule?.shifts) {
+          // Filtra i turni per il giorno e turno selezionati
+          const filtered = data.schedule.shifts
+            .filter((shift: any) => 
+              shift.dayOfWeek === selectedDay && 
+              shift.shiftType === selectedShiftType
+            )
+            .map((shift: any) => ({
+              userId: shift.userId,
+              role: shift.role
+            }))
+          setExistingShifts(filtered)
+        } else {
+          setExistingShifts([])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching existing shifts:', error)
+      setExistingShifts([])
+    }
+  }
+
   const selectedUser = users.find(u => u.id === selectedUserId)
   const availableRoles = selectedUser?.availableRoles || []
 
@@ -161,6 +195,11 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
       a => a.dayOfWeek === selectedDay && a.shiftType === selectedShiftType
     )
     return availability?.isAvailable || false
+  }
+
+  // Helper per controllare se un utente è già assegnato a questo turno
+  const isUserAlreadyAssigned = (userId: string): boolean => {
+    return existingShifts.some(shift => shift.userId === userId)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -242,11 +281,27 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
               options={[
                 { value: '', label: 'Seleziona un dipendente' },
                 ...users.map(user => {
+                  const alreadyAssigned = isUserAlreadyAssigned(user.id)
                   const available = isUserAvailable(user)
-                  const availStatus = available ? ' ✅ Disponibile' : ' ⛔ Non disponibile'
+                  
+                  let statusIcon = ''
+                  let statusText = ''
+                  
+                  if (alreadyAssigned) {
+                    statusIcon = ' 🔒'
+                    statusText = ' Già assegnato'
+                  } else if (available) {
+                    statusIcon = ' ✅'
+                    statusText = ' Disponibile'
+                  } else {
+                    statusIcon = ' ⛔'
+                    statusText = ' Non disponibile'
+                  }
+                  
                   return {
                     value: user.id,
-                    label: `${user.username} (${getRoleName(user.primaryRole)})${availStatus}`
+                    label: `${user.username} (${getRoleName(user.primaryRole)})${statusIcon}${statusText}`,
+                    disabled: alreadyAssigned
                   }
                 })
               ]}
