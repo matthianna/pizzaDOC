@@ -44,28 +44,26 @@ export function Sidebar() {
   const isUserAdmin = isAdmin(session)
 
   const navigation = [
+    // 🏠 HOME
     {
       name: 'Dashboard',
       href: '/dashboard',
       icon: HomeIcon,
       iconSolid: HomeIconSolid,
-      adminOnly: false
+      adminOnly: false,
+      emoji: '🏠',
+      section: 'home'
     },
+    // 📅 IL MIO LAVORO
     {
       name: 'Disponibilità',
       href: '/availability',
       icon: CalendarIcon,
       iconSolid: CalendarIconSolid,
       adminOnly: false,
-      hideForAdmin: true // Admin non deve vedere questa sezione
-    },
-    {
-      name: 'Ore Lavorate',
-      href: '/hours',
-      icon: ClockIcon,
-      iconSolid: ClockIconSolid,
-      adminOnly: false,
-      hideForAdmin: true // Admin non deve vedere questa sezione
+      hideForAdmin: true,
+      emoji: '📅',
+      section: 'lavoro'
     },
     {
       name: 'Mio Piano',
@@ -73,15 +71,20 @@ export function Sidebar() {
       icon: ChartBarIcon,
       iconSolid: ChartBarIconSolid,
       adminOnly: false,
-      hideForAdmin: true // Admin ha già la sua vista piano
+      hideForAdmin: true,
+      emoji: '📊',
+      section: 'lavoro'
     },
+    // ⏰ ORE & ASSENZE
     {
-      name: 'Sostituzioni',
-      href: '/substitution-requests',
-      icon: UserPlusIcon,
-      iconSolid: UserPlusIconSolid,
+      name: 'Ore Lavorate',
+      href: '/hours',
+      icon: ClockIcon,
+      iconSolid: ClockIconSolid,
       adminOnly: false,
-      hideForAdmin: true // Admin ha la sua vista admin
+      hideForAdmin: true,
+      emoji: '⏰',
+      section: 'ore'
     },
     {
       name: 'Assenze',
@@ -89,7 +92,20 @@ export function Sidebar() {
       icon: CalendarIcon,
       iconSolid: CalendarIconSolid,
       adminOnly: false,
-      hideForAdmin: true
+      hideForAdmin: true,
+      emoji: '🏖️',
+      section: 'ore'
+    },
+    // 🔄 SOSTITUZIONI
+    {
+      name: 'Sostituzioni',
+      href: '/substitution-requests',
+      icon: UserPlusIcon,
+      iconSolid: UserPlusIconSolid,
+      adminOnly: false,
+      hideForAdmin: true,
+      emoji: '🔄',
+      section: 'sostituzioni'
     },
     // 👥 GESTIONE PERSONALE
     {
@@ -269,40 +285,41 @@ function SidebarContent({
     <>
       {/* Logo */}
       <div className="flex items-center flex-shrink-0 px-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+        <div className="flex items-center space-x-3 bg-gradient-to-r from-orange-500 to-orange-600 p-3 rounded-2xl shadow-lg w-full">
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center ring-4 ring-orange-300 shadow-md">
             <img
               src="/logo.png"
               alt="PizzaDOC Logo"
-              className="w-10 h-10 rounded-full object-cover"
+              className="w-8 h-8 rounded-full object-cover"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
                 const nextEl = e.currentTarget.nextElementSibling as HTMLElement
                 if (nextEl) nextEl.style.display = 'block'
               }}
             />
-            <span className="text-white font-bold text-lg hidden">🍕</span>
+            <span className="text-orange-600 font-bold text-xl hidden">🍕</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-900">PizzaDOC</h1>
+          <h1 className="text-xl font-black text-white tracking-tight">PizzaDOC</h1>
         </div>
       </div>
 
       {/* User info */}
       <div className="mt-6 px-4">
-        <div className="bg-orange-50 rounded-lg p-3">
-          <div className="flex items-center">
+        <div className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-orange-100 to-orange-50 rounded-2xl p-4 shadow-lg border border-orange-200">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-orange-200 rounded-full blur-2xl opacity-30 -mr-10 -mt-10"></div>
+          <div className="relative flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <span className="text-orange-600 font-semibold text-sm">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-lg ring-4 ring-orange-100">
+                <span className="text-white font-bold text-lg">
                   {session.user.username.charAt(0).toUpperCase()}
                 </span>
               </div>
             </div>
-            <div className="ml-3 flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+            <div className="ml-4 flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-900 truncate">
                 {session.user.username}
               </p>
-              <p className="text-xs text-orange-600">
+              <p className="text-xs font-semibold text-orange-700 bg-orange-200 px-2 py-0.5 rounded-full inline-block mt-1">
                 {getRoleName(session.user.primaryRole)}
               </p>
             </div>
@@ -312,31 +329,118 @@ function SidebarContent({
 
       {/* Navigation */}
       <nav className="mt-6 flex-1 px-4 space-y-1">
-        {/* Regular navigation items */}
-        {regularItems.map((item) => {
-          const Icon = pathname === item.href ? item.iconSolid : item.icon
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={onItemClick}
-              className={cn(
-                'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                pathname === item.href
-                  ? 'bg-orange-100 text-orange-700 border-r-2 border-orange-500'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              )}
-            >
-              <Icon 
-                className={cn(
-                  'mr-3 h-5 w-5 flex-shrink-0',
-                  pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
-                )} 
-              />
-              {item.name}
-            </Link>
-          )
-        })}
+        {/* Regular navigation items - grouped by section */}
+        {!isAdmin && regularItems.length > 0 && (
+          <>
+            {/* Home - Dashboard */}
+            {regularItems.filter(item => item.section === 'home').map((item) => {
+              const Icon = pathname === item.href ? item.iconSolid : item.icon
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={onItemClick}
+                  className={cn(
+                    'group flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-all mb-4',
+                    pathname === item.href
+                      ? 'bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 shadow-md border-l-4 border-orange-500 scale-105'
+                      : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white hover:shadow-sm hover:scale-102'
+                  )}
+                >
+                  <span className="text-2xl mr-3">{item.emoji}</span>
+                  {item.name}
+                </Link>
+              )
+            })}
+
+            {/* Il Mio Lavoro */}
+            <div className="mt-6">
+              <h3 className="px-3 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center">
+                <span className="mr-2">📋</span>
+                Il Mio Lavoro
+              </h3>
+              <div className="space-y-1">
+                {regularItems.filter(item => item.section === 'lavoro').map((item) => {
+                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={onItemClick}
+                      className={cn(
+                        'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all',
+                        pathname === item.href
+                          ? 'bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 shadow-sm border-l-4 border-orange-500'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:shadow-sm'
+                      )}
+                    >
+                      <span className="text-lg mr-3">{item.emoji}</span>
+                      {item.name}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Ore & Assenze */}
+            <div className="mt-6">
+              <h3 className="px-3 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center">
+                <span className="mr-2">⏰</span>
+                Ore & Assenze
+              </h3>
+              <div className="space-y-1">
+                {regularItems.filter(item => item.section === 'ore').map((item) => {
+                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={onItemClick}
+                      className={cn(
+                        'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all',
+                        pathname === item.href
+                          ? 'bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 shadow-sm border-l-4 border-orange-500'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:shadow-sm'
+                      )}
+                    >
+                      <span className="text-lg mr-3">{item.emoji}</span>
+                      {item.name}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Sostituzioni */}
+            <div className="mt-6">
+              <h3 className="px-3 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center">
+                <span className="mr-2">🔄</span>
+                Sostituzioni
+              </h3>
+              <div className="space-y-1">
+                {regularItems.filter(item => item.section === 'sostituzioni').map((item) => {
+                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={onItemClick}
+                      className={cn(
+                        'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all',
+                        pathname === item.href
+                          ? 'bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 shadow-sm border-l-4 border-orange-500'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:shadow-sm'
+                      )}
+                    >
+                      <span className="text-lg mr-3">{item.emoji}</span>
+                      {item.name}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Admin section */}
         {isAdmin && adminItems.length > 0 && (
@@ -417,29 +521,29 @@ function SidebarContent({
               </h3>
               <div className="space-y-1">
                 {adminItems.filter(item => item.section === 'ore').map((item) => {
-                  const Icon = pathname === item.href ? item.iconSolid : item.icon
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={onItemClick}
-                      className={cn(
-                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                        pathname === item.href
+          const Icon = pathname === item.href ? item.iconSolid : item.icon
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              onClick={onItemClick}
+              className={cn(
+                'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                pathname === item.href
                           ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      )}
-                    >
-                      <Icon 
-                        className={cn(
-                          'mr-3 h-5 w-5 flex-shrink-0',
-                          pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
-                        )} 
-                      />
-                      {item.name}
-                    </Link>
-                  )
-                })}
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              )}
+            >
+              <Icon 
+                className={cn(
+                  'mr-3 h-5 w-5 flex-shrink-0',
+                  pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
+                )} 
+              />
+              {item.name}
+            </Link>
+          )
+        })}
               </div>
             </div>
 
@@ -490,9 +594,9 @@ function SidebarContent({
               redirect: true 
             })
           }}
-          className="group flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          className="group flex items-center w-full px-4 py-3 text-sm font-semibold text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 hover:text-red-700 transition-all hover:shadow-md border-2 border-transparent hover:border-red-200"
         >
-          <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" />
+          <span className="text-lg mr-3">🚪</span>
           Esci
         </button>
       </div>
