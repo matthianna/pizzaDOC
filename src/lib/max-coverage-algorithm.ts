@@ -245,7 +245,14 @@ export class MaxCoverageAlgorithm {
       schedule = await this.assignShiftsMaxCoverage(users, this.gapsToRequirements(gaps, requirements), schedule, 'final')
     }
     
-    // 6. Calcola statistiche finali
+    // 8. PASSAGGIO 6: DESPERATE - Ignora TUTTI i vincoli tranne quelli fondamentali
+    gaps = this.findGaps(schedule, requirements)
+    if (gaps.length > 0) {
+      console.log(`\n🆘 PASSAGGIO 6: DESPERATE - Ignora tutti i vincoli (${gaps.length} gap)...`)
+      schedule = await this.assignShiftsMaxCoverage(users, this.gapsToRequirements(gaps, requirements), schedule, 'desperate')
+    }
+    
+    // 9. Calcola statistiche finali
     const statistics = this.calculateStatistics(schedule, requirements, users)
     
     const finalGaps = this.findGaps(schedule, requirements)
@@ -255,8 +262,23 @@ export class MaxCoverageAlgorithm {
     
     if (finalGaps.length > 0) {
       console.log('\n📋 Gap non risolti:')
-      finalGaps.slice(0, 5).forEach(gap => {
-        console.log(`   - ${this.getDayName(gap.dayOfWeek)} ${gap.shiftType} ${gap.role}: mancano ${gap.missing}`)
+      finalGaps.slice(0, 10).forEach(gap => {
+        // Trova chi potrebbe fare questo turno (ignora vincoli)
+        const potentialCandidates = users.filter(u => 
+          u.roles.includes(gap.role) && 
+          !schedule.some(s => 
+            s.userId === u.id && 
+            s.dayOfWeek === gap.dayOfWeek && 
+            s.shiftType === gap.shiftType
+          )
+        )
+        
+        console.log(`   - ${this.getDayName(gap.dayOfWeek)} ${gap.shiftType} ${gap.role}: mancano ${gap.missing} (${potentialCandidates.length} persone hanno il ruolo e non sono già assegnate)`)
+        
+        // Mostra chi potrebbe fare questo turno
+        if (potentialCandidates.length > 0 && potentialCandidates.length <= 5) {
+          console.log(`     Potenziali: ${potentialCandidates.map(c => c.username).join(', ')}`)
+        }
       })
     }
     
@@ -417,12 +439,38 @@ export class MaxCoverageAlgorithm {
   }
 
   private prioritizeRequirements(requirements: ShiftRequirement[]): ShiftRequirement[] {
+    // Calcola scarsità per ogni ruolo (più il ruolo è scarso, più priorità ha)
+    const roleCounts = requirements.reduce((acc, req) => {
+      acc[req.role] = (acc[req.role] || 0) + req.requiredStaff
+      return acc
+    }, {} as Record<Role, number>)
+    
     return requirements.sort((a, b) => {
-      // Ordina per priorità ruolo e giorno
+      // 1. Priorità configurata
       if (b.priority !== a.priority) {
         return b.priority - a.priority
       }
-      // A parità di priorità, ordina per giorno
+      
+      // 2. Ruoli più richiesti hanno priorità (massimizza copertura dei ruoli critici)
+      const aTotal = roleCounts[a.role] || 0
+      const bTotal = roleCounts[b.role] || 0
+      if (bTotal !== aTotal) {
+        return bTotal - aTotal
+      }
+      
+      // 3. Requisiti più grandi per primi (riempi i turni grandi prima)
+      if (b.requiredStaff !== a.requiredStaff) {
+        return b.requiredStaff - a.requiredStaff
+      }
+      
+      // 4. Weekend ha priorità (venerdì=4, sabato=5, domenica=6)
+      const aIsWeekend = a.dayOfWeek >= 4 ? 1 : 0
+      const bIsWeekend = b.dayOfWeek >= 4 ? 1 : 0
+      if (bIsWeekend !== aIsWeekend) {
+        return bIsWeekend - aIsWeekend
+      }
+      
+      // 5. A parità, ordina per giorno
       return a.dayOfWeek - b.dayOfWeek
     })
   }
@@ -431,7 +479,7 @@ export class MaxCoverageAlgorithm {
     users: UserProfile[], 
     requirements: ShiftRequirement[], 
     existingShifts: ScheduleShift[],
-    mode: 'primary' | 'secondary' | 'aggressive' | 'ultra' | 'final' = 'primary'
+    mode: 'primary' | 'secondary' | 'aggressive' | 'ultra' | 'final' | 'desperate' = 'primary'
   ): Promise<ScheduleShift[]> {
     const schedule: ScheduleShift[] = [...existingShifts]
     const assignedStartTimes = new Map<string, number>()
@@ -461,6 +509,34 @@ export class MaxCoverageAlgorithm {
       const candidates = this.findAllAvailableCandidates(users, req, schedule, mode)
       
       console.log(`   📋 ${this.getDayName(req.dayOfWeek)} ${req.shiftType} ${req.role}: trovati ${candidates.length} candidati per ${needed} posizioni`)
+      
+      // Log dettagliato in modalità desperate
+      if (mode === 'desperate' && candidates.length > 0) {
+        console.log(`      🆘 DESPERATE - Candidati trovati: ${candidates.map(c => c.username).join(', ')}`)
+      }
+      if (mode === 'desperate' && candidates.length === 0) {
+        // Verifica dettagliata del perché non ci sono candidati
+        console.log(`      🆘 DESPERATE - Nessun candidato disponibile!`)
+        console.log(`      📊 Analisi dettagliata:`)
+        
+        const withRole = users.filter(u => u.roles.includes(req.role))
+        console.log(`         - ${withRole.length} persone hanno il ruolo ${req.role}`)
+        
+        const alreadyAssigned = users.filter(u => schedule.some(s => 
+          s.userId === u.id && 
+          s.dayOfWeek === req.dayOfWeek && 
+          s.shiftType === req.shiftType
+        ))
+        console.log(`         - ${alreadyAssigned.length} persone già assegnate a ${req.shiftType} giorno ${req.dayOfWeek}`)
+        console.log(`         - Già assegnate: ${alreadyAssigned.map(u => u.username).join(', ')}`)
+        
+        const notAssigned = users.filter(u => !alreadyAssigned.some(a => a.id === u.id))
+        console.log(`         - ${notAssigned.length} persone NON ancora assegnate a questo turno`)
+        
+        if (notAssigned.length > 0 && notAssigned.length <= 10) {
+          console.log(`         - Non assegnate: ${notAssigned.map(u => `${u.username}(${u.primaryRole})`).join(', ')}`)
+        }
+      }
       
       // Assegna candidati
       let assignedThisReq = 0
@@ -519,37 +595,43 @@ export class MaxCoverageAlgorithm {
     users: UserProfile[], 
     requirement: ShiftRequirement,
     currentSchedule: ScheduleShift[],
-    mode: 'primary' | 'secondary' | 'aggressive' | 'ultra' | 'final' = 'primary'
+    mode: 'primary' | 'secondary' | 'aggressive' | 'ultra' | 'final' | 'desperate' = 'primary'
   ): (UserProfile & { score: number })[] {
     
     const candidates = users
       .filter(user => {
         // 1. Deve avere il ruolo richiesto (primario O secondario)
-        if (!user.roles.includes(requirement.role)) return false
-        
-        // MODALITÀ PRIMARY: solo ruoli primari
-        if (mode === 'primary' && user.primaryRole !== requirement.role) return false
-        
-        // MODALITÀ SECONDARY: solo ruoli secondari (non primari)
-        if (mode === 'secondary' && user.primaryRole === requirement.role) return false
-        
-        // MODALITÀ AGGRESSIVE: tutti (già filtrato al punto 1)
+        // MODALITÀ DESPERATE: Accetta CHIUNQUE sia attivo, ignora completamente i ruoli
+        if (mode !== 'desperate') {
+          if (!user.roles.includes(requirement.role)) return false
+          
+          // MODALITÀ PRIMARY: solo ruoli primari
+          if (mode === 'primary' && user.primaryRole !== requirement.role) return false
+          
+          // MODALITÀ SECONDARY: solo ruoli secondari (non primari)
+          if (mode === 'secondary' && user.primaryRole === requirement.role) return false
+          
+          // MODALITÀ AGGRESSIVE: tutti (già filtrato al punto 1)
+        }
         
         // 2. Deve essere disponibile
-        const availability = user.availabilities.find(av => 
-          av.dayOfWeek === requirement.dayOfWeek && 
-          av.shiftType === requirement.shiftType
-        )
-        if (!availability?.isAvailable) return false
-        
-        // 2.5 VINCOLO DISPONIBILITÀ TOTALI: Non può superare il numero totale di disponibilità
-        // Se ha dichiarato N disponibilità, non può avere più di N turni assegnati
-        const totalAvailabilities = user.availabilities.filter(av => av.isAvailable).length
-        const currentlyAssignedShifts = currentSchedule.filter(shift => shift.userId === user.id).length
-        
-        // Modalità FINAL: permette di superare le disponibilità come ultima risorsa
-        if (mode !== 'final' && currentlyAssignedShifts >= totalAvailabilities) {
-          return false
+        // MODALITÀ DESPERATE: Ignora completamente le disponibilità dichiarate
+        if (mode !== 'desperate') {
+          const availability = user.availabilities.find(av => 
+            av.dayOfWeek === requirement.dayOfWeek && 
+            av.shiftType === requirement.shiftType
+          )
+          if (!availability?.isAvailable) return false
+          
+          // 2.5 VINCOLO DISPONIBILITÀ TOTALI: Non può superare il numero totale di disponibilità
+          // Se ha dichiarato N disponibilità, non può avere più di N turni assegnati
+          const totalAvailabilities = user.availabilities.filter(av => av.isAvailable).length
+          const currentlyAssignedShifts = currentSchedule.filter(shift => shift.userId === user.id).length
+          
+          // Modalità FINAL: permette di superare le disponibilità come ultima risorsa
+          if (mode !== 'final' && currentlyAssignedShifts >= totalAvailabilities) {
+            return false
+          }
         }
         
         // 3. VINCOLO FONDAMENTALE: Una persona può fare SOLO UN RUOLO per turno
@@ -563,8 +645,8 @@ export class MaxCoverageAlgorithm {
         if (alreadyAssignedThisShift) return false
         
         // 4. VINCOLO RIPOSO: Non può fare cena + pranzo giorno dopo (turni consecutivi)
-        // ULTRA e FINAL: ignorano questo vincolo per massimizzare copertura
-        if (mode !== 'ultra' && mode !== 'final') {
+        // ULTRA, FINAL e DESPERATE: ignorano questo vincolo per massimizzare copertura
+        if (mode !== 'ultra' && mode !== 'final' && mode !== 'desperate') {
           if (requirement.shiftType === 'PRANZO') {
             const workedPrevEvening = currentSchedule.some(shift => 
               shift.userId === user.id && 
