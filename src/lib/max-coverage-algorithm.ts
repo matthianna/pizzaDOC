@@ -147,27 +147,34 @@ export class MaxCoverageAlgorithm {
       return defaultTime
     }
 
-    // STRATEGIA: Riempire prima gli slot precedenti
-    const availableSlots = activeDistributions.map(d => d.startTime).sort()
+    // STRATEGIA RANDOM: Trova tutti gli slot con spazio disponibile e scegli casualmente
+    const slotsWithSpace: string[] = []
     
-    for (const slot of availableSlots) {
-      const key = `${dayOfWeek}_${shiftType}_${role}_${slot}`
+    for (const dist of activeDistributions) {
+      const key = `${dayOfWeek}_${shiftType}_${role}_${dist.startTime}`
       const currentCount = assignedUsers.get(key) || 0
-      const dist = activeDistributions.find(d => d.startTime === slot)
-      const targetCount = dist?.targetCount || 0
       
-      console.log(`  🔍 Slot ${slot}: ${currentCount}/${targetCount}`)
+      console.log(`  🔍 Slot ${dist.startTime}: ${currentCount}/${dist.targetCount}`)
       
-      if (currentCount < targetCount) {
-        console.log(`  ✅ Assegnato orario: ${slot}`)
-        return slot
+      // Se c'è spazio in questo slot, aggiungilo alla lista
+      if (currentCount < dist.targetCount) {
+        slotsWithSpace.push(dist.startTime)
       }
     }
     
-    // Se tutti gli slot sono pieni, usa comunque il primo slot
-    // (nessun limite rigido, vogliamo massimizzare copertura)
-    const fallbackTime = availableSlots[0] || '18:00'
-    console.log(`  ⚠️ Tutti gli slot pieni, uso primo slot disponibile: ${fallbackTime}`)
+    // Se ci sono slot disponibili, scegline uno RANDOM
+    if (slotsWithSpace.length > 0) {
+      const randomIndex = Math.floor(Math.random() * slotsWithSpace.length)
+      const selectedTime = slotsWithSpace[randomIndex]
+      console.log(`  🎲 Scelto RANDOM tra ${slotsWithSpace.length} slot disponibili: ${selectedTime}`)
+      return selectedTime
+    }
+    
+    // Se tutti gli slot sono pieni, scegli random tra tutti
+    const allSlots = activeDistributions.map(d => d.startTime)
+    const randomIndex = Math.floor(Math.random() * allSlots.length)
+    const fallbackTime = allSlots[randomIndex] || '18:00'
+    console.log(`  ⚠️ Tutti gli slot pieni, uso slot RANDOM: ${fallbackTime}`)
     return fallbackTime
   }
 
@@ -673,4 +680,5 @@ export class MaxCoverageAlgorithm {
     }
   }
 }
+
 

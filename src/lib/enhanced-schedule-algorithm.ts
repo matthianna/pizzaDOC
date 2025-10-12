@@ -186,22 +186,34 @@ export class EnhancedScheduleAlgorithm {
       }
     }
 
-    // PRIORITÀ: Riempi SEQUENZIALMENTE ogni slot fino al target
+    // STRATEGIA RANDOM: Trova tutti gli slot con spazio disponibile e scegli casualmente
+    const slotsWithSpace: string[] = []
+    
     for (const dist of activeDistributions) {
       const key = `${dayOfWeek}_${shiftType}_${role}_${dist.startTime}`
       const currentCount = assignedUsers.get(key) || 0
       
       console.log(`  🔍 Slot ${dist.startTime}: ${currentCount}/${dist.targetCount}`)
       
+      // Se c'è spazio in questo slot, aggiungilo alla lista
       if (currentCount < dist.targetCount) {
-        console.log(`  ✅ Assegnato orario: ${dist.startTime}`)
-        return dist.startTime
+        slotsWithSpace.push(dist.startTime)
       }
     }
 
-    // Se tutti i target sono raggiunti, distribuisci equamente sui primi slot
-    const fallbackTime = activeDistributions[0].startTime
-    console.log(`  ⚠️ Tutti gli slot pieni, uso primo slot disponibile: ${fallbackTime}`)
+    // Se ci sono slot disponibili, scegline uno RANDOM
+    if (slotsWithSpace.length > 0) {
+      const randomIndex = Math.floor(Math.random() * slotsWithSpace.length)
+      const selectedTime = slotsWithSpace[randomIndex]
+      console.log(`  🎲 Scelto RANDOM tra ${slotsWithSpace.length} slot disponibili: ${selectedTime}`)
+      return selectedTime
+    }
+
+    // Se tutti i target sono raggiunti, scegli random tra tutti
+    const allSlots = activeDistributions.map(d => d.startTime)
+    const randomIndex = Math.floor(Math.random() * allSlots.length)
+    const fallbackTime = allSlots[randomIndex]
+    console.log(`  ⚠️ Tutti gli slot pieni, uso slot RANDOM: ${fallbackTime}`)
     return fallbackTime
   }
 
@@ -857,3 +869,4 @@ export class EnhancedScheduleAlgorithm {
     return schedule.id
   }
 }
+
