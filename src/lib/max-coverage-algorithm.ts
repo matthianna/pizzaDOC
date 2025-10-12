@@ -594,7 +594,12 @@ export class MaxCoverageAlgorithm {
         const key = `${req.dayOfWeek}_${req.shiftType}_${req.role}_${startTime}`
         assignedStartTimes.set(key, (assignedStartTimes.get(key) || 0) + 1)
         
-        console.log(`   ✅ ${candidate.username} (${candidate.primaryRole === req.role ? 'primario' : 'secondario'}) → ${this.getDayName(req.dayOfWeek)} ${req.shiftType} ${req.role} ${startTime}`)
+        // Log con verifica disponibilità
+        const userAvailability = candidate.availabilities.find(av => 
+          av.dayOfWeek === req.dayOfWeek && av.shiftType === req.shiftType
+        )
+        const availStatus = userAvailability?.isAvailable ? '✅ disponibile' : '❌ NON disponibile'
+        console.log(`   ✅ ${candidate.username} (${candidate.primaryRole === req.role ? 'primario' : 'secondario'}, ${availStatus}) → ${this.getDayName(req.dayOfWeek)} ${req.shiftType} ${req.role} ${startTime}`)
       }
       
       if (assignedThisReq < needed) {
@@ -629,23 +634,22 @@ export class MaxCoverageAlgorithm {
         }
         
         // 2. Deve essere disponibile
-        // MODALITÀ DESPERATE: Ignora completamente le disponibilità dichiarate
-        if (mode !== 'desperate') {
-          const availability = user.availabilities.find(av => 
-            av.dayOfWeek === requirement.dayOfWeek && 
-            av.shiftType === requirement.shiftType
-          )
-          if (!availability?.isAvailable) return false
-          
-          // 2.5 VINCOLO DISPONIBILITÀ TOTALI: Non può superare il numero totale di disponibilità
-          // Se ha dichiarato N disponibilità, non può avere più di N turni assegnati
-          const totalAvailabilities = user.availabilities.filter(av => av.isAvailable).length
-          const currentlyAssignedShifts = currentSchedule.filter(shift => shift.userId === user.id).length
-          
-          // Modalità FINAL: permette di superare le disponibilità come ultima risorsa
-          if (mode !== 'final' && currentlyAssignedShifts >= totalAvailabilities) {
-            return false
-          }
+        // ⚠️  VINCOLO FONDAMENTALE: Se uno non è disponibile, NON PUÒ lavorare!
+        // Questo vale SEMPRE, anche in modalità desperate!
+        const availability = user.availabilities.find(av => 
+          av.dayOfWeek === requirement.dayOfWeek && 
+          av.shiftType === requirement.shiftType
+        )
+        if (!availability?.isAvailable) return false
+        
+        // 2.5 VINCOLO DISPONIBILITÀ TOTALI: Non può superare il numero totale di disponibilità
+        // Se ha dichiarato N disponibilità, non può avere più di N turni assegnati
+        const totalAvailabilities = user.availabilities.filter(av => av.isAvailable).length
+        const currentlyAssignedShifts = currentSchedule.filter(shift => shift.userId === user.id).length
+        
+        // Modalità FINAL e DESPERATE: permettono di superare le disponibilità come ultima risorsa
+        if (mode !== 'final' && mode !== 'desperate' && currentlyAssignedShifts >= totalAvailabilities) {
+          return false
         }
         
         // 3. VINCOLO FONDAMENTALE: Una persona può fare SOLO UN RUOLO per turno
