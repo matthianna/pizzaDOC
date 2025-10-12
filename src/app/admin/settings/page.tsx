@@ -139,20 +139,35 @@ export default function SettingsPage() {
   const saveShiftLimits = async () => {
     setSavingLimits(true)
     try {
-      // Filter out entries with 0 required staff (no need to save them)
-      const limitsToSave = shiftLimits.filter(l => l.requiredStaff > 0)
+      // Prepara TUTTI i limiti per ogni combinazione giorno/turno/ruolo
+      const allLimits: ShiftLimit[] = []
+      
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        for (const shiftType of ['PRANZO', 'CENA'] as const) {
+          for (const role of roles) {
+            const value = getShiftLimit(dayIndex, shiftType, role)
+            // Invia TUTTI i limiti, anche quelli con 0
+            allLimits.push({
+              dayOfWeek: dayIndex,
+              shiftType,
+              role,
+              requiredStaff: value
+            })
+          }
+        }
+      }
       
       const response = await fetch('/api/admin/shift-limits', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ limits: limitsToSave })
+        body: JSON.stringify({ limits: allLimits })
       })
 
       if (response.ok) {
         showToast('✅ Limiti salvati con successo!', 'success')
-        fetchData() // Refresh data
+        await fetchData() // Refresh data
       } else {
         showToast('❌ Errore durante il salvataggio', 'error')
       }
