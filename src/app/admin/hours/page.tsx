@@ -458,6 +458,8 @@ export default function AdminHoursPage() {
                     type="time"
                     value={editStartTime}
                     onChange={(e) => setEditStartTime(e.target.value)}
+                    step="60"
+                    pattern="[0-9]{2}:[0-9]{2}"
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
@@ -469,6 +471,8 @@ export default function AdminHoursPage() {
                     type="time"
                     value={editEndTime}
                     onChange={(e) => setEditEndTime(e.target.value)}
+                    step="60"
+                    pattern="[0-9]{2}:[0-9]{2}"
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
