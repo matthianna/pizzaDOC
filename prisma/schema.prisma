@@ -99,6 +99,7 @@ model shift_limits {
 
 model shift_start_time_distributions {
   id          String    @id
+  dayOfWeek   Int       @default(0)
   shiftType   ShiftType
   role        Role
   startTime   String
@@ -107,7 +108,7 @@ model shift_start_time_distributions {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime
 
-  @@unique([shiftType, role, startTime])
+  @@unique([dayOfWeek, shiftType, role, startTime])
 }
 
 model shift_start_time_templates {

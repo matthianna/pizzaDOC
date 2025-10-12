@@ -177,6 +177,14 @@ export function Sidebar() {
       section: 'sistema'
     },
     {
+      name: 'Orari di Inizio',
+      href: '/admin/start-times',
+      icon: ClockIcon,
+      iconSolid: ClockIconSolid,
+      adminOnly: true,
+      section: 'sistema'
+    },
+    {
       name: 'Sistema e Sicurezza',
       href: '/admin/system',
       icon: ShieldCheckIcon,

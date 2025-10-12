@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { shiftType, role, startTime, targetCount } = body
+    const { dayOfWeek, shiftType, role, startTime, targetCount } = body
 
     // Valida formato orario (HH:MM)
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
 
     const distribution = await prisma.shift_start_time_distributions.upsert({
       where: {
-        shiftType_role_startTime: {
+        dayOfWeek_shiftType_role_startTime: {
+          dayOfWeek,
           shiftType,
           role,
           startTime
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
       },
       create: {
         id: crypto.randomUUID(),
+        dayOfWeek,
         shiftType,
         role,
         startTime,
