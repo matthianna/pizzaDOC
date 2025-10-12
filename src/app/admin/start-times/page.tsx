@@ -198,11 +198,30 @@ export default function StartTimesPage() {
         }
       }
 
-      // Filter out entries with 0 count
-      const toSave = distributions.filter(d => d.targetCount > 0)
+      // Prepara TUTTE le distribuzioni per ogni combinazione possibile
+      const allDistributions: StartTimeDistribution[] = []
+      
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        for (const shiftType of ['PRANZO', 'CENA'] as const) {
+          for (const role of roles) {
+            const availableTimes = getAvailableStartTimes(shiftType, role)
+            for (const startTime of availableTimes) {
+              const value = getTargetCount(dayIndex, shiftType, role, startTime)
+              // Invia TUTTE le distribuzioni, anche quelle con 0
+              allDistributions.push({
+                dayOfWeek: dayIndex,
+                shiftType,
+                role,
+                startTime,
+                targetCount: value
+              })
+            }
+          }
+        }
+      }
       
       const responses = await Promise.all(
-        toSave.map(dist =>
+        allDistributions.map(dist =>
           fetch('/api/admin/start-time-distributions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -214,7 +233,7 @@ export default function StartTimesPage() {
       const allSuccessful = responses.every(r => r.ok)
       if (allSuccessful) {
         showToast('✅ Orari salvati con successo!', 'success')
-        fetchData()
+        await fetchData()
       } else {
         showToast('❌ Errore durante il salvataggio', 'error')
       }
