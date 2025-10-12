@@ -45,32 +45,55 @@ export function TimePicker24h({ value, onChange, placeholder, className = '' }: 
   })
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <select
-        value={hours}
-        onChange={(e) => handleHoursChange(e.target.value)}
-        className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-center font-medium"
-      >
-        {hoursOptions.map(option => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+    <div className={`flex items-center gap-3 ${className}`}>
+      {/* Hours Select */}
+      <div className="flex-1 relative">
+        <select
+          value={hours}
+          onChange={(e) => handleHoursChange(e.target.value)}
+          className="w-full appearance-none bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-2xl px-5 py-4 text-2xl font-bold text-blue-900 focus:outline-none focus:ring-4 focus:ring-blue-400 focus:border-blue-500 transition-all cursor-pointer hover:shadow-lg hover:scale-105 text-center"
+          style={{ textAlignLast: 'center' }}
+        >
+          {hoursOptions.map(option => (
+            <option key={option.value} value={option.value} className="text-lg font-semibold">
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        <div className="text-xs text-blue-600 font-medium text-center mt-1">Ore</div>
+      </div>
       
-      <span className="text-2xl font-bold text-gray-500">:</span>
+      {/* Separator */}
+      <div className="flex flex-col items-center justify-center -mt-5">
+        <span className="text-4xl font-black text-blue-500 animate-pulse">:</span>
+      </div>
       
-      <select
-        value={minutes}
-        onChange={(e) => handleMinutesChange(e.target.value)}
-        className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-center font-medium"
-      >
-        {minutesOptions.map(option => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      {/* Minutes Select */}
+      <div className="flex-1 relative">
+        <select
+          value={minutes}
+          onChange={(e) => handleMinutesChange(e.target.value)}
+          className="w-full appearance-none bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 rounded-2xl px-5 py-4 text-2xl font-bold text-purple-900 focus:outline-none focus:ring-4 focus:ring-purple-400 focus:border-purple-500 transition-all cursor-pointer hover:shadow-lg hover:scale-105 text-center"
+          style={{ textAlignLast: 'center' }}
+        >
+          {minutesOptions.map(option => (
+            <option key={option.value} value={option.value} className="text-lg font-semibold">
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+          <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        <div className="text-xs text-purple-600 font-medium text-center mt-1">Minuti</div>
+      </div>
     </div>
   )
 }
