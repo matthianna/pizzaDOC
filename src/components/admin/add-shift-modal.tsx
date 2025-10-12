@@ -164,9 +164,10 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
       const response = await fetch(`/api/admin/schedule/${weekStartStr}`)
       if (response.ok) {
         const data = await response.json()
-        if (data.schedule?.shifts) {
+        // L'API restituisce direttamente l'oggetto schedule con shifts
+        if (data.shifts) {
           // Filtra i turni per il giorno e turno selezionati
-          const filtered = data.schedule.shifts
+          const filtered = data.shifts
             .filter((shift: any) => 
               shift.dayOfWeek === selectedDay && 
               shift.shiftType === selectedShiftType
@@ -176,9 +177,14 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
               role: shift.role
             }))
           setExistingShifts(filtered)
+          console.log(`🔍 Turni esistenti caricati per giorno ${selectedDay}, turno ${selectedShiftType}:`, filtered.length)
         } else {
           setExistingShifts([])
         }
+      } else if (response.status === 404) {
+        // Nessun piano ancora generato per questa settimana
+        setExistingShifts([])
+        console.log('📅 Nessun piano ancora generato per questa settimana')
       }
     } catch (error) {
       console.error('Error fetching existing shifts:', error)
