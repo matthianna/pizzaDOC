@@ -7,6 +7,7 @@ import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { formatDate } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Select as ReactSelect } from '@/components/ui/react-select'
+import { TimeInput24h } from '@/components/ui/time-input-24h'
 
 interface Shift {
   id: string
@@ -53,25 +54,6 @@ export default function AdminHoursPage() {
   useEffect(() => {
     fetchWorkedHours()
   }, [filterStatus, selectedMonth, selectedYear])
-
-  // Force 24-hour format when modal opens
-  useEffect(() => {
-    if (editingHours) {
-      // Wait for DOM to be ready
-      setTimeout(() => {
-        const timeInputs = document.querySelectorAll('input[type="time"]')
-        timeInputs.forEach((input) => {
-          const htmlInput = input as HTMLInputElement
-          // Force 24-hour format by setting a data attribute
-          htmlInput.setAttribute('data-time-format', '24')
-          // Try to trigger re-render
-          const value = htmlInput.value
-          htmlInput.value = ''
-          htmlInput.value = value
-        })
-      }, 50)
-    }
-  }, [editingHours])
 
   const fetchWorkedHours = async () => {
     setLoading(true)
@@ -473,34 +455,22 @@ export default function AdminHoursPage() {
                   <label className="block text-sm font-semibold text-gray-800">
                     Ora Inizio * <span className="text-xs text-gray-500">(formato 24h)</span>
                   </label>
-                  <input
-                    type="time"
+                  <TimeInput24h
                     value={editStartTime}
                     onChange={(e) => setEditStartTime(e.target.value)}
-                    step="60"
-                    pattern="[0-9]{2}:[0-9]{2}"
                     placeholder="18:00"
-                    data-time-format="24"
-                    lang="it-IT"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-datetime-edit-ampm-field]:hidden"
-                    style={{ colorScheme: 'light' }}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-gray-800">
                     Ora Fine * <span className="text-xs text-gray-500">(formato 24h)</span>
                   </label>
-                  <input
-                    type="time"
+                  <TimeInput24h
                     value={editEndTime}
                     onChange={(e) => setEditEndTime(e.target.value)}
-                    step="60"
-                    pattern="[0-9]{2}:[0-9]{2}"
                     placeholder="22:00"
-                    data-time-format="24"
-                    lang="it-IT"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-datetime-edit-ampm-field]:hidden"
-                    style={{ colorScheme: 'light' }}
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
               </div>
