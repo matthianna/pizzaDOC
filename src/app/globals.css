@@ -24,3 +24,17 @@ body {
   /* color: var(--foreground); */
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Force 24-hour format for time inputs */
+input[type="time"]::-webkit-datetime-edit-ampm-field {
+  display: none;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+}
+
+/* Ensure 24-hour format across all browsers */
+input[type="time"] {
+  -webkit-locale: "it-IT";
+}

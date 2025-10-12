@@ -449,7 +449,7 @@ export default function AdminHoursPage() {
               </div>
 
               {/* Edit times */}
-              <div className="grid grid-cols-2 gap-4 sm:p-6">
+              <div className="grid grid-cols-2 gap-4 sm:p-6" lang="it-IT">
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-gray-800">
                     Ora Inizio *
@@ -459,8 +459,9 @@ export default function AdminHoursPage() {
                     value={editStartTime}
                     onChange={(e) => setEditStartTime(e.target.value)}
                     step="60"
-                    pattern="[0-9]{2}:[0-9]{2}"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    lang="it-IT"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-datetime-edit-ampm-field]:hidden"
+                    style={{ colorScheme: 'light' }}
                   />
                 </div>
                 <div className="space-y-3">
@@ -472,8 +473,9 @@ export default function AdminHoursPage() {
                     value={editEndTime}
                     onChange={(e) => setEditEndTime(e.target.value)}
                     step="60"
-                    pattern="[0-9]{2}:[0-9]{2}"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    lang="it-IT"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-datetime-edit-ampm-field]:hidden"
+                    style={{ colorScheme: 'light' }}
                   />
                 </div>
               </div>
