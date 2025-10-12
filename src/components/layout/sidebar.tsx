@@ -451,6 +451,21 @@ function SidebarContent({
         {/* Admin section */}
         {isUserAdmin && adminItems.length > 0 && (
           <>
+            {/* Dashboard - Admin */}
+            <Link
+              href="/dashboard"
+              onClick={onItemClick}
+              className={cn(
+                'group flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-all mb-4',
+                pathname === '/dashboard'
+                  ? 'bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 shadow-md border-l-4 border-orange-500 scale-105'
+                  : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white hover:shadow-sm hover:scale-102'
+              )}
+            >
+              <span className="text-2xl mr-3">🏠</span>
+              Dashboard
+            </Link>
+
             {/* Gestione Personale */}
             <div className="mt-8">
               <h3 className="px-3 text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center">

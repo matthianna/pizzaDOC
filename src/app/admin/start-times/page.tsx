@@ -403,7 +403,7 @@ export default function StartTimesPage() {
                               const isAvailable = availableTimes.includes(startTime)
                               const value = getTargetCount(dayIndex, selectedShift, role, startTime)
                               const distributed = getDistributedCount(dayIndex, selectedShift, role)
-                              const remaining = required - distributed
+                              const remaining = Math.max(0, required - distributed)
                               
                               return (
                                 <td key={role} className="px-4 py-3 whitespace-nowrap">

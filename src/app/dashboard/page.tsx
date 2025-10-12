@@ -379,46 +379,75 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Additional Admin Stats */}
-        {isAdmin && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            <StatCard
-              title="Assenze Attive"
-              value={stats.totalAbsencesActive || 0}
-              icon={AlertCircle}
-              color="orange"
-              subtitle="In corso oggi"
-            />
-            <StatCard
-              title="Disponibilità"
-              value={stats.availabilitiesThisWeek || 0}
-              icon={Calendar}
-              color="green"
-              subtitle="Questa settimana"
-            />
-            <StatCard
-              title="Piani Generati"
-              value={stats.thisWeekSchedules || 0}
-              icon={BarChart3}
-              color="blue"
-              subtitle="Settimana corrente"
-            />
-          </div>
-        )}
-
         {/* Recent Activities */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <div className="bg-white rounded-lg shadow">
             <div className="p-4 sm:p-6 border-b border-gray-200">
               <h2 className="text-base sm:text-lg font-medium text-gray-900">
-                {isAdmin ? 'Attività Recenti' : 'I Miei Prossimi Turni'}
+                {isAdmin ? 'Azioni Necessarie' : 'I Miei Prossimi Turni'}
               </h2>
             </div>
             <div className="p-4 sm:p-6">
               {isAdmin ? (
-                <p className="text-gray-700 text-center py-8">
-                  Nessuna attività recente
-                </p>
+                <div className="space-y-3">
+                  {stats.pendingHours && stats.pendingHours > 0 ? (
+                    <a
+                      href="/admin/hours"
+                      className="flex items-center justify-between p-3 rounded-lg bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                        <div>
+                          <p className="font-medium text-gray-900">Approva Ore</p>
+                          <p className="text-sm text-gray-600">{stats.pendingHours} turni da approvare</p>
+                        </div>
+                      </div>
+                      <span className="text-orange-600">→</span>
+                    </a>
+                  ) : null}
+                  
+                  {stats.pendingSubstitutions && stats.pendingSubstitutions > 0 ? (
+                    <a
+                      href="/admin/substitutions"
+                      className="flex items-center justify-between p-3 rounded-lg bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                        <div>
+                          <p className="font-medium text-gray-900">Sostituzioni</p>
+                          <p className="text-sm text-gray-600">{stats.pendingSubstitutions} richieste in attesa</p>
+                        </div>
+                      </div>
+                      <span className="text-purple-600">→</span>
+                    </a>
+                  ) : null}
+                  
+                  {stats.totalAbsencesActive && stats.totalAbsencesActive > 0 ? (
+                    <a
+                      href="/admin/absences"
+                      className="flex items-center justify-between p-3 rounded-lg bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        <div>
+                          <p className="font-medium text-gray-900">Assenze Oggi</p>
+                          <p className="text-sm text-gray-600">{stats.totalAbsencesActive} dipendenti assenti</p>
+                        </div>
+                      </div>
+                      <span className="text-yellow-600">→</span>
+                    </a>
+                  ) : null}
+                  
+                  {(!stats.pendingHours || stats.pendingHours === 0) && 
+                   (!stats.pendingSubstitutions || stats.pendingSubstitutions === 0) && 
+                   (!stats.totalAbsencesActive || stats.totalAbsencesActive === 0) ? (
+                    <div className="text-center py-8">
+                      <CheckIcon className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                      <p className="text-gray-700 font-medium">Tutto sotto controllo!</p>
+                      <p className="text-sm text-gray-500 mt-1">Nessuna azione urgente richiesta</p>
+                    </div>
+                  ) : null}
+                </div>
               ) : (
                 myShifts && myShifts.total > 0 ? (
                   <div className="space-y-2 sm:space-y-3">
@@ -530,27 +559,65 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Azioni Rapide</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-base sm:text-lg font-medium text-gray-900">Azioni Rapide</h2>
+            {isAdmin && (
+              <span className="text-xs text-gray-500">Accesso rapido alle funzioni principali</span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {isAdmin ? (
               <>
                 <ActionButton
-                  href="/admin/users"
-                  title="Gestisci Utenti"
-                  description="Crea e modifica utenti del sistema"
-                  icon={Users}
-                />
-                <ActionButton
                   href="/admin/schedule"
                   title="Piano Lavoro"
-                  description="Genera il piano settimanale"
+                  description="Genera e gestisci i turni"
                   icon={Calendar}
+                  highlight={stats.totalShiftsThisWeek === 0}
                 />
                 <ActionButton
                   href="/admin/hours"
                   title="Approva Ore"
-                  description="Gestisci le ore lavorate"
+                  description={stats.pendingHours ? `${stats.pendingHours} in attesa` : "Gestisci ore lavorate"}
                   icon={Clock}
+                  highlight={stats.pendingHours && stats.pendingHours > 0}
+                />
+                <ActionButton
+                  href="/admin/users"
+                  title="Utenti"
+                  description={`${stats.totalUsers || 0} utenti totali`}
+                  icon={Users}
+                />
+                <ActionButton
+                  href="/admin/settings"
+                  title="Configurazioni"
+                  description="Limiti e orari turni"
+                  icon={Cog6ToothIcon}
+                />
+                <ActionButton
+                  href="/admin/substitutions"
+                  title="Sostituzioni"
+                  description={stats.pendingSubstitutions ? `${stats.pendingSubstitutions} richieste` : "Nessuna richiesta"}
+                  icon={UserCheck}
+                  highlight={stats.pendingSubstitutions && stats.pendingSubstitutions > 0}
+                />
+                <ActionButton
+                  href="/admin/absences"
+                  title="Assenze"
+                  description={stats.totalAbsencesActive ? `${stats.totalAbsencesActive} oggi` : "Nessuna assenza"}
+                  icon={AlertCircle}
+                />
+                <ActionButton
+                  href="/admin/hours-summary"
+                  title="Riepilogo Ore"
+                  description="Statistiche e report"
+                  icon={BarChart3}
+                />
+                <ActionButton
+                  href="/admin/system"
+                  title="Sistema"
+                  description="Sicurezza e backup"
+                  icon={ShieldCheckIcon}
                 />
               </>
             ) : (
@@ -627,23 +694,36 @@ function ActionButton({
   href,
   title,
   description,
-  icon: Icon
+  icon: Icon,
+  highlight = false
 }: {
   href: string
   title: string
   description: string
   icon: any
+  highlight?: boolean
 }) {
   return (
     <a
       href={href}
-      className="block p-3 sm:p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors"
+      className={`block p-3 sm:p-4 border rounded-lg transition-all ${
+        highlight
+          ? 'border-orange-400 bg-orange-50 hover:bg-orange-100 shadow-md ring-2 ring-orange-200'
+          : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+      }`}
     >
       <div className="flex items-center mb-1 sm:mb-2">
-        <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 mr-2" />
-        <h3 className="text-sm sm:text-base font-medium text-gray-900">{title}</h3>
+        {highlight && (
+          <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse mr-2"></div>
+        )}
+        <Icon className={`h-4 w-4 sm:h-5 sm:w-5 mr-2 ${highlight ? 'text-orange-700' : 'text-orange-600'}`} />
+        <h3 className={`text-sm sm:text-base font-medium ${highlight ? 'text-orange-900' : 'text-gray-900'}`}>
+          {title}
+        </h3>
       </div>
-      <p className="text-xs sm:text-sm text-gray-800">{description}</p>
+      <p className={`text-xs sm:text-sm ${highlight ? 'text-orange-700' : 'text-gray-800'}`}>
+        {description}
+      </p>
     </a>
   )
 }
