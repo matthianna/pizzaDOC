@@ -149,9 +149,10 @@ export class EnhancedScheduleAlgorithm {
   }
 
   private async getOptimalStartTime(shiftType: ShiftType, role: Role, dayOfWeek: number, assignedUsers: Map<string, number>): Promise<string> {
-    // SEMPRE carica distribuzioni configurate per questo ruolo e turno
-    const distributions = await prisma.shiftStartTimeDistribution.findMany({
+    // SEMPRE carica distribuzioni configurate per questo giorno, ruolo e turno
+    const distributions = await prisma.shift_start_time_distributions.findMany({
       where: {
+        dayOfWeek: dayOfWeek,
         shiftType,
         role,
         isActive: true
@@ -160,8 +161,9 @@ export class EnhancedScheduleAlgorithm {
     })
 
     if (distributions.length === 0) {
-      console.error(`❌ NESSUNA DISTRIBUZIONE trovata per ${role} ${shiftType}!`)
-      throw new Error(`Nessuna distribuzione configurata per ${role} ${shiftType}`)
+      // Se non ci sono distribuzioni per questo giorno specifico, usa orari default
+      console.log(`⚠️ Nessuna distribuzione per ${role} ${shiftType} giorno ${dayOfWeek}, uso default`)
+      return shiftType === 'PRANZO' ? '11:30' : '18:00'
     }
 
     // Applica vincoli specifici solo per la cena e se ci sono distribuzioni valide

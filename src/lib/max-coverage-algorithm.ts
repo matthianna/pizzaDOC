@@ -119,16 +119,13 @@ export class MaxCoverageAlgorithm {
     dayOfWeek: number,
     assignedUsers: Map<string, number>
   ): string {
-    // Per PRANZO, usa sempre l'orario standard
-    if (shiftType === 'PRANZO') {
-      return '11:30'
-    }
-
-    // Per CENA, usa le distribuzioni configurate
+    // Carica le distribuzioni configurate per questo giorno specifico
     const distributions = await prisma.shift_start_time_distributions.findMany({
       where: {
-        shiftType: 'CENA',
-        role: role
+        dayOfWeek: dayOfWeek,
+        shiftType: shiftType,
+        role: role,
+        isActive: true
       },
       orderBy: {
         startTime: 'asc'
@@ -137,7 +134,11 @@ export class MaxCoverageAlgorithm {
 
     if (distributions.length === 0) {
       // Se non ci sono distribuzioni, usa l'orario standard
-      return '18:00'
+      if (shiftType === 'PRANZO') {
+        return '11:30'
+      } else {
+        return '18:00'
+      }
     }
 
     // STRATEGIA: Riempire prima gli slot precedenti

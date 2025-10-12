@@ -30,7 +30,7 @@ export async function PUT(
       )
     }
 
-    const distribution = await prisma.shiftStartTimeDistribution.update({
+    const distribution = await prisma.shift_start_time_distributions.update({
       where: { id: id },
       data: {
         ...(targetCount !== undefined && { targetCount }),
@@ -63,7 +63,7 @@ export async function DELETE(
       )
     }
 
-    await prisma.shiftStartTimeDistribution.delete({
+    await prisma.shift_start_time_distributions.delete({
       where: { id: id }
     })
 
