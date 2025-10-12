@@ -238,7 +238,7 @@ export function Sidebar() {
                 adminItems={adminItems}
                 pathname={pathname}
                 session={session}
-                isAdmin={isAdmin}
+                isUserAdmin={isUserAdmin}
                 isMobile={true}
                 onItemClick={() => setSidebarOpen(false)}
               />
@@ -255,7 +255,7 @@ export function Sidebar() {
             adminItems={adminItems}
             pathname={pathname}
             session={session}
-            isAdmin={isAdmin}
+            isUserAdmin={isUserAdmin}
             isMobile={false}
           />
         </div>
@@ -269,7 +269,7 @@ function SidebarContent({
   adminItems, 
   pathname, 
   session, 
-  isAdmin, 
+  isUserAdmin, 
   isMobile, 
   onItemClick 
 }: {
@@ -277,7 +277,7 @@ function SidebarContent({
   adminItems: any[]
   pathname: string
   session: any
-  isAdmin: boolean
+  isUserAdmin: boolean
   isMobile: boolean
   onItemClick?: () => void
 }) {
@@ -330,7 +330,7 @@ function SidebarContent({
       {/* Navigation */}
       <nav className="mt-6 flex-1 px-4 space-y-1">
         {/* Regular navigation items - grouped by section */}
-        {!isAdmin && regularItems.length > 0 && (
+        {!isUserAdmin && regularItems.length > 0 && (
           <>
             {/* Home - Dashboard */}
             {regularItems.filter(item => item.section === 'home').map((item) => {
@@ -443,7 +443,7 @@ function SidebarContent({
         )}
 
         {/* Admin section */}
-        {isAdmin && adminItems.length > 0 && (
+        {isUserAdmin && adminItems.length > 0 && (
           <>
             {/* Gestione Personale */}
             <div className="mt-8">
