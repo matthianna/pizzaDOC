@@ -91,79 +91,89 @@ export function Sidebar() {
       adminOnly: false,
       hideForAdmin: true
     },
-    // Sezione Admin - Gestione Personale
+    // 👥 GESTIONE PERSONALE
     {
       name: 'Gestione Utenti',
       href: '/admin/users',
       icon: UsersIcon,
       iconSolid: UsersIconSolid,
-      adminOnly: true
+      adminOnly: true,
+      section: 'personale'
     },
     {
       name: 'Disponibilità Utenti',
       href: '/admin/availability-overview',
       icon: UsersIcon,
       iconSolid: UsersIconSolid,
-      adminOnly: true
+      adminOnly: true,
+      section: 'personale'
     },
-    // Sezione Admin - Pianificazione
+    // 📅 PIANIFICAZIONE
     {
       name: 'Piano Lavoro',
       href: '/admin/schedule',
       icon: ChartBarIcon,
       iconSolid: ChartBarIconSolid,
-      adminOnly: true
+      adminOnly: true,
+      section: 'pianificazione'
     },
     {
       name: 'Assenze',
       href: '/admin/absences',
       icon: CalendarIcon,
       iconSolid: CalendarIconSolid,
-      adminOnly: true
+      adminOnly: true,
+      section: 'pianificazione'
     },
     {
       name: 'Sostituzioni',
       href: '/admin/substitutions',
       icon: UserPlusIcon,
       iconSolid: UserPlusIconSolid,
-      adminOnly: true
+      adminOnly: true,
+      section: 'pianificazione'
     },
-    // Sezione Admin - Ore Lavorate
+    // ⏰ ORE LAVORATE
     {
       name: 'Gestione Ore',
       href: '/admin/hours',
       icon: ClockIcon,
       iconSolid: ClockIconSolid,
-      adminOnly: true
+      adminOnly: true,
+      section: 'ore'
     },
     {
       name: 'Riepilogo Ore',
       href: '/admin/hours-summary',
       icon: PresentationChartLineIcon,
       iconSolid: PresentationChartLineIconSolid,
-      adminOnly: true
+      adminOnly: true,
+      section: 'ore'
     },
-    // Sezione Admin - Sistema
+    // ⚙️ SISTEMA
     {
       name: 'Configurazioni',
       href: '/admin/settings',
       icon: Cog6ToothIcon,
       iconSolid: Cog6ToothIconSolid,
-      adminOnly: true
+      adminOnly: true,
+      section: 'sistema'
     },
     {
       name: 'Sistema e Sicurezza',
       href: '/admin/system',
       icon: ShieldCheckIcon,
       iconSolid: ShieldCheckIconSolid,
-      adminOnly: true
+      adminOnly: true,
+      section: 'sistema'
     },
     {
       name: 'Analytics (DEV)',
       href: '/admin/analytics',
       icon: ChartBarIcon,
       iconSolid: ChartBarIconSolid,
-      adminOnly: true
+      adminOnly: true,
+      section: 'sistema'
     }
   ]
 
@@ -331,12 +341,14 @@ function SidebarContent({
         {/* Admin section */}
         {isAdmin && adminItems.length > 0 && (
           <>
+            {/* Gestione Personale */}
             <div className="mt-8">
-              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Amministrazione
+              <h3 className="px-3 text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center">
+                <span className="mr-2">👥</span>
+                Gestione Personale
               </h3>
-              <div className="mt-2 space-y-1">
-                {adminItems.map((item) => {
+              <div className="space-y-1">
+                {adminItems.filter(item => item.section === 'personale').map((item) => {
                   const Icon = pathname === item.href ? item.iconSolid : item.icon
                   return (
                     <Link
@@ -346,7 +358,109 @@ function SidebarContent({
                       className={cn(
                         'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
                         pathname === item.href
-                          ? 'bg-orange-100 text-orange-700 border-r-2 border-orange-500'
+                          ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      )}
+                    >
+                      <Icon 
+                        className={cn(
+                          'mr-3 h-5 w-5 flex-shrink-0',
+                          pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
+                        )} 
+                      />
+                      {item.name}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Pianificazione */}
+            <div className="mt-6">
+              <h3 className="px-3 text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center">
+                <span className="mr-2">📅</span>
+                Pianificazione
+              </h3>
+              <div className="space-y-1">
+                {adminItems.filter(item => item.section === 'pianificazione').map((item) => {
+                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={onItemClick}
+                      className={cn(
+                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                        pathname === item.href
+                          ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      )}
+                    >
+                      <Icon 
+                        className={cn(
+                          'mr-3 h-5 w-5 flex-shrink-0',
+                          pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
+                        )} 
+                      />
+                      {item.name}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Ore Lavorate */}
+            <div className="mt-6">
+              <h3 className="px-3 text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center">
+                <span className="mr-2">⏰</span>
+                Ore Lavorate
+              </h3>
+              <div className="space-y-1">
+                {adminItems.filter(item => item.section === 'ore').map((item) => {
+                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={onItemClick}
+                      className={cn(
+                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                        pathname === item.href
+                          ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      )}
+                    >
+                      <Icon 
+                        className={cn(
+                          'mr-3 h-5 w-5 flex-shrink-0',
+                          pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
+                        )} 
+                      />
+                      {item.name}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Sistema */}
+            <div className="mt-6">
+              <h3 className="px-3 text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center">
+                <span className="mr-2">⚙️</span>
+                Sistema
+              </h3>
+              <div className="space-y-1">
+                {adminItems.filter(item => item.section === 'sistema').map((item) => {
+                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={onItemClick}
+                      className={cn(
+                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                        pathname === item.href
+                          ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       )}
                     >
