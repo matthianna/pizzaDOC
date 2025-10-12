@@ -22,9 +22,10 @@ export async function GET(request: NextRequest) {
 
     const weekStart = normalizeDate(weekStartParam)
 
-    // Get all non-admin users
+    // Get all non-admin active users (exclude disabled users)
     const allUsers = await prisma.user.findMany({
       where: {
+        isActive: true, // Only active users
         user_roles: {
           none: {
             role: 'ADMIN'
