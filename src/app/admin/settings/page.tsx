@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Cog6ToothIcon, CheckIcon, UsersIcon } from '@heroicons/react/24/outline'
+import { Cog6ToothIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
@@ -29,10 +29,10 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [savingLimits, setSavingLimits] = useState(false)
+  const [selectedShift, setSelectedShift] = useState<'PRANZO' | 'CENA'>('PRANZO')
   const { showToast, ToastContainer } = useToast()
 
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
-  const shifts: ('PRANZO' | 'CENA')[] = ['PRANZO', 'CENA']
   const roles: Role[] = ['PIZZAIOLO', 'CUCINA', 'FATTORINO', 'SALA']
 
   const roleLabels: Record<Role, string> = {
@@ -88,13 +88,13 @@ export default function SettingsPage() {
       })
 
       if (response.ok) {
-        showToast('Impostazione salvata!', 'success')
+        showToast('✅ Impostazione salvata!', 'success')
       } else {
-        showToast('Errore durante il salvataggio', 'error')
+        showToast('❌ Errore durante il salvataggio', 'error')
       }
     } catch (error) {
       console.error('Error saving setting:', error)
-      showToast('Errore durante il salvataggio', 'error')
+      showToast('❌ Errore durante il salvataggio', 'error')
     } finally {
       setSaving('')
     }
@@ -176,163 +176,173 @@ export default function SettingsPage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-7xl mx-auto">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Cog6ToothIcon className="h-8 w-8 mr-3 text-orange-600" />
-            Configurazioni Sistema
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Gestisci le impostazioni generali del sistema
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <Cog6ToothIcon className="h-7 w-7 text-gray-400" />
+              Configurazioni Sistema
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Gestisci le impostazioni generali del sistema
+            </p>
+          </div>
         </div>
 
         {/* Scooter Configuration */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-              🛵
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                <span className="text-xl">🛵</span>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Scooter Disponibili</h3>
+                <p className="text-xs text-gray-500">Numero di scooter per le consegne</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Scooter Disponibili</h3>
-              <p className="text-sm text-gray-600">Numero di scooter a disposizione per le consegne</p>
+            
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={settings.scooter_count}
+                onChange={(e) => setSettings({ ...settings, scooter_count: e.target.value })}
+                className="w-20 h-10 text-center text-lg font-semibold border-2 border-gray-200 rounded-lg focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all"
+              />
+              <Button
+                onClick={() => saveSetting('scooter_count', settings.scooter_count, 'Numero di scooter disponibili')}
+                isLoading={saving === 'scooter_count'}
+                className="bg-orange-600 hover:bg-orange-700"
+                size="sm"
+              >
+                {saving === 'scooter_count' ? 'Salvataggio...' : 'Salva'}
+              </Button>
             </div>
-          </div>
-
-          <div className="flex items-end space-x-3">
-            <Input
-              type="number"
-              label="Numero scooter"
-              value={settings.scooter_count}
-              onChange={(e) => setSettings({ ...settings, scooter_count: e.target.value })}
-              min="1"
-              max="20"
-              className="flex-1 max-w-xs"
-            />
-            <Button
-              onClick={() => saveSetting('scooter_count', settings.scooter_count, 'Numero di scooter disponibili per le consegne')}
-              isLoading={saving === 'scooter_count'}
-              leftIcon={saving === 'scooter_count' ? undefined : <CheckIcon className="w-5 h-5" />}
-              size="sm"
-            >
-              Salva
-            </Button>
           </div>
         </div>
 
         {/* Shift Limits Configuration */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {/* Header */}
-          <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {/* Header with Toggle */}
+          <div className="px-6 py-5 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <UsersIcon className="h-8 w-8 text-blue-600 mr-3" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <span className="text-xl">👥</span>
+                </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Limiti Personale per Turno</h3>
-                  <p className="text-sm text-gray-600">Configura il numero minimo e massimo di persone per ogni turno e ruolo</p>
+                  <h3 className="font-semibold text-gray-900">Limiti Personale per Turno</h3>
+                  <p className="text-xs text-gray-500">Configura il personale richiesto per ogni turno e ruolo</p>
                 </div>
               </div>
+
               <Button
                 onClick={saveShiftLimits}
                 isLoading={savingLimits}
                 className="bg-orange-600 hover:bg-orange-700"
-                leftIcon={!savingLimits ? <CheckIcon className="w-5 h-5" /> : undefined}
+                leftIcon={!savingLimits ? <CheckIcon className="w-4 h-4" /> : undefined}
               >
                 💾 Salva Tutti i Limiti
               </Button>
+            </div>
+
+            {/* Toggle Switch */}
+            <div className="mt-6 flex items-center justify-center">
+              <div className="inline-flex items-center bg-gray-100 rounded-lg p-1 gap-1">
+                <button
+                  onClick={() => setSelectedShift('PRANZO')}
+                  className={`px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200 ${
+                    selectedShift === 'PRANZO'
+                      ? 'bg-white text-orange-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>🍕</span>
+                    <span>PRANZO</span>
+                    <span className="text-xs text-gray-500">11:00-14:00</span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => setSelectedShift('CENA')}
+                  className={`px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200 ${
+                    selectedShift === 'CENA'
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>🍝</span>
+                    <span>CENA</span>
+                    <span className="text-xs text-gray-500">17:00-22:00</span>
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-gray-50 border-b-2 border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-40">
                     Giorno
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-40">
-                    Turno
-                  </th>
                   {roles.map(role => (
-                    <th key={role} className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th key={role} className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       {roleLabels[role]}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {days.map((day, dayIndex) => 
-                  shifts.map((shift, shiftIndex) => (
-                    <tr 
-                      key={`${dayIndex}-${shift}`} 
-                      className={`hover:bg-gray-50 transition-colors ${
-                        shiftIndex === 0 ? 'border-t-2 border-gray-300' : ''
-                      }`}
-                    >
-                      {shiftIndex === 0 && (
-                        <td 
-                          rowSpan={2} 
-                          className="px-4 py-3 font-semibold text-gray-900 border-r-2 border-gray-200 bg-gray-50"
-                        >
-                          {day}
+              <tbody className="bg-white divide-y divide-gray-100">
+                {days.map((day, dayIndex) => (
+                  <tr key={dayIndex} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-gray-900">{day}</span>
+                    </td>
+                    {roles.map(role => {
+                      const value = getShiftLimit(dayIndex, selectedShift, role)
+                      return (
+                        <td key={role} className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex justify-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max="10"
+                              value={value}
+                              onChange={(e) => updateShiftLimit(
+                                dayIndex, 
+                                selectedShift, 
+                                role, 
+                                parseInt(e.target.value) || 0
+                              )}
+                              className="w-16 h-12 text-center text-lg font-semibold border-2 border-gray-200 rounded-lg hover:border-orange-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                              placeholder="0"
+                            />
+                          </div>
                         </td>
-                      )}
-                      <td className="px-4 py-3">
-                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          shift === 'PRANZO' 
-                            ? 'bg-orange-100 text-orange-800' 
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          <span className="mr-2">{shift === 'PRANZO' ? '🍕' : '🍝'}</span>
-                          {shift}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1 ml-1">
-                          {shift === 'PRANZO' ? '11:00-14:00' : '17:00-22:00'}
-                        </div>
-                      </td>
-                      {roles.map(role => {
-                        const value = getShiftLimit(dayIndex, shift, role)
-                        return (
-                          <td key={role} className="px-4 py-3">
-                            <div className="flex justify-center">
-                              <input
-                                type="number"
-                                min="0"
-                                max="10"
-                                value={value}
-                                onChange={(e) => updateShiftLimit(
-                                  dayIndex, 
-                                  shift, 
-                                  role, 
-                                  parseInt(e.target.value) || 0
-                                )}
-                                className="w-16 h-10 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg hover:border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
-                                placeholder="0"
-                              />
-                            </div>
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))
-                )}
+                      )
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
           {/* Footer Info */}
-          <div className="px-6 py-4 bg-blue-50 border-t border-blue-200">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
-                  <span className="text-xl">💡</span>
-                </div>
+          <div className="px-6 py-4 bg-blue-50 border-t border-blue-100">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <span className="text-lg">💡</span>
               </div>
-              <div className="ml-4">
-                <h4 className="text-sm font-semibold text-blue-900 mb-2">Come funziona:</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
+              <div className="flex-1">
+                <h4 className="text-xs font-semibold text-blue-900 mb-2">Come funziona:</h4>
+                <ul className="text-xs text-blue-800 space-y-1">
                   <li>• <strong>Personale Richiesto:</strong> Numero di persone necessarie per quel turno e ruolo</li>
                   <li>• <strong>Valore 0:</strong> Nessun requisito per quella combinazione (verrà ignorata)</li>
                   <li>• <strong>Generazione Automatica:</strong> L&apos;algoritmo userà questi valori per assegnare i turni</li>
