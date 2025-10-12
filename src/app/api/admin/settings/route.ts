@@ -13,7 +13,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const settings = await prisma.systemSettings.findMany({
+    const settings = await prisma.SystemSettings.findMany({
       orderBy: { key: 'asc' }
     })
 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date()
-    const setting = await prisma.systemSettings.upsert({
+    const setting = await prisma.SystemSettings.upsert({
       where: { key },
       update: { 
         value: value.toString(),

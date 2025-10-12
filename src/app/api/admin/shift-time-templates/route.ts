@@ -15,7 +15,7 @@ export async function GET() {
       )
     }
 
-    const templates = await prisma.shiftTimeTemplate.findMany({
+    const templates = await prisma.shift_start_time_templates.findMany({
       orderBy: [
         { shiftType: 'asc' },
         { role: 'asc' },
@@ -45,15 +45,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { shiftType, role, startTime, endTime, priority, description, isActive } = body
+    const { shiftType, role, startTime, priority, description, isActive } = body
 
-    const template = await prisma.shiftTimeTemplate.create({
+    const template = await prisma.shift_start_time_templates.create({
       data: {
         id: crypto.randomUUID(),
         shiftType,
         role,
         startTime,
-        endTime,
         priority: priority || 0,
         description,
         isActive: isActive !== undefined ? isActive : true,

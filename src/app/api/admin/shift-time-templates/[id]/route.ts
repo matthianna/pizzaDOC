@@ -20,16 +20,16 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { startTime, endTime, priority, description, isActive } = body
+    const { startTime, priority, description, isActive } = body
 
-    const template = await prisma.shiftTimeTemplate.update({
+    const template = await prisma.shift_start_time_templates.update({
       where: { id: id },
       data: {
         startTime,
-        endTime,
         priority,
         description,
-        isActive
+        isActive,
+        updatedAt: new Date()
       }
     })
 
@@ -58,7 +58,7 @@ export async function DELETE(
       )
     }
 
-    await prisma.shiftTimeTemplate.delete({
+    await prisma.shift_start_time_templates.delete({
       where: { id: id }
     })
 

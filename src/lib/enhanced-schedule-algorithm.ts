@@ -65,7 +65,7 @@ interface ScheduleResult {
 export class EnhancedScheduleAlgorithm {
   
   private async getTransportLimits(): Promise<{ maxScooter: number; maxAuto: number }> {
-    const scooterSetting = await prisma.systemSettings.findUnique({
+    const scooterSetting = await prisma.SystemSettings.findUnique({
       where: { key: 'scooter_count' }
     })
     
