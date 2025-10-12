@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import crypto from 'crypto'
 
 // GET /api/admin/shift-limits - Get all shift limits
 export async function GET() {
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update each shift limit
+    const now = new Date()
     for (const limit of limits) {
       await prisma.shift_limits.upsert({
         where: {
@@ -60,14 +62,17 @@ export async function POST(request: NextRequest) {
         },
         update: {
           minStaff: limit.minStaff,
-          maxStaff: limit.maxStaff
+          maxStaff: limit.maxStaff,
+          updatedAt: now
         },
         create: {
+          id: crypto.randomUUID(),
           dayOfWeek: limit.dayOfWeek,
           shiftType: limit.shiftType,
           role: limit.role,
           minStaff: limit.minStaff,
-          maxStaff: limit.maxStaff
+          maxStaff: limit.maxStaff,
+          updatedAt: now
         }
       })
     }
