@@ -125,15 +125,20 @@ export default function SignInPage() {
       <div className="w-full max-w-sm">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 mb-6 rounded-full overflow-hidden shadow-lg">
+          <div className="inline-flex items-center justify-center w-32 h-32 mb-6 bg-white rounded-full overflow-hidden shadow-2xl ring-4 ring-orange-200">
             <img
-              src="./logo.png"
+              src="/logo.png"
               alt="PizzaDOC Logo"
               className="w-full h-full object-cover"
+              onError={(e) => {
+                console.error('Logo failed to load')
+                e.currentTarget.onerror = null
+                e.currentTarget.src = '/images/logo.png'
+              }}
             />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">PizzaDOC</h1>
-          <p className="text-gray-600 text-sm">Accedi al tuo account</p>
+          <h1 className="text-3xl font-black text-gray-900 mb-2 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">PizzaDOC</h1>
+          <p className="text-gray-600 text-base font-medium">Accedi al tuo account</p>
         </div>
 
         {/* Login Form */}
