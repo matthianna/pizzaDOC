@@ -101,8 +101,9 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
   }
 
   useEffect(() => {
+    // ⭐ Ricarica utenti quando weekStart cambia!
     fetchUsers()
-  }, [])
+  }, [weekStart])
 
   useEffect(() => {
     // Carica i turni esistenti quando cambiano giorno o turno
@@ -143,7 +144,9 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users/available')
+      // ⭐ PASSA weekStart per ottenere disponibilità della settimana specifica!
+      const weekStartStr = weekStart.toISOString().split('T')[0]
+      const response = await fetch(`/api/admin/users/available?weekStart=${weekStartStr}`)
       if (response.ok) {
         const data = await response.json()
         setUsers(data)
