@@ -25,11 +25,26 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Force 24-hour format for all time inputs */
-input[type="time"]::-webkit-datetime-edit-ampm-field {
-  display: none;
+/* Force 24-hour format for all time inputs - Multiple approaches for browser compatibility */
+
+/* Hide AM/PM field in WebKit browsers (Chrome, Safari, Edge) */
+input[type="time"]::-webkit-datetime-edit-ampm-field,
+input[type="time"]::-webkit-datetime-edit-text[aria-label="AM/PM"] {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
 }
 
+/* Force 24-hour display */
 input[type="time"] {
-  color-scheme: light;
+  color-scheme: light !important;
+}
+
+/* Additional Safari-specific fixes */
+@supports (-webkit-appearance: none) {
+  input[type="time"]::-webkit-datetime-edit-ampm-field {
+    display: none !important;
+  }
 }

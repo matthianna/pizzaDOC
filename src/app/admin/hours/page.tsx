@@ -54,6 +54,25 @@ export default function AdminHoursPage() {
     fetchWorkedHours()
   }, [filterStatus, selectedMonth, selectedYear])
 
+  // Force 24-hour format when modal opens
+  useEffect(() => {
+    if (editingHours) {
+      // Wait for DOM to be ready
+      setTimeout(() => {
+        const timeInputs = document.querySelectorAll('input[type="time"]')
+        timeInputs.forEach((input) => {
+          const htmlInput = input as HTMLInputElement
+          // Force 24-hour format by setting a data attribute
+          htmlInput.setAttribute('data-time-format', '24')
+          // Try to trigger re-render
+          const value = htmlInput.value
+          htmlInput.value = ''
+          htmlInput.value = value
+        })
+      }, 50)
+    }
+  }, [editingHours])
+
   const fetchWorkedHours = async () => {
     setLoading(true)
     try {
@@ -461,6 +480,8 @@ export default function AdminHoursPage() {
                     step="60"
                     pattern="[0-9]{2}:[0-9]{2}"
                     placeholder="18:00"
+                    data-time-format="24"
+                    lang="it-IT"
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-datetime-edit-ampm-field]:hidden"
                     style={{ colorScheme: 'light' }}
                   />
@@ -476,6 +497,8 @@ export default function AdminHoursPage() {
                     step="60"
                     pattern="[0-9]{2}:[0-9]{2}"
                     placeholder="22:00"
+                    data-time-format="24"
+                    lang="it-IT"
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-datetime-edit-ampm-field]:hidden"
                     style={{ colorScheme: 'light' }}
                   />
