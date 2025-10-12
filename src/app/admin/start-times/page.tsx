@@ -2,9 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { ClockIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { ClockIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
+
+interface ShiftLimit {
+  dayOfWeek: number
+  shiftType: 'PRANZO' | 'CENA'
+  role: 'PIZZAIOLO' | 'CUCINA' | 'FATTORINO' | 'SALA'
+  requiredStaff: number
+}
 
 interface StartTimeDistribution {
   id?: string
@@ -18,6 +25,7 @@ interface StartTimeDistribution {
 type Role = 'PIZZAIOLO' | 'CUCINA' | 'FATTORINO' | 'SALA'
 
 export default function StartTimesPage() {
+  const [shiftLimits, setShiftLimits] = useState<ShiftLimit[]>([])
   const [distributions, setDistributions] = useState<StartTimeDistribution[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -54,22 +62,64 @@ export default function StartTimesPage() {
   }
 
   useEffect(() => {
-    fetchDistributions()
+    fetchData()
   }, [])
 
-  const fetchDistributions = async () => {
+  const fetchData = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/start-time-distributions')
-      if (response.ok) {
-        const data = await response.json()
-        setDistributions(data)
+      const [limitsResponse, distributionsResponse] = await Promise.all([
+        fetch('/api/admin/shift-limits'),
+        fetch('/api/admin/start-time-distributions')
+      ])
+      
+      if (limitsResponse.ok) {
+        const limitsData = await limitsResponse.json()
+        setShiftLimits(limitsData)
+      }
+
+      if (distributionsResponse.ok) {
+        const distributionsData = await distributionsResponse.json()
+        setDistributions(distributionsData)
       }
     } catch (error) {
-      console.error('Error fetching distributions:', error)
+      console.error('Error fetching data:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const getRequiredStaff = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA', role: Role): number => {
+    const limit = shiftLimits.find(l => 
+      l.dayOfWeek === dayOfWeek && 
+      l.shiftType === shiftType && 
+      l.role === role
+    )
+    return limit?.requiredStaff ?? 0
+  }
+
+  const getDistributedCount = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA', role: Role): number => {
+    const roleDistributions = distributions.filter(d => 
+      d.dayOfWeek === dayOfWeek && 
+      d.shiftType === shiftType && 
+      d.role === role
+    )
+    return roleDistributions.reduce((sum, d) => sum + d.targetCount, 0)
+  }
+
+  const getTargetCount = (
+    dayOfWeek: number, 
+    shiftType: 'PRANZO' | 'CENA', 
+    role: Role, 
+    startTime: string
+  ): number => {
+    const dist = distributions.find(d => 
+      d.dayOfWeek === dayOfWeek && 
+      d.shiftType === shiftType && 
+      d.role === role &&
+      d.startTime === startTime
+    )
+    return dist?.targetCount ?? 0
   }
 
   const updateDistribution = (
@@ -79,6 +129,23 @@ export default function StartTimesPage() {
     startTime: string, 
     value: number
   ) => {
+    const required = getRequiredStaff(dayOfWeek, shiftType, role)
+    
+    // Calcola il totale distribuito escludendo questo orario
+    const otherDistributions = distributions.filter(d => 
+      d.dayOfWeek === dayOfWeek && 
+      d.shiftType === shiftType && 
+      d.role === role &&
+      d.startTime !== startTime
+    )
+    const otherTotal = otherDistributions.reduce((sum, d) => sum + d.targetCount, 0)
+    
+    // Non permettere di superare il limite
+    if (otherTotal + value > required) {
+      showToast(`⚠️ Non puoi superare ${required} ${roleLabels[role].toLowerCase()}!`, 'error')
+      return
+    }
+
     setDistributions(prev => {
       const existing = prev.find(d => 
         d.dayOfWeek === dayOfWeek && 
@@ -108,24 +175,29 @@ export default function StartTimesPage() {
     })
   }
 
-  const getTargetCount = (
-    dayOfWeek: number, 
-    shiftType: 'PRANZO' | 'CENA', 
-    role: Role, 
-    startTime: string
-  ): number => {
-    const dist = distributions.find(d => 
-      d.dayOfWeek === dayOfWeek && 
-      d.shiftType === shiftType && 
-      d.role === role &&
-      d.startTime === startTime
-    )
-    return dist?.targetCount ?? 0
-  }
-
   const saveDistributions = async () => {
     setSaving(true)
     try {
+      // Verifica che tutti i ruoli siano completamente distribuiti
+      const warnings: string[] = []
+      
+      for (const limit of shiftLimits) {
+        if (limit.requiredStaff > 0) {
+          const distributed = getDistributedCount(limit.dayOfWeek, limit.shiftType, limit.role)
+          if (distributed < limit.requiredStaff) {
+            const dayName = days[limit.dayOfWeek]
+            warnings.push(`${dayName} ${limit.shiftType} ${roleLabels[limit.role]}: ${distributed}/${limit.requiredStaff}`)
+          }
+        }
+      }
+
+      if (warnings.length > 0) {
+        if (!confirm(`⚠️ Alcuni ruoli non sono completamente distribuiti:\n\n${warnings.join('\n')}\n\nVuoi salvare comunque?`)) {
+          setSaving(false)
+          return
+        }
+      }
+
       // Filter out entries with 0 count
       const toSave = distributions.filter(d => d.targetCount > 0)
       
@@ -142,7 +214,7 @@ export default function StartTimesPage() {
       const allSuccessful = responses.every(r => r.ok)
       if (allSuccessful) {
         showToast('✅ Orari salvati con successo!', 'success')
-        fetchDistributions()
+        fetchData()
       } else {
         showToast('❌ Errore durante il salvataggio', 'error')
       }
@@ -242,75 +314,114 @@ export default function StartTimesPage() {
 
           {/* Table for each day */}
           <div className="divide-y divide-gray-100">
-            {days.map((day, dayIndex) => (
-              <div key={dayIndex} className="p-6 hover:bg-gray-50 transition-colors">
-                <h4 className="text-sm font-semibold text-gray-900 mb-4">{day}</h4>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                          Orario
-                        </th>
-                        {roles.map(role => (
-                          <th key={role} className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                            {roleLabels[role]}
+            {days.map((day, dayIndex) => {
+              // Check if this day has any required staff for this shift
+              const hasRequirements = roles.some(role => getRequiredStaff(dayIndex, selectedShift, role) > 0)
+              
+              if (!hasRequirements) {
+                return (
+                  <div key={dayIndex} className="p-6 bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <h4 className="text-sm font-semibold text-gray-900">{day}</h4>
+                      <span className="text-xs text-gray-500 italic">Nessun personale richiesto per questo turno</span>
+                    </div>
+                  </div>
+                )
+              }
+
+              return (
+                <div key={dayIndex} className="p-6 hover:bg-gray-50 transition-colors">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-4">{day}</h4>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                            Orario
                           </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {/* Get all unique start times for this shift */}
-                      {Array.from(new Set(
-                        roles.flatMap(role => getAvailableStartTimes(selectedShift, role))
-                      )).sort().map(startTime => (
-                        <tr key={startTime} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
-                              {startTime}
-                            </span>
-                          </td>
                           {roles.map(role => {
-                            const availableTimes = getAvailableStartTimes(selectedShift, role)
-                            const isAvailable = availableTimes.includes(startTime)
-                            const value = getTargetCount(dayIndex, selectedShift, role, startTime)
+                            const required = getRequiredStaff(dayIndex, selectedShift, role)
+                            if (required === 0) return null
+                            
+                            const distributed = getDistributedCount(dayIndex, selectedShift, role)
+                            const isComplete = distributed === required
+                            const isOver = distributed > required
                             
                             return (
-                              <td key={role} className="px-4 py-3 whitespace-nowrap">
-                                {isAvailable ? (
-                                  <div className="flex justify-center">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="10"
-                                      value={value}
-                                      onChange={(e) => updateDistribution(
-                                        dayIndex,
-                                        selectedShift,
-                                        role,
-                                        startTime,
-                                        parseInt(e.target.value) || 0
-                                      )}
-                                      className="w-16 h-10 text-center text-sm font-semibold border-2 border-gray-200 rounded-lg hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
-                                      placeholder="0"
-                                    />
+                              <th key={role} className="px-4 py-3 text-center">
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className="text-xs font-semibold text-gray-600 uppercase">{roleLabels[role]}</span>
+                                  <div className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                    isOver ? 'bg-red-100 text-red-700' :
+                                    isComplete ? 'bg-green-100 text-green-700' : 
+                                    'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                    {distributed}/{required}
                                   </div>
-                                ) : (
-                                  <div className="flex justify-center">
-                                    <span className="text-gray-300">—</span>
-                                  </div>
-                                )}
-                              </td>
+                                </div>
+                              </th>
                             )
                           })}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {/* Get all unique start times for this shift */}
+                        {Array.from(new Set(
+                          roles.flatMap(role => getAvailableStartTimes(selectedShift, role))
+                        )).sort().map(startTime => (
+                          <tr key={startTime} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                                {startTime}
+                              </span>
+                            </td>
+                            {roles.map(role => {
+                              const required = getRequiredStaff(dayIndex, selectedShift, role)
+                              if (required === 0) return null
+                              
+                              const availableTimes = getAvailableStartTimes(selectedShift, role)
+                              const isAvailable = availableTimes.includes(startTime)
+                              const value = getTargetCount(dayIndex, selectedShift, role, startTime)
+                              const distributed = getDistributedCount(dayIndex, selectedShift, role)
+                              const remaining = required - distributed
+                              
+                              return (
+                                <td key={role} className="px-4 py-3 whitespace-nowrap">
+                                  {isAvailable ? (
+                                    <div className="flex justify-center">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max={value + remaining}
+                                        value={value}
+                                        onChange={(e) => updateDistribution(
+                                          dayIndex,
+                                          selectedShift,
+                                          role,
+                                          startTime,
+                                          parseInt(e.target.value) || 0
+                                        )}
+                                        className="w-16 h-10 text-center text-sm font-semibold border-2 border-gray-200 rounded-lg hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
+                                        placeholder="0"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="flex justify-center">
+                                      <span className="text-gray-300">—</span>
+                                    </div>
+                                  )}
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Footer Info */}
@@ -322,10 +433,10 @@ export default function StartTimesPage() {
               <div className="flex-1">
                 <h4 className="text-xs font-semibold text-purple-900 mb-2">Come funziona:</h4>
                 <ul className="text-xs text-purple-800 space-y-1">
-                  <li>• <strong>Orari Disponibili:</strong> Variano per ruolo e turno (es. Pizzaiolo PRANZO: 11:00, 11:30)</li>
-                  <li>• <strong>Target Count:</strong> Quante persone devono iniziare a quell&apos;orario specifico</li>
-                  <li>• <strong>Valore 0:</strong> Nessuna assegnazione per quell&apos;orario (viene ignorato)</li>
-                  <li>• <strong>Generazione Automatica:</strong> L&apos;algoritmo userà queste distribuzioni per assegnare gli orari</li>
+                  <li>• <strong>Badge Colorato:</strong> Verde = completato, Giallo = mancanti, Rosso = troppi</li>
+                  <li>• <strong>Distribuzione:</strong> La somma degli orari deve essere uguale al personale richiesto</li>
+                  <li>• <strong>Limiti:</strong> Configurati in Configurazioni → Limiti Personale per Turno</li>
+                  <li>• <strong>Orari Disponibili:</strong> Variano per ruolo (es. Fattorino CENA: 18:00, 18:30, 19:00)</li>
                 </ul>
               </div>
             </div>
@@ -336,4 +447,3 @@ export default function StartTimesPage() {
     </MainLayout>
   )
 }
-
