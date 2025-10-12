@@ -1,6 +1,7 @@
 import { prisma } from './prisma'
 import { hashPassword } from './utils'
 import { Role } from '@prisma/client'
+import crypto from 'crypto'
 
 export async function seedDatabase() {
   try {
@@ -41,70 +42,71 @@ export async function seedDatabase() {
     // Create default shift limits
     const defaultLimits = [
       // Lunedì
-      { dayOfWeek: 1, shiftType: 'PRANZO', role: 'CUCINA', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 1, shiftType: 'PRANZO', role: 'FATTORINO', minStaff: 1, maxStaff: 2 },
-      { dayOfWeek: 1, shiftType: 'PRANZO', role: 'SALA', minStaff: 1, maxStaff: 3 },
-      { dayOfWeek: 1, shiftType: 'CENA', role: 'CUCINA', minStaff: 3, maxStaff: 5 },
-      { dayOfWeek: 1, shiftType: 'CENA', role: 'FATTORINO', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 1, shiftType: 'CENA', role: 'SALA', minStaff: 2, maxStaff: 4 },
+      { dayOfWeek: 1, shiftType: 'PRANZO', role: 'CUCINA', requiredStaff: 2 },
+      { dayOfWeek: 1, shiftType: 'PRANZO', role: 'FATTORINO', requiredStaff: 1 },
+      { dayOfWeek: 1, shiftType: 'PRANZO', role: 'SALA', requiredStaff: 1 },
+      { dayOfWeek: 1, shiftType: 'CENA', role: 'CUCINA', requiredStaff: 3 },
+      { dayOfWeek: 1, shiftType: 'CENA', role: 'FATTORINO', requiredStaff: 2 },
+      { dayOfWeek: 1, shiftType: 'CENA', role: 'SALA', requiredStaff: 2 },
       
       // Martedì
-      { dayOfWeek: 2, shiftType: 'PRANZO', role: 'CUCINA', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 2, shiftType: 'PRANZO', role: 'FATTORINO', minStaff: 1, maxStaff: 2 },
-      { dayOfWeek: 2, shiftType: 'PRANZO', role: 'SALA', minStaff: 1, maxStaff: 3 },
-      { dayOfWeek: 2, shiftType: 'CENA', role: 'CUCINA', minStaff: 3, maxStaff: 5 },
-      { dayOfWeek: 2, shiftType: 'CENA', role: 'FATTORINO', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 2, shiftType: 'CENA', role: 'SALA', minStaff: 2, maxStaff: 4 },
+      { dayOfWeek: 2, shiftType: 'PRANZO', role: 'CUCINA', requiredStaff: 2 },
+      { dayOfWeek: 2, shiftType: 'PRANZO', role: 'FATTORINO', requiredStaff: 1 },
+      { dayOfWeek: 2, shiftType: 'PRANZO', role: 'SALA', requiredStaff: 1 },
+      { dayOfWeek: 2, shiftType: 'CENA', role: 'CUCINA', requiredStaff: 3 },
+      { dayOfWeek: 2, shiftType: 'CENA', role: 'FATTORINO', requiredStaff: 2 },
+      { dayOfWeek: 2, shiftType: 'CENA', role: 'SALA', requiredStaff: 2 },
 
       // Mercoledì
-      { dayOfWeek: 3, shiftType: 'PRANZO', role: 'CUCINA', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 3, shiftType: 'PRANZO', role: 'FATTORINO', minStaff: 1, maxStaff: 2 },
-      { dayOfWeek: 3, shiftType: 'PRANZO', role: 'SALA', minStaff: 1, maxStaff: 3 },
-      { dayOfWeek: 3, shiftType: 'CENA', role: 'CUCINA', minStaff: 3, maxStaff: 5 },
-      { dayOfWeek: 3, shiftType: 'CENA', role: 'FATTORINO', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 3, shiftType: 'CENA', role: 'SALA', minStaff: 2, maxStaff: 4 },
+      { dayOfWeek: 3, shiftType: 'PRANZO', role: 'CUCINA', requiredStaff: 2 },
+      { dayOfWeek: 3, shiftType: 'PRANZO', role: 'FATTORINO', requiredStaff: 1 },
+      { dayOfWeek: 3, shiftType: 'PRANZO', role: 'SALA', requiredStaff: 1 },
+      { dayOfWeek: 3, shiftType: 'CENA', role: 'CUCINA', requiredStaff: 3 },
+      { dayOfWeek: 3, shiftType: 'CENA', role: 'FATTORINO', requiredStaff: 2 },
+      { dayOfWeek: 3, shiftType: 'CENA', role: 'SALA', requiredStaff: 2 },
 
       // Giovedì
-      { dayOfWeek: 4, shiftType: 'PRANZO', role: 'CUCINA', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 4, shiftType: 'PRANZO', role: 'FATTORINO', minStaff: 1, maxStaff: 2 },
-      { dayOfWeek: 4, shiftType: 'PRANZO', role: 'SALA', minStaff: 1, maxStaff: 3 },
-      { dayOfWeek: 4, shiftType: 'CENA', role: 'CUCINA', minStaff: 3, maxStaff: 5 },
-      { dayOfWeek: 4, shiftType: 'CENA', role: 'FATTORINO', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 4, shiftType: 'CENA', role: 'SALA', minStaff: 2, maxStaff: 4 },
+      { dayOfWeek: 4, shiftType: 'PRANZO', role: 'CUCINA', requiredStaff: 2 },
+      { dayOfWeek: 4, shiftType: 'PRANZO', role: 'FATTORINO', requiredStaff: 1 },
+      { dayOfWeek: 4, shiftType: 'PRANZO', role: 'SALA', requiredStaff: 1 },
+      { dayOfWeek: 4, shiftType: 'CENA', role: 'CUCINA', requiredStaff: 3 },
+      { dayOfWeek: 4, shiftType: 'CENA', role: 'FATTORINO', requiredStaff: 2 },
+      { dayOfWeek: 4, shiftType: 'CENA', role: 'SALA', requiredStaff: 2 },
 
       // Venerdì
-      { dayOfWeek: 5, shiftType: 'PRANZO', role: 'CUCINA', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 5, shiftType: 'PRANZO', role: 'FATTORINO', minStaff: 1, maxStaff: 2 },
-      { dayOfWeek: 5, shiftType: 'PRANZO', role: 'SALA', minStaff: 1, maxStaff: 3 },
-      { dayOfWeek: 5, shiftType: 'CENA', role: 'CUCINA', minStaff: 4, maxStaff: 6 },
-      { dayOfWeek: 5, shiftType: 'CENA', role: 'FATTORINO', minStaff: 3, maxStaff: 5 },
-      { dayOfWeek: 5, shiftType: 'CENA', role: 'SALA', minStaff: 3, maxStaff: 5 },
+      { dayOfWeek: 5, shiftType: 'PRANZO', role: 'CUCINA', requiredStaff: 2 },
+      { dayOfWeek: 5, shiftType: 'PRANZO', role: 'FATTORINO', requiredStaff: 1 },
+      { dayOfWeek: 5, shiftType: 'PRANZO', role: 'SALA', requiredStaff: 1 },
+      { dayOfWeek: 5, shiftType: 'CENA', role: 'CUCINA', requiredStaff: 4 },
+      { dayOfWeek: 5, shiftType: 'CENA', role: 'FATTORINO', requiredStaff: 3 },
+      { dayOfWeek: 5, shiftType: 'CENA', role: 'SALA', requiredStaff: 3 },
 
       // Sabato
-      { dayOfWeek: 6, shiftType: 'PRANZO', role: 'CUCINA', minStaff: 3, maxStaff: 5 },
-      { dayOfWeek: 6, shiftType: 'PRANZO', role: 'FATTORINO', minStaff: 2, maxStaff: 3 },
-      { dayOfWeek: 6, shiftType: 'PRANZO', role: 'SALA', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 6, shiftType: 'CENA', role: 'CUCINA', minStaff: 4, maxStaff: 6 },
-      { dayOfWeek: 6, shiftType: 'CENA', role: 'FATTORINO', minStaff: 3, maxStaff: 5 },
-      { dayOfWeek: 6, shiftType: 'CENA', role: 'SALA', minStaff: 3, maxStaff: 5 },
+      { dayOfWeek: 6, shiftType: 'PRANZO', role: 'CUCINA', requiredStaff: 3 },
+      { dayOfWeek: 6, shiftType: 'PRANZO', role: 'FATTORINO', requiredStaff: 2 },
+      { dayOfWeek: 6, shiftType: 'PRANZO', role: 'SALA', requiredStaff: 2 },
+      { dayOfWeek: 6, shiftType: 'CENA', role: 'CUCINA', requiredStaff: 4 },
+      { dayOfWeek: 6, shiftType: 'CENA', role: 'FATTORINO', requiredStaff: 3 },
+      { dayOfWeek: 6, shiftType: 'CENA', role: 'SALA', requiredStaff: 3 },
 
       // Domenica
-      { dayOfWeek: 0, shiftType: 'PRANZO', role: 'CUCINA', minStaff: 3, maxStaff: 5 },
-      { dayOfWeek: 0, shiftType: 'PRANZO', role: 'FATTORINO', minStaff: 2, maxStaff: 3 },
-      { dayOfWeek: 0, shiftType: 'PRANZO', role: 'SALA', minStaff: 2, maxStaff: 4 },
-      { dayOfWeek: 0, shiftType: 'CENA', role: 'CUCINA', minStaff: 4, maxStaff: 6 },
-      { dayOfWeek: 0, shiftType: 'CENA', role: 'FATTORINO', minStaff: 3, maxStaff: 5 },
-      { dayOfWeek: 0, shiftType: 'CENA', role: 'SALA', minStaff: 3, maxStaff: 5 },
+      { dayOfWeek: 0, shiftType: 'PRANZO', role: 'CUCINA', requiredStaff: 3 },
+      { dayOfWeek: 0, shiftType: 'PRANZO', role: 'FATTORINO', requiredStaff: 2 },
+      { dayOfWeek: 0, shiftType: 'PRANZO', role: 'SALA', requiredStaff: 2 },
+      { dayOfWeek: 0, shiftType: 'CENA', role: 'CUCINA', requiredStaff: 4 },
+      { dayOfWeek: 0, shiftType: 'CENA', role: 'FATTORINO', requiredStaff: 3 },
+      { dayOfWeek: 0, shiftType: 'CENA', role: 'SALA', requiredStaff: 3 },
     ]
 
     for (const limit of defaultLimits) {
       await prisma.shift_limits.create({
         data: {
+          id: crypto.randomUUID(),
           dayOfWeek: limit.dayOfWeek,
           shiftType: limit.shiftType as any,
           role: limit.role as any,
-          minStaff: limit.minStaff,
-          maxStaff: limit.maxStaff
+          requiredStaff: limit.requiredStaff,
+          updatedAt: new Date()
         }
       })
     }

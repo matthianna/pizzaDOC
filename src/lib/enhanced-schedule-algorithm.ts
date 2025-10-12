@@ -23,8 +23,7 @@ interface ShiftRequirement {
   dayOfWeek: number
   shiftType: ShiftType
   role: Role
-  minStaff: number
-  maxStaff: number
+  requiredStaff: number
   priority: number
 }
 
@@ -391,15 +390,14 @@ export class EnhancedScheduleAlgorithm {
 
   private async loadShiftRequirements(): Promise<ShiftRequirement[]> {
     const limits = await prisma.shift_limits.findMany({
-      where: { minStaff: { gt: 0 } }
+      where: { requiredStaff: { gt: 0 } }
     })
 
     return limits.map(limit => ({
       dayOfWeek: limit.dayOfWeek,
       shiftType: limit.shiftType,
       role: limit.role,
-      minStaff: limit.minStaff,
-      maxStaff: limit.maxStaff,
+      requiredStaff: limit.requiredStaff,
       priority: this.getRolePriority(limit.role) + this.getShiftPriority(limit.dayOfWeek, limit.shiftType)
     }))
   }
@@ -481,7 +479,7 @@ export class EnhancedScheduleAlgorithm {
         s.role === req.role
       ).length
 
-      const needed = req.minStaff - assignedCount
+      const needed = req.requiredStaff - assignedCount
 
       if (needed <= 0) continue
 
@@ -587,12 +585,12 @@ export class EnhancedScheduleAlgorithm {
       ).length
       
       // Se ne servono ancora, aggiungi alla lista
-      const stillNeeded = req.minStaff - assignedCount
+      const stillNeeded = req.requiredStaff - assignedCount
       if (stillNeeded > 0) {
         // Crea un nuovo requisito per la quantità mancante
         unfilledRequirements.push({
           ...req,
-          minStaff: stillNeeded
+          requiredStaff: stillNeeded
         })
       }
     }
@@ -760,9 +758,9 @@ export class EnhancedScheduleAlgorithm {
         dayOfWeek: req.dayOfWeek,
         shiftType: req.shiftType,
         role: req.role,
-        required: req.minStaff,
+        required: req.requiredStaff,
         assigned,
-        missing: Math.max(0, req.minStaff - assigned)
+        missing: Math.max(0, req.requiredStaff - assigned)
       }
     })
     
@@ -780,7 +778,7 @@ export class EnhancedScheduleAlgorithm {
     
     // Calcola punteggi qualità
     const totalGaps = gaps.reduce((sum, gap) => sum + gap.missing, 0)
-    const totalRequired = requirements.reduce((sum, req) => sum + req.minStaff, 0)
+    const totalRequired = requirements.reduce((sum, req) => sum + req.requiredStaff, 0)
     const coverageScore = totalRequired > 0 ? Math.max(0, 1 - totalGaps / totalRequired) : 1
     
     const workloadValues = Object.values(userWorkload)

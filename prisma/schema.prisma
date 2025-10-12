@@ -86,14 +86,13 @@ model schedules {
 }
 
 model shift_limits {
-  id        String    @id
-  dayOfWeek Int
-  shiftType ShiftType
-  role      Role
-  minStaff  Int
-  maxStaff  Int
-  createdAt DateTime  @default(now())
-  updatedAt DateTime
+  id            String    @id
+  dayOfWeek     Int
+  shiftType     ShiftType
+  role          Role
+  requiredStaff Int       @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
 
   @@unique([dayOfWeek, shiftType, role])
 }

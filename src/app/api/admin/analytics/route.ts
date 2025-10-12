@@ -247,8 +247,8 @@ export async function GET(request: NextRequest) {
     
     shiftLimits.forEach(limit => {
       const key = `${limit.dayOfWeek}_${limit.shiftType}_${limit.role}`
-      requiredMap.set(key, limit.minStaff)
-      totalRequiredSlots += limit.minStaff
+      requiredMap.set(key, limit.requiredStaff)
+      totalRequiredSlots += limit.requiredStaff
     })
 
     const assignedMap = new Map<string, number>()
@@ -261,7 +261,7 @@ export async function GET(request: NextRequest) {
     shiftLimits.forEach(limit => {
       const key = `${limit.dayOfWeek}_${limit.shiftType}_${limit.role}`
       const assigned = assignedMap.get(key) || 0
-      const missing = limit.minStaff - assigned
+      const missing = limit.requiredStaff - assigned
       if (missing > 0) {
         gaps.push({
           day: DAY_NAMES[limit.dayOfWeek],

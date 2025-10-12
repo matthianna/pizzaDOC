@@ -19,8 +19,7 @@ interface ShiftRequirement {
   dayOfWeek: number
   shiftType: ShiftType
   role: Role
-  minStaff: number
-  maxStaff: number
+  requiredStaff: number
   priority: number
 }
 
@@ -263,13 +262,13 @@ export class MaxCoverageAlgorithm {
         s.role === req.role
       ).length
 
-      const missing = Math.max(0, req.minStaff - assigned)
+      const missing = Math.max(0, req.requiredStaff - assigned)
       if (missing > 0) {
         gaps.push({
           dayOfWeek: req.dayOfWeek,
           shiftType: req.shiftType,
           role: req.role,
-          required: req.minStaff,
+          required: req.requiredStaff,
           assigned,
           missing
         })
@@ -291,8 +290,7 @@ export class MaxCoverageAlgorithm {
         dayOfWeek: gap.dayOfWeek,
         shiftType: gap.shiftType,
         role: gap.role,
-        minStaff: gap.missing,
-        maxStaff: original?.maxStaff || gap.missing,
+        requiredStaff: gap.missing,
         priority: original?.priority || 1
       }
     })
@@ -371,8 +369,7 @@ export class MaxCoverageAlgorithm {
       dayOfWeek: limit.dayOfWeek,
       shiftType: limit.shiftType as ShiftType,
       role: limit.role as Role,
-      minStaff: limit.minStaff,
-      maxStaff: limit.maxStaff,
+      requiredStaff: limit.requiredStaff,
       priority: this.getRolePriority(limit.role as Role) + 
                this.getShiftPriority(limit.dayOfWeek, limit.shiftType as ShiftType)
     }))
@@ -437,7 +434,7 @@ export class MaxCoverageAlgorithm {
         s.role === req.role
       ).length
 
-      const needed = req.minStaff - assignedCount
+      const needed = req.requiredStaff - assignedCount
 
       if (needed <= 0) continue
 
@@ -624,13 +621,13 @@ export class MaxCoverageAlgorithm {
         s.role === req.role
       ).length
 
-      const missing = Math.max(0, req.minStaff - assigned)
-      if (missing > 0 || assigned < req.minStaff) {
+      const missing = Math.max(0, req.requiredStaff - assigned)
+      if (missing > 0 || assigned < req.requiredStaff) {
         gaps.push({
           dayOfWeek: req.dayOfWeek,
           shiftType: req.shiftType,
           role: req.role,
-          required: req.minStaff,
+          required: req.requiredStaff,
           assigned,
           missing
         })
@@ -638,7 +635,7 @@ export class MaxCoverageAlgorithm {
     })
 
     // Calcola coverage
-    const totalRequired = requirements.reduce((sum, req) => sum + req.minStaff, 0)
+    const totalRequired = requirements.reduce((sum, req) => sum + req.requiredStaff, 0)
     const totalAssigned = schedule.length
     const coverageScore = totalRequired > 0 ? totalAssigned / totalRequired : 0
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Cog6ToothIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { Cog6ToothIcon, CheckIcon, UsersIcon } from '@heroicons/react/24/outline'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
@@ -12,13 +12,14 @@ interface Settings {
 }
 
 interface ShiftLimit {
-  id: string
+  id?: string
   dayOfWeek: number
   shiftType: 'PRANZO' | 'CENA'
-  role: 'CUCINA' | 'FATTORINO' | 'SALA'
-  minStaff: number
-  maxStaff: number
+  role: 'PIZZAIOLO' | 'CUCINA' | 'FATTORINO' | 'SALA'
+  requiredStaff: number
 }
+
+type Role = 'PIZZAIOLO' | 'CUCINA' | 'FATTORINO' | 'SALA'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>({
@@ -28,25 +29,17 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [savingLimits, setSavingLimits] = useState(false)
-  const [startTimeDistributions, setStartTimeDistributions] = useState<{
-    id: string;
-    shiftType: string;
-    role: string;
-    startTime: string;
-    targetCount: number;
-    isActive: boolean;
-  }[]>([])
-  const [savingDistributions, setSavingDistributions] = useState(false)
   const { showToast, ToastContainer } = useToast()
 
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
-  const shifts = ['PRANZO', 'CENA']
-  const roles = ['PIZZAIOLO', 'CUCINA', 'FATTORINO', 'SALA']
+  const shifts: ('PRANZO' | 'CENA')[] = ['PRANZO', 'CENA']
+  const roles: Role[] = ['PIZZAIOLO', 'CUCINA', 'FATTORINO', 'SALA']
 
-  // L'indice dell'array corrisponde direttamente al dayOfWeek del database
-  // 0=Lunedì, 1=Martedì, ..., 6=Domenica (come definito in date-utils.ts)
-  const getDbDayOfWeek = (arrayIndex: number) => {
-    return arrayIndex // Nessuna conversione necessaria!
+  const roleLabels: Record<Role, string> = {
+    PIZZAIOLO: 'Pizzaiolo',
+    CUCINA: 'Cucina',
+    FATTORINO: 'Fattorino',
+    SALA: 'Sala'
   }
 
   useEffect(() => {
@@ -56,10 +49,9 @@ export default function SettingsPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [settingsResponse, limitsResponse, distributionsResponse] = await Promise.all([
+      const [settingsResponse, limitsResponse] = await Promise.all([
         fetch('/api/admin/settings'),
-        fetch('/api/admin/shift-limits'),
-        fetch('/api/admin/start-time-distributions')
+        fetch('/api/admin/shift-limits')
       ])
       
       if (settingsResponse.ok) {
@@ -72,11 +64,6 @@ export default function SettingsPage() {
       if (limitsResponse.ok) {
         const limitsData = await limitsResponse.json()
         setShiftLimits(limitsData)
-      }
-
-      if (distributionsResponse.ok) {
-        const distributionsData = await distributionsResponse.json()
-        setStartTimeDistributions(distributionsData)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -113,99 +100,67 @@ export default function SettingsPage() {
     }
   }
 
-  const updateShiftLimit = (dayOfWeek: number, shiftType: string, role: string, field: 'minStaff' | 'maxStaff', value: number) => {
-    setShiftLimits(prev => prev.map(limit => {
-      if (limit.dayOfWeek === dayOfWeek && limit.shiftType === shiftType && limit.role === role) {
-        return { ...limit, [field]: value }
+  const updateShiftLimit = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA', role: Role, value: number) => {
+    setShiftLimits(prev => {
+      const existing = prev.find(limit => 
+        limit.dayOfWeek === dayOfWeek && 
+        limit.shiftType === shiftType && 
+        limit.role === role
+      )
+
+      if (existing) {
+        return prev.map(limit => 
+          limit.dayOfWeek === dayOfWeek && 
+          limit.shiftType === shiftType && 
+          limit.role === role
+            ? { ...limit, requiredStaff: value }
+            : limit
+        )
+      } else {
+        return [...prev, {
+          dayOfWeek,
+          shiftType,
+          role,
+          requiredStaff: value
+        }]
       }
-      return limit
-    }))
+    })
   }
 
-  const getShiftLimit = (dayOfWeek: number, shiftType: string, role: string) => {
-    return shiftLimits.find(limit => 
-      limit.dayOfWeek === dayOfWeek && 
-      limit.shiftType === shiftType && 
-      limit.role === role
-    ) || { minStaff: 1, maxStaff: 5 }
+  const getShiftLimit = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA', role: Role): number => {
+    const limit = shiftLimits.find(l => 
+      l.dayOfWeek === dayOfWeek && 
+      l.shiftType === shiftType && 
+      l.role === role
+    )
+    return limit?.requiredStaff ?? 0
   }
 
   const saveShiftLimits = async () => {
     setSavingLimits(true)
     try {
+      // Filter out entries with 0 required staff (no need to save them)
+      const limitsToSave = shiftLimits.filter(l => l.requiredStaff > 0)
+      
       const response = await fetch('/api/admin/shift-limits', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ limits: shiftLimits })
+        body: JSON.stringify({ limits: limitsToSave })
       })
 
       if (response.ok) {
-        showToast('Limiti salvati con successo!', 'success')
+        showToast('✅ Limiti salvati con successo!', 'success')
+        fetchData() // Refresh data
       } else {
-        showToast('Errore durante il salvataggio', 'error')
+        showToast('❌ Errore durante il salvataggio', 'error')
       }
     } catch (error) {
       console.error('Error saving limits:', error)
-      showToast('Errore durante il salvataggio', 'error')
+      showToast('❌ Errore durante il salvataggio', 'error')
     } finally {
       setSavingLimits(false)
-    }
-  }
-
-  const getDistribution = (shiftType: string, role: string, startTime: string) => {
-    return startTimeDistributions.find(d => 
-      d.shiftType === shiftType && 
-      d.role === role && 
-      d.startTime === startTime
-    )
-  }
-
-  const updateDistribution = (shiftType: string, role: string, startTime: string, targetCount: number) => {
-    setStartTimeDistributions(prev => {
-      const existing = prev.findIndex(d => 
-        d.shiftType === shiftType && 
-        d.role === role && 
-        d.startTime === startTime
-      )
-      
-      if (existing >= 0) {
-        const updated = [...prev]
-        updated[existing] = { ...updated[existing], targetCount }
-        return updated
-      } else {
-        return [...prev, { id: `new-${Date.now()}-${Math.random()}`, shiftType, role, startTime, targetCount, isActive: true }]
-      }
-    })
-  }
-
-  const saveDistributions = async () => {
-    setSavingDistributions(true)
-    try {
-      const responses = await Promise.all(
-        startTimeDistributions.map(dist =>
-          fetch('/api/admin/start-time-distributions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(dist)
-          })
-        )
-      )
-
-      const allSuccessful = responses.every(r => r.ok)
-      if (allSuccessful) {
-        showToast('Distribuzioni orari salvate con successo!', 'success')
-      } else {
-        showToast('Errore nel salvataggio di alcune distribuzioni', 'error')
-      }
-    } catch (error) {
-      console.error('Error saving distributions:', error)
-      showToast('Errore nel salvataggio delle distribuzioni', 'error')
-    } finally {
-      setSavingDistributions(false)
     }
   }
 
@@ -213,7 +168,7 @@ export default function SettingsPage() {
     return (
       <MainLayout adminOnly>
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
         </div>
       </MainLayout>
     )
@@ -221,11 +176,11 @@ export default function SettingsPage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-            <Cog6ToothIcon className="h-6 w-6 sm:h-8 sm:w-8 mr-3 text-orange-600" />
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+            <Cog6ToothIcon className="h-8 w-8 mr-3 text-orange-600" />
             Configurazioni Sistema
           </h1>
           <p className="text-gray-600 mt-1">
@@ -234,7 +189,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Scooter Configuration */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center mb-4">
             <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
               🛵
@@ -258,7 +213,7 @@ export default function SettingsPage() {
             <Button
               onClick={() => saveSetting('scooter_count', settings.scooter_count, 'Numero di scooter disponibili per le consegne')}
               isLoading={saving === 'scooter_count'}
-              leftIcon={saving === 'scooter_count' ? undefined : <CheckIcon />}
+              leftIcon={saving === 'scooter_count' ? undefined : <CheckIcon className="w-5 h-5" />}
               size="sm"
             >
               Salva
@@ -267,81 +222,95 @@ export default function SettingsPage() {
         </div>
 
         {/* Shift Limits Configuration */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                👥
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <UsersIcon className="h-8 w-8 text-blue-600 mr-3" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Limiti Personale per Turno</h3>
+                  <p className="text-sm text-gray-600">Configura il numero minimo e massimo di persone per ogni turno e ruolo</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Limiti Personale per Turno</h3>
-                <p className="text-sm text-gray-600">Configura il numero minimo e massimo di persone per ogni turno e ruolo</p>
-              </div>
+              <Button
+                onClick={saveShiftLimits}
+                isLoading={savingLimits}
+                className="bg-orange-600 hover:bg-orange-700"
+                leftIcon={!savingLimits ? <CheckIcon className="w-5 h-5" /> : undefined}
+              >
+                💾 Salva Tutti i Limiti
+              </Button>
             </div>
-            <Button
-              onClick={saveShiftLimits}
-              isLoading={savingLimits}
-              leftIcon={savingLimits ? undefined : <CheckIcon />}
-            >
-              Salva Tutti i Limiti
-            </Button>
           </div>
 
+          {/* Table */}
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-900">Giorno</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900">Turno</th>
+            <table className="min-w-full">
+              <thead className="bg-gray-50 border-b-2 border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
+                    Giorno
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-40">
+                    Turno
+                  </th>
                   {roles.map(role => (
-                    <th key={role} className="text-left py-3 px-4 font-medium text-gray-900">
-                      {role.charAt(0) + role.slice(1).toLowerCase()}
+                    <th key={role} className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      {roleLabels[role]}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {days.map((day, dayIndex) => 
                   shifts.map((shift, shiftIndex) => (
-                    <tr key={`${dayIndex}-${shift}`} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr 
+                      key={`${dayIndex}-${shift}`} 
+                      className={`hover:bg-gray-50 transition-colors ${
+                        shiftIndex === 0 ? 'border-t-2 border-gray-300' : ''
+                      }`}
+                    >
                       {shiftIndex === 0 && (
-                        <td rowSpan={2} className="py-3 px-4 font-medium text-gray-900 border-r border-gray-200">
+                        <td 
+                          rowSpan={2} 
+                          className="px-4 py-3 font-semibold text-gray-900 border-r-2 border-gray-200 bg-gray-50"
+                        >
                           {day}
                         </td>
                       )}
-                      <td className="py-3 px-4 text-sm font-medium text-gray-700">
-                        {shift}
-                        <div className="text-xs text-gray-500">
+                      <td className="px-4 py-3">
+                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          shift === 'PRANZO' 
+                            ? 'bg-orange-100 text-orange-800' 
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          <span className="mr-2">{shift === 'PRANZO' ? '🍕' : '🍝'}</span>
+                          {shift}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1 ml-1">
                           {shift === 'PRANZO' ? '11:00-14:00' : '17:00-22:00'}
                         </div>
                       </td>
                       {roles.map(role => {
-                        const limit = getShiftLimit(getDbDayOfWeek(dayIndex), shift, role)
+                        const value = getShiftLimit(dayIndex, shift, role)
                         return (
-                          <td key={role} className="py-3 px-4">
-                            <div className="flex items-center space-x-2">
-                              <div className="flex flex-col items-center">
-                                <label className="text-xs text-gray-500 mb-1">Min</label>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  value={limit.minStaff}
-                                  onChange={(e) => updateShiftLimit(getDbDayOfWeek(dayIndex), shift, role, 'minStaff', parseInt(e.target.value) || 0)}
-                                  className="w-16 text-center"
-                                />
-                              </div>
-                              <div className="flex flex-col items-center">
-                                <label className="text-xs text-gray-500 mb-1">Max</label>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  value={limit.maxStaff}
-                                  onChange={(e) => updateShiftLimit(getDbDayOfWeek(dayIndex), shift, role, 'maxStaff', parseInt(e.target.value) || 0)}
-                                  className="w-16 text-center"
-                                />
-                              </div>
+                          <td key={role} className="px-4 py-3">
+                            <div className="flex justify-center">
+                              <input
+                                type="number"
+                                min="0"
+                                max="10"
+                                value={value}
+                                onChange={(e) => updateShiftLimit(
+                                  dayIndex, 
+                                  shift, 
+                                  role, 
+                                  parseInt(e.target.value) || 0
+                                )}
+                                className="w-16 h-10 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg hover:border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
+                                placeholder="0"
+                              />
                             </div>
                           </td>
                         )
@@ -353,123 +322,22 @@ export default function SettingsPage() {
             </table>
           </div>
 
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">Legenda:</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li><strong>Min:</strong> Numero minimo di persone richieste per il turno</li>
-              <li><strong>Max:</strong> Numero massimo di persone che possono lavorare nel turno</li>
-              <li>L&apos;algoritmo di generazione automatica userà questi limiti per assegnare i turni</li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Sezione Distribuzioni Orari di Inizio */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Distribuzioni Orari di Inizio</h3>
-                <p className="text-sm text-gray-600 mt-1">Configura quanti utenti devono iniziare a determinati orari</p>
-              </div>
-              <Button
-                onClick={saveDistributions}
-                isLoading={savingDistributions}
-                className="bg-green-600 hover:bg-green-700 text-white"
-                size="sm"
-              >
-                Salva Distribuzioni
-              </Button>
-            </div>
-          </div>
-
-          {/* Contenuto principale */}
-          <div className="p-4 sm:p-6">
-            {shifts.map(shiftType => (
-              <div key={shiftType} className="mb-8 last:mb-0">
-                {/* Intestazione turno */}
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className={`w-4 h-4 rounded-full ${shiftType === 'PRANZO' ? 'bg-orange-400' : 'bg-blue-500'}`}></div>
-                    <h4 className="text-lg font-semibold text-gray-900">
-                      {shiftType === 'PRANZO' ? 'PRANZO' : 'CENA'}
-                    </h4>
-                    <span className="text-sm text-gray-500 font-mono ml-2">
-                      ({shiftType === 'PRANZO' ? '11:00-14:00' : '17:00-22:00'})
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Grid ruoli */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
-                  {roles.map(role => {
-                    const startTimes = shiftType === 'PRANZO' 
-                      ? (role === 'SALA' || role === 'FATTORINO') 
-                        ? ['11:30', '12:00']
-                        : ['11:00', '11:30']
-                      : (role === 'FATTORINO')
-                        ? ['18:00', '18:30', '19:00']
-                        : (role === 'SALA')
-                        ? ['18:00', '18:30']
-                        : ['17:00', '18:00', '18:30']
-                    
-                    return (
-                      <div key={role} className="bg-gray-50 rounded-lg p-4">
-                        {/* Titolo ruolo */}
-                        <div className="text-center mb-4">
-                          <h5 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
-                            {role}
-                          </h5>
-                        </div>
-                        
-                        {/* Orari e contatori */}
-                        <div className="space-y-4">
-                          {startTimes.map(startTime => {
-                            const dist = getDistribution(shiftType, role, startTime)
-                            return (
-                              <div key={startTime} className="bg-white rounded-lg p-3 border border-gray-200">
-                                {/* Orario */}
-                                <div className="text-center mb-3">
-                                  <span className="inline-block text-sm font-mono text-gray-700 bg-gray-100 px-3 py-1 rounded-md font-semibold">
-                                    {startTime}
-                                  </span>
-                                </div>
-                                
-                                {/* Input numero persone */}
-                                <div className="text-center">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max="10"
-                                    value={dist?.targetCount || 0}
-                                    onChange={(e) => updateDistribution(shiftType, role, startTime, parseInt(e.target.value) || 0)}
-                                    className="w-16 h-12 text-xl font-bold text-center border-2 border-gray-300 rounded-lg bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors hover:border-gray-400"
-                                  />
-                                  <div className="mt-2">
-                                    <span className="text-xs text-gray-500 font-medium">persone</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Footer con regole */}
+          {/* Footer Info */}
           <div className="px-6 py-4 bg-blue-50 border-t border-blue-200">
-            <div className="text-sm text-blue-800">
-              <h4 className="font-semibold mb-2">Vincoli e Regole:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                <div>• <strong>Orari:</strong> Solo ogni 30 minuti</div>
-                <div>• <strong>PRANZO:</strong> Pizzaiolo/Cucina dalle 11:00</div>
-                <div>• <strong>CENA:</strong> Fattorino/Sala dalle 18:00</div>
-                <div>• <strong>Algoritmo:</strong> Rispetta tutti i vincoli</div>
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <div className="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
+                  <span className="text-xl">💡</span>
+                </div>
+              </div>
+              <div className="ml-4">
+                <h4 className="text-sm font-semibold text-blue-900 mb-2">Come funziona:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• <strong>Personale Richiesto:</strong> Numero di persone necessarie per quel turno e ruolo</li>
+                  <li>• <strong>Valore 0:</strong> Nessun requisito per quella combinazione (verrà ignorata)</li>
+                  <li>• <strong>Generazione Automatica:</strong> L&apos;algoritmo userà questi valori per assegnare i turni</li>
+                  <li>• <strong>Gap Alert:</strong> Il sistema ti avviserà se mancano persone rispetto ai requisiti</li>
+                </ul>
               </div>
             </div>
           </div>

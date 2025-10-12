@@ -61,8 +61,7 @@ export async function POST(request: NextRequest) {
           }
         },
         update: {
-          minStaff: limit.minStaff,
-          maxStaff: limit.maxStaff,
+          requiredStaff: limit.requiredStaff,
           updatedAt: now
         },
         create: {
@@ -70,8 +69,7 @@ export async function POST(request: NextRequest) {
           dayOfWeek: limit.dayOfWeek,
           shiftType: limit.shiftType,
           role: limit.role,
-          minStaff: limit.minStaff,
-          maxStaff: limit.maxStaff,
+          requiredStaff: limit.requiredStaff,
           updatedAt: now
         }
       })

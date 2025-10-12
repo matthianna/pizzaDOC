@@ -46,7 +46,7 @@ export default function AdminSchedulePage() {
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [schedule, setSchedule] = useState<Schedule | null>(null)
   const [gaps, setGaps] = useState<Gap[]>([])
-  const [shiftLimits, setShiftLimits] = useState<{ dayOfWeek: number; shiftType: string; role: string; minStaff: number; maxStaff: number }[]>([])
+  const [shiftLimits, setShiftLimits] = useState<{ dayOfWeek: number; shiftType: string; role: string; requiredStaff: number }[]>([])
   const [missingAvailability, setMissingAvailability] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -161,16 +161,16 @@ export default function AdminSchedulePage() {
             l.role === role
           )
 
-          if (limit && limit.minStaff > 0) {
+          if (limit && limit.requiredStaff > 0) {
             const key = `${dayOfWeek}-${shiftType}-${role}`
             const assigned = shiftGroups[key] ? shiftGroups[key].length : 0
             
-            if (assigned < limit.minStaff) {
+            if (assigned < limit.requiredStaff) {
               calculatedGaps.push({
                 dayOfWeek,
                 shiftType,
                 role,
-                required: limit.minStaff,
+                required: limit.requiredStaff,
                 assigned
               })
             }
@@ -959,7 +959,7 @@ function ShiftCrew({
   dayOfWeek: number
   shiftType: ShiftType
   gaps: Gap[]
-  shiftLimits: { dayOfWeek: number; shiftType: string; role: string; minStaff: number; maxStaff: number }[]
+  shiftLimits: { dayOfWeek: number; shiftType: string; role: string; requiredStaff: number }[]
   onRemoveShift?: (shift: ScheduleShift) => void
   onEditTime?: (shift: ScheduleShift) => void
   onEditRole?: (shift: ScheduleShift) => void
@@ -977,7 +977,7 @@ function ShiftCrew({
   
   // Add roles from shift limits
   shiftLimits.forEach(limit => {
-    if (limit.dayOfWeek === dayOfWeek && limit.shiftType === shiftType && limit.minStaff > 0) {
+    if (limit.dayOfWeek === dayOfWeek && limit.shiftType === shiftType && limit.requiredStaff > 0) {
       allRoles.add(limit.role as Role)
     }
   })
@@ -1004,7 +1004,7 @@ function ShiftCrew({
           g.role === role
         )
         
-        const required = limit?.minStaff || 0
+        const required = limit?.requiredStaff || 0
         const assigned = roleShifts.length
         const missing = Math.max(0, required - assigned)
 
@@ -1099,7 +1099,7 @@ function CoverageReport({
   currentWeek 
 }: { 
   schedule: Schedule
-  shiftLimits: { dayOfWeek: number; shiftType: string; role: string; minStaff: number; maxStaff: number }[]
+  shiftLimits: { dayOfWeek: number; shiftType: string; role: string; requiredStaff: number }[]
   currentWeek: Date
 }) {
   const [coverageData, setCoverageData] = useState<{
