@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { useSession } from 'next-auth/react'
-import { Users, Calendar, Clock, BarChart3, UserCheck, TrendingUp, CalendarDays, AlertCircle } from 'lucide-react'
+import { Users, Calendar, Clock, BarChart3, UserCheck, TrendingUp, CalendarDays, AlertCircle, Settings, Shield, CheckIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getRoleName } from '@/lib/utils'
+import type { Role } from '@prisma/client'
 
 interface DashboardStats {
   // Admin stats
@@ -573,14 +574,14 @@ export default function DashboardPage() {
                   title="Piano Lavoro"
                   description="Genera e gestisci i turni"
                   icon={Calendar}
-                  highlight={stats.totalShiftsThisWeek === 0}
+                  highlight={!!(stats.totalShiftsThisWeek === 0)}
                 />
                 <ActionButton
                   href="/admin/hours"
                   title="Approva Ore"
                   description={stats.pendingHours ? `${stats.pendingHours} in attesa` : "Gestisci ore lavorate"}
                   icon={Clock}
-                  highlight={stats.pendingHours && stats.pendingHours > 0}
+                  highlight={!!(stats.pendingHours && stats.pendingHours > 0)}
                 />
                 <ActionButton
                   href="/admin/users"
@@ -592,14 +593,14 @@ export default function DashboardPage() {
                   href="/admin/settings"
                   title="Configurazioni"
                   description="Limiti e orari turni"
-                  icon={Cog6ToothIcon}
+                  icon={Settings}
                 />
                 <ActionButton
                   href="/admin/substitutions"
                   title="Sostituzioni"
                   description={stats.pendingSubstitutions ? `${stats.pendingSubstitutions} richieste` : "Nessuna richiesta"}
                   icon={UserCheck}
-                  highlight={stats.pendingSubstitutions && stats.pendingSubstitutions > 0}
+                  highlight={!!(stats.pendingSubstitutions && stats.pendingSubstitutions > 0)}
                 />
                 <ActionButton
                   href="/admin/absences"
@@ -617,7 +618,7 @@ export default function DashboardPage() {
                   href="/admin/system"
                   title="Sistema"
                   description="Sicurezza e backup"
-                  icon={ShieldCheckIcon}
+                  icon={Shield}
                 />
               </>
             ) : (
