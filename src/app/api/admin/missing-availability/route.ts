@@ -4,6 +4,11 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
 
+interface UserInfo {
+  id: string
+  username: string
+}
+
 // GET /api/admin/missing-availability - Check which employees haven't submitted availability
 export async function GET(request: NextRequest) {
   try {
@@ -22,9 +27,10 @@ export async function GET(request: NextRequest) {
 
     const weekStart = normalizeDate(weekStartParam)
 
-    // Get all non-admin users
-    const allUsers = await prisma.User.findMany({
+    // Get all non-admin active users
+    const allUsers = await prisma.user.findMany({
       where: {
+        isActive: true, // Only active users
         user_roles: {
           none: {
             role: 'ADMIN'
@@ -60,8 +66,8 @@ export async function GET(request: NextRequest) {
 
     // Find users who haven't submitted availability
     const missingUsers = allUsers
-      .filter(user => !usersWithAvailabilityIds.has(user.id))
-      .map(user => user.username)
+      .filter((user: UserInfo) => !usersWithAvailabilityIds.has(user.id))
+      .map((user: UserInfo) => user.username)
 
     // Calculate completion percentage
     const totalUsers = allUsers.length
