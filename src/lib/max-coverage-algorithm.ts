@@ -132,32 +132,43 @@ export class MaxCoverageAlgorithm {
       }
     })
 
-    if (distributions.length === 0) {
-      // Se non ci sono distribuzioni, usa l'orario standard
-      if (shiftType === 'PRANZO') {
-        return '11:30'
-      } else {
-        return '18:00'
-      }
+    console.log(`🕐 getOptimalStartTime - Giorno: ${dayOfWeek}, Turno: ${shiftType}, Ruolo: ${role}`)
+    console.log(`📋 Distribuzioni trovate: ${distributions.length}`, distributions.map(d => `${d.startTime}: ${d.targetCount}`))
+
+    // Filtra solo le distribuzioni con targetCount > 0 (le altre non sono slot validi)
+    const activeDistributions = distributions.filter(d => d.targetCount > 0)
+    
+    console.log(`✅ Distribuzioni attive (targetCount > 0): ${activeDistributions.length}`, activeDistributions.map(d => `${d.startTime}: ${d.targetCount}`))
+
+    if (activeDistributions.length === 0) {
+      // Se non ci sono distribuzioni attive, usa l'orario standard
+      const defaultTime = shiftType === 'PRANZO' ? '11:30' : '18:00'
+      console.log(`⚠️ Nessuna distribuzione attiva, uso default: ${defaultTime}`)
+      return defaultTime
     }
 
     // STRATEGIA: Riempire prima gli slot precedenti
-    const availableSlots = distributions.map(d => d.startTime).sort()
+    const availableSlots = activeDistributions.map(d => d.startTime).sort()
     
     for (const slot of availableSlots) {
       const key = `${dayOfWeek}_${shiftType}_${role}_${slot}`
       const currentCount = assignedUsers.get(key) || 0
-      const dist = distributions.find(d => d.startTime === slot)
+      const dist = activeDistributions.find(d => d.startTime === slot)
       const targetCount = dist?.targetCount || 0
       
+      console.log(`  🔍 Slot ${slot}: ${currentCount}/${targetCount}`)
+      
       if (currentCount < targetCount) {
+        console.log(`  ✅ Assegnato orario: ${slot}`)
         return slot
       }
     }
     
     // Se tutti gli slot sono pieni, usa comunque il primo slot
     // (nessun limite rigido, vogliamo massimizzare copertura)
-    return availableSlots[0] || '18:00'
+    const fallbackTime = availableSlots[0] || '18:00'
+    console.log(`  ⚠️ Tutti gli slot pieni, uso primo slot disponibile: ${fallbackTime}`)
+    return fallbackTime
   }
 
   private getRolePriority(role: Role): number {

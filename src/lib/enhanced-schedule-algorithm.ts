@@ -160,15 +160,23 @@ export class EnhancedScheduleAlgorithm {
       orderBy: { startTime: 'asc' }
     })
 
-    if (distributions.length === 0) {
-      // Se non ci sono distribuzioni per questo giorno specifico, usa orari default
-      console.log(`⚠️ Nessuna distribuzione per ${role} ${shiftType} giorno ${dayOfWeek}, uso default`)
+    console.log(`🕐 ENHANCED - getOptimalStartTime - Giorno: ${dayOfWeek}, Turno: ${shiftType}, Ruolo: ${role}`)
+    console.log(`📋 Distribuzioni trovate: ${distributions.length}`, distributions.map(d => `${d.startTime}: ${d.targetCount}`))
+
+    // Filtra solo le distribuzioni con targetCount > 0 (le altre non sono slot validi)
+    const activeDistributions = distributions.filter(d => d.targetCount > 0)
+    
+    console.log(`✅ Distribuzioni attive (targetCount > 0): ${activeDistributions.length}`, activeDistributions.map(d => `${d.startTime}: ${d.targetCount}`))
+
+    if (activeDistributions.length === 0) {
+      // Se non ci sono distribuzioni attive, usa orari default
+      console.log(`⚠️ Nessuna distribuzione attiva per ${role} ${shiftType} giorno ${dayOfWeek}, uso default`)
       return shiftType === 'PRANZO' ? '11:30' : '18:00'
     }
 
     // Applica vincoli specifici solo per la cena e se ci sono distribuzioni valide
     if (shiftType === 'CENA') {
-      const constrainedStartTime = this.applyRoleConstraints(shiftType, role, dayOfWeek, assignedUsers, distributions)
+      const constrainedStartTime = this.applyRoleConstraints(shiftType, role, dayOfWeek, assignedUsers, activeDistributions)
       if (constrainedStartTime) {
         return constrainedStartTime
       } else if (constrainedStartTime === null && (role === 'FATTORINO' || role === 'SALA')) {
@@ -179,17 +187,22 @@ export class EnhancedScheduleAlgorithm {
     }
 
     // PRIORITÀ: Riempi SEQUENZIALMENTE ogni slot fino al target
-    for (const dist of distributions) {
+    for (const dist of activeDistributions) {
       const key = `${dayOfWeek}_${shiftType}_${role}_${dist.startTime}`
       const currentCount = assignedUsers.get(key) || 0
       
+      console.log(`  🔍 Slot ${dist.startTime}: ${currentCount}/${dist.targetCount}`)
+      
       if (currentCount < dist.targetCount) {
+        console.log(`  ✅ Assegnato orario: ${dist.startTime}`)
         return dist.startTime
       }
     }
 
     // Se tutti i target sono raggiunti, distribuisci equamente sui primi slot
-    return distributions[0].startTime
+    const fallbackTime = activeDistributions[0].startTime
+    console.log(`  ⚠️ Tutti gli slot pieni, uso primo slot disponibile: ${fallbackTime}`)
+    return fallbackTime
   }
 
   private applyRoleConstraints(
