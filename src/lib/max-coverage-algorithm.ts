@@ -535,6 +535,16 @@ export class MaxCoverageAlgorithm {
         )
         if (!availability?.isAvailable) return false
         
+        // 2.5 VINCOLO DISPONIBILITÀ TOTALI: Non può superare il numero totale di disponibilità
+        // Se ha dichiarato N disponibilità, non può avere più di N turni assegnati
+        const totalAvailabilities = user.availabilities.filter(av => av.isAvailable).length
+        const currentlyAssignedShifts = currentSchedule.filter(shift => shift.userId === user.id).length
+        
+        // Modalità FINAL: permette di superare le disponibilità come ultima risorsa
+        if (mode !== 'final' && currentlyAssignedShifts >= totalAvailabilities) {
+          return false
+        }
+        
         // 3. VINCOLO FONDAMENTALE: Una persona può fare SOLO UN RUOLO per turno
         // Non può fare sala+cucina allo stesso turno (stesso giorno + stesso shiftType)
         // MA può fare sala a pranzo e cucina a cena (turni diversi)

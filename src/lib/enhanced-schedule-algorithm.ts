@@ -635,6 +635,16 @@ export class EnhancedScheduleAlgorithm {
         )
         if (!availability?.isAvailable) return false
         
+        // 2.5 VINCOLO DISPONIBILITÀ TOTALI: Non può superare il numero totale di disponibilità
+        // Se ha dichiarato N disponibilità, non può avere più di N turni assegnati
+        const totalAvailabilities = user.availabilities.filter(av => av.isAvailable).length
+        const currentlyAssignedShifts = currentSchedule.filter(shift => shift.userId === user.id).length
+        
+        // In modalità relaxedMode: permette di superare le disponibilità come ultima risorsa
+        if (!relaxedMode && currentlyAssignedShifts >= totalAvailabilities) {
+          return false
+        }
+        
         // 3. Non deve già essere assegnato a questo turno
         const alreadyAssigned = currentSchedule.some(shift => 
           shift.userId === user.id && 
