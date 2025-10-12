@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { 
   Bars3Icon, 
@@ -286,18 +287,15 @@ function SidebarContent({
       {/* Logo */}
       <div className="flex items-center flex-shrink-0 px-4">
         <div className="flex items-center space-x-3 bg-gradient-to-r from-orange-500 to-orange-600 p-3 rounded-2xl shadow-lg w-full">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center ring-4 ring-orange-300 shadow-md">
-            <img
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center ring-4 ring-orange-300 shadow-md relative overflow-hidden">
+            <Image
               src="/logo.png"
               alt="PizzaDOC Logo"
-              className="w-8 h-8 rounded-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-                const nextEl = e.currentTarget.nextElementSibling as HTMLElement
-                if (nextEl) nextEl.style.display = 'block'
-              }}
+              width={32}
+              height={32}
+              className="object-cover"
+              unoptimized
             />
-            <span className="text-orange-600 font-bold text-xl hidden">🍕</span>
           </div>
           <h1 className="text-xl font-black text-white tracking-tight">PizzaDOC</h1>
         </div>
