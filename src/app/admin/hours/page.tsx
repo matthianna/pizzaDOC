@@ -7,7 +7,7 @@ import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { formatDate } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Select as ReactSelect } from '@/components/ui/react-select'
-import { TimeInput24h } from '@/components/ui/time-input-24h'
+import { TimePicker24h } from '@/components/ui/time-picker-24h'
 
 interface Shift {
   id: string
@@ -455,22 +455,20 @@ export default function AdminHoursPage() {
                   <label className="block text-sm font-semibold text-gray-800">
                     Ora Inizio * <span className="text-xs text-gray-500">(formato 24h)</span>
                   </label>
-                  <TimeInput24h
+                  <TimePicker24h
                     value={editStartTime}
-                    onChange={(e) => setEditStartTime(e.target.value)}
+                    onChange={(value) => setEditStartTime(value)}
                     placeholder="18:00"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-gray-800">
                     Ora Fine * <span className="text-xs text-gray-500">(formato 24h)</span>
                   </label>
-                  <TimeInput24h
+                  <TimePicker24h
                     value={editEndTime}
-                    onChange={(e) => setEditEndTime(e.target.value)}
+                    onChange={(value) => setEditEndTime(value)}
                     placeholder="22:00"
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
                 </div>
               </div>
