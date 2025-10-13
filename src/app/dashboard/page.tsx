@@ -276,28 +276,28 @@ export default function DashboardPage() {
                           const roleConfig = {
                             FATTORINO: { 
                               icon: Bike, 
-                              emoji: '🚴',
+                              emoji: '',
                               color: 'bg-blue-100 border-blue-300 text-blue-800',
                               badgeColor: 'bg-blue-600',
                               iconColor: 'text-blue-600'
                             },
                             CUCINA: { 
                               icon: ChefHat, 
-                              emoji: '👨‍🍳',
+                              emoji: '',
                               color: 'bg-green-100 border-green-300 text-green-800',
                               badgeColor: 'bg-green-600',
                               iconColor: 'text-green-600'
                             },
                             PIZZAIOLO: { 
                               icon: Pizza, 
-                              emoji: '🍕',
+                              emoji: '',
                               color: 'bg-red-100 border-red-300 text-red-800',
                               badgeColor: 'bg-red-600',
                               iconColor: 'text-red-600'
                             },
                             SALA: { 
                               icon: UtensilsCrossed, 
-                              emoji: '🍽️',
+                              emoji: '',
                               color: 'bg-purple-100 border-purple-300 text-purple-800',
                               badgeColor: 'bg-purple-600',
                               iconColor: 'text-purple-600'

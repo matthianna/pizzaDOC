@@ -52,7 +52,15 @@ export async function GET(req: NextRequest) {
 
     // Filtra solo turni senza ore inviate e utenti attivi
     const missingHours = shifts
-      .filter(shift => shift.worked_hours.length === 0 && shift.user.isActive)
+      .filter(shift => {
+        // Controlla se l'utente esiste ed è attivo
+        if (!shift.user || !shift.user.isActive) return false
+        
+        // Controlla se non ci sono ore lavorate (null o array vuoto)
+        const hasNoWorkedHours = !shift.worked_hours || shift.worked_hours.length === 0
+        
+        return hasNoWorkedHours
+      })
       .map(shift => ({
         shiftId: shift.id,
         userId: shift.user.id,
@@ -91,6 +99,10 @@ export async function GET(req: NextRequest) {
     const result = Object.values(groupedByUser).sort((a: any, b: any) => 
       a.username.localeCompare(b.username)
     )
+
+    console.log(`📊 [API /admin/hours-summary/missing] Trovati ${shifts.length} turni totali`)
+    console.log(`📊 [API /admin/hours-summary/missing] ${missingHours.length} turni senza ore inviate`)
+    console.log(`📊 [API /admin/hours-summary/missing] ${result.length} utenti con ore mancanti`)
 
     return NextResponse.json({
       totalMissing: result.length,
