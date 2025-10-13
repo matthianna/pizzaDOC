@@ -7,7 +7,6 @@ import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { formatDate } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Select as ReactSelect } from '@/components/ui/react-select'
-import { TimePicker24h } from '@/components/ui/time-picker-24h'
 
 interface Shift {
   id: string
@@ -170,8 +169,36 @@ export default function AdminHoursPage() {
     return totalMinutes / 60
   }
 
+  // Genera opzioni di orario con offset ±30 min dal turno originale
+  const generateTimeOptions = (baseTime: string): { value: string; label: string }[] => {
+    const [hour, minute] = baseTime.split(':').map(Number)
+    const baseMinutes = hour * 60 + minute
+    
+    const options: { value: string; label: string }[] = []
+    
+    // Da -60 minuti a +60 minuti, con step di 30 minuti
+    for (let offset = -60; offset <= 60; offset += 30) {
+      let totalMinutes = baseMinutes + offset
+      
+      // Gestisci wrap around (es. 23:30 + 60 = 00:30)
+      if (totalMinutes < 0) totalMinutes += 24 * 60
+      if (totalMinutes >= 24 * 60) totalMinutes -= 24 * 60
+      
+      const h = Math.floor(totalMinutes / 60)
+      const m = totalMinutes % 60
+      const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+      
+      options.push({
+        value: timeStr,
+        label: timeStr
+      })
+    }
+    
+    return options
+  }
+
   const getShiftDate = (shift: Shift): Date => {
-    const weekStart = new Date(shift.schedules.weekStart)
+    const weekStart = new Date(shift.schedule.weekStart)
     const shiftDate = new Date(weekStart)
     shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
     return shiftDate
@@ -294,9 +321,6 @@ export default function AdminHoursPage() {
                       Data e Turno
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Orario Turno
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Orario Lavorato
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -334,9 +358,6 @@ export default function AdminHoursPage() {
                               {getShiftTypeName(hours.shift.shiftType)} - {getRoleName(hours.shift.role)}
                             </div>
                           </div>
-                        </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {hours.shift.startTime} - {hours.shift.endTime}
                         </td>
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {hours.startTime} - {hours.endTime}
@@ -404,99 +425,101 @@ export default function AdminHoursPage() {
         </div>
       </div>
 
-      {/* Edit Hours Modal */}
+      {/* Edit Hours Modal - Modern Design */}
       {editingHours && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-2xl w-full transform transition-all">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4 border-b border-blue-100 rounded-t-xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Edit2 className="h-5 w-5 text-blue-600" />
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 max-w-2xl w-full transform transition-all">
+            {/* Header con stile moderno */}
+            <div className="bg-gradient-to-br from-orange-50 via-white to-orange-50/30 px-6 py-5 rounded-t-2xl border-b border-orange-100/50">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Edit2 className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">
+                    <h2 className="text-xl font-bold text-gray-900">
                       Modifica Ore Lavorate
                     </h2>
-                    <p className="text-sm text-blue-600">
+                    <p className="text-sm text-orange-600 font-medium mt-0.5">
                       {editingHours.user.username} - {getDayName(editingHours.shift.dayOfWeek)} {getShiftTypeName(editingHours.shift.shiftType)}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={closeEditModal}
-                  className="w-8 h-8 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center transition-colors"
+                  className="w-9 h-9 rounded-xl bg-orange-100 hover:bg-orange-200 flex items-center justify-center transition-all hover:scale-105"
                 >
-                  <X className="h-4 w-4 text-blue-600" />
+                  <X className="h-5 w-5 text-orange-700" />
                 </button>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4 sm:space-y-6">
-              {/* Info turno */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="p-6 space-y-6">
+              {/* Info turno - Card minimalist */}
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-5 border border-gray-200/50">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-gray-500 mb-1">Orario Turno</p>
-                    <p className="font-medium text-gray-900">{editingHours.shift.startTime} - {editingHours.shift.endTime}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Orario Turno</p>
+                    <p className="text-lg font-bold text-gray-900">{editingHours.shift.startTime} - {editingHours.shift.endTime}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 mb-1">Ruolo</p>
-                    <p className="font-medium text-gray-900">{getRoleName(editingHours.shift.role)}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ruolo</p>
+                    <p className="text-lg font-bold text-gray-900">{getRoleName(editingHours.shift.role)}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Edit times */}
-              <div className="grid grid-cols-2 gap-4 sm:p-6">
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-800">
-                    Ora Inizio * <span className="text-xs text-gray-500">(formato 24h)</span>
+              {/* Selezione Orari - Modern Dropdowns */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-700">
+                    Ora Inizio * <span className="text-xs font-normal text-gray-500">(formato 24h)</span>
                   </label>
-                  <TimePicker24h
-                    value={editStartTime}
-                    onChange={(value) => setEditStartTime(value)}
-                    placeholder="18:00"
+                  <ReactSelect
+                    options={generateTimeOptions(editingHours.shift.startTime)}
+                    value={editStartTime ? { value: editStartTime, label: editStartTime } : null}
+                    onChange={(option) => setEditStartTime(option?.value?.toString() || '')}
+                    placeholder="Seleziona orario di inizio"
                   />
                 </div>
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-800">
-                    Ora Fine * <span className="text-xs text-gray-500">(formato 24h)</span>
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-700">
+                    Ora Fine * <span className="text-xs font-normal text-gray-500">(formato 24h)</span>
                   </label>
-                  <TimePicker24h
-                    value={editEndTime}
-                    onChange={(value) => setEditEndTime(value)}
-                    placeholder="22:00"
+                  <ReactSelect
+                    options={generateTimeOptions(editingHours.shift.endTime)}
+                    value={editEndTime ? { value: editEndTime, label: editEndTime } : null}
+                    onChange={(option) => setEditEndTime(option?.value?.toString() || '')}
+                    placeholder="Seleziona orario di fine"
                   />
                 </div>
               </div>
 
-              {/* Calculated hours */}
+              {/* Ore Calcolate - Card dinamica */}
               {editStartTime && editEndTime && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl p-6 shadow-lg">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-blue-600 font-medium mb-1">Ore Totali Calcolate</p>
-                      <p className="text-xs text-blue-500">
+                    <div className="text-white">
+                      <p className="text-sm font-semibold mb-1 opacity-90">Ore Totali Calcolate</p>
+                      <p className="text-xs opacity-75">
                         {editStartTime} - {editEndTime}
                       </p>
                     </div>
-                    <div className="text-3xl font-bold text-blue-600">
+                    <div className="text-5xl font-black text-white drop-shadow-lg">
                       {calculateTotalHours(editStartTime, editEndTime).toFixed(1)}h
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Info alert */}
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              {/* Alert minimalist */}
+              <div className="bg-gradient-to-br from-amber-50 to-yellow-50/50 rounded-xl p-4 border border-amber-200/50">
                 <div className="flex items-start space-x-3">
                   <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
                   <div className="text-sm">
-                    <p className="font-medium text-amber-800">Attenzione</p>
-                    <p className="text-amber-700">
+                    <p className="font-bold text-amber-800">Attenzione</p>
+                    <p className="text-amber-700 mt-1">
                       La modifica delle ore verrà salvata immediatamente. Le ore totali saranno ricalcolate automaticamente.
                     </p>
                   </div>
@@ -504,19 +527,19 @@ export default function AdminHoursPage() {
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-xl">
+            {/* Footer moderno */}
+            <div className="bg-gray-50/50 px-6 py-5 border-t border-gray-200/50 rounded-b-2xl">
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={closeEditModal}
-                  className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm"
+                  className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm hover:shadow"
                 >
                   Annulla
                 </button>
                 <button
                   onClick={saveEditedHours}
                   disabled={!editStartTime || !editEndTime}
-                  className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center space-x-2"
+                  className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center space-x-2"
                 >
                   <Check className="h-4 w-4" />
                   <span>Salva Modifiche</span>
