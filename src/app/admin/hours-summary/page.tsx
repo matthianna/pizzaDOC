@@ -18,6 +18,7 @@ interface MissingHoursShift {
   startTime: string
   endTime: string
   weekStart: string
+  hoursStatus: 'REJECTED' | null
 }
 
 interface MissingHoursUser {
@@ -591,7 +592,11 @@ export default function AdminHoursSummaryPage() {
 
                     <div className="space-y-2">
                       {userMissing.shifts.map((shift) => (
-                        <div key={shift.shiftId} className="bg-gray-50 rounded-xl p-3">
+                        <div key={shift.shiftId} className={`rounded-xl p-3 ${
+                          shift.hoursStatus === 'REJECTED' 
+                            ? 'bg-red-50 border-2 border-red-200' 
+                            : 'bg-gray-50 border border-gray-200'
+                        }`}>
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3">
                               <Calendar className="h-4 w-4 text-gray-500" />
@@ -601,6 +606,11 @@ export default function AdminHoursSummaryPage() {
                               <span className="text-sm text-gray-600">
                                 {getRoleName(shift.role)}
                               </span>
+                              {shift.hoursStatus === 'REJECTED' && (
+                                <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-lg">
+                                  ORE RIFIUTATE
+                                </span>
+                              )}
                             </div>
                             <div className="text-sm text-gray-600 font-medium">
                               {shift.startTime} - {shift.endTime}
