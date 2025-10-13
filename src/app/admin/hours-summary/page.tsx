@@ -2,13 +2,29 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { BarChart3, User, Calendar, Clock, ChevronDown, ChevronRight, FileText } from 'lucide-react'
+import { BarChart3, User, Calendar, Clock, ChevronDown, ChevronRight, FileText, AlertCircle } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { Role, ShiftType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Select as ReactSelect } from '@/components/ui/react-select'
+
+interface MissingHoursShift {
+  shiftId: string
+  dayOfWeek: number
+  shiftType: ShiftType
+  role: Role
+  startTime: string
+  endTime: string
+}
+
+interface MissingHoursUser {
+  userId: string
+  username: string
+  primaryRole: Role
+  shifts: MissingHoursShift[]
+}
 
 interface User {
   id: string
@@ -55,6 +71,12 @@ export default function AdminHoursSummaryPage() {
   const [loading, setLoading] = useState(true)
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set())
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set())
+  
+  // Stati per "Ore Mancanti"
+  const [activeTab, setActiveTab] = useState<'summary' | 'missing'>('summary')
+  const [missingHours, setMissingHours] = useState<MissingHoursUser[]>([])
+  const [missingHoursWeekStart, setMissingHoursWeekStart] = useState<Date>(new Date())
+  const [loadingMissing, setLoadingMissing] = useState(false)
 
   useEffect(() => {
     fetchUsers()
@@ -63,6 +85,12 @@ export default function AdminHoursSummaryPage() {
   useEffect(() => {
     fetchSummary()
   }, [selectedUserId, selectedYear, selectedMonth])
+
+  useEffect(() => {
+    if (activeTab === 'missing') {
+      fetchMissingHours()
+    }
+  }, [activeTab, missingHoursWeekStart])
 
   const fetchUsers = async () => {
     try {
@@ -96,6 +124,22 @@ export default function AdminHoursSummaryPage() {
       console.error('Error fetching summary:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchMissingHours = async () => {
+    setLoadingMissing(true)
+    try {
+      const weekStartStr = missingHoursWeekStart.toISOString().split('T')[0]
+      const response = await fetch(`/api/admin/hours-summary/missing?weekStart=${weekStartStr}`)
+      if (response.ok) {
+        const data = await response.json()
+        setMissingHours(data.missingHours)
+      }
+    } catch (error) {
+      console.error('Error fetching missing hours:', error)
+    } finally {
+      setLoadingMissing(false)
     }
   }
 
@@ -236,72 +280,115 @@ export default function AdminHoursSummaryPage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header */}
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Moderno */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-              <BarChart3 className="h-6 w-6 text-orange-500 mr-2" />
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mr-3">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
               Riepilogo Ore Lavorate
             </h1>
-            <p className="text-gray-600 mt-1">
-              Visualizza le ore lavorate per dipendente mese per mese
+            <p className="text-gray-600 mt-1.5">
+              Visualizza le ore lavorate per dipendente e monitora le ore mancanti
             </p>
           </div>
-          <Button onClick={exportToPDF} variant="outline">
-            <FileText className="h-4 w-4 mr-2" />
-            Esporta PDF
-          </Button>
+          {activeTab === 'summary' && (
+            <Button onClick={exportToPDF} variant="outline" className="rounded-xl">
+              <FileText className="h-4 w-4 mr-2" />
+              Esporta PDF
+            </Button>
+          )}
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <ReactSelect
-              label="Dipendente"
-              options={[
-                { value: 'ALL', label: 'Tutti i dipendenti' },
-                ...allUsers.map(user => ({
-                  value: user.id,
-                  label: `${user.username}${user.primaryRole ? ` (${getRoleName(user.primaryRole)})` : ''}`
-                }))
-              ]}
-              value={{
-                value: selectedUserId,
-                label: selectedUserId === 'ALL' 
-                  ? 'Tutti i dipendenti' 
-                  : allUsers.find(u => u.id === selectedUserId)?.username || 'Tutti i dipendenti'
-              }}
-              onChange={(option) => setSelectedUserId(option?.value as string || 'ALL')}
-            />
+        {/* Tabs */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 p-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                activeTab === 'summary'
+                  ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-200'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span>Riepilogo</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('missing')}
+              className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                activeTab === 'missing'
+                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-200'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <span>Ore Mancanti</span>
+                {missingHours.length > 0 && (
+                  <span className="ml-1 px-2 py-0.5 bg-white text-red-600 rounded-full text-xs font-bold">
+                    {missingHours.length}
+                  </span>
+                )}
+              </div>
+            </button>
+          </div>
+        </div>
 
-            <ReactSelect
-              label="Anno"
-              options={currentYearOptions}
-              value={{ value: selectedYear, label: selectedYear.toString() }}
-              onChange={(option) => setSelectedYear(option?.value as number || new Date().getFullYear())}
-            />
+        {/* Filtri - Solo per tab Riepilogo */}
+        {activeTab === 'summary' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-4 sm:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <ReactSelect
+                label="Dipendente"
+                options={[
+                  { value: 'ALL', label: 'Tutti i dipendenti' },
+                  ...allUsers.map(user => ({
+                    value: user.id,
+                    label: `${user.username}${user.primaryRole ? ` (${getRoleName(user.primaryRole)})` : ''}`
+                  }))
+                ]}
+                value={{
+                  value: selectedUserId,
+                  label: selectedUserId === 'ALL' 
+                    ? 'Tutti i dipendenti' 
+                    : allUsers.find(u => u.id === selectedUserId)?.username || 'Tutti i dipendenti'
+                }}
+                onChange={(option) => setSelectedUserId(option?.value as string || 'ALL')}
+              />
 
-            <ReactSelect
-              label="Mese"
-              options={monthOptions}
-              value={{
-                value: selectedMonth,
-                label: selectedMonth 
-                  ? new Date(0, selectedMonth - 1).toLocaleDateString('it-IT', { month: 'long' })
-                  : 'Tutto l\'anno'
-              }}
-              onChange={(option) => setSelectedMonth(option?.value as number | null)}
-            />
+              <ReactSelect
+                label="Anno"
+                options={currentYearOptions}
+                value={{ value: selectedYear, label: selectedYear.toString() }}
+                onChange={(option) => setSelectedYear(option?.value as number || new Date().getFullYear())}
+              />
 
-            <div className="flex items-end">
-              <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 w-full">
-                <div className="text-sm text-orange-600 font-medium">Ore Totali</div>
-                <div className="text-xl sm:text-2xl font-bold text-orange-700">{totalHoursAllUsers.toFixed(1)}h</div>
+              <ReactSelect
+                label="Mese"
+                options={monthOptions}
+                value={{
+                  value: selectedMonth,
+                  label: selectedMonth 
+                    ? new Date(0, selectedMonth - 1).toLocaleDateString('it-IT', { month: 'long' })
+                    : 'Tutto l\'anno'
+                }}
+                onChange={(option) => setSelectedMonth(option?.value as number | null)}
+              />
+
+              <div className="flex items-end">
+                <div className="bg-gradient-to-r from-orange-50 to-orange-100/50 border border-orange-200/50 rounded-xl px-4 py-3 w-full">
+                  <div className="text-sm text-orange-600 font-semibold">Ore Totali</div>
+                  <div className="text-2xl font-bold text-orange-700">{totalHoursAllUsers.toFixed(1)}h</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Summary */}
         <div className="space-y-4">
