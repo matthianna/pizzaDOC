@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
           }
         },
         worked_hours: {
-          none: {} // Nessuna riga in worked_hours
+          is: null // Nessuna riga in worked_hours (relazione one-to-one)
         },
         user: {
           isActive: true
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
           }
         },
         worked_hours: {
-          some: {
+          is: {
             status: 'REJECTED'
           }
         },
@@ -76,9 +76,6 @@ export async function GET(req: NextRequest) {
           select: {
             id: true,
             status: true
-          },
-          where: {
-            status: 'REJECTED'
           }
         },
         schedules: {
@@ -111,7 +108,7 @@ export async function GET(req: NextRequest) {
           endTime: shift.endTime,
           weekStart: shift.schedules.weekStart,
           shiftDate: shiftDate, // Data effettiva del turno
-          hoursStatus: shift.worked_hours?.[0]?.status || null
+          hoursStatus: shift.worked_hours?.status || null // One-to-one, non array
         }
       })
       .filter(shift => {
