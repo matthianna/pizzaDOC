@@ -11,24 +11,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(req.url)
-    const weekStartParam = searchParams.get('weekStart')
-    
-    // Se non specificato, usa la settimana corrente
-    const now = new Date()
-    const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1
-    const defaultWeekStart = new Date(now)
-    defaultWeekStart.setDate(now.getDate() - dayOfWeek)
-    defaultWeekStart.setHours(0, 0, 0, 0)
-    
-    const weekStart = weekStartParam ? new Date(weekStartParam) : defaultWeekStart
-    weekStart.setHours(0, 0, 0, 0)
-
-    // Ottieni tutti i turni della settimana
+    // Ottieni TUTTI i turni senza filtro per settimana
     const shifts = await prisma.shifts.findMany({
       where: {
+        // Solo turni passati o della settimana corrente
         schedules: {
-          weekStart: weekStart
+          weekStart: {
+            lte: new Date() // Settimane fino ad oggi
+          }
         }
       },
       include: {
@@ -46,6 +36,16 @@ export async function GET(req: NextRequest) {
             totalHours: true,
             status: true
           }
+        },
+        schedules: {
+          select: {
+            weekStart: true
+          }
+        }
+      },
+      orderBy: {
+        schedules: {
+          weekStart: 'desc'
         }
       }
     })
@@ -62,7 +62,8 @@ export async function GET(req: NextRequest) {
         shiftType: shift.shiftType,
         role: shift.role,
         startTime: shift.startTime,
-        endTime: shift.endTime
+        endTime: shift.endTime,
+        weekStart: shift.schedules.weekStart
       }))
 
     // Raggruppa per utente
@@ -81,7 +82,8 @@ export async function GET(req: NextRequest) {
         shiftType: item.shiftType,
         role: item.role,
         startTime: item.startTime,
-        endTime: item.endTime
+        endTime: item.endTime,
+        weekStart: item.weekStart
       })
       return acc
     }, {} as Record<string, any>)
@@ -91,7 +93,7 @@ export async function GET(req: NextRequest) {
     )
 
     return NextResponse.json({
-      weekStart: weekStart.toISOString(),
+      totalMissing: result.length,
       missingHours: result
     })
   } catch (error) {

@@ -17,6 +17,7 @@ interface MissingHoursShift {
   role: Role
   startTime: string
   endTime: string
+  weekStart: string
 }
 
 interface MissingHoursUser {
@@ -75,7 +76,6 @@ export default function AdminHoursSummaryPage() {
   // Stati per "Ore Mancanti"
   const [activeTab, setActiveTab] = useState<'summary' | 'missing'>('summary')
   const [missingHours, setMissingHours] = useState<MissingHoursUser[]>([])
-  const [missingHoursWeekStart, setMissingHoursWeekStart] = useState<Date>(new Date())
   const [loadingMissing, setLoadingMissing] = useState(false)
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function AdminHoursSummaryPage() {
     if (activeTab === 'missing') {
       fetchMissingHours()
     }
-  }, [activeTab, missingHoursWeekStart])
+  }, [activeTab])
 
   const fetchUsers = async () => {
     try {
@@ -130,8 +130,7 @@ export default function AdminHoursSummaryPage() {
   const fetchMissingHours = async () => {
     setLoadingMissing(true)
     try {
-      const weekStartStr = missingHoursWeekStart.toISOString().split('T')[0]
-      const response = await fetch(`/api/admin/hours-summary/missing?weekStart=${weekStartStr}`)
+      const response = await fetch(`/api/admin/hours-summary/missing`)
       if (response.ok) {
         const data = await response.json()
         setMissingHours(data.missingHours)
@@ -390,20 +389,23 @@ export default function AdminHoursSummaryPage() {
           </div>
         )}
 
-        {/* Summary */}
-        <div className="space-y-4">
-          {loading ? (
-            <div className="bg-white rounded-lg shadow p-12 text-center">
-              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-              <p className="text-gray-500">Caricamento riepilogo...</p>
-            </div>
-          ) : summary.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-12 text-center">
-              <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Nessun dato</h3>
-              <p className="text-gray-500">Non ci sono ore lavorate per i filtri selezionati.</p>
-            </div>
-          ) : (
+        {/* Tab Content: Summary */}
+        {activeTab === 'summary' && (
+          <div className="space-y-4">
+            {loading ? (
+              <div className="bg-white rounded-2xl border border-gray-200/50 p-16 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Caricamento riepilogo...</p>
+              </div>
+            ) : summary.length === 0 ? (
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl border border-gray-200/50 p-16 text-center">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <BarChart3 className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nessun dato</h3>
+                <p className="text-gray-600">Non ci sono ore lavorate per i filtri selezionati.</p>
+              </div>
+            ) : (
             summary.map((userSummary) => (
               <div key={userSummary.user.id} className="bg-white rounded-lg shadow overflow-hidden">
                 {/* User Header */}
@@ -540,7 +542,83 @@ export default function AdminHoursSummaryPage() {
               </div>
             ))
           )}
-        </div>
+          </div>
+        )}
+
+        {/* Tab Content: Ore Mancanti */}
+        {activeTab === 'missing' && (
+          <div className="space-y-4">
+            {loadingMissing ? (
+              <div className="bg-white rounded-2xl border border-gray-200/50 p-16 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Caricamento ore mancanti...</p>
+              </div>
+            ) : missingHours.length === 0 ? (
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50/30 rounded-2xl border border-green-200/50 p-16 text-center">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <Clock className="h-8 w-8 text-green-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Tutto in ordine!</h3>
+                <p className="text-gray-600">Tutti i dipendenti hanno inviato le loro ore per questa settimana.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-red-50 to-orange-50/50 border border-red-200/50 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    <div className="text-sm font-semibold text-red-800">
+                      {missingHours.length} {missingHours.length === 1 ? 'dipendente ha' : 'dipendenti hanno'} turni senza ore inviate
+                    </div>
+                  </div>
+                </div>
+
+                {missingHours.map((userMissing) => (
+                  <div key={userMissing.userId} className="bg-white rounded-2xl border border-gray-200/50 p-5 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-sm">
+                        <User className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-lg">{userMissing.username}</h3>
+                        <p className="text-sm text-gray-600 font-medium">{getRoleName(userMissing.primaryRole)}</p>
+                      </div>
+                      <div className="ml-auto">
+                        <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-bold">
+                          {userMissing.shifts.length} {userMissing.shifts.length === 1 ? 'turno' : 'turni'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {userMissing.shifts.map((shift) => (
+                        <div key={shift.shiftId} className="bg-gray-50 rounded-xl p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <Calendar className="h-4 w-4 text-gray-500" />
+                              <span className="font-medium text-gray-900">
+                                {getDayName(shift.dayOfWeek)} - {getShiftTypeName(shift.shiftType)}
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                {getRoleName(shift.role)}
+                              </span>
+                            </div>
+                            <div className="text-sm text-gray-600 font-medium">
+                              {shift.startTime} - {shift.endTime}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500 flex items-center gap-1">
+                            <span className="opacity-60">Settimana del</span>
+                            <span className="font-medium">{format(parseISO(shift.weekStart), 'dd/MM/yyyy', { locale: it })}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </MainLayout>
   )
