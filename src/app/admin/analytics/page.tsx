@@ -169,114 +169,131 @@ export default function AnalyticsPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* Header Moderno */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-            <p className="text-gray-600 mt-1">Analisi dettagliate e statistiche</p>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
+              Analytics
+            </h1>
+            <p className="text-gray-600 mt-2 ml-16">
+              Analisi dettagliate e statistiche del periodo
+            </p>
           </div>
           
-          {/* Week Selector */}
+          {/* Week Selector Moderno */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setWeekStart(subWeeks(weekStart, 1))}
-              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-all font-medium text-gray-700 hover:text-blue-700"
             >
-              ← Settimana Prec.
+              ← Prec.
             </button>
-            <div className="px-4 py-2 border border-gray-300 rounded-lg bg-white font-medium">
+            <div className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl text-white font-bold shadow-lg min-w-[180px] text-center">
               {format(weekStart, 'dd MMM yyyy', { locale: it })}
             </div>
             <button
               onClick={() => setWeekStart(addWeeks(weekStart, 1))}
-              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-all font-medium text-gray-700 hover:text-blue-700"
             >
-              Settimana Succ. →
+              Succ. →
             </button>
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm">Turni Totali</p>
-                <p className="text-3xl font-bold mt-2">{analytics.totalShifts}</p>
+        {/* KPI Cards Moderne */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="group bg-white rounded-2xl p-6 border-2 border-blue-100 hover:border-blue-300 transition-all hover:shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Calendar className="h-7 w-7 text-white" />
               </div>
-              <Calendar className="h-12 w-12 text-blue-200" />
             </div>
+            <p className="text-sm font-semibold text-gray-600 mb-1">Turni Totali</p>
+            <p className="text-3xl font-bold text-gray-900">{analytics.totalShifts}</p>
           </div>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm">Lavoratori Attivi</p>
-                <p className="text-3xl font-bold mt-2">{analytics.totalWorkers}</p>
+          <div className="group bg-white rounded-2xl p-6 border-2 border-green-100 hover:border-green-300 transition-all hover:shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Users className="h-7 w-7 text-white" />
               </div>
-              <Users className="h-12 w-12 text-green-200" />
             </div>
+            <p className="text-sm font-semibold text-gray-600 mb-1">Lavoratori Attivi</p>
+            <p className="text-3xl font-bold text-gray-900">{analytics.totalWorkers}</p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm">Ore Lavorate</p>
-                <p className="text-3xl font-bold mt-2">{analytics.totalHoursWorked.toFixed(1)}h</p>
+          <div className="group bg-white rounded-2xl p-6 border-2 border-purple-100 hover:border-purple-300 transition-all hover:shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Clock className="h-7 w-7 text-white" />
               </div>
-              <Clock className="h-12 w-12 text-purple-200" />
             </div>
+            <p className="text-sm font-semibold text-gray-600 mb-1">Ore Lavorate</p>
+            <p className="text-3xl font-bold text-gray-900">{analytics.totalHoursWorked.toFixed(1)}h</p>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100 text-sm">Media Turni/Persona</p>
-                <p className="text-3xl font-bold mt-2">{analytics.avgShiftsPerWorker.toFixed(1)}</p>
+          <div className="group bg-white rounded-2xl p-6 border-2 border-orange-100 hover:border-orange-300 transition-all hover:shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <TrendingUp className="h-7 w-7 text-white" />
               </div>
-              <TrendingUp className="h-12 w-12 text-orange-200" />
             </div>
+            <p className="text-sm font-semibold text-gray-600 mb-1">Media Turni/Persona</p>
+            <p className="text-3xl font-bold text-gray-900">{analytics.avgShiftsPerWorker.toFixed(1)}</p>
           </div>
         </div>
 
-        {/* Ore per Utente */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        {/* Ore per Utente - Tabella Moderna */}
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-200">
           <button
             onClick={() => toggleSection('users')}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-all rounded-t-2xl"
           >
-            <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-blue-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                <Users className="h-5 w-5 text-white" />
+              </div>
               <h2 className="text-xl font-bold text-gray-900">Ore per Utente</h2>
             </div>
-            {expandedSections.users ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            {expandedSections.users ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
           </button>
           
           {expandedSections.users && (
-            <div className="p-6 border-t border-gray-200">
+            <div className="p-6 border-t-2 border-gray-100">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Utente</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Turni</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Ore Totali</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Media Ore/Turno</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Approvate</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Pendenti</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Rifiutate</th>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="text-left py-4 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide">Utente</th>
+                      <th className="text-right py-4 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide">Turni</th>
+                      <th className="text-right py-4 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide">Ore Totali</th>
+                      <th className="text-right py-4 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide">Media</th>
+                      <th className="text-right py-4 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide">Approvate</th>
+                      <th className="text-right py-4 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide">Pendenti</th>
+                      <th className="text-right py-4 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide">Rifiutate</th>
                     </tr>
                   </thead>
                   <tbody>
                     {analytics.userHoursStats.map((user, idx) => (
-                      <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium">{user.username}</td>
-                        <td className="py-3 px-4 text-right">{user.totalShifts}</td>
-                        <td className="py-3 px-4 text-right font-semibold">{user.totalHours.toFixed(1)}h</td>
-                        <td className="py-3 px-4 text-right text-gray-600">{user.avgHoursPerShift.toFixed(1)}h</td>
-                        <td className="py-3 px-4 text-right text-green-600">{user.approvedHours.toFixed(1)}h</td>
-                        <td className="py-3 px-4 text-right text-yellow-600">{user.pendingHours.toFixed(1)}h</td>
-                        <td className="py-3 px-4 text-right text-red-600">{user.rejectedHours.toFixed(1)}h</td>
+                      <tr key={idx} className="border-b border-gray-100 hover:bg-blue-50/50 transition-colors">
+                        <td className="py-4 px-4 font-bold text-gray-900">{user.username}</td>
+                        <td className="py-4 px-4 text-right">
+                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg font-bold text-sm">{user.totalShifts}</span>
+                        </td>
+                        <td className="py-4 px-4 text-right font-bold text-gray-900 text-lg">{user.totalHours.toFixed(1)}h</td>
+                        <td className="py-4 px-4 text-right text-gray-600 font-medium">{user.avgHoursPerShift.toFixed(1)}h</td>
+                        <td className="py-4 px-4 text-right">
+                          <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-lg font-bold text-sm">{user.approvedHours.toFixed(1)}h</span>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-lg font-bold text-sm">{user.pendingHours.toFixed(1)}h</span>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <span className="px-2.5 py-1 bg-red-100 text-red-700 rounded-lg font-bold text-sm">{user.rejectedHours.toFixed(1)}h</span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -287,34 +304,36 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Distribuzione Ruoli */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-200">
           <button
             onClick={() => toggleSection('roles')}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gradient-to-r hover:from-purple-50 hover:to-transparent transition-all rounded-t-2xl"
           >
-            <div className="flex items-center gap-3">
-              <Award className="h-5 w-5 text-purple-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm">
+                <Award className="h-5 w-5 text-white" />
+              </div>
               <h2 className="text-xl font-bold text-gray-900">Distribuzione per Ruolo</h2>
             </div>
-            {expandedSections.roles ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            {expandedSections.roles ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
           </button>
           
           {expandedSections.roles && (
-            <div className="p-6 border-t border-gray-200">
+            <div className="p-6 border-t-2 border-gray-100">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {analytics.roleDistribution.map((role, idx) => (
-                  <div key={idx} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
-                    <div className="text-sm text-gray-600 mb-2">{role.role}</div>
-                    <div className="text-2xl font-bold text-gray-900 mb-1">{role.totalShifts} turni</div>
-                    <div className="text-sm text-gray-600">{role.totalHours.toFixed(1)}h totali</div>
-                    <div className="mt-3">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div key={idx} className="bg-gradient-to-br from-purple-50 via-white to-purple-50/30 rounded-2xl p-5 border-2 border-purple-100 hover:border-purple-300 transition-all hover:shadow-lg">
+                    <div className="text-sm font-bold text-purple-700 mb-3 uppercase tracking-wide">{role.role}</div>
+                    <div className="text-3xl font-bold text-gray-900 mb-1">{role.totalShifts} <span className="text-lg text-gray-600">turni</span></div>
+                    <div className="text-sm font-semibold text-gray-700 mb-4">{role.totalHours.toFixed(1)}h totali</div>
+                    <div>
+                      <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                         <div
-                          className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full"
+                          className="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full shadow-sm"
                           style={{ width: `${role.percentage}%` }}
                         />
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">{role.percentage.toFixed(1)}% del totale</div>
+                      <div className="text-xs font-bold text-purple-600 mt-2">{role.percentage.toFixed(1)}% del totale</div>
                     </div>
                   </div>
                 ))}
@@ -324,28 +343,30 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Distribuzione per Giorno */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-200">
           <button
             onClick={() => toggleSection('days')}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gradient-to-r hover:from-green-50 hover:to-transparent transition-all rounded-t-2xl"
           >
-            <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-green-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-sm">
+                <Calendar className="h-5 w-5 text-white" />
+              </div>
               <h2 className="text-xl font-bold text-gray-900">Distribuzione per Giorno</h2>
             </div>
-            {expandedSections.days ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            {expandedSections.days ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
           </button>
           
           {expandedSections.days && (
-            <div className="p-6 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
+            <div className="p-6 border-t-2 border-gray-100">
+              <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
                 {analytics.dayDistribution.map((day, idx) => (
-                  <div key={idx} className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                    <div className="text-sm font-semibold text-green-700 mb-2">{day.day}</div>
-                    <div className="text-2xl font-bold text-gray-900 mb-1">{day.totalShifts}</div>
-                    <div className="text-xs text-gray-600">turni</div>
-                    <div className="text-xs text-gray-600 mt-1">{day.totalWorkers} lavoratori</div>
-                    <div className="text-xs text-gray-500 mt-1">
+                  <div key={idx} className="bg-gradient-to-br from-green-50 via-white to-green-50/30 rounded-2xl p-4 border-2 border-green-100 hover:border-green-300 transition-all hover:shadow-lg text-center">
+                    <div className="text-xs font-bold text-green-700 mb-3 uppercase tracking-wider">{day.day}</div>
+                    <div className="text-3xl font-bold text-gray-900 mb-1">{day.totalShifts}</div>
+                    <div className="text-xs text-gray-600 font-medium mb-2">turni</div>
+                    <div className="text-xs text-gray-700 font-semibold">{day.totalWorkers} lavoratori</div>
+                    <div className="text-xs text-green-600 mt-2 font-bold">
                       Avg: {day.avgWorkersPerShift.toFixed(1)}/turno
                     </div>
                   </div>
@@ -355,20 +376,22 @@ export default function AnalyticsPage() {
           )}
         </div>
 
-        {/* Tipo Turno */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Clock className="h-5 w-5 text-orange-600" />
+        {/* Tipo Turno e Trasporti */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-sm">
+                <Clock className="h-5 w-5 text-white" />
+              </div>
               <h2 className="text-xl font-bold text-gray-900">Distribuzione Turni</h2>
             </div>
             <div className="space-y-3">
               {analytics.shiftTypeDistribution.map((shift, idx) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <span className="font-medium text-gray-700">{shift.shiftType}</span>
+                <div key={idx} className="flex items-center justify-between bg-orange-50/50 rounded-xl p-3 border border-orange-100">
+                  <span className="font-bold text-gray-900">{shift.shiftType}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-gray-600">{shift.totalShifts} turni</span>
-                    <span className="text-sm font-semibold text-orange-600">{shift.percentage.toFixed(1)}%</span>
+                    <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg font-bold text-sm">{shift.totalShifts} turni</span>
+                    <span className="text-lg font-bold text-orange-600">{shift.percentage.toFixed(1)}%</span>
                   </div>
                 </div>
               ))}
@@ -376,16 +399,18 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Trasporti */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
+          <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-sm">
+                <BarChart3 className="h-5 w-5 text-white" />
+              </div>
               <h2 className="text-xl font-bold text-gray-900">Utilizzo Trasporti</h2>
             </div>
             <div className="space-y-3">
               {Object.entries(analytics.transportStats).map(([transport, count], idx) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <span className="font-medium text-gray-700 capitalize">{transport}</span>
-                  <span className="text-2xl font-bold text-blue-600">{count}</span>
+                <div key={idx} className="flex items-center justify-between bg-cyan-50/50 rounded-xl p-3 border border-cyan-100">
+                  <span className="font-bold text-gray-900 capitalize">{transport}</span>
+                  <span className="px-4 py-1.5 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg font-bold text-xl shadow-sm">{count}</span>
                 </div>
               ))}
             </div>
@@ -393,25 +418,27 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Copertura Turni */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-200">
           <button
             onClick={() => toggleSection('coverage')}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gradient-to-r hover:from-indigo-50 hover:to-transparent transition-all rounded-t-2xl"
           >
-            <div className="flex items-center gap-3">
-              <Percent className="h-5 w-5 text-indigo-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+                <Percent className="h-5 w-5 text-white" />
+              </div>
               <h2 className="text-xl font-bold text-gray-900">Copertura Turni</h2>
-              <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
+              <span className={`text-sm font-bold px-4 py-1.5 rounded-xl shadow-sm ${
                 analytics.coverageStats.coveragePercentage >= 90 
-                  ? 'bg-green-100 text-green-700'
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
                   : analytics.coverageStats.coveragePercentage >= 70
-                  ? 'bg-yellow-100 text-yellow-700'
-                  : 'bg-red-100 text-red-700'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white'
+                  : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
               }`}>
                 {analytics.coverageStats.coveragePercentage.toFixed(1)}%
               </span>
             </div>
-            {expandedSections.coverage ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            {expandedSections.coverage ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
           </button>
           
           {expandedSections.coverage && (
@@ -459,16 +486,18 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Sostituzioni */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-200">
           <button
             onClick={() => toggleSection('substitutions')}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gradient-to-r hover:from-cyan-50 hover:to-transparent transition-all rounded-t-2xl"
           >
-            <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-cyan-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-sm">
+                <Users className="h-5 w-5 text-white" />
+              </div>
               <h2 className="text-xl font-bold text-gray-900">Sostituzioni</h2>
             </div>
-            {expandedSections.substitutions ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            {expandedSections.substitutions ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
           </button>
           
           {expandedSections.substitutions && (
@@ -502,16 +531,18 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Top Performers */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-200">
           <button
             onClick={() => toggleSection('performers')}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gradient-to-r hover:from-yellow-50 hover:to-transparent transition-all rounded-t-2xl"
           >
-            <div className="flex items-center gap-3">
-              <Award className="h-5 w-5 text-yellow-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl flex items-center justify-center shadow-sm">
+                <Award className="h-5 w-5 text-white" />
+              </div>
               <h2 className="text-xl font-bold text-gray-900">Top Performers</h2>
             </div>
-            {expandedSections.performers ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            {expandedSections.performers ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
           </button>
           
           {expandedSections.performers && (
@@ -553,16 +584,18 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Assenze */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-gray-200">
           <button
             onClick={() => toggleSection('absences')}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gradient-to-r hover:from-red-50 hover:to-transparent transition-all rounded-t-2xl"
           >
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-sm">
+                <AlertTriangle className="h-5 w-5 text-white" />
+              </div>
               <h2 className="text-xl font-bold text-gray-900">Assenze</h2>
             </div>
-            {expandedSections.absences ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            {expandedSections.absences ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
           </button>
           
           {expandedSections.absences && (
