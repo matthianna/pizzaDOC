@@ -74,6 +74,12 @@ export async function GET(req: NextRequest) {
         // Se ci sono ore lavorate, verifica lo stato
         const workedHours = shift.worked_hours[0]
         
+        // Verifica che workedHours esista
+        if (!workedHours || !workedHours.status) {
+          // Nessuna ora inviata - MOSTRA
+          return true
+        }
+        
         // ESCLUDI turni con ore APPROVATE o PENDING (già inviate)
         if (workedHours.status === 'APPROVED' || workedHours.status === 'PENDING') {
           return false
