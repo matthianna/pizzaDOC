@@ -18,6 +18,7 @@ interface MissingHoursShift {
   startTime: string
   endTime: string
   weekStart: string
+  shiftDate: string
   hoursStatus: 'REJECTED' | null
 }
 
@@ -617,8 +618,8 @@ export default function AdminHoursSummaryPage() {
                             </div>
                           </div>
                           <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <span className="opacity-60">Settimana del</span>
-                            <span className="font-medium">{format(parseISO(shift.weekStart), 'dd/MM/yyyy', { locale: it })}</span>
+                            <span className="opacity-60">Data turno:</span>
+                            <span className="font-medium">{format(parseISO(shift.shiftDate), 'dd/MM/yyyy', { locale: it })}</span>
                           </div>
                         </div>
                       ))}

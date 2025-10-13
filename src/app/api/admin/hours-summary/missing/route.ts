@@ -14,13 +14,53 @@ export async function GET(req: NextRequest) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Ottieni TUTTI i turni delle settimane passate
-    const shifts = await prisma.shifts.findMany({
+    // Query 1: Turni senza ORE (nessuna riga in worked_hours)
+    const shiftsWithoutHours = await prisma.shifts.findMany({
       where: {
         schedules: {
           weekStart: {
-            lt: today // Solo settimane passate
+            lt: today
           }
+        },
+        worked_hours: {
+          none: {} // Nessuna riga in worked_hours
+        },
+        user: {
+          isActive: true
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            primaryRole: true,
+            isActive: true
+          }
+        },
+        schedules: {
+          select: {
+            weekStart: true
+          }
+        }
+      }
+    })
+
+    // Query 2: Turni con ore RIFIUTATE
+    const shiftsWithRejectedHours = await prisma.shifts.findMany({
+      where: {
+        schedules: {
+          weekStart: {
+            lt: today
+          }
+        },
+        worked_hours: {
+          some: {
+            status: 'REJECTED'
+          }
+        },
+        user: {
+          isActive: true
         }
       },
       include: {
@@ -35,8 +75,10 @@ export async function GET(req: NextRequest) {
         worked_hours: {
           select: {
             id: true,
-            totalHours: true,
             status: true
+          },
+          where: {
+            status: 'REJECTED'
           }
         },
         schedules: {
@@ -44,67 +86,38 @@ export async function GET(req: NextRequest) {
             weekStart: true
           }
         }
-      },
-      orderBy: {
-        schedules: {
-          weekStart: 'desc'
-        }
       }
     })
 
-    // Filtra turni passati senza ore approvate
-    const missingHours = shifts
-      .filter(shift => {
-        // Controlla se l'utente esiste ed è attivo
-        if (!shift.user || !shift.user.isActive) return false
-        
+    // Combina i risultati
+    const allShifts = [...shiftsWithoutHours, ...shiftsWithRejectedHours]
+
+    // Filtra solo turni passati e mappa
+    const missingHours = allShifts
+      .map(shift => {
         // Calcola la data effettiva del turno
         const shiftDate = new Date(shift.schedules.weekStart)
         shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
         
-        // IMPORTANTE: Solo turni nel PASSATO
-        if (shiftDate >= today) return false
-        
-        // Controlla lo stato delle ore lavorate
-        if (!shift.worked_hours || shift.worked_hours.length === 0) {
-          // Nessuna ora inviata - MOSTRA
-          return true
+        return {
+          shiftId: shift.id,
+          userId: shift.user.id,
+          username: shift.user.username,
+          primaryRole: shift.user.primaryRole,
+          dayOfWeek: shift.dayOfWeek,
+          shiftType: shift.shiftType,
+          role: shift.role,
+          startTime: shift.startTime,
+          endTime: shift.endTime,
+          weekStart: shift.schedules.weekStart,
+          shiftDate: shiftDate, // Data effettiva del turno
+          hoursStatus: shift.worked_hours?.[0]?.status || null
         }
-        
-        // Se ci sono ore lavorate, verifica lo stato
-        const workedHours = shift.worked_hours[0]
-        
-        // Verifica che workedHours esista
-        if (!workedHours || !workedHours.status) {
-          // Nessuna ora inviata - MOSTRA
-          return true
-        }
-        
-        // ESCLUDI turni con ore APPROVATE o PENDING (già inviate)
-        if (workedHours.status === 'APPROVED' || workedHours.status === 'PENDING') {
-          return false
-        }
-        
-        // INCLUDI turni con ore RIFIUTATE (devono reinviare)
-        if (workedHours.status === 'REJECTED') {
-          return true
-        }
-        
-        return false
       })
-      .map(shift => ({
-        shiftId: shift.id,
-        userId: shift.user.id,
-        username: shift.user.username,
-        primaryRole: shift.user.primaryRole,
-        dayOfWeek: shift.dayOfWeek,
-        shiftType: shift.shiftType,
-        role: shift.role,
-        startTime: shift.startTime,
-        endTime: shift.endTime,
-        weekStart: shift.schedules.weekStart,
-        hoursStatus: shift.worked_hours?.[0]?.status || null
-      }))
+      .filter(shift => {
+        // Solo turni nel PASSATO
+        return shift.shiftDate < today
+      })
 
     // Raggruppa per utente
     const groupedByUser = missingHours.reduce((acc, item) => {
@@ -124,6 +137,7 @@ export async function GET(req: NextRequest) {
         startTime: item.startTime,
         endTime: item.endTime,
         weekStart: item.weekStart,
+        shiftDate: item.shiftDate,
         hoursStatus: item.hoursStatus
       })
       return acc
@@ -136,8 +150,9 @@ export async function GET(req: NextRequest) {
     const rejectedCount = missingHours.filter(h => h.hoursStatus === 'REJECTED').length
     const notSubmittedCount = missingHours.filter(h => !h.hoursStatus).length
     
-    console.log(`📊 [API /admin/hours-summary/missing] Totale turni trovati: ${shifts.length}`)
-    console.log(`📊 [API /admin/hours-summary/missing] Turni con ore mancanti: ${missingHours.length}`)
+    console.log(`📊 [API /admin/hours-summary/missing] Query turni senza ore: ${shiftsWithoutHours.length}`)
+    console.log(`📊 [API /admin/hours-summary/missing] Query turni con ore rifiutate: ${shiftsWithRejectedHours.length}`)
+    console.log(`📊 [API /admin/hours-summary/missing] Totale dopo filtro passati: ${missingHours.length}`)
     console.log(`   - ❌ Ore non inviate: ${notSubmittedCount}`)
     console.log(`   - 🔴 Ore rifiutate: ${rejectedCount}`)
     console.log(`📊 [API /admin/hours-summary/missing] Utenti con turni da completare: ${result.length}`)
