@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit, ChevronDown, ChevronUp } from 'lucide-react'
 import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek } from '@/lib/date-utils'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
@@ -1102,6 +1102,7 @@ function CoverageReport({
   shiftLimits: { dayOfWeek: number; shiftType: string; role: string; requiredStaff: number }[]
   currentWeek: Date
 }) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const [coverageData, setCoverageData] = useState<{
     userStats: Array<{
       userId: string
@@ -1137,99 +1138,126 @@ function CoverageReport({
   if (!coverageData) return null
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <div className="flex items-center mb-4">
-        <BarChart3 className="h-5 w-5 text-blue-600 mr-2" />
-        <h3 className="text-base font-semibold text-blue-800">
-          Resoconto Assegnamento Turni per Persona
-        </h3>
-      </div>
-      
-      {/* Global Stats */}
-      <div className="bg-white rounded-lg p-4 mb-4">
-        <div className="text-center">
-          <div className="text-3xl font-bold text-blue-600">
-            {coverageData.global.assignmentPercentage}%
+    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+      {/* Header - Collapsible */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-6 py-5 bg-gradient-to-r from-blue-50 via-white to-blue-50 hover:from-blue-100 hover:via-blue-50 hover:to-blue-100 transition-all duration-200"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {/* Icon Box */}
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+              <BarChart3 className="h-6 w-6 text-white" />
+            </div>
+            
+            {/* Title */}
+            <div className="text-left">
+              <h3 className="text-lg font-bold text-gray-900">
+                Resoconto Assegnamento Turni per Persona
+              </h3>
+              <p className="text-sm text-gray-600 font-medium">
+                Statistiche di copertura disponibilità
+              </p>
+            </div>
           </div>
-          <div className="text-sm text-gray-600 mt-1">
-            {coverageData.global.totalAssignments} turni assegnati su {coverageData.global.totalAvailabilities} disponibilità inserite
-          </div>
-        </div>
-      </div>
 
-      {/* User Stats Table */}
-      <div className="bg-white rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Dipendente
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Ruolo
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Disponibilità
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Assegnati
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  % Assegnamento
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {coverageData.userStats.map((user) => (
-                <tr key={user.userId} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {user.username}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-center">
-                    <span className="text-xs font-medium text-gray-600">
-                      {user.primaryRole || '-'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-center">
-                    <span className="text-sm font-semibold text-gray-900">
-                      {user.availabilitiesEntered}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-center">
-                    <span className="text-sm font-semibold text-gray-900">
-                      {user.shiftsAssigned}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-16 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            user.assignmentPercentage >= 80 ? 'bg-green-500' :
-                            user.assignmentPercentage >= 50 ? 'bg-yellow-500' :
-                            'bg-red-500'
-                          }`}
-                          style={{ width: `${Math.min(100, user.assignmentPercentage)}%` }}
-                        />
-                      </div>
-                      <span className={`text-sm font-bold ${
-                        user.assignmentPercentage >= 80 ? 'text-green-600' :
-                        user.assignmentPercentage >= 50 ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>
-                        {user.assignmentPercentage}%
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="flex items-center space-x-6">
+            {/* Global Stats */}
+            <div className="bg-white rounded-lg px-4 py-2 border-2 border-blue-200">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {coverageData.global.assignmentPercentage}%
+                </div>
+                <div className="text-xs text-gray-600">
+                  {coverageData.global.totalAssignments}/{coverageData.global.totalAvailabilities} assegnati
+                </div>
+              </div>
+            </div>
+
+            {/* Expand Icon */}
+            <div className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+              <ChevronDown className="h-6 w-6 text-gray-400" />
+            </div>
+          </div>
         </div>
-      </div>
+      </button>
+
+      {/* User Stats Table - Expandable */}
+      {isExpanded && (
+        <div className="border-t border-gray-200">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Dipendente
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ruolo
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Disponibilità
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Assegnati
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    % Assegnamento
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {coverageData.userStats.map((user) => (
+                  <tr key={user.userId} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-gray-900">
+                        {user.username}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className="text-sm font-medium text-gray-600">
+                        {user.primaryRole || '-'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className="text-sm font-bold text-gray-900">
+                        {user.availabilitiesEntered}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className="text-sm font-bold text-gray-900">
+                        {user.shiftsAssigned}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="w-20 bg-gray-200 rounded-full h-2.5">
+                          <div 
+                            className={`h-2.5 rounded-full transition-all duration-300 ${
+                              user.assignmentPercentage >= 80 ? 'bg-green-500' :
+                              user.assignmentPercentage >= 50 ? 'bg-yellow-500' :
+                              'bg-red-500'
+                            }`}
+                            style={{ width: `${Math.min(100, user.assignmentPercentage)}%` }}
+                          />
+                        </div>
+                        <span className={`text-sm font-bold min-w-[45px] ${
+                          user.assignmentPercentage >= 80 ? 'text-green-600' :
+                          user.assignmentPercentage >= 50 ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>
+                          {user.assignmentPercentage}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

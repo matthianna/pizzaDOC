@@ -509,29 +509,35 @@ export default function AdminHoursSummaryPage() {
                             {expandedMonths.has(monthKey) && (
                               <div className="p-3 bg-white">
                                 <div className="space-y-2">
-                                  {month.details.map((detail) => (
-                                    <div key={detail.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
-                                      <div className="flex items-center space-x-3">
-                                        <Clock className="h-4 w-4 text-gray-400" />
-                                        <div>
+                                  {month.details.map((detail) => {
+                                    // Calcola la data effettiva del turno
+                                    const shiftDate = new Date(detail.shift.schedules.weekStart)
+                                    shiftDate.setDate(shiftDate.getDate() + detail.shift.dayOfWeek)
+                                    
+                                    return (
+                                      <div key={detail.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                                        <div className="flex items-center space-x-3">
+                                          <Clock className="h-4 w-4 text-gray-400" />
+                                          <div>
+                                            <div className="text-sm font-medium text-gray-900">
+                                              {getDayName(detail.shift.dayOfWeek)} - {getShiftTypeName(detail.shift.shiftType)}
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                              {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • {getRoleName(detail.shift.role)}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="text-right">
                                           <div className="text-sm font-medium text-gray-900">
-                                            {getDayName(detail.shift.dayOfWeek)} - {getShiftTypeName(detail.shift.shiftType)}
+                                            {detail.startTime} - {detail.endTime}
                                           </div>
-                                          <div className="text-xs text-gray-500">
-                                            {format(parseISO(detail.shift.schedules.weekStart), 'dd/MM/yyyy', { locale: it })} • {getRoleName(detail.shift.role)}
+                                          <div className="text-sm text-green-600 font-medium">
+                                            {detail.totalHours.toFixed(1)}h
                                           </div>
                                         </div>
                                       </div>
-                                      <div className="text-right">
-                                        <div className="text-sm font-medium text-gray-900">
-                                          {detail.startTime} - {detail.endTime}
-                                        </div>
-                                        <div className="text-sm text-green-600 font-medium">
-                                          {detail.totalHours.toFixed(1)}h
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
+                                    )
+                                  })}
                                 </div>
                               </div>
                             )}
