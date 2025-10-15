@@ -18,7 +18,7 @@ interface Shift {
   role: Role
   startTime: string
   endTime: string
-  schedule: {
+  schedules: {
     weekStart: string
   }
 }
@@ -38,7 +38,7 @@ interface Substitution {
   requestNote?: string
   deadline: string
   createdAt: string
-  shift: Shift
+  shifts: Shift
   requester: User
   substitute?: User
 }
@@ -184,7 +184,7 @@ export default function SubstitutionRequestsPage() {
                 </div>
               ) : (
                 availableSubstitutions.map((substitution) => {
-                  const shiftDate = getShiftDate(substitution.shift)
+                  const shiftDate = getShiftDate(substitution.shifts)
                   const canApply = substitution.status === 'PENDING' && !isPast(shiftDate)
                   const isAlreadyApplied = substitution.substitute?.id === session.user.id
                   
@@ -204,13 +204,13 @@ export default function SubstitutionRequestsPage() {
                       
                       <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                         <h3 className="font-medium text-gray-900 mb-1">
-                          {getDayName(substitution.shift.dayOfWeek)} - {getShiftTypeName(substitution.shift.shiftType)}
+                          {getDayName(substitution.shifts.dayOfWeek)} - {getShiftTypeName(substitution.shifts.shiftType)}
                         </h3>
                         <p className="text-sm text-gray-800 mb-1">
-                          📅 {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • ⏰ {substitution.shift.startTime} - {substitution.shift.endTime}
+                          📅 {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • ⏰ {substitution.shifts.startTime} - {substitution.shifts.endTime}
                         </p>
                         <p className="text-sm text-gray-800">
-                          👨‍🍳 {getRoleName(substitution.shift.role)}
+                          👨‍🍳 {getRoleName(substitution.shifts.role)}
                         </p>
                       </div>
 
@@ -293,7 +293,7 @@ export default function SubstitutionRequestsPage() {
                 </div>
               ) : (
                 myRequests.map((substitution) => {
-                  const shiftDate = getShiftDate(substitution.shift)
+                  const shiftDate = getShiftDate(substitution.shifts)
                   
                   return (
                     <div key={substitution.id} className="bg-white rounded-lg shadow p-4 space-y-3">
@@ -311,13 +311,13 @@ export default function SubstitutionRequestsPage() {
                       
                       <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                         <h3 className="font-medium text-gray-900 mb-1">
-                          {getDayName(substitution.shift.dayOfWeek)} - {getShiftTypeName(substitution.shift.shiftType)}
+                          {getDayName(substitution.shifts.dayOfWeek)} - {getShiftTypeName(substitution.shifts.shiftType)}
                         </h3>
                         <p className="text-sm text-gray-800 mb-1">
-                          📅 {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • ⏰ {substitution.shift.startTime} - {substitution.shift.endTime}
+                          📅 {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • ⏰ {substitution.shifts.startTime} - {substitution.shifts.endTime}
                         </p>
                         <p className="text-sm text-gray-800">
-                          👨‍🍳 {getRoleName(substitution.shift.role)}
+                          👨‍🍳 {getRoleName(substitution.shifts.role)}
                         </p>
                       </div>
 

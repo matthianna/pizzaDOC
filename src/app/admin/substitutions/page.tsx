@@ -19,7 +19,7 @@ interface Shift {
   role: Role
   startTime: string
   endTime: string
-  schedule: {
+  schedules: {
     weekStart: string
   }
 }
@@ -40,7 +40,7 @@ interface Substitution {
   responseNote?: string
   deadline: string
   createdAt: string
-  shift: Shift
+  shifts: Shift
   requester: User
   substitute?: User
 }
@@ -254,7 +254,7 @@ export default function AdminSubstitutionsPage() {
             </div>
           ) : (
             substitutions.map((substitution) => {
-              const shiftDate = getShiftDate(substitution.shift)
+              const shiftDate = getShiftDate(substitution.shifts)
               const canApprove = substitution.status === 'APPLIED'
               const canReject = ['PENDING', 'APPLIED'].includes(substitution.status)
               
@@ -278,11 +278,11 @@ export default function AdminSubstitutionsPage() {
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-2">Turno</h3>
                         <div className="space-y-1 text-sm text-gray-900">
-                          <p><strong>Giorno:</strong> {getDayName(substitution.shift.dayOfWeek)}</p>
+                          <p><strong>Giorno:</strong> {getDayName(substitution.shifts.dayOfWeek)}</p>
                           <p><strong>Data:</strong> {format(shiftDate, 'dd/MM/yyyy', { locale: it })}</p>
-                          <p><strong>Turno:</strong> {getShiftTypeName(substitution.shift.shiftType)}</p>
-                          <p><strong>Orario:</strong> {substitution.shift.startTime} - {substitution.shift.endTime}</p>
-                          <p><strong>Ruolo:</strong> {getRoleName(substitution.shift.role)}</p>
+                          <p><strong>Turno:</strong> {getShiftTypeName(substitution.shifts.shiftType)}</p>
+                          <p><strong>Orario:</strong> {substitution.shifts.startTime} - {substitution.shifts.endTime}</p>
+                          <p><strong>Ruolo:</strong> {getRoleName(substitution.shifts.role)}</p>
                         </div>
                       </div>
 

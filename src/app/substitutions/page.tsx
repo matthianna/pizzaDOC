@@ -19,7 +19,7 @@ interface Shift {
   role: Role
   startTime: string
   endTime: string
-  schedule: {
+  schedules: {
     weekStart: string
   }
 }
@@ -33,7 +33,7 @@ interface Substitution {
   requestNote?: string
   deadline: string
   createdAt: string
-  shift: Shift
+  shifts: Shift
   requester: {
     id: string
     username: string
@@ -251,10 +251,10 @@ export default function SubstitutionsPage() {
                 </div>
               ) : (
                 availableSubstitutions.map((substitution) => {
-                  const shiftDate = getShiftDate(substitution.shift)
+                  const shiftDate = getShiftDate(substitution.shifts)
                   
                   // Check if user can apply based on multiple criteria
-                  const userHasRequiredRole = session?.user?.roles?.includes(substitution.shift.role) || false
+                  const userHasRequiredRole = session?.user?.roles?.includes(substitution.shifts.role) || false
                   const isNotPastDeadline = !isPast(shiftDate)
                   const isPending = substitution.status === 'PENDING'
                   const isNotOwnRequest = substitution.requesterId !== session?.user?.id
@@ -277,10 +277,10 @@ export default function SubstitutionsPage() {
                       
                       <div className="mb-3">
                         <h3 className="font-medium text-gray-900">
-                          {getDayName(substitution.shift.dayOfWeek)} - {getShiftTypeName(substitution.shift.shiftType)}
+                          {getDayName(substitution.shifts.dayOfWeek)} - {getShiftTypeName(substitution.shifts.shiftType)}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • {substitution.shift.startTime}
+                          {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • {substitution.shifts.startTime}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -288,7 +288,7 @@ export default function SubstitutionsPage() {
                               ? 'bg-green-100 text-green-800 border border-green-200' 
                               : 'bg-red-100 text-red-800 border border-red-200'
                           }`}>
-                            {getRoleName(substitution.shift.role)}
+                            {getRoleName(substitution.shifts.role)}
                           </span>
                           {!userHasRequiredRole && (
                             <span className="text-xs text-red-600 font-medium">
@@ -372,7 +372,7 @@ export default function SubstitutionsPage() {
                 </div>
               ) : (
                 mySubstitutions.map((substitution) => {
-                  const shiftDate = getShiftDate(substitution.shift)
+                  const shiftDate = getShiftDate(substitution.shifts)
                   
                   return (
                     <div key={substitution.id} className="bg-white rounded-lg shadow p-4">
@@ -390,13 +390,13 @@ export default function SubstitutionsPage() {
                       
                       <div className="mb-3">
                         <h3 className="font-medium text-gray-900">
-                          {getDayName(substitution.shift.dayOfWeek)} - {getShiftTypeName(substitution.shift.shiftType)}
+                          {getDayName(substitution.shifts.dayOfWeek)} - {getShiftTypeName(substitution.shifts.shiftType)}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • {getRoleName(substitution.shift.role)}
+                          {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • {getRoleName(substitution.shifts.role)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {substitution.shift.startTime} - {substitution.shift.endTime}
+                          {substitution.shifts.startTime} - {substitution.shifts.endTime}
                         </p>
                       </div>
 
