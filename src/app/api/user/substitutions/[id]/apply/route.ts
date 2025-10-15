@@ -23,9 +23,9 @@ export async function POST(
     const substitution = await prisma.substitutions.findUnique({
       where: { id: substitutionId },
       include: {
-        shift: {
+        shifts: {
           include: {
-            schedule: true
+            schedules: true
           }
         },
         requester: {
@@ -69,9 +69,9 @@ export async function POST(
     }
 
     // Check if shift is in the future
-    const weekStart = normalizeDate(substitution.shift.schedules.weekStart)
+    const weekStart = normalizeDate(substitution.shifts.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-    const shiftDate = addDays(weekStart, substitution.shift.dayOfWeek)
+    const shiftDate = addDays(weekStart, substitution.shifts.dayOfWeek)
     
     if (shiftDate <= new Date()) {
       return NextResponse.json(
@@ -81,16 +81,16 @@ export async function POST(
     }
 
     // Check if user can perform the required role
-    const user_roles = await prisma.userRole.findMany({
+    const user_roles = await prisma.user_roles.findMany({
       where: { userId: session.user.id },
       select: { role: true }
     })
 
-    const canPerformRole = user_roles.some(ur => ur.role === substitution.shift.role)
+    const canPerformRole = user_roles.some(ur => ur.role === substitution.shifts.role)
     
     if (!canPerformRole) {
       return NextResponse.json(
-        { error: `Non puoi candidarti per questo turno. Ruolo richiesto: ${substitution.shift.role}` },
+        { error: `Non puoi candidarti per questo turno. Ruolo richiesto: ${substitution.shifts.role}` },
         { status: 400 }
       )
     }
@@ -99,11 +99,11 @@ export async function POST(
     const conflictingShift = await prisma.shifts.findFirst({
       where: {
         userId: session.user.id,
-        schedule: {
-          weekStart: substitution.shift.schedules.weekStart
+        schedules: {
+          weekStart: substitution.shifts.schedules.weekStart
         },
-        dayOfWeek: substitution.shift.dayOfWeek,
-        shiftType: substitution.shift.shiftType
+        dayOfWeek: substitution.shifts.dayOfWeek,
+        shiftType: substitution.shifts.shiftType
       }
     })
 

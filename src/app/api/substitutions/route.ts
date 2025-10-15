@@ -66,9 +66,9 @@ export async function GET(request: NextRequest) {
           requesterId: session.user.id
         },
         include: {
-          shift: {
+          shifts: {
             include: {
-              schedule: true,
+              schedules: true,
               user: {
                 select: {
                   id: true,

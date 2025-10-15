@@ -193,9 +193,9 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date()
       },
       include: {
-        shift: {
+        shifts: {
           include: {
-            schedule: {
+            schedules: {
               select: {
                 weekStart: true
               }

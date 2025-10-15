@@ -21,7 +21,7 @@ export async function POST(
     const substitution = await prisma.substitutions.findUnique({
       where: { id: id },
       include: {
-        shift: {
+        shifts: {
           include: {
             user: true
           }
@@ -37,7 +37,7 @@ export async function POST(
     }
 
     // Only the original shift owner or admin can approve
-    const isOwner = substitution.shift.userId === session.user.id
+    const isOwner = substitution.shifts.userId === session.user.id
     const isAdmin = session.user.roles.includes('ADMIN')
 
     if (!isOwner && !isAdmin) {
