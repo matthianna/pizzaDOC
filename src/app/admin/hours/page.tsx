@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Clock, Check, X, AlertCircle, Edit2 } from 'lucide-react'
+import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, ChevronRight, User } from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { formatDate } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
@@ -49,6 +49,7 @@ export default function AdminHoursPage() {
   const [editingHours, setEditingHours] = useState<WorkedHours | null>(null)
   const [editStartTime, setEditStartTime] = useState('')
   const [editEndTime, setEditEndTime] = useState('')
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchWorkedHours()
@@ -233,6 +234,37 @@ export default function AdminHoursPage() {
   const totalHours = workedHours.reduce((sum, h) => sum + h.totalHours, 0)
   const pendingCount = workedHours.filter(h => h.status === 'PENDING').length
 
+  // Raggruppa per utente
+  const groupedByUser = workedHours.reduce((acc, hours) => {
+    const userId = hours.user.id
+    if (!acc[userId]) {
+      acc[userId] = {
+        user: hours.user,
+        hours: [],
+        totalHours: 0
+      }
+    }
+    acc[userId].hours.push(hours)
+    acc[userId].totalHours += hours.totalHours
+    return acc
+  }, {} as Record<string, { user: { id: string; username: string; primaryRole: Role }; hours: WorkedHours[]; totalHours: number }>)
+
+  const userGroups = Object.values(groupedByUser).sort((a, b) => 
+    a.user.username.localeCompare(b.user.username)
+  )
+
+  const toggleUser = (userId: string) => {
+    setExpandedUsers(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(userId)) {
+        newSet.delete(userId)
+      } else {
+        newSet.add(userId)
+      }
+      return newSet
+    })
+  }
+
   return (
     <MainLayout adminOnly>
       <div className="space-y-4 sm:space-y-6">
@@ -303,126 +335,185 @@ export default function AdminHoursPage() {
           </div>
         </div>
 
-        {/* Worked Hours Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-600"></div>
+        {/* Worked Hours - Grouped by User */}
+        {loading ? (
+          <div className="bg-white rounded-lg shadow p-12">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
             </div>
-          ) : workedHours.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Utente
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Data e Turno
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Orario Lavorato
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ore
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Stato
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Azioni
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {workedHours.map((hours) => {
-                    const shiftDate = getShiftDate(hours.shift)
-                    return (
-                      <tr key={hours.id} className="hover:bg-gray-50">
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {hours.user.username}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {getRoleName(hours.user.primaryRole)}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {getDayName(hours.shift.dayOfWeek)} {formatDate(shiftDate)}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {getShiftTypeName(hours.shift.shiftType)} - {getRoleName(hours.shift.role)}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {hours.startTime} - {hours.endTime}
-                        </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {hours.totalHours.toFixed(1)}h
-                        </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(hours.status)}`}>
-                            {getStatusText(hours.status)}
-                          </span>
-                          {hours.status === 'REJECTED' && hours.rejectionReason && (
-                            <div className="mt-1 text-xs text-red-600" title={hours.rejectionReason}>
-                              <AlertCircle className="h-3 w-3 inline mr-1" />
-                              {hours.rejectionReason}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => openEditModal(hours)}
-                              className="text-blue-600 hover:text-blue-900"
-                              title="Modifica ore"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            {hours.status === 'PENDING' && (
-                              <>
-                                <button
-                                  onClick={() => approveHours(hours.id)}
-                                  className="text-green-600 hover:text-green-900"
-                                  title="Approva"
-                                >
-                                  <Check className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => setRejectingId(hours.id)}
-                                  className="text-red-600 hover:text-red-900"
-                                  title="Rifiuta"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </>
+          </div>
+        ) : workedHours.length > 0 ? (
+          <div className="space-y-4">
+            {userGroups.map((group) => {
+              const isExpanded = expandedUsers.has(group.user.id)
+              const pendingHours = group.hours.filter(h => h.status === 'PENDING').length
+              
+              return (
+                <div key={group.user.id} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                  {/* User Header - Collapsible */}
+                  <button
+                    onClick={() => toggleUser(group.user.id)}
+                    className="w-full px-6 py-5 bg-gradient-to-r from-gray-50 via-white to-gray-50 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 transition-all duration-200"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        {/* Icon Box */}
+                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+                          <User className="h-6 w-6 text-white" />
+                        </div>
+                        
+                        {/* User Info */}
+                        <div className="text-left">
+                          <h3 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
+                            <span>{group.user.username}</span>
+                            {pendingHours > 0 && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                {pendingHours} in attesa
+                              </span>
                             )}
+                          </h3>
+                          <p className="text-sm text-gray-600 font-medium">{getRoleName(group.user.primaryRole)}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-6">
+                        {/* Stats */}
+                        <div className="flex items-center space-x-6 mr-2">
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500 font-medium">Turni</p>
+                            <p className="text-xl font-bold text-gray-900">{group.hours.length}</p>
                           </div>
-                          {hours.status !== 'PENDING' && hours.reviewedAt && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {new Date(hours.reviewedAt).toLocaleDateString('it-IT')}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500 font-medium">Ore Totali</p>
+                            <p className="text-xl font-bold text-orange-600">{group.totalHours.toFixed(1)}h</p>
+                          </div>
+                        </div>
+
+                        {/* Expand Icon */}
+                        <div className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                          <ChevronDown className="h-6 w-6 text-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Shifts List - Expandable */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-200">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Data e Turno
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Orario Lavorato
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Ore
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Stato
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Azioni
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {group.hours.map((hours) => {
+                              const shiftDate = getShiftDate(hours.shift)
+                              return (
+                                <tr key={hours.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-6 py-4">
+                                    <div>
+                                      <div className="text-sm font-semibold text-gray-900">
+                                        {getDayName(hours.shift.dayOfWeek)} {formatDate(shiftDate)}
+                                      </div>
+                                      <div className="text-sm text-gray-600">
+                                        {getShiftTypeName(hours.shift.shiftType)} - {getRoleName(hours.shift.role)}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span className="text-sm font-medium text-gray-900">
+                                      {hours.startTime} - {hours.endTime}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span className="text-sm font-bold text-gray-900">
+                                      {hours.totalHours.toFixed(1)}h
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusColor(hours.status)}`}>
+                                      {getStatusText(hours.status)}
+                                    </span>
+                                    {hours.status === 'REJECTED' && hours.rejectionReason && (
+                                      <div className="mt-2 text-xs text-red-600 flex items-start space-x-1 max-w-xs">
+                                        <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                        <span>{hours.rejectionReason}</span>
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center space-x-3">
+                                      <button
+                                        onClick={() => openEditModal(hours)}
+                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        title="Modifica ore"
+                                      >
+                                        <Edit2 className="h-4 w-4" />
+                                      </button>
+                                      {hours.status === 'PENDING' && (
+                                        <>
+                                          <button
+                                            onClick={() => approveHours(hours.id)}
+                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                            title="Approva"
+                                          >
+                                            <Check className="h-4 w-4" />
+                                          </button>
+                                          <button
+                                            onClick={() => setRejectingId(hours.id)}
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Rifiuta"
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                    {hours.status !== 'PENDING' && hours.reviewedAt && (
+                                      <div className="text-xs text-gray-500 mt-1">
+                                        {new Date(hours.reviewedAt).toLocaleDateString('it-IT')}
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow p-12">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Nessuna ora trovata</h3>
+              <p className="text-gray-500">Non ci sono ore lavorate per i filtri selezionati</p>
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Nessuna ora trovata per i filtri selezionati</p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Hours Modal - Modern Design */}
