@@ -122,9 +122,9 @@ export async function POST(
         status: 'APPLIED'
       },
       include: {
-        shift: {
+        shifts: {
           include: {
-            schedule: {
+            schedules: {
               select: {
                 weekStart: true
               }
