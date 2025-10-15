@@ -107,14 +107,16 @@ export async function GET(req: NextRequest) {
           startTime: shift.startTime,
           endTime: shift.endTime,
           weekStart: shift.schedules.weekStart,
-          shiftDate: shiftDate, // Data effettiva del turno
+          shiftDate: shiftDate.toISOString(), // ✅ Converti in stringa ISO
+          shiftDateObj: shiftDate, // Per ordinamento
           hoursStatus: shift.worked_hours?.status || null // One-to-one, non array
         }
       })
       .filter(shift => {
         // Solo turni nel PASSATO
-        return shift.shiftDate < today
+        return shift.shiftDateObj < today
       })
+      .sort((a, b) => a.shiftDateObj.getTime() - b.shiftDateObj.getTime()) // ✅ Ordina per data crescente
 
     // Raggruppa per utente
     const groupedByUser = missingHours.reduce((acc, item) => {
@@ -134,7 +136,7 @@ export async function GET(req: NextRequest) {
         startTime: item.startTime,
         endTime: item.endTime,
         weekStart: item.weekStart,
-        shiftDate: item.shiftDate,
+        shiftDate: item.shiftDate, // ✅ Ora è una stringa ISO
         hoursStatus: item.hoursStatus
       })
       return acc
