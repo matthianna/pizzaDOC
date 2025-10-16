@@ -420,13 +420,6 @@ export default function DashboardPage() {
           ) : (
             <>
               <StatCard
-                title="Turni Settimana"
-                value={stats.myShiftsThisWeek || 0}
-                icon={Calendar}
-                color="blue"
-                subtitle="Assegnati"
-              />
-              <StatCard
                 title="Ore Mese"
                 value={`${(stats.myApprovedHours || 0).toFixed(1)}h`}
                 icon={Clock}
@@ -439,13 +432,6 @@ export default function DashboardPage() {
                 icon={TrendingUp}
                 color="orange"
                 subtitle="Inserite"
-              />
-              <StatCard
-                title="Sostituzioni"
-                value={stats.myPendingSubstitutions || 0}
-                icon={UserCheck}
-                color="purple"
-                subtitle="In attesa"
               />
             </>
           )}
@@ -626,94 +612,6 @@ export default function DashboardPage() {
                 </p>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h2 className="text-base sm:text-lg font-medium text-gray-900">Azioni Rapide</h2>
-            {isAdmin && (
-              <span className="text-xs text-gray-500">Accesso rapido alle funzioni principali</span>
-            )}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {isAdmin ? (
-              <>
-                <ActionButton
-                  href="/admin/schedule"
-                  title="Piano Lavoro"
-                  description="Genera e gestisci i turni"
-                  icon={Calendar}
-                  highlight={!!(stats.totalShiftsThisWeek === 0)}
-                />
-                <ActionButton
-                  href="/admin/hours"
-                  title="Approva Ore"
-                  description={stats.pendingHours ? `${stats.pendingHours} in attesa` : "Gestisci ore lavorate"}
-                  icon={Clock}
-                  highlight={!!(stats.pendingHours && stats.pendingHours > 0)}
-                />
-                <ActionButton
-                  href="/admin/users"
-                  title="Utenti"
-                  description={`${stats.totalUsers || 0} utenti totali`}
-                  icon={Users}
-                />
-                <ActionButton
-                  href="/admin/settings"
-                  title="Configurazioni"
-                  description="Limiti e orari turni"
-                  icon={Settings}
-                />
-                <ActionButton
-                  href="/admin/substitutions"
-                  title="Sostituzioni"
-                  description={stats.pendingSubstitutions ? `${stats.pendingSubstitutions} richieste` : "Nessuna richiesta"}
-                  icon={UserCheck}
-                  highlight={!!(stats.pendingSubstitutions && stats.pendingSubstitutions > 0)}
-                />
-                <ActionButton
-                  href="/admin/absences"
-                  title="Assenze"
-                  description={stats.totalAbsencesActive ? `${stats.totalAbsencesActive} oggi` : "Nessuna assenza"}
-                  icon={AlertCircle}
-                />
-                <ActionButton
-                  href="/admin/hours-summary"
-                  title="Riepilogo Ore"
-                  description="Statistiche e report"
-                  icon={BarChart3}
-                />
-                <ActionButton
-                  href="/admin/system"
-                  title="Sistema"
-                  description="Sicurezza e backup"
-                  icon={Shield}
-                />
-              </>
-            ) : (
-              <>
-                <ActionButton
-                  href="/availability"
-                  title="Disponibilità"
-                  description="Aggiorna la tua disponibilità"
-                  icon={Calendar}
-                />
-                <ActionButton
-                  href="/hours"
-                  title="Ore Lavorate"
-                  description="Inserisci le tue ore"
-                  icon={Clock}
-                />
-                <ActionButton
-                  href="/substitutions"
-                  title="Sostituzioni"
-                  description="Gestisci sostituzioni"
-                  icon={UserCheck}
-                />
-              </>
-            )}
           </div>
         </div>
       </div>

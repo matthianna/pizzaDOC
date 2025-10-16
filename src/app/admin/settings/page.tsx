@@ -3,12 +3,21 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Cog6ToothIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { MessageSquare, Check, X, AlertCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
 
 interface Settings {
   scooter_count: string
+}
+
+interface WhatsAppSettings {
+  groupChatId: string
+  notificationsEnabled: boolean
+  wahaConfigured: boolean
+  wahaStatus: string
+  wahaError?: string
 }
 
 interface ShiftLimit {
@@ -25,10 +34,19 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>({
     scooter_count: '3'
   })
+  const [whatsappSettings, setWhatsappSettings] = useState<WhatsAppSettings>({
+    groupChatId: '',
+    notificationsEnabled: false,
+    wahaConfigured: false,
+    wahaStatus: 'Unknown',
+    wahaError: undefined
+  })
   const [shiftLimits, setShiftLimits] = useState<ShiftLimit[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [savingLimits, setSavingLimits] = useState(false)
+  const [savingWhatsApp, setSavingWhatsApp] = useState(false)
+  const [testingWhatsApp, setTestingWhatsApp] = useState(false)
   const [selectedShift, setSelectedShift] = useState<'PRANZO' | 'CENA'>('PRANZO')
   const { showToast, ToastContainer } = useToast()
 
@@ -49,9 +67,10 @@ export default function SettingsPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [settingsResponse, limitsResponse] = await Promise.all([
+      const [settingsResponse, limitsResponse, whatsappResponse] = await Promise.all([
         fetch('/api/admin/settings'),
-        fetch('/api/admin/shift-limits')
+        fetch('/api/admin/shift-limits'),
+        fetch('/api/admin/whatsapp/settings')
       ])
       
       if (settingsResponse.ok) {
@@ -65,10 +84,77 @@ export default function SettingsPage() {
         const limitsData = await limitsResponse.json()
         setShiftLimits(limitsData)
       }
+
+      if (whatsappResponse.ok) {
+        const whatsappData = await whatsappResponse.json()
+        setWhatsappSettings(whatsappData)
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const saveWhatsAppSettings = async () => {
+    setSavingWhatsApp(true)
+    try {
+      const response = await fetch('/api/admin/whatsapp/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          groupChatId: whatsappSettings.groupChatId,
+          notificationsEnabled: whatsappSettings.notificationsEnabled
+        })
+      })
+
+      if (response.ok) {
+        showToast('✅ Impostazioni WhatsApp salvate!', 'success')
+        await fetchData() // Refresh per aggiornare lo stato
+      } else {
+        const error = await response.json()
+        showToast(`❌ ${error.error || 'Errore durante il salvataggio'}`, 'error')
+      }
+    } catch (error) {
+      console.error('Error saving WhatsApp settings:', error)
+      showToast('❌ Errore durante il salvataggio', 'error')
+    } finally {
+      setSavingWhatsApp(false)
+    }
+  }
+
+  const testWhatsAppNotification = async () => {
+    if (!whatsappSettings.groupChatId) {
+      showToast('⚠️ Configura prima il Group Chat ID', 'error')
+      return
+    }
+
+    setTestingWhatsApp(true)
+    try {
+      const response = await fetch('/api/admin/whatsapp/test-group', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          groupChatId: whatsappSettings.groupChatId
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        showToast('✅ Messaggio di test inviato al gruppo!', 'success')
+      } else {
+        showToast(`❌ ${data.error || 'Errore durante l\'invio'}`, 'error')
+      }
+    } catch (error) {
+      console.error('Error testing WhatsApp:', error)
+      showToast('❌ Errore durante il test', 'error')
+    } finally {
+      setTestingWhatsApp(false)
     }
   }
 
@@ -194,14 +280,14 @@ export default function SettingsPage() {
       <div className="space-y-6 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
+        <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
               <Cog6ToothIcon className="h-7 w-7 text-gray-400" />
-              Configurazioni Sistema
-            </h1>
+            Configurazioni Sistema
+          </h1>
             <p className="text-sm text-gray-500 mt-1">
-              Gestisci le impostazioni generali del sistema
-            </p>
+            Gestisci le impostazioni generali del sistema
+          </p>
           </div>
         </div>
 
@@ -211,30 +297,152 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
                 <span className="text-xl">🛵</span>
-              </div>
-              <div>
+            </div>
+            <div>
                 <h3 className="font-semibold text-gray-900">Scooter Disponibili</h3>
                 <p className="text-xs text-gray-500">Numero di scooter per le consegne</p>
               </div>
-            </div>
-            
+          </div>
+
             <div className="flex items-center gap-3">
               <input
-                type="number"
+              type="number"
                 min="1"
                 max="20"
-                value={settings.scooter_count}
-                onChange={(e) => setSettings({ ...settings, scooter_count: e.target.value })}
+              value={settings.scooter_count}
+              onChange={(e) => setSettings({ ...settings, scooter_count: e.target.value })}
                 className="w-20 h-10 text-center text-lg font-semibold border-2 border-gray-200 rounded-lg focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all"
-              />
-              <Button
+            />
+            <Button
                 onClick={() => saveSetting('scooter_count', settings.scooter_count, 'Numero di scooter disponibili')}
-                isLoading={saving === 'scooter_count'}
+              isLoading={saving === 'scooter_count'}
                 className="bg-orange-600 hover:bg-orange-700"
-                size="sm"
-              >
+              size="sm"
+            >
                 {saving === 'scooter_count' ? 'Salvataggio...' : 'Salva'}
+            </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* WhatsApp Configuration */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-6 py-5 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                <MessageSquare className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Notifiche WhatsApp</h3>
+                <p className="text-xs text-gray-500">Configura le notifiche automatiche per le sostituzioni</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Status Badge */}
+            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-semibold text-gray-700">Stato Connessione WAHA:</span>
+                  {whatsappSettings.wahaStatus === 'WORKING' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                      <Check className="w-3.5 h-3.5" />
+                      Connesso
+                    </span>
+                  ) : whatsappSettings.wahaStatus === 'SCAN_QR_CODE' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      Scansiona QR
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                      <X className="w-3.5 h-3.5" />
+                      Non connesso
+                    </span>
+                  )}
+                </div>
+                {whatsappSettings.wahaError && (
+                  <p className="text-xs text-red-600">⚠️ {whatsappSettings.wahaError}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Group Chat ID */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Group Chat ID
+              </label>
+              <input
+                type="text"
+                value={whatsappSettings.groupChatId}
+                onChange={(e) => setWhatsappSettings({ ...whatsappSettings, groupChatId: e.target.value })}
+                placeholder="120363420442904155@g.us"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all font-mono text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                💡 ID del gruppo WhatsApp dove inviare le notifiche delle sostituzioni
+              </p>
+            </div>
+
+            {/* Enable Notifications Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900">Abilita Notifiche</h4>
+                <p className="text-xs text-gray-500 mt-1">
+                  Invia automaticamente un messaggio al gruppo quando viene richiesta una sostituzione
+                </p>
+              </div>
+              <button
+                onClick={() => setWhatsappSettings({ 
+                  ...whatsappSettings, 
+                  notificationsEnabled: !whatsappSettings.notificationsEnabled 
+                })}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                  whatsappSettings.notificationsEnabled ? 'bg-green-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
+                    whatsappSettings.notificationsEnabled ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                onClick={saveWhatsAppSettings}
+                isLoading={savingWhatsApp}
+                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                leftIcon={!savingWhatsApp ? <CheckIcon className="w-4 h-4" /> : undefined}
+              >
+                Salva Impostazioni
               </Button>
+              <Button
+                onClick={testWhatsAppNotification}
+                isLoading={testingWhatsApp}
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={!whatsappSettings.groupChatId || whatsappSettings.wahaStatus !== 'WORKING'}
+              >
+                {testingWhatsApp ? 'Invio...' : '🧪 Test Messaggio'}
+              </Button>
+            </div>
+
+            {/* Info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-blue-900">Come ottenere il Group Chat ID:</h4>
+                  <ol className="text-xs text-blue-800 space-y-1 list-decimal list-inside">
+                    <li>Vai su <span className="font-mono bg-blue-100 px-1 rounded">/admin/whatsapp-test</span></li>
+                    <li>Usa il metodo API per ottenere l&apos;ID del gruppo</li>
+                    <li>Oppure controlla i log WAHA dopo aver inviato un messaggio al gruppo</li>
+                  </ol>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -254,14 +462,14 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <Button
-                onClick={saveShiftLimits}
-                isLoading={savingLimits}
+            <Button
+              onClick={saveShiftLimits}
+              isLoading={savingLimits}
                 className="bg-orange-600 hover:bg-orange-700"
                 leftIcon={!savingLimits ? <CheckIcon className="w-4 h-4" /> : undefined}
-              >
+            >
                 💾 Salva Tutti i Limiti
-              </Button>
+            </Button>
             </div>
 
             {/* Toggle Switch */}
@@ -319,16 +527,16 @@ export default function SettingsPage() {
                   <tr key={dayIndex} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-medium text-gray-900">{day}</span>
-                    </td>
-                    {roles.map(role => {
+                      </td>
+                      {roles.map(role => {
                       const value = getShiftLimit(dayIndex, selectedShift, role)
-                      return (
+                        return (
                         <td key={role} className="px-6 py-4 whitespace-nowrap">
                           <div className="flex justify-center">
                             <input
-                              type="number"
-                              min="0"
-                              max="10"
+                                  type="number"
+                                  min="0"
+                                  max="10"
                               value={value}
                               onChange={(e) => updateShiftLimit(
                                 dayIndex, 
@@ -339,11 +547,11 @@ export default function SettingsPage() {
                               className="w-16 h-12 text-center text-lg font-semibold border-2 border-gray-200 rounded-lg hover:border-orange-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
                               placeholder="0"
                             />
-                          </div>
-                        </td>
-                      )
-                    })}
-                  </tr>
+                            </div>
+                          </td>
+                        )
+                      })}
+                    </tr>
                 ))}
               </tbody>
             </table>

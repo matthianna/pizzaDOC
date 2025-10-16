@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { addDays } from 'date-fns'
+import { addDays, format } from 'date-fns'
+import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
+import { whatsappService } from '@/lib/whatsapp-service'
 
 // GET - Fetch available substitutions and user's own substitution requests
 export async function GET() {
@@ -29,7 +31,14 @@ export async function GET() {
           gt: now
         }
       },
-      include: {
+      select: {
+        id: true,
+        shiftId: true, // ✅ Campo esplicito
+        status: true,
+        requestNote: true,
+        deadline: true,
+        createdAt: true,
+        updatedAt: true,
         shifts: {
           include: {
             schedules: {
@@ -70,7 +79,14 @@ export async function GET() {
       where: {
         requesterId: session.user.id
       },
-      include: {
+      select: {
+        id: true,
+        shiftId: true, // ✅ Campo esplicito
+        status: true,
+        requestNote: true,
+        deadline: true,
+        createdAt: true,
+        updatedAt: true,
         shifts: {
           include: {
             schedules: {
@@ -97,6 +113,12 @@ export async function GET() {
         createdAt: 'desc'
       }
     })
+
+    console.log('📊 API Substitutions - Available:', futureAvailable.length)
+    console.log('📊 API Substitutions - Mine:', mySubstitutions.length)
+    if (mySubstitutions.length > 0) {
+      console.log('📊 First substitution shiftId:', mySubstitutions[0].shiftId)
+    }
 
     return NextResponse.json({
       available: futureAvailable,
@@ -210,6 +232,50 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+
+    // 📱 Invia notifica WhatsApp al gruppo (in background, non bloccare la risposta)
+    try {
+      // Recupera le impostazioni WhatsApp
+      const [groupChatIdSetting, notificationsEnabledSetting] = await Promise.all([
+        prisma.systemSettings.findUnique({ where: { key: 'whatsapp_group_chat_id' } }),
+        prisma.systemSettings.findUnique({ where: { key: 'whatsapp_notifications_enabled' } })
+      ])
+
+      const groupChatId = groupChatIdSetting?.value
+      const notificationsEnabled = notificationsEnabledSetting?.value === 'true'
+
+      if (notificationsEnabled && groupChatId) {
+        // Formatta i dati per il messaggio
+        const dayNames = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+        const dayOfWeekName = dayNames[shift.dayOfWeek]
+        const formattedDate = format(shiftDate, 'dd/MM/yyyy', { locale: it })
+        
+        // Invia messaggio in background (non aspettiamo il risultato)
+        whatsappService.sendGroupSubstitutionNotification({
+          groupChatId,
+          requesterName: substitution.requester.username,
+          dayOfWeek: dayOfWeekName,
+          date: formattedDate,
+          shiftType: shift.shiftType,
+          role: shift.role,
+          startTime: shift.startTime || undefined,
+          reason: requestNote || undefined
+        }).then(result => {
+          if (result.success) {
+            console.log('✅ WhatsApp notification sent for substitution:', substitution.id)
+          } else {
+            console.error('❌ Failed to send WhatsApp notification:', result.error)
+          }
+        }).catch(error => {
+          console.error('📱 WhatsApp notification error:', error)
+        })
+      } else {
+        console.log('📱 WhatsApp notifications disabled or not configured')
+      }
+    } catch (whatsappError) {
+      // Log error but don't fail the request
+      console.error('Error sending WhatsApp notification:', whatsappError)
+    }
 
     return NextResponse.json({
       success: true,

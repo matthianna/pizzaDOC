@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { addDays } from 'date-fns'
+import { addDays, format } from 'date-fns'
+import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
+import { whatsappService } from '@/lib/whatsapp-service'
 
 export async function POST(
   request: NextRequest,
@@ -134,7 +136,8 @@ export async function POST(
         requester: {
           select: {
             id: true,
-            username: true
+            username: true,
+            phoneNumber: true
           }
         },
         substitute: {
@@ -145,6 +148,61 @@ export async function POST(
         }
       }
     })
+
+    // 📱 Invia notifica WhatsApp al GRUPPO (in background)
+    try {
+      // Recupera le impostazioni WhatsApp
+      const [groupChatIdSetting, notificationsEnabledSetting] = await Promise.all([
+        prisma.systemSettings.findUnique({ where: { key: 'whatsapp_group_chat_id' } }),
+        prisma.systemSettings.findUnique({ where: { key: 'whatsapp_notifications_enabled' } })
+      ])
+
+      const groupChatId = groupChatIdSetting?.value || '120363420442904155@g.us' // ✅ Gruppo di default
+      const notificationsEnabled = notificationsEnabledSetting?.value === 'true'
+
+      if (notificationsEnabled && groupChatId) {
+        // Formatta i dati
+        const dayNames = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+        const dayOfWeekName = dayNames[substitution.shifts.dayOfWeek]
+        const formattedDate = format(shiftDate, 'dd/MM/yyyy', { locale: it })
+
+        // Invia messaggio al GRUPPO
+        const groupMessage = `
+✅ *CANDIDATURA RICEVUTA!*
+
+👤 *${updatedSubstitution.substitute?.username}* si è candidato per sostituire *${updatedSubstitution.requester.username}*!
+
+📅 *Turno:* ${dayOfWeekName} ${formattedDate}
+🕐 *Orario:* ${substitution.shifts.startTime} - ${substitution.shifts.endTime}
+👔 *Ruolo:* ${substitution.shifts.role}
+🔄 *Tipo:* ${substitution.shifts.shiftType}
+
+⏳ *In attesa di approvazione da parte dell'admin.*
+
+---
+🍕 PizzaDoc - Sistema Gestione Turni
+        `.trim()
+
+        // Invia messaggio al gruppo
+        whatsappService.sendMessage({
+          phoneNumber: groupChatId,
+          message: groupMessage
+        }).then(result => {
+          if (result.success) {
+            console.log('✅ WhatsApp group notification sent for substitution application')
+          } else {
+            console.error('❌ Failed to send WhatsApp group notification:', result.error)
+          }
+        }).catch(error => {
+          console.error('📱 WhatsApp group notification error:', error)
+        })
+      } else {
+        console.log('📱 WhatsApp notifications disabled')
+      }
+    } catch (whatsappError) {
+      // Log error but don't fail the request
+      console.error('Error sending WhatsApp notification:', whatsappError)
+    }
 
     return NextResponse.json({
       success: true,

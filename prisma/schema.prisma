@@ -185,6 +185,8 @@ model User {
   isActive                                        Boolean           @default(true)
   primaryRole                                     Role?
   primaryTransport                                TransportType?
+  phoneNumber                                     String?
+  whatsappEnabled                                 Boolean           @default(true)
   createdAt                                       DateTime          @default(now())
   updatedAt                                       DateTime
   Account                                         Account[]
@@ -269,6 +271,7 @@ enum SubstitutionStatus {
   APPROVED
   REJECTED
   EXPIRED
+  CANCELLED
 }
 
 enum TransportType {

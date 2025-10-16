@@ -30,13 +30,25 @@ interface Shift {
   }
 }
 
+interface SubstitutionRequest {
+  id: string
+  shiftId: string
+  status: 'PENDING' | 'APPLIED' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED'
+  requestNote?: string
+  deadline: string
+  substitute?: {
+    id: string
+    username: string
+  }
+}
+
 export default function SchedulePage() {
   const { data: session } = useSession()
   const [currentWeek, setCurrentWeek] = useState(() => {
     return getWeekStart(new Date()) // Lunedì UTC normalizzato
   })
   const [shifts, setShifts] = useState<Shift[]>([])
-  const [substitutionRequests, setSubstitutionRequests] = useState<any[]>([])
+  const [substitutionRequests, setSubstitutionRequests] = useState<SubstitutionRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [showSubstitutionModal, setShowSubstitutionModal] = useState(false)
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null)
@@ -54,19 +66,40 @@ export default function SchedulePage() {
     setLoading(true)
     try {
       const weekStart = currentWeek.toISOString()
+      console.log('🔄 Fetching shifts for week:', weekStart)
+      
       const [shiftsResponse, substitutionsResponse] = await Promise.all([
         fetch(`/api/user/schedule?weekStart=${weekStart}`),
         fetch('/api/user/substitutions')
       ])
       
+      console.log('📡 Shifts response status:', shiftsResponse.status)
+      console.log('📡 Substitutions response status:', substitutionsResponse.status)
+      
       if (shiftsResponse.ok && substitutionsResponse.ok) {
         const shiftsData = await shiftsResponse.json()
         const substitutionsData = await substitutionsResponse.json()
+        
+        console.log('📊 Shifts:', shiftsData.length)
+        console.log('📊 Substitutions (mine):', substitutionsData.mine?.length || 0)
+        console.log('📊 Substitutions (mine) full data:', substitutionsData.mine)
+        
+        // Verifica che shiftId sia presente
+        if (substitutionsData.mine && substitutionsData.mine.length > 0) {
+          console.log('🔍 First substitution details:', {
+            id: substitutionsData.mine[0].id,
+            shiftId: substitutionsData.mine[0].shiftId,
+            status: substitutionsData.mine[0].status
+          })
+        }
+        
         setShifts(shiftsData)
-        setSubstitutionRequests(substitutionsData.mine)
+        setSubstitutionRequests(substitutionsData.mine || [])
+      } else {
+        console.error('❌ API Error - Shifts:', shiftsResponse.status, 'Substitutions:', substitutionsResponse.status)
       }
     } catch (error) {
-      console.error('Error fetching data:', error)
+      console.error('❌ Error fetching data:', error)
     } finally {
       setLoading(false)
     }
@@ -224,6 +257,28 @@ export default function SchedulePage() {
           </div>
         </div>
 
+        {/* Legend */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 p-4">
+          <div className="flex flex-wrap items-center gap-3 justify-center">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-amber-100 border-2 border-orange-300"></div>
+              <span className="text-sm font-medium text-gray-700">Pranzo</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-blue-100 border-2 border-blue-300"></div>
+              <span className="text-sm font-medium text-gray-700">Cena</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-purple-100 border-2 border-purple-400 ring-2 ring-purple-300"></div>
+              <span className="text-sm font-medium text-purple-900">🔍 Sostituzione Richiesta</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-gray-100 border-2 border-gray-300"></div>
+              <span className="text-sm font-medium text-gray-700">Turno Finito</span>
+            </div>
+          </div>
+        </div>
+
         {/* Schedule Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
           {days.map((day, dayIndex) => {
@@ -260,36 +315,64 @@ export default function SchedulePage() {
                         const shiftEnded = isShiftEnded(shift)
                         const needsHours = needsHoursEntry(shift)
                         
+                        const hasActiveSubstitution = substitutionRequest && ['PENDING', 'APPLIED'].includes(substitutionRequest.status)
+                        
+                        // Debug log per TUTTI i turni (non solo Domenica)
+                        console.log(`🔍 Shift ${getDayName(shift.dayOfWeek)} ${shift.shiftType}:`, {
+                          shiftId: shift.id,
+                          role: shift.role,
+                          startTime: shift.startTime,
+                          substitutionRequest: substitutionRequest ? {
+                            id: substitutionRequest.id,
+                            shiftId: substitutionRequest.shiftId,
+                            status: substitutionRequest.status
+                          } : null,
+                          hasActiveSubstitution,
+                          totalSubstitutions: substitutionRequests.length,
+                          substitutionShiftIds: substitutionRequests.map(s => s.shiftId)
+                        })
+                        
                         return (
                           <div
                             key={shift.id}
-                            className={`rounded-lg border transition-all hover:shadow-md ${
-                              shiftEnded 
-                                ? 'bg-gray-50 border-gray-300' 
-                                : shift.shiftType === 'PRANZO'
-                                  ? 'bg-amber-50 border-orange-300'
-                                  : 'bg-blue-50 border-blue-300'
+                            className={`rounded-lg border-2 transition-all hover:shadow-md ${
+                              hasActiveSubstitution
+                                ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-300 shadow-lg'
+                                : shiftEnded 
+                                  ? 'bg-gray-50 border-gray-300' 
+                                  : shift.shiftType === 'PRANZO'
+                                    ? 'bg-amber-50 border-orange-300'
+                                    : 'bg-blue-50 border-blue-300'
                             }`}
                           >
                             {/* Header */}
                             <div className={`px-2 py-1.5 border-b text-center ${
-                              shiftEnded 
-                                ? 'border-gray-200 bg-gray-100' 
-                                : shift.shiftType === 'PRANZO'
-                                  ? 'border-orange-200 bg-orange-100'
-                                  : 'border-blue-200 bg-blue-100'
+                              hasActiveSubstitution
+                                ? 'border-purple-300 bg-purple-200'
+                                : shiftEnded 
+                                  ? 'border-gray-200 bg-gray-100' 
+                                  : shift.shiftType === 'PRANZO'
+                                    ? 'border-orange-200 bg-orange-100'
+                                    : 'border-blue-200 bg-blue-100'
                             }`}>
                               <div className="flex items-center justify-center space-x-1.5">
                                 <div className={`w-2 h-2 rounded-full ${
+                                  hasActiveSubstitution ? 'bg-purple-600 animate-pulse' :
                                   shiftEnded ? 'bg-gray-400' : 
                                   shift.shiftType === 'PRANZO' ? 'bg-orange-500' : 'bg-blue-600'
                                 }`}></div>
                                 <span className={`text-sm font-bold ${
+                                  hasActiveSubstitution ? 'text-purple-900' :
                                   shiftEnded ? 'text-gray-600' : 'text-gray-900'
                                 }`}>
                                   {getShiftTypeName(shift.shiftType)}
                                 </span>
-                                {shiftEnded && (
+                                {hasActiveSubstitution && (
+                                  <span className="bg-purple-600 text-white px-1.5 py-0.5 rounded text-xs font-medium ml-1 animate-pulse">
+                                    🔍 SOSTITUZIONE
+                                  </span>
+                                )}
+                                {shiftEnded && !hasActiveSubstitution && (
                                   <span className="bg-gray-500 text-white px-1.5 py-0.5 rounded text-xs font-medium ml-1">
                                     FINITO
                                   </span>

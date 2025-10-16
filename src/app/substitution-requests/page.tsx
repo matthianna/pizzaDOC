@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Users, Clock, Calendar, CheckCircle, XCircle, AlertCircle, Send, User } from 'lucide-react'
+import { Users, Clock, Calendar, CheckCircle, XCircle, AlertCircle, Send, User, Ban } from 'lucide-react'
 import { format, parseISO, addDays, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
@@ -49,6 +49,9 @@ export default function SubstitutionRequestsPage() {
   const [myRequests, setMyRequests] = useState<Substitution[]>([])
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState<string | null>(null)
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [selectedSubstitutionToCancel, setSelectedSubstitutionToCancel] = useState<Substitution | null>(null)
   const { showToast, ToastContainer } = useToast()
 
   useEffect(() => {
@@ -96,6 +99,41 @@ export default function SubstitutionRequestsPage() {
     }
   }
 
+  const openCancelModal = (substitution: Substitution) => {
+    setSelectedSubstitutionToCancel(substitution)
+    setShowCancelModal(true)
+  }
+
+  const closeCancelModal = () => {
+    setShowCancelModal(false)
+    setSelectedSubstitutionToCancel(null)
+  }
+
+  const confirmCancelSubstitution = async () => {
+    if (!selectedSubstitutionToCancel) return
+
+    setCancelling(selectedSubstitutionToCancel.id)
+    try {
+      const response = await fetch(`/api/user/substitutions/${selectedSubstitutionToCancel.id}/cancel`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        showToast('Richiesta di sostituzione annullata con successo', 'success')
+        closeCancelModal()
+        fetchSubstitutions() // Refresh data
+      } else {
+        const error = await response.json()
+        showToast(error.error || 'Errore nell\'annullamento', 'error')
+      }
+    } catch (error) {
+      console.error('Error cancelling substitution:', error)
+      showToast('Errore di connessione', 'error')
+    } finally {
+      setCancelling(null)
+    }
+  }
+
   const getShiftDate = (shift: Shift) => {
     const weekStart = new Date(shift.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
@@ -114,6 +152,10 @@ export default function SubstitutionRequestsPage() {
         return <XCircle className="h-4 w-4 text-red-500" />
       case 'EXPIRED':
         return <AlertCircle className="h-4 w-4 text-gray-700" />
+      case 'CANCELLED':
+        return <Ban className="h-4 w-4 text-gray-500" />
+      default:
+        return <AlertCircle className="h-4 w-4 text-gray-700" />
     }
   }
 
@@ -129,6 +171,10 @@ export default function SubstitutionRequestsPage() {
         return 'Rifiutata'
       case 'EXPIRED':
         return 'Scaduta'
+      case 'CANCELLED':
+        return 'Annullata'
+      default:
+        return status
     }
   }
 
@@ -143,6 +189,10 @@ export default function SubstitutionRequestsPage() {
       case 'REJECTED':
         return 'bg-red-50 text-red-700 border-red-200'
       case 'EXPIRED':
+        return 'bg-gray-50 text-gray-700 border-gray-200'
+      case 'CANCELLED':
+        return 'bg-gray-50 text-gray-600 border-gray-300'
+      default:
         return 'bg-gray-50 text-gray-700 border-gray-200'
     }
   }
@@ -347,6 +397,18 @@ export default function SubstitutionRequestsPage() {
                           </span>
                         </div>
                       )}
+
+                      {/* Cancel Button - Show for PENDING or APPLIED */}
+                      {['PENDING', 'APPLIED'].includes(substitution.status) && (
+                        <Button
+                          onClick={() => openCancelModal(substitution)}
+                          size="sm"
+                          className="w-full bg-red-600 hover:bg-red-700"
+                        >
+                          <Ban className="h-4 w-4 mr-2" />
+                          Annulla Richiesta
+                        </Button>
+                      )}
                     </div>
                   )
                 })
@@ -355,6 +417,67 @@ export default function SubstitutionRequestsPage() {
           </div>
         )}
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelModal && selectedSubstitutionToCancel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <Ban className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Annulla Richiesta di Sostituzione</h3>
+                <p className="text-sm text-gray-600">Questa azione è irreversibile</p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <p className="text-sm text-gray-800 mb-2">
+                <strong>Turno:</strong> {getDayName(selectedSubstitutionToCancel.shifts.dayOfWeek)} - {getShiftTypeName(selectedSubstitutionToCancel.shifts.shiftType)}
+              </p>
+              <p className="text-sm text-gray-800 mb-2">
+                <strong>Data:</strong> {format(getShiftDate(selectedSubstitutionToCancel.shifts), 'dd/MM/yyyy', { locale: it })}
+              </p>
+              <p className="text-sm text-gray-800">
+                <strong>Orario:</strong> {selectedSubstitutionToCancel.shifts.startTime} - {selectedSubstitutionToCancel.shifts.endTime}
+              </p>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-sm text-yellow-800">
+                ⚠️ Annullando questa richiesta, dovrai nuovamente creare una nuova richiesta se cambierai idea.
+                {selectedSubstitutionToCancel.substitute && (
+                  <span className="block mt-2 font-semibold">
+                    Il candidato {selectedSubstitutionToCancel.substitute.username} verrà notificato dell'annullamento.
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <Button
+                onClick={closeCancelModal}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800"
+                disabled={!!cancelling}
+              >
+                Mantieni Richiesta
+              </Button>
+              <Button
+                onClick={confirmCancelSubstitution}
+                isLoading={!!cancelling}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                {cancelling ? 'Annullamento...' : 'Conferma Annullamento'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ToastContainer />
     </MainLayout>
   )
