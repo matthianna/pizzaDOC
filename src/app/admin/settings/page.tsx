@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Cog6ToothIcon, CheckIcon } from '@heroicons/react/24/outline'
-import { MessageSquare, Check, X, AlertCircle } from 'lucide-react'
+import { MessageSquare, Check, X, AlertCircle, Clock } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
@@ -18,6 +18,12 @@ interface WhatsAppSettings {
   wahaConfigured: boolean
   wahaStatus: string
   wahaError?: string
+}
+
+interface CronSettings {
+  schedule: string
+  enabled: boolean
+  vercelSchedule: string
 }
 
 interface ShiftLimit {
@@ -41,11 +47,18 @@ export default function SettingsPage() {
     wahaStatus: 'Unknown',
     wahaError: undefined
   })
+  const [cronSettings, setCronSettings] = useState<CronSettings>({
+    schedule: '0 12 * * 0',
+    enabled: true,
+    vercelSchedule: '0 12 * * 0'
+  })
   const [shiftLimits, setShiftLimits] = useState<ShiftLimit[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [savingLimits, setSavingLimits] = useState(false)
   const [savingWhatsApp, setSavingWhatsApp] = useState(false)
+  const [savingCron, setSavingCron] = useState(false)
+  const [triggeringCron, setTriggeringCron] = useState(false)
   const [testingWhatsApp, setTestingWhatsApp] = useState(false)
   const [selectedShift, setSelectedShift] = useState<'PRANZO' | 'CENA'>('PRANZO')
   const { showToast, ToastContainer } = useToast()
@@ -60,6 +73,30 @@ export default function SettingsPage() {
     SALA: 'Sala'
   }
 
+  const parseCronSchedule = (schedule: string): string => {
+    const parts = schedule.split(' ')
+    if (parts.length !== 5) return 'Formato non valido'
+
+    const [minute, hour, dayOfMonth, month, dayOfWeek] = parts
+    const days = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
+
+    let description = ''
+
+    // Day of week
+    if (dayOfWeek !== '*') {
+      description += days[parseInt(dayOfWeek)] + ' '
+    } else if (dayOfMonth !== '*') {
+      description += `giorno ${dayOfMonth} `
+    } else {
+      description += 'ogni giorno '
+    }
+
+    // Time
+    description += `alle ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`
+
+    return description
+  }
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -67,10 +104,11 @@ export default function SettingsPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [settingsResponse, limitsResponse, whatsappResponse] = await Promise.all([
+      const [settingsResponse, limitsResponse, whatsappResponse, cronResponse] = await Promise.all([
         fetch('/api/admin/settings'),
         fetch('/api/admin/shift-limits'),
-        fetch('/api/admin/whatsapp/settings')
+        fetch('/api/admin/whatsapp/settings'),
+        fetch('/api/admin/cron/settings')
       ])
       
       if (settingsResponse.ok) {
@@ -88,6 +126,11 @@ export default function SettingsPage() {
       if (whatsappResponse.ok) {
         const whatsappData = await whatsappResponse.json()
         setWhatsappSettings(whatsappData)
+      }
+
+      if (cronResponse.ok) {
+        const cronData = await cronResponse.json()
+        setCronSettings(cronData)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -155,6 +198,67 @@ export default function SettingsPage() {
       showToast('❌ Errore durante il test', 'error')
     } finally {
       setTestingWhatsApp(false)
+    }
+  }
+
+  const saveCronSettings = async () => {
+    setSavingCron(true)
+    try {
+      const response = await fetch('/api/admin/cron/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          schedule: cronSettings.schedule,
+          enabled: cronSettings.enabled
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        showToast('✅ Impostazioni Cron salvate!', 'success')
+        
+        // Mostra avviso se lo schedule è diverso da quello di Vercel
+        if (cronSettings.schedule !== cronSettings.vercelSchedule) {
+          showToast('⚠️ Ricorda di aggiornare vercel.json e ridepoyare!', 'info')
+        }
+      } else {
+        showToast(`❌ ${data.error || 'Errore durante il salvataggio'}`, 'error')
+      }
+    } catch (error) {
+      console.error('Error saving cron settings:', error)
+      showToast('❌ Errore durante il salvataggio', 'error')
+    } finally {
+      setSavingCron(false)
+    }
+  }
+
+  const triggerCronManually = async () => {
+    setTriggeringCron(true)
+    try {
+      const response = await fetch('/api/admin/cron/trigger-availability-reminder', {
+        method: 'POST'
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        showToast('✅ Cron job avviato con successo!', 'success')
+        
+        // Mostra dettagli se disponibili
+        if (data.data) {
+          console.log('Cron job result:', data.data)
+        }
+      } else {
+        showToast(`❌ ${data.error || 'Errore durante l\'esecuzione'}`, 'error')
+      }
+    } catch (error) {
+      console.error('Error triggering cron:', error)
+      showToast('❌ Errore durante l\'esecuzione', 'error')
+    } finally {
+      setTriggeringCron(false)
     }
   }
 
@@ -441,6 +545,146 @@ export default function SettingsPage() {
                     <li>Usa il metodo API per ottenere l&apos;ID del gruppo</li>
                     <li>Oppure controlla i log WAHA dopo aver inviato un messaggio al gruppo</li>
                   </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Cron Job Configuration */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-5 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-100">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-purple-600 rounded-xl shadow-lg">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">⏰ Cron Job - Promemoria Disponibilità</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Gestisci il promemoria automatico per le disponibilità mancanti
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Stato Cron */}
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900">Stato Cron Job</h4>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {cronSettings.enabled ? 'Il cron job è attivo' : 'Il cron job è disabilitato'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {cronSettings.enabled ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                      <Check className="w-3.5 h-3.5" />
+                      Attivo
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                      <X className="w-3.5 h-3.5" />
+                      Disattivo
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Schedule Configuration */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Schedule Cron (formato cron)
+              </label>
+              <input
+                type="text"
+                value={cronSettings.schedule}
+                onChange={(e) => setCronSettings({ ...cronSettings, schedule: e.target.value })}
+                placeholder="0 12 * * 0"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all font-mono text-sm"
+              />
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-gray-500">
+                  💡 Formato: <span className="font-mono bg-gray-100 px-1 rounded">minuto ora giorno mese giorno-settimana</span>
+                </p>
+                <p className="text-xs text-gray-500">
+                  🕐 Attuale: <span className="font-mono bg-purple-100 px-1 rounded">{cronSettings.schedule}</span> = {parseCronSchedule(cronSettings.schedule)}
+                </p>
+                {cronSettings.schedule !== cronSettings.vercelSchedule && (
+                  <p className="text-xs text-orange-600 font-semibold">
+                    ⚠️ Lo schedule è diverso da quello configurato in vercel.json ({cronSettings.vercelSchedule})
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Enable Cron Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900">Abilita Cron Job</h4>
+                <p className="text-xs text-gray-500 mt-1">
+                  Attiva o disattiva il promemoria automatico
+                </p>
+              </div>
+              <button
+                onClick={() => setCronSettings({ 
+                  ...cronSettings, 
+                  enabled: !cronSettings.enabled 
+                })}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                  cronSettings.enabled ? 'bg-purple-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
+                    cronSettings.enabled ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                onClick={saveCronSettings}
+                isLoading={savingCron}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                leftIcon={!savingCron ? <CheckIcon className="w-4 h-4" /> : undefined}
+              >
+                Salva Impostazioni
+              </Button>
+              <Button
+                onClick={triggerCronManually}
+                isLoading={triggeringCron}
+                className="bg-orange-600 hover:bg-orange-700"
+                disabled={!cronSettings.enabled}
+              >
+                {triggeringCron ? 'Avvio...' : '🚀 Avvia Ora'}
+              </Button>
+            </div>
+
+            {/* Info */}
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-purple-900">Come funziona:</h4>
+                  <ul className="text-xs text-purple-800 space-y-1 list-disc list-inside">
+                    <li>Il cron job viene eseguito automaticamente secondo lo schedule configurato</li>
+                    <li>Controlla quali dipendenti non hanno inserito la disponibilità per la settimana successiva</li>
+                    <li>Invia un promemoria WhatsApp al gruppo e ai singoli dipendenti</li>
+                    <li>Puoi avviarlo manualmente in qualsiasi momento con il pulsante "Avvia Ora"</li>
+                  </ul>
+                  <div className="mt-3 pt-3 border-t border-purple-200">
+                    <h4 className="text-xs font-semibold text-purple-900 mb-1">Per modificare lo schedule su Vercel:</h4>
+                    <ol className="text-xs text-purple-800 space-y-1 list-decimal list-inside">
+                      <li>Modifica <span className="font-mono bg-purple-100 px-1 rounded">vercel.json</span> con il nuovo schedule</li>
+                      <li>Fai commit e push delle modifiche</li>
+                      <li>Rideploya l&apos;applicazione su Vercel</li>
+                    </ol>
+                  </div>
                 </div>
               </div>
             </div>
