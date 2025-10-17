@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Cog6ToothIcon, CheckIcon } from '@heroicons/react/24/outline'
-import { MessageSquare, Check, X, AlertCircle, Clock } from 'lucide-react'
+import { Cog6ToothIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { MessageSquare, Check, X, AlertCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
@@ -20,18 +20,21 @@ interface WhatsAppSettings {
   wahaError?: string
 }
 
-interface CronSettings {
-  schedule: string
-  enabled: boolean
-  vercelSchedule: string
-}
-
 interface ShiftLimit {
   id?: string
   dayOfWeek: number
   shiftType: 'PRANZO' | 'CENA'
   role: 'PIZZAIOLO' | 'CUCINA' | 'FATTORINO' | 'SALA'
   requiredStaff: number
+}
+
+interface StartTimeDistribution {
+  id?: string
+  dayOfWeek: number
+  shiftType: 'PRANZO' | 'CENA'
+  role: 'PIZZAIOLO' | 'CUCINA' | 'FATTORINO' | 'SALA'
+  startTime: string
+  targetCount: number
 }
 
 type Role = 'PIZZAIOLO' | 'CUCINA' | 'FATTORINO' | 'SALA'
@@ -47,20 +50,18 @@ export default function SettingsPage() {
     wahaStatus: 'Unknown',
     wahaError: undefined
   })
-  const [cronSettings, setCronSettings] = useState<CronSettings>({
-    schedule: '0 12 * * 0',
-    enabled: true,
-    vercelSchedule: '0 12 * * 0'
-  })
   const [shiftLimits, setShiftLimits] = useState<ShiftLimit[]>([])
+  const [distributions, setDistributions] = useState<StartTimeDistribution[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [savingLimits, setSavingLimits] = useState(false)
   const [savingWhatsApp, setSavingWhatsApp] = useState(false)
-  const [savingCron, setSavingCron] = useState(false)
-  const [triggeringCron, setTriggeringCron] = useState(false)
+  const [savingDistributions, setSavingDistributions] = useState(false)
   const [testingWhatsApp, setTestingWhatsApp] = useState(false)
   const [selectedShift, setSelectedShift] = useState<'PRANZO' | 'CENA'>('PRANZO')
+  const [whatsappOpen, setWhatsappOpen] = useState(false)
+  const [shiftLimitsOpen, setShiftLimitsOpen] = useState(false)
+  const [startTimesOpen, setStartTimesOpen] = useState(false)
   const { showToast, ToastContainer } = useToast()
 
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
@@ -73,28 +74,23 @@ export default function SettingsPage() {
     SALA: 'Sala'
   }
 
-  const parseCronSchedule = (schedule: string): string => {
-    const parts = schedule.split(' ')
-    if (parts.length !== 5) return 'Formato non valido'
-
-    const [minute, hour, dayOfMonth, month, dayOfWeek] = parts
-    const days = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
-
-    let description = ''
-
-    // Day of week
-    if (dayOfWeek !== '*') {
-      description += days[parseInt(dayOfWeek)] + ' '
-    } else if (dayOfMonth !== '*') {
-      description += `giorno ${dayOfMonth} `
-    } else {
-      description += 'ogni giorno '
+  // Orari disponibili per turno e ruolo
+  const getAvailableStartTimes = (shiftType: 'PRANZO' | 'CENA', role: Role): string[] => {
+    if (shiftType === 'PRANZO') {
+      if (role === 'SALA' || role === 'FATTORINO') {
+        return ['11:30', '12:00']
+      } else {
+        return ['11:00', '11:30']
+      }
+    } else { // CENA
+      if (role === 'FATTORINO') {
+        return ['18:00', '18:30', '19:00']
+      } else if (role === 'SALA') {
+        return ['18:00', '18:30']
+      } else {
+        return ['17:00', '18:00', '18:30']
+      }
     }
-
-    // Time
-    description += `alle ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`
-
-    return description
   }
 
   useEffect(() => {
@@ -104,11 +100,11 @@ export default function SettingsPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [settingsResponse, limitsResponse, whatsappResponse, cronResponse] = await Promise.all([
+      const [settingsResponse, limitsResponse, whatsappResponse, distributionsResponse] = await Promise.all([
         fetch('/api/admin/settings'),
         fetch('/api/admin/shift-limits'),
         fetch('/api/admin/whatsapp/settings'),
-        fetch('/api/admin/cron/settings')
+        fetch('/api/admin/start-time-distributions')
       ])
       
       if (settingsResponse.ok) {
@@ -128,9 +124,9 @@ export default function SettingsPage() {
         setWhatsappSettings(whatsappData)
       }
 
-      if (cronResponse.ok) {
-        const cronData = await cronResponse.json()
-        setCronSettings(cronData)
+      if (distributionsResponse.ok) {
+        const distributionsData = await distributionsResponse.json()
+        setDistributions(distributionsData)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -198,67 +194,6 @@ export default function SettingsPage() {
       showToast('❌ Errore durante il test', 'error')
     } finally {
       setTestingWhatsApp(false)
-    }
-  }
-
-  const saveCronSettings = async () => {
-    setSavingCron(true)
-    try {
-      const response = await fetch('/api/admin/cron/settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          schedule: cronSettings.schedule,
-          enabled: cronSettings.enabled
-        })
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        showToast('✅ Impostazioni Cron salvate!', 'success')
-        
-        // Mostra avviso se lo schedule è diverso da quello di Vercel
-        if (cronSettings.schedule !== cronSettings.vercelSchedule) {
-          showToast('⚠️ Ricorda di aggiornare vercel.json e ridepoyare!', 'info')
-        }
-      } else {
-        showToast(`❌ ${data.error || 'Errore durante il salvataggio'}`, 'error')
-      }
-    } catch (error) {
-      console.error('Error saving cron settings:', error)
-      showToast('❌ Errore durante il salvataggio', 'error')
-    } finally {
-      setSavingCron(false)
-    }
-  }
-
-  const triggerCronManually = async () => {
-    setTriggeringCron(true)
-    try {
-      const response = await fetch('/api/admin/cron/trigger-availability-reminder', {
-        method: 'POST'
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        showToast('✅ Cron job avviato con successo!', 'success')
-        
-        // Mostra dettagli se disponibili
-        if (data.data) {
-          console.log('Cron job result:', data.data)
-        }
-      } else {
-        showToast(`❌ ${data.error || 'Errore durante l\'esecuzione'}`, 'error')
-      }
-    } catch (error) {
-      console.error('Error triggering cron:', error)
-      showToast('❌ Errore durante l\'esecuzione', 'error')
-    } finally {
-      setTriggeringCron(false)
     }
   }
 
@@ -369,6 +304,143 @@ export default function SettingsPage() {
     }
   }
 
+  // Funzioni per la gestione degli orari di inizio
+  const getRequiredStaff = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA', role: Role): number => {
+    const limit = shiftLimits.find(l => 
+      l.dayOfWeek === dayOfWeek && 
+      l.shiftType === shiftType && 
+      l.role === role
+    )
+    return limit?.requiredStaff ?? 0
+  }
+
+  const getDistributedCount = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA', role: Role): number => {
+    const roleDistributions = distributions.filter(d => 
+      d.dayOfWeek === dayOfWeek && 
+      d.shiftType === shiftType && 
+      d.role === role
+    )
+    return roleDistributions.reduce((sum, d) => sum + d.targetCount, 0)
+  }
+
+  const getTargetCount = (
+    dayOfWeek: number, 
+    shiftType: 'PRANZO' | 'CENA', 
+    role: Role, 
+    startTime: string
+  ): number => {
+    const dist = distributions.find(d => 
+      d.dayOfWeek === dayOfWeek && 
+      d.shiftType === shiftType && 
+      d.role === role &&
+      d.startTime === startTime
+    )
+    return dist?.targetCount ?? 0
+  }
+
+  const updateDistribution = (
+    dayOfWeek: number, 
+    shiftType: 'PRANZO' | 'CENA', 
+    role: Role, 
+    startTime: string, 
+    value: number
+  ) => {
+    const required = getRequiredStaff(dayOfWeek, shiftType, role)
+    
+    // Calcola il totale distribuito escludendo questo orario
+    const otherDistributions = distributions.filter(d => 
+      d.dayOfWeek === dayOfWeek && 
+      d.shiftType === shiftType && 
+      d.role === role &&
+      d.startTime !== startTime
+    )
+    const otherTotal = otherDistributions.reduce((sum, d) => sum + d.targetCount, 0)
+    
+    // Non permettere di superare il limite
+    if (otherTotal + value > required) {
+      showToast(`⚠️ Non puoi superare ${required} ${roleLabels[role].toLowerCase()}!`, 'error')
+      return
+    }
+
+    setDistributions(prev => {
+      const existing = prev.find(d => 
+        d.dayOfWeek === dayOfWeek && 
+        d.shiftType === shiftType && 
+        d.role === role &&
+        d.startTime === startTime
+      )
+
+      if (existing) {
+        return prev.map(d => 
+          d.dayOfWeek === dayOfWeek && 
+          d.shiftType === shiftType && 
+          d.role === role &&
+          d.startTime === startTime
+            ? { ...d, targetCount: value }
+            : d
+        )
+      } else {
+        return [...prev, {
+          dayOfWeek,
+          shiftType,
+          role,
+          startTime,
+          targetCount: value
+        }]
+      }
+    })
+  }
+
+  const saveDistributions = async () => {
+    setSavingDistributions(true)
+    try {
+      // Prepara TUTTE le distribuzioni per ogni combinazione possibile
+      const allDistributions: StartTimeDistribution[] = []
+      
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        for (const shiftType of ['PRANZO', 'CENA'] as const) {
+          for (const role of roles) {
+            const availableTimes = getAvailableStartTimes(shiftType, role)
+            for (const startTime of availableTimes) {
+              const value = getTargetCount(dayIndex, shiftType, role, startTime)
+              // Invia TUTTE le distribuzioni, anche quelle con 0
+              allDistributions.push({
+                dayOfWeek: dayIndex,
+                shiftType,
+                role,
+                startTime,
+                targetCount: value
+              })
+            }
+          }
+        }
+      }
+      
+      const responses = await Promise.all(
+        allDistributions.map(dist =>
+          fetch('/api/admin/start-time-distributions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dist)
+          })
+        )
+      )
+
+      const allSuccessful = responses.every(r => r.ok)
+      if (allSuccessful) {
+        showToast('✅ Orari salvati con successo!', 'success')
+        await fetchData()
+      } else {
+        showToast('❌ Errore durante il salvataggio', 'error')
+      }
+    } catch (error) {
+      console.error('Error saving distributions:', error)
+      showToast('❌ Errore durante il salvataggio', 'error')
+    } finally {
+      setSavingDistributions(false)
+    }
+  }
+
   if (loading) {
     return (
       <MainLayout adminOnly>
@@ -429,20 +501,30 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* WhatsApp Configuration */}
+        {/* WhatsApp Configuration - Collapsible */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-6 py-5 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+          <button
+            onClick={() => setWhatsappOpen(!whatsappOpen)}
+            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                <MessageSquare className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-green-600" />
               </div>
-              <div>
+              <div className="text-left">
                 <h3 className="font-semibold text-gray-900">Notifiche WhatsApp</h3>
                 <p className="text-xs text-gray-500">Configura le notifiche automatiche per le sostituzioni</p>
               </div>
             </div>
-          </div>
+            {whatsappOpen ? (
+              <ChevronUpIcon className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
 
+          {whatsappOpen && (
+            <div className="border-t border-gray-200">
           <div className="p-6 space-y-6">
             {/* Status Badge */}
             <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
@@ -549,172 +631,47 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+            </div>
+          )}
         </div>
 
-        {/* Cron Job Configuration */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-5 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-100">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-600 rounded-xl shadow-lg">
-                <Clock className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">⏰ Cron Job - Promemoria Disponibilità</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Gestisci il promemoria automatico per le disponibilità mancanti
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 space-y-6">
-            {/* Stato Cron */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900">Stato Cron Job</h4>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {cronSettings.enabled ? 'Il cron job è attivo' : 'Il cron job è disabilitato'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {cronSettings.enabled ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                      <Check className="w-3.5 h-3.5" />
-                      Attivo
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
-                      <X className="w-3.5 h-3.5" />
-                      Disattivo
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Schedule Configuration */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Schedule Cron (formato cron)
-              </label>
-              <input
-                type="text"
-                value={cronSettings.schedule}
-                onChange={(e) => setCronSettings({ ...cronSettings, schedule: e.target.value })}
-                placeholder="0 12 * * 0"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all font-mono text-sm"
-              />
-              <div className="mt-2 space-y-1">
-                <p className="text-xs text-gray-500">
-                  💡 Formato: <span className="font-mono bg-gray-100 px-1 rounded">minuto ora giorno mese giorno-settimana</span>
-                </p>
-                <p className="text-xs text-gray-500">
-                  🕐 Attuale: <span className="font-mono bg-purple-100 px-1 rounded">{cronSettings.schedule}</span> = {parseCronSchedule(cronSettings.schedule)}
-                </p>
-                {cronSettings.schedule !== cronSettings.vercelSchedule && (
-                  <p className="text-xs text-orange-600 font-semibold">
-                    ⚠️ Lo schedule è diverso da quello configurato in vercel.json ({cronSettings.vercelSchedule})
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Enable Cron Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900">Abilita Cron Job</h4>
-                <p className="text-xs text-gray-500 mt-1">
-                  Attiva o disattiva il promemoria automatico
-                </p>
-              </div>
-              <button
-                onClick={() => setCronSettings({ 
-                  ...cronSettings, 
-                  enabled: !cronSettings.enabled 
-                })}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                  cronSettings.enabled ? 'bg-purple-600' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-lg transition-transform ${
-                    cronSettings.enabled ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <Button
-                onClick={saveCronSettings}
-                isLoading={savingCron}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                leftIcon={!savingCron ? <CheckIcon className="w-4 h-4" /> : undefined}
-              >
-                Salva Impostazioni
-              </Button>
-              <Button
-                onClick={triggerCronManually}
-                isLoading={triggeringCron}
-                className="bg-orange-600 hover:bg-orange-700"
-                disabled={!cronSettings.enabled}
-              >
-                {triggeringCron ? 'Avvio...' : '🚀 Avvia Ora'}
-              </Button>
-            </div>
-
-            {/* Info */}
-            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-purple-900">Come funziona:</h4>
-                  <ul className="text-xs text-purple-800 space-y-1 list-disc list-inside">
-                    <li>Il cron job viene eseguito automaticamente secondo lo schedule configurato</li>
-                    <li>Controlla quali dipendenti non hanno inserito la disponibilità per la settimana successiva</li>
-                    <li>Invia un promemoria WhatsApp al gruppo e ai singoli dipendenti</li>
-                    <li>Puoi avviarlo manualmente in qualsiasi momento con il pulsante "Avvia Ora"</li>
-                  </ul>
-                  <div className="mt-3 pt-3 border-t border-purple-200">
-                    <h4 className="text-xs font-semibold text-purple-900 mb-1">Per modificare lo schedule su Vercel:</h4>
-                    <ol className="text-xs text-purple-800 space-y-1 list-decimal list-inside">
-                      <li>Modifica <span className="font-mono bg-purple-100 px-1 rounded">vercel.json</span> con il nuovo schedule</li>
-                      <li>Fai commit e push delle modifiche</li>
-                      <li>Rideploya l&apos;applicazione su Vercel</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Shift Limits Configuration */}
+        {/* Shift Limits Configuration - Collapsible */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {/* Header with Toggle */}
-          <div className="px-6 py-5 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <span className="text-xl">👥</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Limiti Personale per Turno</h3>
-                  <p className="text-xs text-gray-500">Configura il personale richiesto per ogni turno e ruolo</p>
-                </div>
+          <button
+            onClick={() => setShiftLimitsOpen(!shiftLimitsOpen)}
+            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                <span className="text-xl">👥</span>
               </div>
-
-            <Button
-              onClick={saveShiftLimits}
-              isLoading={savingLimits}
-                className="bg-orange-600 hover:bg-orange-700"
-                leftIcon={!savingLimits ? <CheckIcon className="w-4 h-4" /> : undefined}
-            >
-                💾 Salva Tutti i Limiti
-            </Button>
+              <div className="text-left">
+                <h3 className="font-semibold text-gray-900">Limiti Personale per Turno</h3>
+                <p className="text-xs text-gray-500">Configura il personale richiesto per ogni turno e ruolo</p>
+              </div>
             </div>
+            {shiftLimitsOpen ? (
+              <ChevronUpIcon className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+
+          {shiftLimitsOpen && (
+            <div className="border-t border-gray-200">
+              <div className="px-6 py-5 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1"></div>
+                  <Button
+                    onClick={saveShiftLimits}
+                    isLoading={savingLimits}
+                    className="bg-orange-600 hover:bg-orange-700"
+                    leftIcon={!savingLimits ? <CheckIcon className="w-4 h-4" /> : undefined}
+                  >
+                    💾 Salva Tutti i Limiti
+                  </Button>
+                </div>
 
             {/* Toggle Switch */}
             <div className="mt-6 flex items-center justify-center">
@@ -818,6 +775,211 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+            </div>
+          )}
+        </div>
+
+        {/* Start Times Configuration - Collapsible */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <button
+            onClick={() => setStartTimesOpen(!startTimesOpen)}
+            className="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                <span className="text-xl">⏰</span>
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-gray-900">Orari di Inizio per Turno</h3>
+                <p className="text-xs text-gray-500">Distribuisci il personale su orari diversi</p>
+              </div>
+            </div>
+            {startTimesOpen ? (
+              <ChevronUpIcon className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+
+          {startTimesOpen && (
+            <div className="border-t border-gray-200">
+              <div className="px-6 py-5 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1"></div>
+                  <Button
+                    onClick={saveDistributions}
+                    isLoading={savingDistributions}
+                    className="bg-orange-600 hover:bg-orange-700"
+                    leftIcon={!savingDistributions ? <CheckIcon className="w-4 h-4" /> : undefined}
+                  >
+                    💾 Salva Tutti gli Orari
+                  </Button>
+                </div>
+
+                {/* Toggle Switch */}
+                <div className="mt-6 flex items-center justify-center">
+                  <div className="inline-flex items-center bg-gray-100 rounded-lg p-1 gap-1">
+                    <button
+                      onClick={() => setSelectedShift('PRANZO')}
+                      className={`px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200 ${
+                        selectedShift === 'PRANZO'
+                          ? 'bg-white text-orange-700 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>🍕</span>
+                        <span>PRANZO</span>
+                        <span className="text-xs text-gray-500">11:00-14:00</span>
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setSelectedShift('CENA')}
+                      className={`px-6 py-2.5 rounded-md font-medium text-sm transition-all duration-200 ${
+                        selectedShift === 'CENA'
+                          ? 'bg-white text-blue-700 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>🍝</span>
+                        <span>CENA</span>
+                        <span className="text-xs text-gray-500">17:00-22:00</span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table for each day */}
+              <div className="divide-y divide-gray-100">
+                {days.map((day, dayIndex) => {
+                  const hasRequirements = roles.some(role => getRequiredStaff(dayIndex, selectedShift, role) > 0)
+                  
+                  if (!hasRequirements) {
+                    return (
+                      <div key={dayIndex} className="p-6 bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <h4 className="text-sm font-semibold text-gray-900">{day}</h4>
+                          <span className="text-xs text-gray-500 italic">Nessun personale richiesto per questo turno</span>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div key={dayIndex} className="p-6 hover:bg-gray-50 transition-colors">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-4">{day}</h4>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                                Orario
+                              </th>
+                              {roles.map(role => {
+                                const required = getRequiredStaff(dayIndex, selectedShift, role)
+                                if (required === 0) return null
+                                
+                                const distributed = getDistributedCount(dayIndex, selectedShift, role)
+                                const isComplete = distributed === required
+                                const isOver = distributed > required
+                                
+                                return (
+                                  <th key={role} className="px-4 py-3 text-center">
+                                    <div className="flex flex-col items-center gap-1">
+                                      <span className="text-xs font-semibold text-gray-600 uppercase">{roleLabels[role]}</span>
+                                      <div className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                        isOver ? 'bg-red-100 text-red-700' :
+                                        isComplete ? 'bg-green-100 text-green-700' : 
+                                        'bg-yellow-100 text-yellow-700'
+                                      }`}>
+                                        {distributed}/{required}
+                                      </div>
+                                    </div>
+                                  </th>
+                                )
+                              })}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {Array.from(new Set(
+                              roles.flatMap(role => getAvailableStartTimes(selectedShift, role))
+                            )).sort().map(startTime => (
+                              <tr key={startTime} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                                    {startTime}
+                                  </span>
+                                </td>
+                                {roles.map(role => {
+                                  const required = getRequiredStaff(dayIndex, selectedShift, role)
+                                  if (required === 0) return null
+                                  
+                                  const availableTimes = getAvailableStartTimes(selectedShift, role)
+                                  const isAvailable = availableTimes.includes(startTime)
+                                  const value = getTargetCount(dayIndex, selectedShift, role, startTime)
+                                  const distributed = getDistributedCount(dayIndex, selectedShift, role)
+                                  const remaining = Math.max(0, required - distributed)
+                                  
+                                  return (
+                                    <td key={role} className="px-4 py-3 whitespace-nowrap">
+                                      {isAvailable ? (
+                                        <div className="flex justify-center">
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max={value + remaining}
+                                            value={value}
+                                            onChange={(e) => updateDistribution(
+                                              dayIndex,
+                                              selectedShift,
+                                              role,
+                                              startTime,
+                                              parseInt(e.target.value) || 0
+                                            )}
+                                            className="w-16 h-10 text-center text-sm font-semibold border-2 border-gray-200 rounded-lg hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                      ) : (
+                                        <div className="flex justify-center">
+                                          <span className="text-gray-300">—</span>
+                                        </div>
+                                      )}
+                                    </td>
+                                  )
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Footer Info */}
+              <div className="px-6 py-4 bg-purple-50 border-t border-purple-100">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <span className="text-lg">💡</span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-semibold text-purple-900 mb-2">Come funziona:</h4>
+                    <ul className="text-xs text-purple-800 space-y-1">
+                      <li>• <strong>Badge Colorato:</strong> Verde = completato, Giallo = mancanti, Rosso = troppi</li>
+                      <li>• <strong>Distribuzione:</strong> La somma degli orari deve essere uguale al personale richiesto</li>
+                      <li>• <strong>Limiti:</strong> Configurati in Limiti Personale per Turno (sopra)</li>
+                      <li>• <strong>Orari Disponibili:</strong> Variano per ruolo (es. Fattorino CENA: 18:00, 18:30, 19:00)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <ToastContainer />

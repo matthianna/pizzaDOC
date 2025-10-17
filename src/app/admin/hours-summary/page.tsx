@@ -409,46 +409,54 @@ export default function AdminHoursSummaryPage() {
               </div>
             ) : (
             summary.map((userSummary) => (
-              <div key={userSummary.user.id} className="bg-white rounded-lg shadow overflow-hidden">
+              <div key={userSummary.user.id} className="bg-white rounded-2xl shadow-sm hover:shadow-lg border border-gray-200/50 overflow-hidden transition-all duration-200">
                 {/* User Header */}
                 <div 
-                  className="p-4 bg-gray-50 border-b cursor-pointer hover:bg-gray-100 transition-colors"
+                  className="p-6 bg-gradient-to-r from-orange-50/50 via-white to-orange-50/30 border-b border-gray-200/50 cursor-pointer hover:from-orange-50 hover:to-orange-50/50 transition-all duration-200"
                   onClick={() => toggleUserExpand(userSummary.user.id)}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-4">
                       <div className="flex items-center">
-                        {expandedUsers.has(userSummary.user.id) ? (
-                          <ChevronDown className="h-5 w-5 text-gray-500" />
-                        ) : (
-                          <ChevronRight className="h-5 w-5 text-gray-500" />
-                        )}
+                        <div className={`p-1.5 rounded-lg transition-colors ${
+                          expandedUsers.has(userSummary.user.id) 
+                            ? 'bg-orange-100 text-orange-600' 
+                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                        }`}>
+                          {expandedUsers.has(userSummary.user.id) ? (
+                            <ChevronDown className="h-5 w-5" />
+                          ) : (
+                            <ChevronRight className="h-5 w-5" />
+                          )}
+                        </div>
                       </div>
-                      <User className="h-5 w-5 text-orange-500" />
+                      <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md">
+                        <User className="h-6 w-6 text-white" />
+                      </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">{userSummary.user.username}</h3>
+                        <h3 className="font-bold text-gray-900 text-lg">{userSummary.user.username}</h3>
                         {userSummary.user.primaryRole && (
-                          <p className="text-sm text-gray-500">{getRoleName(userSummary.user.primaryRole)}</p>
+                          <p className="text-sm text-gray-600 font-medium">{getRoleName(userSummary.user.primaryRole)}</p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-4">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           exportUserYearPDF(userSummary.user.id)
                         }}
-                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-300 rounded-md hover:bg-orange-200 transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-orange-700 bg-white border-2 border-orange-200 rounded-xl hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 shadow-sm hover:shadow"
                         title="Esporta PDF anno completo"
                       >
-                        <FileText className="h-3 w-3 mr-1" />
-                        PDF Anno
+                        <FileText className="h-4 w-4" />
+                        <span className="hidden sm:inline">PDF Anno</span>
                       </button>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-orange-600">
+                      <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl px-5 py-3 shadow-md">
+                        <div className="text-2xl font-bold text-white leading-none">
                           {userSummary.yearlyTotal.toFixed(1)}h
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-xs text-orange-100 mt-1 font-medium">
                           {selectedMonth ? 'Totale mese' : 'Totale anno'}
                         </div>
                       </div>
@@ -458,28 +466,39 @@ export default function AdminHoursSummaryPage() {
 
                 {/* Monthly Breakdown */}
                 {expandedUsers.has(userSummary.user.id) && (
-                  <div className="p-4 space-y-3">
+                  <div className="p-6 space-y-3 bg-gray-50/50">
                     {userSummary.monthlyHours.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">Nessuna ora lavorata nel periodo selezionato</p>
+                      <div className="bg-white rounded-xl border border-gray-200/50 p-8 text-center">
+                        <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500 font-medium">Nessuna ora lavorata nel periodo selezionato</p>
+                      </div>
                     ) : (
                       userSummary.monthlyHours.map((month) => {
                         const monthKey = `${userSummary.user.id}-${month.month}`
                         return (
-                          <div key={month.month} className="border border-gray-200 rounded-lg">
+                          <div key={month.month} className="bg-white border border-gray-200/50 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
                             {/* Month Header */}
                             <div 
-                              className="p-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="p-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 cursor-pointer hover:from-blue-50 hover:to-indigo-50/50 transition-all duration-200"
                               onClick={() => toggleMonthExpand(monthKey)}
                             >
                               <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  {expandedMonths.has(monthKey) ? (
-                                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                                  ) : (
-                                    <ChevronRight className="h-4 w-4 text-gray-500" />
-                                  )}
-                                  <Calendar className="h-4 w-4 text-blue-500" />
-                                  <span className="font-medium text-gray-900">
+                                <div className="flex items-center space-x-3">
+                                  <div className={`p-1 rounded-lg transition-colors ${
+                                    expandedMonths.has(monthKey) 
+                                      ? 'bg-blue-100 text-blue-600' 
+                                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                  }`}>
+                                    {expandedMonths.has(monthKey) ? (
+                                      <ChevronDown className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4" />
+                                    )}
+                                  </div>
+                                  <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+                                    <Calendar className="h-4 w-4 text-white" />
+                                  </div>
+                                  <span className="font-bold text-gray-900">
                                     {getMonthName(month.month)}
                                   </span>
                                 </div>
@@ -489,17 +508,19 @@ export default function AdminHoursSummaryPage() {
                                       e.stopPropagation()
                                       exportUserMonthPDF(userSummary.user.id, month.month)
                                     }}
-                                    className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded hover:bg-blue-200 transition-colors"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 shadow-sm"
                                     title={`Esporta PDF ${getMonthName(month.month)}`}
                                   >
-                                    <FileText className="h-3 w-3 mr-1" />
+                                    <FileText className="h-3.5 w-3.5" />
                                     PDF
                                   </button>
-                                  <div className="text-sm text-gray-500">
-                                    {month.shiftsCount} turni
+                                  <div className="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold">
+                                    {month.shiftsCount} {month.shiftsCount === 1 ? 'turno' : 'turni'}
                                   </div>
-                                  <div className="font-semibold text-blue-600">
-                                    {month.totalHours.toFixed(1)}h
+                                  <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg px-3 py-1.5 shadow-sm">
+                                    <div className="font-bold text-white text-sm">
+                                      {month.totalHours.toFixed(1)}h
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -507,7 +528,7 @@ export default function AdminHoursSummaryPage() {
 
                             {/* Month Details */}
                             {expandedMonths.has(monthKey) && (
-                              <div className="p-3 bg-white">
+                              <div className="p-4 bg-gradient-to-br from-gray-50/50 to-blue-50/20">
                                 <div className="space-y-2">
                                   {month.details.map((detail) => {
                                     // Calcola la data effettiva del turno
@@ -515,23 +536,27 @@ export default function AdminHoursSummaryPage() {
                                     shiftDate.setDate(shiftDate.getDate() + detail.shift.dayOfWeek)
                                     
                                     return (
-                                      <div key={detail.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                                      <div key={detail.id} className="flex items-center justify-between py-3 px-4 bg-white border border-gray-200/50 rounded-xl hover:shadow-sm transition-all duration-200">
                                         <div className="flex items-center space-x-3">
-                                          <Clock className="h-4 w-4 text-gray-400" />
+                                          <div className="w-8 h-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+                                            <Clock className="h-4 w-4 text-gray-600" />
+                                          </div>
                                           <div>
-                                            <div className="text-sm font-medium text-gray-900">
+                                            <div className="text-sm font-bold text-gray-900">
                                               {getDayName(detail.shift.dayOfWeek)} - {getShiftTypeName(detail.shift.shiftType)}
                                             </div>
-                                            <div className="text-xs text-gray-500">
-                                              {format(shiftDate, 'dd/MM/yyyy', { locale: it })} • {getRoleName(detail.shift.role)}
+                                            <div className="text-xs text-gray-600 font-medium flex items-center gap-1.5">
+                                              <span>{format(shiftDate, 'dd/MM/yyyy', { locale: it })}</span>
+                                              <span className="text-gray-400">•</span>
+                                              <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-700">{getRoleName(detail.shift.role)}</span>
                                             </div>
                                           </div>
                                         </div>
                                         <div className="text-right">
-                                          <div className="text-sm font-medium text-gray-900">
+                                          <div className="text-sm font-semibold text-gray-900 mb-0.5">
                                             {detail.startTime} - {detail.endTime}
                                           </div>
-                                          <div className="text-sm text-green-600 font-medium">
+                                          <div className="inline-block px-2.5 py-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-bold rounded-lg shadow-sm">
                                             {detail.totalHours.toFixed(1)}h
                                           </div>
                                         </div>

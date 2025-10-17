@@ -93,17 +93,13 @@ export async function GET(request: NextRequest) {
       const groupMessage = `
 ⏰ *PROMEMORIA DISPONIBILITÀ*
 
-📅 È domenica! Ricordatevi di inserire le vostre disponibilità per la prossima settimana.
+📅 Ricordatevi di inserire le vostre disponibilità per la prossima settimana.
 
 👥 *Utenti che non hanno ancora inserito le disponibilità:*
 ${usersWithoutAvailability.map(u => `• ${u.username}`).join('\n')}
 
-🔗 Inserisci le tue disponibilità: ${process.env.NEXTAUTH_URL}/availability
+🔗 Inserisci le tue disponibilità: https://pizzadoc.vercel.app/availability
 
-⚠️ *Scadenza:* Domenica 23:59
-
----
-🍕 PizzaDoc - Sistema Gestione Turni
       `.trim()
 
       try {
