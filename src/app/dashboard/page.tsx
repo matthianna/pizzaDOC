@@ -219,167 +219,85 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Chi lavora oggi */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="flex items-center mb-6">
-            <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500 mr-2" />
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900">
-              Chi lavora oggi - {format(new Date(), 'EEEE d MMMM', { locale: it })}
+        {/* Chi lavora oggi - Design Minimalista */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {format(new Date(), 'EEEE d MMMM', { locale: it })}
             </h2>
           </div>
           
           {todayShifts && todayShifts.totalWorkers > 0 ? (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {Object.entries(todayShifts.shifts)
                 .sort(([a], [b]) => {
-                  // Ordina: PRANZO prima, CENA dopo
                   if (a === 'PRANZO' && b === 'CENA') return -1
                   if (a === 'CENA' && b === 'PRANZO') return 1
                   return 0
                 })
                 .map(([shiftType, shifts]) => {
-                  // Raggruppa per ruolo
                   const shiftsByRole = shifts.reduce((acc, shift) => {
                     if (!acc[shift.role]) acc[shift.role] = []
                     acc[shift.role].push(shift)
                     return acc
                   }, {} as Record<string, typeof shifts>)
 
-                  // Determina se il turno è terminato
                   const now = new Date()
                   const isShiftEnded = (shiftType === 'PRANZO' && now.getHours() >= 14) || 
                                       (shiftType === 'CENA' && now.getHours() >= 22)
 
-                  // Icona e colore per il turno
-                  const shiftIcon = shiftType === 'PRANZO' ? '☀️' : '🌙'
-                  const shiftColor = shiftType === 'PRANZO' ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-indigo-300'
-
                   return (
-                    <div key={shiftType} className={`rounded-xl border-2 p-4 ${shiftColor} ${isShiftEnded ? 'opacity-60' : ''}`}>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{shiftIcon}</span>
-                          <h3 className="font-bold text-gray-900 capitalize text-xl">
-                            {shiftType.toLowerCase()}
-                          </h3>
-                        </div>
+                    <div key={shiftType}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-sm font-medium text-gray-600">
+                          {shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}
+                        </span>
                         {isShiftEnded && (
-                          <span className="bg-gray-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
-                            Terminato
-                          </span>
+                          <span className="text-xs text-gray-400">· Terminato</span>
                         )}
                       </div>
                       
-                      <div className="space-y-5">
-                        {Object.entries(shiftsByRole).map(([role, roleShifts]) => {
-                          // Configurazione per ogni ruolo
-                          const roleConfig = {
-                            FATTORINO: { 
-                              icon: Bike, 
-                              emoji: '',
-                              color: 'bg-blue-100 border-blue-300 text-blue-800',
-                              badgeColor: 'bg-blue-600',
-                              iconColor: 'text-blue-600'
-                            },
-                            CUCINA: { 
-                              icon: ChefHat, 
-                              emoji: '',
-                              color: 'bg-green-100 border-green-300 text-green-800',
-                              badgeColor: 'bg-green-600',
-                              iconColor: 'text-green-600'
-                            },
-                            PIZZAIOLO: { 
-                              icon: Pizza, 
-                              emoji: '',
-                              color: 'bg-red-100 border-red-300 text-red-800',
-                              badgeColor: 'bg-red-600',
-                              iconColor: 'text-red-600'
-                            },
-                            SALA: { 
-                              icon: UtensilsCrossed, 
-                              emoji: '',
-                              color: 'bg-purple-100 border-purple-300 text-purple-800',
-                              badgeColor: 'bg-purple-600',
-                              iconColor: 'text-purple-600'
-                            }
-                          }[role] || { icon: Users, emoji: '👤', color: 'bg-gray-100 border-gray-300 text-gray-800', badgeColor: 'bg-gray-600', iconColor: 'text-gray-600' }
-
-                          const RoleIcon = roleConfig.icon
-
-                          return (
-                            <div key={role} className={`rounded-lg border-2 ${roleConfig.color} p-3 ${isShiftEnded ? 'opacity-75' : ''}`}>
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="text-xl">{roleConfig.emoji}</span>
-                                <RoleIcon className={`h-4 w-4 ${roleConfig.iconColor}`} />
-                                <h4 className="text-sm font-bold uppercase tracking-wider">
-                                  {getRoleName(role as Role)}
-                                </h4>
-                                <span className={`${roleConfig.badgeColor} text-white px-2 py-0.5 rounded-full text-xs font-bold ml-auto`}>
-                                  {roleShifts.length}
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                {roleShifts.map((shift) => {
-                                  // Ottieni le iniziali del nome
-                                  const initials = shift.user.username.split('.').map(n => n[0].toUpperCase()).join('')
-                                  
-                                  return (
-                                    <div 
-                                      key={shift.id} 
-                                      className={`rounded-lg p-3 border-2 bg-white transition-all hover:scale-105 hover:shadow-md ${
-                                        isShiftEnded 
-                                          ? 'border-gray-300 opacity-60' 
-                                          : `border-${roleConfig.badgeColor.split('-')[1]}-200 shadow-sm`
-                                      }`}
-                                    >
-                                      <div className="flex items-center gap-3">
-                                        {/* Avatar con iniziali */}
-                                        <div className={`${roleConfig.badgeColor} text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-sm flex-shrink-0`}>
-                                          {initials}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className={`font-semibold text-sm truncate ${
-                                            isShiftEnded ? 'text-gray-600' : 'text-gray-900'
-                                          }`}>
-                                            {shift.user.username}
-                                          </p>
-                                          <div className="flex items-center gap-2 mt-1">
-                                            <Clock className={`h-3 w-3 ${isShiftEnded ? 'text-gray-400' : roleConfig.iconColor}`} />
-                                            <p className={`text-xs font-medium ${
-                                              isShiftEnded ? 'text-gray-500' : 'text-gray-700'
-                                            }`}>
-                                              {shift.startTime}
-                                            </p>
-                                            {/* Icona trasporto per fattorini */}
-                                            {role === 'FATTORINO' && shift.user.primaryTransport && (
-                                              <div className="ml-auto" title={shift.user.primaryTransport === 'AUTO' ? 'Auto' : 'Moto'}>
-                                                {shift.user.primaryTransport === 'AUTO' ? 
-                                                  <Car className={`h-3 w-3 ${isShiftEnded ? 'text-gray-400' : 'text-blue-600'}`} /> :
-                                                  <Bike className={`h-3 w-3 ${isShiftEnded ? 'text-gray-400' : 'text-blue-600'}`} />
-                                                }
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )
-                                })}
-                              </div>
+                      <div className="space-y-3">
+                        {Object.entries(shiftsByRole).map(([role, roleShifts]) => (
+                          <div key={role} className="border-l-2 border-gray-200 pl-3">
+                            <div className="text-xs font-medium text-gray-500 uppercase mb-2">
+                              {getRoleName(role as Role)} ({roleShifts.length})
                             </div>
-                          )
-                        })}
+                            <div className="flex flex-wrap gap-2">
+                              {roleShifts.map((shift) => (
+                                <div 
+                                  key={shift.id} 
+                                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded border ${
+                                    isShiftEnded 
+                                      ? 'bg-gray-50 border-gray-200 text-gray-500' 
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                >
+                                  <span className="text-sm font-medium">{shift.user.username}</span>
+                                  <span className="text-xs text-gray-400">·</span>
+                                  <span className="text-xs text-gray-500">{shift.startTime}</span>
+                                  {role === 'FATTORINO' && shift.user.primaryTransport && (
+                                    <>
+                                      <span className="text-xs text-gray-400">·</span>
+                                      {shift.user.primaryTransport === 'AUTO' ? 
+                                        <Car className="h-3 w-3 text-gray-400" /> :
+                                        <Bike className="h-3 w-3 text-gray-400" />
+                                      }
+                                    </>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )
                 })}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <UserCheck className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-700 font-medium">
-                {todayShifts ? 'Nessuno lavora oggi' : 'Caricamento...'}
-              </p>
+            <div className="text-center text-gray-400 py-8">
+              <p className="text-sm">Nessuno lavora oggi</p>
             </div>
           )}
         </div>

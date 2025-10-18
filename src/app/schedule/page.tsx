@@ -28,6 +28,15 @@ interface Shift {
     status: 'PENDING' | 'APPROVED' | 'REJECTED'
     totalHours: number
   }
+  activeSubstitution?: {
+    id: string
+    status: 'PENDING' | 'APPROVED'
+    createdAt: string
+    substitute?: {
+      id: string
+      username: string
+    }
+  } | null
 }
 
 export default function SchedulePage() {
@@ -362,21 +371,52 @@ export default function SchedulePage() {
                                 </div>
                               )}
 
-                              {/* Request Substitution Button */}
+                              {/* Substitution Status or Request Button */}
                               {isFutureShift && !shiftEnded && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openSubstitutionModal(shift)}
-                                  className={`w-full text-xs h-8 border transition-all font-medium ${
-                                    shift.shiftType === 'PRANZO'
-                                      ? 'text-orange-700 border-orange-300 hover:bg-orange-100'
-                                      : 'text-blue-700 border-blue-300 hover:bg-blue-100'
-                                  }`}
-                                >
-                                  <Users className="h-3 w-3 mr-1" />
-                                  Sostituto
-                                </Button>
+                                shift.activeSubstitution ? (
+                                  <div className={`p-2 rounded border text-center text-xs ${
+                                    shift.activeSubstitution.status === 'PENDING' 
+                                      ? 'bg-amber-50 border-amber-300' 
+                                      : 'bg-green-50 border-green-300'
+                                  }`}>
+                                    <div className={`font-bold ${
+                                      shift.activeSubstitution.status === 'PENDING' 
+                                        ? 'text-amber-900' 
+                                        : 'text-green-900'
+                                    }`}>
+                                      {shift.activeSubstitution.status === 'PENDING' && '⏳ In attesa'}
+                                      {shift.activeSubstitution.status === 'APPROVED' && (
+                                        <>
+                                          ✅ {shift.activeSubstitution.substitute?.username || 'Sostituto trovato'}
+                                        </>
+                                      )}
+                                    </div>
+                                    <a 
+                                      href="/substitution-requests"
+                                      className={`inline-flex items-center justify-center w-full px-2 py-1.5 text-xs font-bold rounded mt-1.5 transition-colors ${
+                                        shift.activeSubstitution.status === 'PENDING'
+                                          ? 'text-amber-700 bg-amber-100 hover:bg-amber-200'
+                                          : 'text-green-700 bg-green-100 hover:bg-green-200'
+                                      }`}
+                                    >
+                                      Gestisci
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openSubstitutionModal(shift)}
+                                    className={`w-full text-xs h-8 border transition-all font-medium ${
+                                      shift.shiftType === 'PRANZO'
+                                        ? 'text-orange-700 border-orange-300 hover:bg-orange-100'
+                                        : 'text-blue-700 border-blue-300 hover:bg-blue-100'
+                                    }`}
+                                  >
+                                    <Users className="h-3 w-3 mr-1" />
+                                    Sostituto
+                                  </Button>
+                                )
                               )}
                             </div>
                           </div>

@@ -239,22 +239,22 @@ function generatePDFHtml(
         .employee-section {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
         }
         
         .employee-section h3 {
-            font-size: 16px;
+            font-size: 13px;
             font-weight: 600;
             color: #1f2937;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
         
         .employee-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
         }
         
         .employee-item {
@@ -263,80 +263,49 @@ function generatePDFHtml(
         }
         
         .employee-item label {
-            font-size: 11px;
+            font-size: 9px;
             font-weight: 500;
             color: #6b7280;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            letter-spacing: 0.3px;
+            margin-bottom: 2px;
         }
         
         .employee-item span {
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 500;
             color: #1f2937;
         }
         
         .summary-section {
-            margin-bottom: 30px;
-        }
-        
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
+            margin-bottom: 20px;
         }
         
         .summary-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 16px;
-            text-align: center;
-        }
-        
-        .summary-card.total {
-            border-color: #f97316;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             background: #fff7ed;
-        }
-        
-        .summary-card.approved {
-            border-color: #10b981;
-            background: #ecfdf5;
-        }
-        
-        .summary-card.pending {
-            border-color: #f59e0b;
-            background: #fffbeb;
-        }
-        
-        .summary-card.rejected {
-            border-color: #ef4444;
-            background: #fef2f2;
+            border: 1px solid #f97316;
+            border-radius: 6px;
+            padding: 8px 12px;
         }
         
         .summary-card h4 {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 500;
             color: #6b7280;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
         }
         
         .summary-card .value {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: 700;
-            margin-bottom: 4px;
+            color: #ea580c;
         }
         
-        .summary-card.total .value { color: #ea580c; }
-        .summary-card.approved .value { color: #059669; }
-        .summary-card.pending .value { color: #d97706; }
-        .summary-card.rejected .value { color: #dc2626; }
-        
         .summary-card .unit {
-            font-size: 12px;
+            font-size: 10px;
             color: #6b7280;
             font-weight: 500;
         }
@@ -447,20 +416,20 @@ function generatePDFHtml(
     </div>
 
     <div class="employee-section">
-        <h3>Informazioni Dipendente</h3>
         <div class="employee-grid">
             <div class="employee-item">
-                <label>Nome Utente</label>
+                <label>Dipendente</label>
                 <span>${user.username}</span>
             </div>
             <div class="employee-item">
                 <label>Ruoli</label>
                 <span>${user.user_roles.map((ur: {role: string}) => {
                   const roleNames: Record<string, string> = {
-                    'ADMIN': 'Amministratore',
+                    'ADMIN': 'Admin',
                     'FATTORINO': 'Fattorino', 
                     'CUCINA': 'Cucina',
-                    'SALA': 'Sala'
+                    'SALA': 'Sala',
+                    'PIZZAIOLO': 'Pizzaiolo'
                   }
                   return roleNames[ur.role] || ur.role
                 }).join(', ')}</span>
@@ -470,18 +439,8 @@ function generatePDFHtml(
                 <span>${periodName}</span>
             </div>
             <div class="employee-item">
-                <label>Stato</label>
-                <span>${user.isActive ? 'Attivo' : 'Inattivo'}</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="summary-section">
-        <div class="summary-grid">
-            <div class="summary-card total">
-                <h4>Ore Totali</h4>
-                <div class="value">${totalHours.toFixed(1)}</div>
-                <div class="unit">ore</div>
+                <label>Ore Totali</label>
+                <span style="font-weight: 700; color: #ea580c;">${totalHours.toFixed(1)}h</span>
             </div>
         </div>
     </div>

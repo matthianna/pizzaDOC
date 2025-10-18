@@ -326,8 +326,6 @@ ${data.reason ? `💬 *Motivo:* ${data.reason}` : ''}
 
 ✋ *Chi può sostituire?* Candidati subito nell'app!
 
----
-🍕 PizzaDoc - Sistema Gestione Turni
     `.trim()
 
     try {

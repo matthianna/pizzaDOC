@@ -178,9 +178,6 @@ export async function POST(
 🔄 *Tipo:* ${substitution.shifts.shiftType}
 
 ⏳ *In attesa di approvazione da parte dell'admin.*
-
----
-🍕 PizzaDoc - Sistema Gestione Turni
         `.trim()
 
         // Invia messaggio al gruppo

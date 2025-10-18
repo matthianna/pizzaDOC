@@ -239,7 +239,7 @@ export default function AvailabilityOverviewPage() {
                                 {isAbsent ? (
                                   <span className="text-red-600 font-bold text-sm">A</span>
                                 ) : pranzoAvail?.isAvailable ? (
-                                  <Check className="h-5 w-5 text-green-600 mx-auto" />
+                                  <span className="text-xl">🟢</span>
                                 ) : (
                                   <X className="h-5 w-5 text-gray-300 mx-auto" />
                                 )}
@@ -248,7 +248,7 @@ export default function AvailabilityOverviewPage() {
                                 {isAbsent ? (
                                   <span className="text-red-600 font-bold text-sm">A</span>
                                 ) : cenaAvail?.isAvailable ? (
-                                  <Check className="h-5 w-5 text-green-600 mx-auto" />
+                                  <span className="text-xl">🟢</span>
                                 ) : (
                                   <X className="h-5 w-5 text-gray-300 mx-auto" />
                                 )}
@@ -277,7 +277,7 @@ export default function AvailabilityOverviewPage() {
           <h3 className="text-sm font-medium text-blue-900 mb-2">Legenda</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
             <div className="flex items-center">
-              <Check className="h-4 w-4 text-green-600 mr-2" />
+              <span className="text-lg mr-2">🟢</span>
               <span className="text-gray-700">Disponibile</span>
             </div>
             <div className="flex items-center">
