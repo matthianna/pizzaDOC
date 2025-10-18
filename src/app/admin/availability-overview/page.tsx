@@ -239,7 +239,7 @@ export default function AvailabilityOverviewPage() {
                                 {isAbsent ? (
                                   <span className="text-red-600 font-bold text-sm">A</span>
                                 ) : pranzoAvail?.isAvailable ? (
-                                  <span className="text-xl">🟢</span>
+                                  <span className="text-lg">🟢</span>
                                 ) : (
                                   <X className="h-5 w-5 text-gray-300 mx-auto" />
                                 )}
@@ -248,7 +248,7 @@ export default function AvailabilityOverviewPage() {
                                 {isAbsent ? (
                                   <span className="text-red-600 font-bold text-sm">A</span>
                                 ) : cenaAvail?.isAvailable ? (
-                                  <span className="text-xl">🟢</span>
+                                  <span className="text-lg">🟢</span>
                                 ) : (
                                   <X className="h-5 w-5 text-gray-300 mx-auto" />
                                 )}

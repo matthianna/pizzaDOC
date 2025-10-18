@@ -42,29 +42,6 @@ export async function GET(request: NextRequest) {
                 status: true,
                 totalHours: true
               }
-            },
-            requestedSubstitutions: {
-              where: {
-                requesterId: session.user.id,
-                status: {
-                  in: ['PENDING', 'APPROVED']
-                }
-              },
-              select: {
-                id: true,
-                status: true,
-                createdAt: true,
-                substitute: {
-                  select: {
-                    id: true,
-                    username: true
-                  }
-                }
-              },
-              orderBy: {
-                createdAt: 'desc'
-              },
-              take: 1
             }
           },
           orderBy: [
@@ -79,11 +56,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([])
     }
 
-    // Map worked_hours to workedHours and include substitution info
+    // Map worked_hours to workedHours for frontend compatibility
     const shiftsWithMappedHours = schedule.shifts.map((shift: any) => ({
       ...shift,
       workedHours: shift.worked_hours,
-      activeSubstitution: shift.requestedSubstitutions[0] || null,
       schedule: { weekStart: schedule.weekStart.toISOString() }
     }))
 

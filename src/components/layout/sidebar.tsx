@@ -18,7 +18,8 @@ import {
   ChartBarIcon,
   UserPlusIcon,
   PresentationChartLineIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline'
 import { 
   HomeIcon as HomeIconSolid,
@@ -30,7 +31,8 @@ import {
   ChartBarIcon as ChartBarIconSolid,
   UserPlusIcon as UserPlusIconSolid,
   PresentationChartLineIcon as PresentationChartLineIconSolid,
-  ShieldCheckIcon as ShieldCheckIconSolid
+  ShieldCheckIcon as ShieldCheckIconSolid,
+  UserCircleIcon as UserCircleIconSolid
 } from '@heroicons/react/24/solid'
 import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
@@ -589,8 +591,23 @@ function SidebarContent({
         )}
       </nav>
 
-      {/* Logout button */}
-      <div className="flex-shrink-0 p-4">
+      {/* Profile Link */}
+      <div className="flex-shrink-0 p-4 border-t border-gray-200">
+        <Link
+          href={`/profile/${session.user.id}`}
+          onClick={onItemClick}
+          className={cn(
+            'group flex items-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all mb-2',
+            pathname === `/profile/${session.user.id}`
+              ? 'bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 shadow-md border-l-4 border-blue-500'
+              : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white hover:shadow-sm'
+          )}
+        >
+          <span className="text-lg mr-3">👤</span>
+          Il Mio Profilo
+        </Link>
+
+        {/* Logout button */}
         <button
           onClick={async () => {
             console.log('Signing out...')

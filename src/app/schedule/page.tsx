@@ -13,6 +13,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
 
+interface Substitution {
+  id: string
+  shiftId: string
+  status: 'PENDING' | 'APPLIED' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+  substitute?: {
+    username: string
+  }
+}
+
 interface Shift {
   id: string
   dayOfWeek: number
@@ -28,15 +37,6 @@ interface Shift {
     status: 'PENDING' | 'APPROVED' | 'REJECTED'
     totalHours: number
   }
-  activeSubstitution?: {
-    id: string
-    status: 'PENDING' | 'APPROVED'
-    createdAt: string
-    substitute?: {
-      id: string
-      username: string
-    }
-  } | null
 }
 
 export default function SchedulePage() {
@@ -45,6 +45,7 @@ export default function SchedulePage() {
     return getWeekStart(new Date()) // Lunedì UTC normalizzato
   })
   const [shifts, setShifts] = useState<Shift[]>([])
+  const [substitutions, setSubstitutions] = useState<Substitution[]>([])
   const [loading, setLoading] = useState(true)
   const [showSubstitutionModal, setShowSubstitutionModal] = useState(false)
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null)
@@ -55,6 +56,7 @@ export default function SchedulePage() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchMyShifts()
+      fetchSubstitutions()
     }
   }, [session?.user?.id, currentWeek])
 
@@ -72,6 +74,18 @@ export default function SchedulePage() {
       console.error('Error fetching shifts:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchSubstitutions = async () => {
+    try {
+      const response = await fetch('/api/user/substitutions')
+      if (response.ok) {
+        const data = await response.json()
+        setSubstitutions(data.mine || [])
+      }
+    } catch (error) {
+      console.error('Error fetching substitutions:', error)
     }
   }
 
@@ -118,6 +132,7 @@ export default function SchedulePage() {
         setSelectedShift(null)
         setRequestNote('')
         fetchMyShifts() // Refresh per vedere se il turno è ancora disponibile
+        fetchSubstitutions() // Refresh sostituzioni
       } else {
         const error = await response.json()
         showToast(error.error || 'Errore nella creazione', 'error')
@@ -371,38 +386,31 @@ export default function SchedulePage() {
                                 </div>
                               )}
 
-                              {/* Substitution Status or Request Button */}
-                              {isFutureShift && !shiftEnded && (
-                                shift.activeSubstitution ? (
-                                  <div className={`p-2 rounded border text-center text-xs ${
-                                    shift.activeSubstitution.status === 'PENDING' 
-                                      ? 'bg-amber-50 border-amber-300' 
-                                      : 'bg-green-50 border-green-300'
-                                  }`}>
-                                    <div className={`font-bold ${
-                                      shift.activeSubstitution.status === 'PENDING' 
-                                        ? 'text-amber-900' 
-                                        : 'text-green-900'
-                                    }`}>
-                                      {shift.activeSubstitution.status === 'PENDING' && '⏳ In attesa'}
-                                      {shift.activeSubstitution.status === 'APPROVED' && (
-                                        <>
-                                          ✅ {shift.activeSubstitution.substitute?.username || 'Sostituto trovato'}
-                                        </>
-                                      )}
+                              {/* Request Substitution Button / Status */}
+                              {isFutureShift && !shiftEnded && (() => {
+                                const existingSubstitution = substitutions.find(sub => sub.shiftId === shift.id)
+                                
+                                if (existingSubstitution) {
+                                  // Mostra stato della richiesta
+                                  const statusConfig = {
+                                    PENDING: { text: 'In attesa', color: 'bg-yellow-100 text-yellow-800 border-yellow-300', icon: '⏳' },
+                                    APPLIED: { text: 'Candidature ricevute', color: 'bg-blue-100 text-blue-800 border-blue-300', icon: '👥' },
+                                    APPROVED: { text: `Approvato: ${existingSubstitution.substitute?.username || 'N/A'}`, color: 'bg-green-100 text-green-800 border-green-300', icon: '✅' },
+                                    REJECTED: { text: 'Rifiutato', color: 'bg-red-100 text-red-800 border-red-300', icon: '❌' },
+                                    CANCELLED: { text: 'Annullato', color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '🚫' }
+                                  }
+                                  const status = statusConfig[existingSubstitution.status] || statusConfig.PENDING
+                                  
+                                  return (
+                                    <div className={`w-full text-xs h-8 border-2 rounded-md flex items-center justify-center font-semibold ${status.color}`}>
+                                      <span className="mr-1.5">{status.icon}</span>
+                                      {status.text}
                                     </div>
-                                    <a 
-                                      href="/substitution-requests"
-                                      className={`inline-flex items-center justify-center w-full px-2 py-1.5 text-xs font-bold rounded mt-1.5 transition-colors ${
-                                        shift.activeSubstitution.status === 'PENDING'
-                                          ? 'text-amber-700 bg-amber-100 hover:bg-amber-200'
-                                          : 'text-green-700 bg-green-100 hover:bg-green-200'
-                                      }`}
-                                    >
-                                      Gestisci
-                                    </a>
-                                  </div>
-                                ) : (
+                                  )
+                                }
+                                
+                                // Mostra bottone per richiedere sostituzione
+                                return (
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -417,7 +425,7 @@ export default function SchedulePage() {
                                     Sostituto
                                   </Button>
                                 )
-                              )}
+                              })()}
                             </div>
                           </div>
                         )

@@ -219,11 +219,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Chi lavora oggi - Design Minimalista */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
+        {/* Chi lavora oggi - Minimalista */}
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <div className="flex items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
-              {format(new Date(), 'EEEE d MMMM', { locale: it })}
+              Chi lavora oggi - {format(new Date(), 'EEEE d MMMM', { locale: it })}
             </h2>
           </div>
           
@@ -242,49 +242,35 @@ export default function DashboardPage() {
                     return acc
                   }, {} as Record<string, typeof shifts>)
 
-                  const now = new Date()
-                  const isShiftEnded = (shiftType === 'PRANZO' && now.getHours() >= 14) || 
-                                      (shiftType === 'CENA' && now.getHours() >= 22)
-
                   return (
-                    <div key={shiftType}>
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-sm font-medium text-gray-600">
-                          {shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}
-                        </span>
-                        {isShiftEnded && (
-                          <span className="text-xs text-gray-400">· Terminato</span>
-                        )}
-                      </div>
+                    <div key={shiftType} className="border-l-4 border-gray-300 pl-4">
+                      <h3 className="font-semibold text-gray-800 mb-3 uppercase text-sm">
+                        {shiftType}
+                      </h3>
                       
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {Object.entries(shiftsByRole).map(([role, roleShifts]) => (
-                          <div key={role} className="border-l-2 border-gray-200 pl-3">
-                            <div className="text-xs font-medium text-gray-500 uppercase mb-2">
+                          <div key={role}>
+                            <div className="text-xs font-semibold text-gray-600 mb-2 uppercase">
                               {getRoleName(role as Role)} ({roleShifts.length})
                             </div>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="space-y-1">
                               {roleShifts.map((shift) => (
                                 <div 
                                   key={shift.id} 
-                                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded border ${
-                                    isShiftEnded 
-                                      ? 'bg-gray-50 border-gray-200 text-gray-500' 
-                                      : 'bg-white border-gray-300 text-gray-900'
-                                  }`}
+                                  className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition"
                                 >
-                                  <span className="text-sm font-medium">{shift.user.username}</span>
-                                  <span className="text-xs text-gray-400">·</span>
-                                  <span className="text-xs text-gray-500">{shift.startTime}</span>
-                                  {role === 'FATTORINO' && shift.user.primaryTransport && (
-                                    <>
-                                      <span className="text-xs text-gray-400">·</span>
-                                      {shift.user.primaryTransport === 'AUTO' ? 
-                                        <Car className="h-3 w-3 text-gray-400" /> :
-                                        <Bike className="h-3 w-3 text-gray-400" />
-                                      }
-                                    </>
-                                  )}
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {shift.user.username}
+                                  </span>
+                                  <div className="flex items-center gap-3 text-xs text-gray-600">
+                                    <span>{shift.startTime}</span>
+                                    {role === 'FATTORINO' && shift.user.primaryTransport && (
+                                      <span className="text-gray-400">
+                                        {shift.user.primaryTransport === 'AUTO' ? '🚗' : '🏍️'}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -296,8 +282,10 @@ export default function DashboardPage() {
                 })}
             </div>
           ) : (
-            <div className="text-center text-gray-400 py-8">
-              <p className="text-sm">Nessuno lavora oggi</p>
+            <div className="text-center py-8">
+              <p className="text-gray-500">
+                {todayShifts ? 'Nessuno lavora oggi' : 'Caricamento...'}
+              </p>
             </div>
           )}
         </div>

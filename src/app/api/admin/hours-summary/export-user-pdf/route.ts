@@ -175,27 +175,27 @@ function generatePDFHtml(
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
             border-bottom: 2px solid #f97316;
         }
         
         .logo-section {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
         }
         
         .logo {
-            width: 50px;
-            height: 50px;
+            width: 36px;
+            height: 36px;
             background: #f97316;
-            border-radius: 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
             overflow: hidden;
         }
@@ -204,18 +204,18 @@ function generatePDFHtml(
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 8px;
+            border-radius: 6px;
         }
         
         .company-info h1 {
-            font-size: 24px;
+            font-size: 16px;
             font-weight: 700;
             color: #1f2937;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
         
         .company-info p {
-            font-size: 14px;
+            font-size: 10px;
             color: #6b7280;
         }
         
@@ -224,16 +224,16 @@ function generatePDFHtml(
         }
         
         .document-info h2 {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 600;
             color: #1f2937;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
         
         .document-info p {
-            font-size: 12px;
+            font-size: 10px;
             color: #6b7280;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
         
         .employee-section {
@@ -241,11 +241,11 @@ function generatePDFHtml(
             border: 1px solid #e2e8f0;
             border-radius: 6px;
             padding: 12px 16px;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
         
         .employee-section h3 {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: #1f2937;
             margin-bottom: 8px;
@@ -281,28 +281,59 @@ function generatePDFHtml(
             margin-bottom: 20px;
         }
         
+        .summary-grid {
+            display: flex;
+            gap: 12px;
+        }
+        
         .summary-card {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #fff7ed;
-            border: 1px solid #f97316;
+            background: white;
+            border: 1px solid #e2e8f0;
             border-radius: 6px;
-            padding: 8px 12px;
+            padding: 10px 14px;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .summary-card.total {
+            border-color: #f97316;
+            background: #fff7ed;
+        }
+        
+        .summary-card.approved {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        
+        .summary-card.pending {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+        
+        .summary-card.rejected {
+            border-color: #ef4444;
+            background: #fef2f2;
         }
         
         .summary-card h4 {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 500;
             color: #6b7280;
             text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
         }
         
         .summary-card .value {
             font-size: 16px;
             font-weight: 700;
-            color: #ea580c;
+            margin-bottom: 2px;
         }
+        
+        .summary-card.total .value { color: #ea580c; }
+        .summary-card.approved .value { color: #059669; }
+        .summary-card.pending .value { color: #d97706; }
+        .summary-card.rejected .value { color: #dc2626; }
         
         .summary-card .unit {
             font-size: 10px;
@@ -416,20 +447,20 @@ function generatePDFHtml(
     </div>
 
     <div class="employee-section">
+        <h3>Informazioni Dipendente</h3>
         <div class="employee-grid">
             <div class="employee-item">
-                <label>Dipendente</label>
+                <label>Nome Utente</label>
                 <span>${user.username}</span>
             </div>
             <div class="employee-item">
                 <label>Ruoli</label>
                 <span>${user.user_roles.map((ur: {role: string}) => {
                   const roleNames: Record<string, string> = {
-                    'ADMIN': 'Admin',
+                    'ADMIN': 'Amministratore',
                     'FATTORINO': 'Fattorino', 
                     'CUCINA': 'Cucina',
-                    'SALA': 'Sala',
-                    'PIZZAIOLO': 'Pizzaiolo'
+                    'SALA': 'Sala'
                   }
                   return roleNames[ur.role] || ur.role
                 }).join(', ')}</span>
@@ -439,8 +470,18 @@ function generatePDFHtml(
                 <span>${periodName}</span>
             </div>
             <div class="employee-item">
-                <label>Ore Totali</label>
-                <span style="font-weight: 700; color: #ea580c;">${totalHours.toFixed(1)}h</span>
+                <label>Stato</label>
+                <span>${user.isActive ? 'Attivo' : 'Inattivo'}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="summary-section">
+        <div class="summary-grid">
+            <div class="summary-card total">
+                <h4>Ore Totali</h4>
+                <div class="value">${totalHours.toFixed(1)}</div>
+                <div class="unit">ore</div>
             </div>
         </div>
     </div>
