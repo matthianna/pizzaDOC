@@ -71,7 +71,50 @@ export class WhatsAppService {
       }
     }
 
-    // Normalizza il numero (rimuovi spazi, trattini, parentesi, + iniziale)
+    // Se è già un group chat ID (contiene @g.us), usalo direttamente
+    if (phoneNumber.includes('@g.us')) {
+      try {
+        const chatId = phoneNumber.trim()
+        console.log(`📱 Sending WhatsApp message to GROUP ${chatId}`)
+        
+        const response = await fetch(`${this.wahaUrl}/api/sendText`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session: this.session,
+            chatId,
+            text: message,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('❌ WAHA API error:', response.status, errorText)
+          return {
+            success: false,
+            error: `WAHA API error: ${response.status} - ${errorText}`
+          }
+        }
+
+        const data = await response.json()
+        console.log('✅ WhatsApp group message sent successfully:', data)
+        
+        return {
+          success: true,
+          messageId: data.id
+        }
+      } catch (error) {
+        console.error('📱 WhatsApp group service error:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      }
+    }
+    
+    // Normalizza il numero per contatti individuali (rimuovi spazi, trattini, parentesi, + iniziale)
     let normalizedNumber = phoneNumber.replace(/[\s\-\(\)]/g, '')
     
     // Rimuovi il + iniziale se presente (WhatsApp non lo vuole nel chatId)
