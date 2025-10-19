@@ -14,6 +14,7 @@ interface User {
   id: string
   username: string
   isActive: boolean
+  trackHours: boolean
   primaryRole: Role
   primaryTransport: TransportType | null
   createdAt: string
@@ -312,7 +313,8 @@ function UserFormModal({
     primaryRole: user?.primaryRole || '',
     transports: user?.user_transports.map(ut => ut.transport) || [],
     primaryTransport: user?.primaryTransport || '',
-    isActive: user?.isActive ?? true
+    isActive: user?.isActive ?? true,
+    trackHours: user?.trackHours ?? true
   })
   const [loading, setLoading] = useState(false)
 
@@ -471,7 +473,7 @@ function UserFormModal({
             )}
 
             {user && (
-              <div className="pt-2">
+              <div className="pt-2 space-y-3">
                 <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
@@ -480,6 +482,16 @@ function UserFormModal({
                     className="mr-3 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                   />
                   <span className="text-sm font-medium text-gray-900">Utente attivo</span>
+                </label>
+                
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={formData.trackHours}
+                    onChange={(e) => setFormData({ ...formData, trackHours: e.target.checked })}
+                    className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-900">Contare ore lavorate</span>
                 </label>
               </div>
             )}

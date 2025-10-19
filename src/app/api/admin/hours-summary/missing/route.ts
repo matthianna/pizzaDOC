@@ -26,7 +26,8 @@ export async function GET(req: NextRequest) {
           is: null // Nessuna riga in worked_hours (relazione one-to-one)
         },
         user: {
-          isActive: true
+          isActive: true,
+          trackHours: true
         }
       },
       include: {
@@ -35,7 +36,8 @@ export async function GET(req: NextRequest) {
             id: true,
             username: true,
             primaryRole: true,
-            isActive: true
+            isActive: true,
+            trackHours: true
           }
         },
         schedules: {
@@ -60,7 +62,8 @@ export async function GET(req: NextRequest) {
           }
         },
         user: {
-          isActive: true
+          isActive: true,
+          trackHours: true
         }
       },
       include: {
@@ -69,7 +72,8 @@ export async function GET(req: NextRequest) {
             id: true,
             username: true,
             primaryRole: true,
-            isActive: true
+            isActive: true,
+            trackHours: true
           }
         },
         worked_hours: {

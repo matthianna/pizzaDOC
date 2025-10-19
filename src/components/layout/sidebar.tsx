@@ -192,6 +192,8 @@ export function Sidebar() {
   const visibleNavigation = navigation.filter(item => {
     if (item.adminOnly && !isUserAdmin) return false
     if (item.hideForAdmin && isUserAdmin) return false
+    // Nascondi "Ore Lavorate" se l'utente non ha trackHours abilitato
+    if (item.name === 'Ore Lavorate' && !session.user.trackHours) return false
     return true
   })
 

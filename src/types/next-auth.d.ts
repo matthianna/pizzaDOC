@@ -7,6 +7,7 @@ declare module 'next-auth' {
       id: string
       username: string
       isFirstLogin: boolean
+      trackHours: boolean
       primaryRole: Role
       roles: Role[]
       email?: string
@@ -18,6 +19,7 @@ declare module 'next-auth' {
     id: string
     username: string
     isFirstLogin: boolean
+    trackHours: boolean
     primaryRole: Role
     roles: Role[]
   }
@@ -28,6 +30,7 @@ declare module 'next-auth/jwt' {
     id: string
     username: string
     isFirstLogin: boolean
+    trackHours: boolean
     primaryRole: Role
     roles: Role[]
   }

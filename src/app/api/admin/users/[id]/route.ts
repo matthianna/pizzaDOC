@@ -17,7 +17,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { roles, primaryRole, transports, primaryTransport, isActive } = await request.json()
+    const { roles, primaryRole, transports, primaryTransport, isActive, trackHours } = await request.json()
 
     if (!roles || roles.length === 0 || !primaryRole) {
       return NextResponse.json(
@@ -42,6 +42,7 @@ export async function PUT(
         primaryRole,
         primaryTransport: primaryTransport || null,
         isActive,
+        trackHours: trackHours ?? true,
         updatedAt: new Date(),
         user_roles: {
           create: roles.map((role: string) => ({ 
@@ -73,7 +74,8 @@ export async function PUT(
         roles: roles,
         primaryRole: primaryRole,
         transports: transports || [],
-        isActive: isActive
+        isActive: isActive,
+        trackHours: trackHours
       }
     })
 

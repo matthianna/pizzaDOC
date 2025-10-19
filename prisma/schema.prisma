@@ -183,6 +183,7 @@ model User {
   password                                        String
   isFirstLogin                                    Boolean           @default(true)
   isActive                                        Boolean           @default(true)
+  trackHours                                      Boolean           @default(true)
   primaryRole                                     Role?
   primaryTransport                                TransportType?
   phoneNumber                                     String?

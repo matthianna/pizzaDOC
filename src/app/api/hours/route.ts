@@ -78,6 +78,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if user has trackHours enabled
+    const user = await prisma.User.findUnique({
+      where: { id: session.user.id },
+      select: { trackHours: true }
+    })
+
+    if (!user || !user.trackHours) {
+      return NextResponse.json(
+        { error: 'Il conteggio ore non è abilitato per questo utente' },
+        { status: 403 }
+      )
+    }
+
     // Validate time format and logic
     const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
     if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {

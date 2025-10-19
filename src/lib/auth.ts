@@ -62,6 +62,7 @@ export const authOptions: NextAuthOptions = {
             id: user.id,
             username: user.username,
             isFirstLogin: user.isFirstLogin,
+            trackHours: user.trackHours,
             primaryRole: user.primaryRole,
             roles: user.user_roles.map(ur => ur.role)
           }
@@ -83,6 +84,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.username = user.username
         token.isFirstLogin = user.isFirstLogin
+        token.trackHours = user.trackHours
         token.primaryRole = user.primaryRole
         token.roles = user.roles
         token.lastActivity = Date.now()
@@ -103,6 +105,7 @@ export const authOptions: NextAuthOptions = {
           
           // Update token with latest user data
           token.isFirstLogin = currentUser.isFirstLogin
+          token.trackHours = currentUser.trackHours
           token.primaryRole = currentUser.primaryRole
           token.roles = currentUser.user_roles.map(ur => ur.role)
           token.lastActivity = Date.now()
@@ -121,6 +124,7 @@ export const authOptions: NextAuthOptions = {
         
         if (updatedUser) {
           token.isFirstLogin = updatedUser.isFirstLogin
+          token.trackHours = updatedUser.trackHours
           token.primaryRole = updatedUser.primaryRole
           token.roles = updatedUser.user_roles.map(ur => ur.role)
           token.lastActivity = Date.now()
@@ -134,6 +138,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.username = token.username as string
         session.user.isFirstLogin = token.isFirstLogin as boolean
+        session.user.trackHours = token.trackHours as boolean
         session.user.primaryRole = token.primaryRole as Role
         session.user.roles = token.roles as Role[]
       }
