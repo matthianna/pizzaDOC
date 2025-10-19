@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { Eye, EyeOff, Database } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { Input } from '@/components/ui/input'
@@ -126,16 +125,8 @@ export default function SignInPage() {
       <div className="w-full max-w-sm">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-32 h-32 mb-6 bg-white rounded-full overflow-hidden shadow-2xl ring-4 ring-orange-200 relative">
-            <Image
-              src="/logo.png"
-              alt="PizzaDOC Logo"
-              width={128}
-              height={128}
-              priority
-              className="object-cover"
-              unoptimized
-            />
+          <div className="inline-flex items-center justify-center w-32 h-32 mb-6 bg-gradient-to-br from-orange-400 to-red-500 rounded-full shadow-2xl ring-4 ring-orange-200">
+            <span className="text-6xl">🍕</span>
           </div>
           <h1 className="text-3xl font-black text-gray-900 mb-2 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">PizzaDOC</h1>
           <p className="text-gray-600 text-base font-medium">Accedi al tuo account</p>
