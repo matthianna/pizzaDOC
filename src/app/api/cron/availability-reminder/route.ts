@@ -62,8 +62,9 @@ export async function GET(request: NextRequest) {
     })
 
     // Filtra utenti senza disponibilità per la settimana prossima
+    // Escludi l'utente "admin" dalla lista
     const usersWithoutAvailability = activeUsers.filter(
-      user => user.availabilities.length === 0
+      user => user.availabilities.length === 0 && user.username.toLowerCase() !== 'admin'
     )
 
     console.log(`📊 Found ${usersWithoutAvailability.length} users without availability`)

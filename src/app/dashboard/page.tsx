@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { Users, Calendar, Clock, BarChart3, UserCheck, TrendingUp, CalendarDays, AlertCircle, Settings, Shield, CheckIcon, Bike, Car, UtensilsCrossed, ChefHat, Pizza } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { getRoleName } from '@/lib/utils'
+import { getRoleName, getDayName } from '@/lib/utils'
 import type { Role } from '@prisma/client'
 
 interface DashboardStats {
@@ -68,6 +68,19 @@ interface MyShiftsData {
   total: number
 }
 
+interface MissingHoursData {
+  missingShifts: Array<{
+    id: string
+    date: string
+    dayOfWeek: number
+    shiftType: 'PRANZO' | 'CENA'
+    role: string
+    startTime: string
+    endTime: string
+  }>
+  count: number
+}
+
 interface PendingHoursData {
   users: Array<{
     user: {
@@ -107,6 +120,7 @@ export default function DashboardPage() {
   const [todayShifts, setTodayShifts] = useState<TodayShiftsData | null>(null)
   const [myShifts, setMyShifts] = useState<MyShiftsData | null>(null)
   const [pendingHours, setPendingHours] = useState<PendingHoursData | null>(null)
+  const [missingHours, setMissingHours] = useState<MissingHoursData | null>(null)
   const [loading, setLoading] = useState(true)
 
   const isAdmin = session?.user.roles.includes('ADMIN')
@@ -119,6 +133,7 @@ export default function DashboardPage() {
     fetchTodayShifts()
     if (!isAdmin) {
       fetchMyShifts()
+      fetchMissingHours()
     } else {
       fetchPendingHours()
     }
@@ -175,6 +190,18 @@ export default function DashboardPage() {
     }
   }
 
+  const fetchMissingHours = async () => {
+    try {
+      const response = await fetch('/api/dashboard/missing-hours')
+      if (response.ok) {
+        const data = await response.json()
+        setMissingHours(data)
+      }
+    } catch (error) {
+      console.error('Error fetching missing hours:', error)
+    }
+  }
+
   const fetchStats = async () => {
     try {
       const response = await fetch('/api/dashboard/stats')
@@ -218,6 +245,67 @@ export default function DashboardPage() {
             </span>
           </div>
         </div>
+
+        {/* Missing Hours Alert - Solo per dipendenti */}
+        {!isAdmin && missingHours && missingHours.count > 0 && (
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 rounded-xl shadow-md overflow-hidden">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold text-red-900 mb-1">
+                    ⚠️ Ore Lavorate Mancanti
+                  </h3>
+                  <p className="text-sm sm:text-base text-red-800 mb-3">
+                    Hai <span className="font-bold">{missingHours.count}</span> {missingHours.count === 1 ? 'turno' : 'turni'} per {missingHours.count === 1 ? 'il quale non hai' : 'i quali non hai'} ancora inserito le ore lavorate.
+                  </p>
+                  
+                  {/* Mostra i primi turni mancanti */}
+                  <div className="space-y-2 mb-4">
+                    {missingHours.missingShifts.slice(0, 3).map((shift) => {
+                      const shiftDate = new Date(shift.date)
+                      
+                      return (
+                        <div key={shift.id} className="flex items-center justify-between p-2 sm:p-3 bg-white/60 backdrop-blur-sm rounded-lg border border-red-200">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
+                              {getDayName(shift.dayOfWeek)} {format(shiftDate, 'dd/MM/yyyy')}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              {shift.shiftType} - {getRoleName(shift.role as any)}
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0 ml-2">
+                            <Clock className="h-4 w-4 text-red-500" />
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {missingHours.count > 3 && (
+                      <p className="text-xs text-red-700 italic pl-2">
+                        ... e altri {missingHours.count - 3} turni
+                      </p>
+                    )}
+                  </div>
+
+                  <a
+                    href="/hours"
+                    className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors shadow-sm text-sm"
+                  >
+                    Inserisci le Ore Mancanti
+                    <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Chi lavora oggi - Minimalista */}
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
