@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
 
+// ⚠️ IMPORTANTE: Disabilita cache per avere sempre dati aggiornati
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -82,7 +86,14 @@ export async function GET(req: NextRequest) {
       console.warn(`⚠️  [API] NESSUN utente ha disponibilità per ${weekStart.toISOString().split('T')[0]}!`)
     }
 
-    return NextResponse.json(availableUsers)
+    // ⚠️ Headers anti-cache per garantire dati sempre freschi
+    return NextResponse.json(availableUsers, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
   } catch (error) {
     console.error('Error fetching available users:', error)
     return NextResponse.json(

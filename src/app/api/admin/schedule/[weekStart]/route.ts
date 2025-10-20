@@ -5,6 +5,10 @@ import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
 import { logAuditAction } from '@/lib/audit-logger'
 
+// ⚠️ IMPORTANTE: Disabilita cache per avere sempre dati aggiornati
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // GET /api/admin/schedule/[weekStart] - Get schedule for a specific week
 export async function GET(
   request: NextRequest,
@@ -51,11 +55,25 @@ export async function GET(
     if (!schedule) {
       return NextResponse.json(
         { error: 'Schedule not found' },
-        { status: 404 }
+        { 
+          status: 404,
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        }
       )
     }
 
-    return NextResponse.json(schedule)
+    // ⚠️ Headers anti-cache per garantire dati sempre freschi
+    return NextResponse.json(schedule, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
   } catch (error) {
     console.error('Error fetching schedule:', error)
     return NextResponse.json(

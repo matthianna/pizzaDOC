@@ -106,8 +106,13 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
   }, [weekStart])
 
   useEffect(() => {
-    // Carica i turni esistenti quando cambiano giorno o turno
+    // ⭐ Ricarica TUTTO quando cambiano giorno, turno o settimana
+    // Questo garantisce che le disponibilità siano sempre aggiornate
     fetchExistingShifts()
+    // Ricarica anche gli utenti per avere disponibilità fresche
+    if (!loading) {
+      fetchUsers()
+    }
   }, [selectedDay, selectedShiftType, weekStart])
 
   useEffect(() => {
@@ -146,9 +151,21 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
     try {
       // ⭐ PASSA weekStart per ottenere disponibilità della settimana specifica!
       const weekStartStr = weekStart.toISOString().split('T')[0]
-      const response = await fetch(`/api/admin/users/available?weekStart=${weekStartStr}`)
+      // ⚠️ Aggiungi timestamp per forzare bypass cache browser
+      const timestamp = new Date().getTime()
+      const response = await fetch(
+        `/api/admin/users/available?weekStart=${weekStartStr}&_t=${timestamp}`,
+        {
+          cache: 'no-store', // ⚠️ Disabilita cache browser
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }
+      )
       if (response.ok) {
         const data = await response.json()
+        console.log(`✅ [Modal] Utenti caricati: ${data.length}`)
         setUsers(data)
       } else {
         showToast('Errore nel caricamento utenti', 'error')
@@ -164,7 +181,18 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
   const fetchExistingShifts = async () => {
     try {
       const weekStartStr = weekStart.toISOString().split('T')[0]
-      const response = await fetch(`/api/admin/schedule/${weekStartStr}`)
+      // ⚠️ Aggiungi timestamp per forzare bypass cache browser
+      const timestamp = new Date().getTime()
+      const response = await fetch(
+        `/api/admin/schedule/${weekStartStr}?_t=${timestamp}`,
+        {
+          cache: 'no-store', // ⚠️ Disabilita cache browser
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }
+      )
       if (response.ok) {
         const data = await response.json()
         // L'API restituisce direttamente l'oggetto schedule con shifts
@@ -180,14 +208,14 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
               role: shift.role
             }))
           setExistingShifts(filtered)
-          console.log(`🔍 Turni esistenti caricati per giorno ${selectedDay}, turno ${selectedShiftType}:`, filtered.length)
+          console.log(`🔍 [Modal] Turni esistenti caricati per giorno ${selectedDay}, turno ${selectedShiftType}:`, filtered.length)
         } else {
           setExistingShifts([])
         }
       } else if (response.status === 404) {
         // Nessun piano ancora generato per questa settimana
         setExistingShifts([])
-        console.log('📅 Nessun piano ancora generato per questa settimana')
+        console.log('📅 [Modal] Nessun piano ancora generato per questa settimana')
       }
     } catch (error) {
       console.error('Error fetching existing shifts:', error)

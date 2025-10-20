@@ -75,6 +75,15 @@ export class MaxCoverageAlgorithm {
     'valentino.dipietro': { pranzo: '11:00', cena: '17:00' }
   }
 
+  // 🎯 PREFERENZE RUOLI SPECIFICHE per coordinamento VIP
+  // Quando valentino e mario lavorano INSIEME nello stesso turno:
+  // - valentino → PIZZAIOLO (preferito)
+  // - mario → CUCINA (preferito)
+  private readonly VIP_ROLE_PREFERENCES: Record<string, Role> = {
+    'valentino.dipietro': 'PIZZAIOLO',
+    'mario.dipietro': 'CUCINA'
+  }
+
   /**
    * Verifica se un utente ha orari personalizzati
    */
@@ -415,6 +424,10 @@ export class MaxCoverageAlgorithm {
     console.log(`   Analisi turno per turno per possibili miglioramenti...`)
     schedule = await this.refineSchedule(schedule, requirements, users, transportLimits)
     
+    // 7.5 OTTIMIZZAZIONE COORDINAMENTO VIP (valentino & mario)
+    console.log(`\n\n🎯 === OTTIMIZZAZIONE COORDINAMENTO VIP ===`)
+    schedule = this.optimizeVIPCoordination(schedule, users)
+    
     // 8. Calcola statistiche finali
     const statistics = this.calculateStatistics(schedule, requirements, users)
     
@@ -451,6 +464,112 @@ export class MaxCoverageAlgorithm {
       shifts: schedule,
       statistics
     }
+  }
+
+  /**
+   * Ottimizza il coordinamento tra valentino e mario
+   * Quando lavorano insieme, assicura: valentino→PIZZAIOLO, mario→CUCINA
+   */
+  private optimizeVIPCoordination(
+    schedule: ScheduleShift[],
+    users: UserProfile[]
+  ): ScheduleShift[] {
+    let swapsCount = 0
+
+    // Raggruppa turni per (dayOfWeek, shiftType)
+    const turnKeys = new Set<string>()
+    schedule.forEach(shift => {
+      turnKeys.add(`${shift.dayOfWeek}_${shift.shiftType}`)
+    })
+
+    // Per ogni turno, verifica se ci sono sia valentino che mario
+    for (const turnKey of Array.from(turnKeys)) {
+      const [dayOfWeek, shiftType] = turnKey.split('_')
+      const day = parseInt(dayOfWeek)
+      const shift = shiftType as ShiftType
+
+      const turnShifts = schedule.filter(s => s.dayOfWeek === day && s.shiftType === shift)
+
+      // Trova valentino e mario in questo turno
+      let valentinoShift: ScheduleShift | undefined
+      let marioShift: ScheduleShift | undefined
+
+      for (const s of turnShifts) {
+        const userProfile = users.find(u => u.id === s.userId)
+        if (userProfile?.username === 'valentino.dipietro') {
+          valentinoShift = s
+        } else if (userProfile?.username === 'mario.dipietro') {
+          marioShift = s
+        }
+      }
+
+      // Se entrambi sono presenti, verifica la configurazione
+      if (valentinoShift && marioShift) {
+        const valentinoUser = users.find(u => u.id === valentinoShift!.userId)!
+        const marioUser = users.find(u => u.id === marioShift!.userId)!
+
+        console.log(`   🔍 ${this.getDayName(day)} ${shift}:`)
+        console.log(`      valentino: ${valentinoShift.role}, mario: ${marioShift.role}`)
+
+        // Configurazione attuale
+        const valentinoRole = valentinoShift.role
+        const marioRole = marioShift.role
+
+        // Configurazione OTTIMALE: valentino=PIZZAIOLO, mario=CUCINA
+        const isOptimal = valentinoRole === 'PIZZAIOLO' && marioRole === 'CUCINA'
+        
+        // Configurazione SWAPPABLE: valentino=CUCINA, mario=PIZZAIOLO
+        const isSwappable = valentinoRole === 'CUCINA' && marioRole === 'PIZZAIOLO'
+
+        if (isOptimal) {
+          console.log(`      ✅ Configurazione già ottimale!`)
+        } else if (isSwappable) {
+          // Verifica se entrambi possono fare il ruolo dell'altro
+          const valentinoCanBePizzaiolo = valentinoUser.roles.includes('PIZZAIOLO')
+          const marioCanBeCucina = marioUser.roles.includes('CUCINA')
+
+          if (valentinoCanBePizzaiolo && marioCanBeCucina) {
+            // SWAP!
+            console.log(`      🔄 SWAP: valentino ${valentinoRole}→PIZZAIOLO, mario ${marioRole}→CUCINA`)
+            
+            // Trova gli indici nello schedule originale
+            const valentinoIndex = schedule.findIndex(s => 
+              s.userId === valentinoShift!.userId &&
+              s.dayOfWeek === day &&
+              s.shiftType === shift &&
+              s.role === valentinoRole
+            )
+            
+            const marioIndex = schedule.findIndex(s => 
+              s.userId === marioShift!.userId &&
+              s.dayOfWeek === day &&
+              s.shiftType === shift &&
+              s.role === marioRole
+            )
+
+            if (valentinoIndex !== -1 && marioIndex !== -1) {
+              schedule[valentinoIndex].role = 'PIZZAIOLO'
+              schedule[marioIndex].role = 'CUCINA'
+              swapsCount++
+              console.log(`      ✅ Swap completato!`)
+            }
+          } else {
+            console.log(`      ⚠️  Swap non possibile: ruoli mancanti`)
+          }
+        } else {
+          // Altra configurazione (es: valentino=SALA, mario=FATTORINO)
+          console.log(`      ℹ️  Configurazione diversa, nessuna azione`)
+        }
+      }
+    }
+
+    if (swapsCount > 0) {
+      console.log(`\n   ✅ Coordinamento VIP ottimizzato: ${swapsCount} swap effettuati`)
+    } else {
+      console.log(`\n   ℹ️  Nessuno swap necessario, coordinamento già ottimale`)
+    }
+
+    return schedule
   }
 
   /**
@@ -768,12 +887,12 @@ export class MaxCoverageAlgorithm {
           req.shiftType,
           transportLimits.maxScooter
         )
-
+        
         if (!canAssignScooter) {
           console.log(`      ⛔ ${candidate.user.username}: limite scooter raggiunto`)
           continue
         }
-
+        
         // Ottieni orario ottimale (con supporto orari personalizzati)
         const startTime = await this.getOptimalStartTime(
           req.shiftType, 
@@ -783,7 +902,7 @@ export class MaxCoverageAlgorithm {
           candidate.user.username
         )
         const { end } = this.getGlobalShiftTimes(req.shiftType)
-
+        
         // Crea turno
         const newShift: ScheduleShift = {
           userId: candidate.user.id,
@@ -798,11 +917,11 @@ export class MaxCoverageAlgorithm {
 
         schedule.push(newShift)
         assignedCount2++
-
+        
         // Aggiorna contatore orari
         const key = `${req.dayOfWeek}_${req.shiftType}_${req.role}_${startTime}`
         assignedStartTimes.set(key, (assignedStartTimes.get(key) || 0) + 1)
-
+        
         console.log(`      ✅ ${candidate.user.username} → ${startTime}-${end} (${candidate.reason})`)
       }
 
@@ -890,57 +1009,110 @@ export class MaxCoverageAlgorithm {
       // ⚠️ VINCOLO 3 FONDAMENTALE: Deve essere disponibile per questo turno
       // Questo vincolo è SEMPRE rispettato in TUTTE le fasi!
       // Un dipendente può essere assegnato SOLO dove ha dichiarato disponibilità
-      const availability = user.availabilities.find(av => 
-        av.dayOfWeek === requirement.dayOfWeek && 
-        av.shiftType === requirement.shiftType
-      )
+        const availability = user.availabilities.find(av => 
+          av.dayOfWeek === requirement.dayOfWeek && 
+          av.shiftType === requirement.shiftType
+        )
       if (!availability?.isAvailable) continue
 
       // VINCOLO 4: Non può fare DUE RUOLI nello stesso turno
       // ✅ OK: PRANZO come SALA + CENA come CUCINA (turni diversi, stesso giorno)
       // ❌ NO: PRANZO come SALA + PRANZO come CUCINA (stesso turno, stesso giorno)
       // Verifica: stesso giorno (dayOfWeek) E stesso tipo turno (shiftType)
-      const alreadyAssignedThisShift = currentSchedule.some(shift => 
-        shift.userId === user.id && 
-        shift.dayOfWeek === requirement.dayOfWeek && 
-        shift.shiftType === requirement.shiftType
-      )
+        const alreadyAssignedThisShift = currentSchedule.some(shift => 
+          shift.userId === user.id && 
+          shift.dayOfWeek === requirement.dayOfWeek && 
+          shift.shiftType === requirement.shiftType
+        )
       if (alreadyAssignedThisShift) continue
 
       // VINCOLO 5 (mode-specific): Riposo tra turni consecutivi
       // VIP e flexible ignorano questo vincolo per massimizzare copertura
       if (mode !== 'vip' && mode !== 'flexible') {
         // Se è pranzo, non deve aver fatto cena la sera prima
-        if (requirement.shiftType === 'PRANZO') {
+          if (requirement.shiftType === 'PRANZO') {
           const prevDay = (requirement.dayOfWeek - 1 + 7) % 7
-          const workedPrevEvening = currentSchedule.some(shift => 
-            shift.userId === user.id && 
+            const workedPrevEvening = currentSchedule.some(shift => 
+              shift.userId === user.id && 
             shift.dayOfWeek === prevDay && 
-            shift.shiftType === 'CENA'
-          )
+              shift.shiftType === 'CENA'
+            )
           if (workedPrevEvening) continue
-        }
-
+          }
+          
         // Se è cena, non deve fare pranzo il giorno dopo
-        if (requirement.shiftType === 'CENA') {
+          if (requirement.shiftType === 'CENA') {
           const nextDay = (requirement.dayOfWeek + 1) % 7
-          const worksNextMorning = currentSchedule.some(shift => 
-            shift.userId === user.id && 
+            const worksNextMorning = currentSchedule.some(shift => 
+              shift.userId === user.id && 
             shift.dayOfWeek === nextDay && 
-            shift.shiftType === 'PRANZO'
-          )
+              shift.shiftType === 'PRANZO'
+            )
           if (worksNextMorning) continue
+          }
         }
-      }
-
+        
       // CALCOLO SCORE INTELLIGENTE
-      let score = 100
+        let score = 100
       let reasonParts: string[] = []
 
       // ⭐ BONUS MASSIMO per utenti prioritari (valentino, mario, alessio)
       if (this.isPriorityUser(user.username)) {
         score += 500
         reasonParts.push('🌟 PRIORITARIO')
+
+        // 🎯 BONUS EXTRA per ruolo preferito (valentino→PIZZAIOLO, mario→CUCINA)
+        const preferredRole = this.VIP_ROLE_PREFERENCES[user.username]
+        if (preferredRole && requirement.role === preferredRole) {
+          score += 150
+          reasonParts.push('🎯 RUOLO-PREFERITO')
+        }
+
+        // 🤝 COORDINAMENTO VIP: Verifica se l'altro VIP è già nel turno
+        // Se valentino e mario lavorano insieme, ottimizza la distribuzione
+        if (user.username === 'valentino.dipietro' || user.username === 'mario.dipietro') {
+          const otherVip = user.username === 'valentino.dipietro' ? 'mario.dipietro' : 'valentino.dipietro'
+          
+          // Cerca tutti i turni dello stesso giorno/shiftType e trova l'altro VIP
+          const turnShifts = currentSchedule.filter(s => 
+            s.dayOfWeek === requirement.dayOfWeek &&
+            s.shiftType === requirement.shiftType
+          )
+
+          // Trova se l'altro VIP è già in questo turno
+          for (const shift of turnShifts) {
+            const shiftUser = users.find(u => u.id === shift.userId)
+            if (shiftUser && shiftUser.username === otherVip) {
+              const otherRole = shift.role
+              
+              // Scenario: l'altro VIP è già nel turno con otherRole
+              // Vogliamo: valentino=PIZZAIOLO, mario=CUCINA
+              
+              if (user.username === 'valentino.dipietro') {
+                if (requirement.role === 'PIZZAIOLO' && otherRole === 'CUCINA') {
+                  // ✅ PERFETTO: valentino→PIZZAIOLO, mario→CUCINA
+                  score += 100
+                  reasonParts.push('🤝 SYNC-PERFETTO')
+                } else if (requirement.role === 'CUCINA' && otherRole === 'PIZZAIOLO') {
+                  // ⚠️ SUBOTTIMALE: valentino→CUCINA, mario→PIZZAIOLO
+                  score -= 50
+                  reasonParts.push('⚠️ sync-subottimale')
+                }
+              } else if (user.username === 'mario.dipietro') {
+                if (requirement.role === 'CUCINA' && otherRole === 'PIZZAIOLO') {
+                  // ✅ PERFETTO: valentino→PIZZAIOLO, mario→CUCINA
+                  score += 100
+                  reasonParts.push('🤝 SYNC-PERFETTO')
+                } else if (requirement.role === 'PIZZAIOLO' && otherRole === 'CUCINA') {
+                  // ⚠️ SUBOTTIMALE: mario→PIZZAIOLO, valentino→CUCINA
+                  score -= 50
+                  reasonParts.push('⚠️ sync-subottimale')
+                }
+              }
+              break // Trovato l'altro VIP, esci dal loop
+            }
+          }
+        }
       }
 
       // 🎯 NUOVO: Bonus per scarsità del ruolo
@@ -954,7 +1126,7 @@ export class MaxCoverageAlgorithm {
         // Ruolo SCARSO: medio bonus
         score += isPrimaryRole ? 60 : 35
         reasonParts.push(`🟡SCARSO(${scarcity.toFixed(1)})`)
-      } else {
+        } else {
         // Ruolo OK: bonus standard
         score += isPrimaryRole ? 50 : 20
         reasonParts.push(isPrimaryRole ? 'primario' : 'secondario')
@@ -997,7 +1169,7 @@ export class MaxCoverageAlgorithm {
       // Penalità proporzionale al carico (ridotta per utenti prioritari)
       if (this.isPriorityUser(user.username)) {
         score -= userShiftsCount * 1  // Penalità minima per prioritari
-      } else {
+        } else {
         score -= userShiftsCount * 3  // Penalità normale per altri
       }
 
