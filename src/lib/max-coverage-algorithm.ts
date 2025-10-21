@@ -67,7 +67,8 @@ export class MaxCoverageAlgorithm {
   private readonly PRIORITY_USERS = [
     'valentino.dipietro',
     'mario.dipietro', 
-    'alessio.tshimanga'
+    'alessio.tshimanga',
+    'giulia' // ⭐ Giulia ha precedenza: quando disponibile, deve lavorare
   ]
 
   private readonly CUSTOM_START_TIMES: Record<string, { pranzo: string; cena: string }> = {

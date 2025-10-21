@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
 
+// ⚠️ IMPORTANTE: Disabilita cache per avere sempre dati aggiornati
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -88,9 +92,16 @@ export async function GET(request: NextRequest) {
     console.log(`✅ Trovati ${users.length} utenti`)
     console.log(`📊 Disponibilità totali: ${users.reduce((sum, u) => sum + u.availabilities.length, 0)}`)
 
+    // ⚠️ Headers anti-cache per garantire dati sempre freschi
     return NextResponse.json({
       users: usersAvailability,
       weekStart: weekStart.toISOString()
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     })
   } catch (error) {
     console.error('Error fetching availability overview:', error)

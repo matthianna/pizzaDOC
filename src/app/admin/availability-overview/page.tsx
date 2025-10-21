@@ -40,7 +40,18 @@ export default function AvailabilityOverviewPage() {
   const fetchAvailability = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/availability-overview?weekStart=${currentWeek.toISOString()}`)
+      // ⚠️ Aggiungi timestamp per forzare bypass cache browser
+      const timestamp = new Date().getTime()
+      const response = await fetch(
+        `/api/admin/availability-overview?weekStart=${currentWeek.toISOString()}&_t=${timestamp}`,
+        {
+          cache: 'no-store', // ⚠️ Disabilita cache browser
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }
+      )
       if (response.ok) {
         const data = await response.json()
         setUsersAvailability(data.users)
@@ -107,7 +118,7 @@ export default function AvailabilityOverviewPage() {
 
               <div className="text-center px-4">
                 <div className="text-lg font-semibold text-gray-900">
-                  {format(currentWeek, 'dd MMM', { locale: it })} - {format(addWeeks(currentWeek, 1), 'dd MMM yyyy', { locale: it })}
+                  {format(currentWeek, 'dd MMM', { locale: it })} - {format(addDays(currentWeek, 6), 'dd MMM yyyy', { locale: it })}
                 </div>
               </div>
 

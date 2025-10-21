@@ -180,7 +180,18 @@ export default function DashboardPage() {
 
   const fetchPendingHours = async () => {
     try {
-      const response = await fetch('/api/dashboard/pending-hours')
+      // ⚠️ Aggiungi timestamp per forzare bypass cache browser
+      const timestamp = new Date().getTime()
+      const response = await fetch(
+        `/api/dashboard/pending-hours?_t=${timestamp}`,
+        {
+          cache: 'no-store', // ⚠️ Disabilita cache browser
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }
+      )
       if (response.ok) {
         const data = await response.json()
         setPendingHours(data)
@@ -192,7 +203,18 @@ export default function DashboardPage() {
 
   const fetchMissingHours = async () => {
     try {
-      const response = await fetch('/api/dashboard/missing-hours')
+      // ⚠️ Aggiungi timestamp per forzare bypass cache browser
+      const timestamp = new Date().getTime()
+      const response = await fetch(
+        `/api/dashboard/missing-hours?_t=${timestamp}`,
+        {
+          cache: 'no-store', // ⚠️ Disabilita cache browser
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }
+      )
       if (response.ok) {
         const data = await response.json()
         setMissingHours(data)
@@ -307,6 +329,63 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Pending Hours Alert - Solo per admin */}
+        {isAdmin && pendingHours && pendingHours.totalShifts > 0 && (
+          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl shadow-md overflow-hidden">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                    <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold text-orange-900 mb-1">
+                    ⏰ Ore Lavorate da Confermare
+                  </h3>
+                  <p className="text-sm sm:text-base text-orange-800 mb-3">
+                    Ci {pendingHours.totalShifts === 1 ? 'è' : 'sono'} <span className="font-bold">{pendingHours.totalShifts}</span> {pendingHours.totalShifts === 1 ? 'turno' : 'turni'} di <span className="font-bold">{pendingHours.totalUsers}</span> {pendingHours.totalUsers === 1 ? 'dipendente' : 'dipendenti'} in attesa di conferma.
+                  </p>
+                  
+                  {/* Mostra i primi utenti con ore in sospeso */}
+                  <div className="space-y-2 mb-4">
+                    {pendingHours.users.slice(0, 3).map((userPending) => (
+                      <div key={userPending.user.id} className="flex items-center justify-between p-2 sm:p-3 bg-white/60 backdrop-blur-sm rounded-lg border border-orange-200">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
+                            {userPending.user.username}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {userPending.shiftsCount} {userPending.shiftsCount === 1 ? 'turno' : 'turni'} • {userPending.totalHours.toFixed(2)} ore
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0 ml-2">
+                          <Clock className="h-4 w-4 text-orange-500" />
+                        </div>
+                      </div>
+                    ))}
+                    {pendingHours.totalUsers > 3 && (
+                      <p className="text-xs text-orange-700 italic pl-2">
+                        ... e altri {pendingHours.totalUsers - 3} {pendingHours.totalUsers - 3 === 1 ? 'dipendente' : 'dipendenti'}
+                      </p>
+                    )}
+                  </div>
+
+                  <a
+                    href="/admin/hours"
+                    className="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors shadow-sm text-sm"
+                  >
+                    Conferma le Ore
+                    <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Chi lavora oggi - Minimalista */}
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
           <div className="flex items-center mb-4">
@@ -334,32 +413,32 @@ export default function DashboardPage() {
                     <div key={shiftType} className="border-l-4 border-gray-300 pl-4">
                       <h3 className="font-semibold text-gray-800 mb-3 uppercase text-sm">
                         {shiftType}
-                      </h3>
+                          </h3>
                       
                       <div className="space-y-4">
                         {Object.entries(shiftsByRole).map(([role, roleShifts]) => (
                           <div key={role}>
                             <div className="text-xs font-semibold text-gray-600 mb-2 uppercase">
                               {getRoleName(role as Role)} ({roleShifts.length})
-                            </div>
+                              </div>
                             <div className="space-y-1">
                               {roleShifts.map((shift) => (
-                                <div 
-                                  key={shift.id} 
+                                    <div 
+                                      key={shift.id} 
                                   className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition"
                                 >
                                   <span className="text-sm font-medium text-gray-900">
-                                    {shift.user.username}
+                                            {shift.user.username}
                                   </span>
                                   <div className="flex items-center gap-3 text-xs text-gray-600">
                                     <span>{shift.startTime}</span>
-                                    {role === 'FATTORINO' && shift.user.primaryTransport && (
+                                            {role === 'FATTORINO' && shift.user.primaryTransport && (
                                       <span className="text-gray-400">
                                         {shift.user.primaryTransport === 'AUTO' ? '🚗' : '🏍️'}
                                       </span>
-                                    )}
-                                  </div>
-                                </div>
+                                            )}
+                                          </div>
+                                        </div>
                               ))}
                             </div>
                           </div>
