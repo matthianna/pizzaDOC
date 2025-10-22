@@ -84,6 +84,9 @@ export async function POST(request: NextRequest) {
       where: {
         id: shiftId,
         userId: session.user.id
+      },
+      include: {
+        schedules: true
       }
     })
 
@@ -91,6 +94,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Shift not found or not assigned to you' },
         { status: 404 }
+      )
+    }
+
+    // ⏰ Verifica che il turno sia effettivamente iniziato
+    const weekStart = new Date(shift.schedules.weekStart)
+    weekStart.setHours(0, 0, 0, 0)
+    const shiftDate = addDays(weekStart, shift.dayOfWeek)
+    
+    const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number)
+    const shiftStartDateTime = new Date(shiftDate)
+    shiftStartDateTime.setHours(shiftStartHour, shiftStartMinute, 0, 0)
+    
+    const now = new Date()
+    if (shiftStartDateTime > now) {
+      return NextResponse.json(
+        { error: `Non puoi inserire le ore prima che il turno inizi (alle ${shift.startTime})` },
+        { status: 400 }
       )
     }
 

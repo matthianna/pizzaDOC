@@ -152,7 +152,7 @@ export default function HoursPage() {
       const isResubmission = shift.workedHours && shift.workedHours.status === 'REJECTED'
       const method = isResubmission ? 'PUT' : 'POST'
       const url = isResubmission 
-        ? `/api/user/worked-hours/${shift.workedHours.id}` 
+        ? `/api/user/worked-hours/${shift.workedHours?.id}` 
         : '/api/user/worked-hours'
       
       const response = await fetch(url, {
@@ -418,7 +418,15 @@ function ShiftCard({
 
   // Calculate the actual date of the shift
   const shiftDate = addDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
-  const isPastShift = shiftDate < new Date()
+  
+  // ⏰ Calcola l'orario esatto di inizio del turno per determinare se è possibile inserire le ore
+  const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number)
+  const shiftStartDateTime = new Date(shiftDate)
+  shiftStartDateTime.setHours(shiftStartHour, shiftStartMinute, 0, 0)
+  
+  // ✅ Il turno deve essere iniziato (non solo la data passata) per inserire le ore
+  const hasShiftStarted = shiftStartDateTime <= new Date()
+  const isPastShift = hasShiftStarted
 
   // Set default times based on shift type
   useEffect(() => {
@@ -682,11 +690,16 @@ function ShiftCard({
             </div>
           </div>
         ) : (
-          // Future shift
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-            <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 mx-auto mb-2" />
-            <p className="text-blue-700 font-medium">Turno futuro</p>
-            <p className="text-blue-600 text-sm">Potrai inserire le ore dopo aver completato il turno</p>
+          // Future shift - not yet started
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-6 text-center">
+            <Clock className="h-8 w-8 text-amber-600 mx-auto mb-3" />
+            <p className="text-amber-900 font-semibold text-lg mb-1">Turno non ancora iniziato</p>
+            <p className="text-amber-700 text-sm mb-2">
+              Potrai inserire le ore <strong>dopo le {shift.startTime}</strong>
+            </p>
+            <p className="text-amber-600 text-xs">
+              ⏰ Il turno deve essere iniziato per poter registrare le ore lavorate
+            </p>
           </div>
         )}
       </div>

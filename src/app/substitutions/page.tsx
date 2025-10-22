@@ -151,6 +151,15 @@ export default function SubstitutionsPage() {
     return addDays(weekStart, shift.dayOfWeek)
   }
 
+  // ⏰ Calcola l'orario esatto di inizio del turno
+  const getShiftStartDateTime = (shift: Shift) => {
+    const shiftDate = getShiftDate(shift)
+    const [hours, minutes] = shift.startTime.split(':').map(Number)
+    const startDateTime = new Date(shiftDate)
+    startDateTime.setHours(hours, minutes, 0, 0)
+    return startDateTime
+  }
+
   const getStatusIcon = (status: SubstitutionStatus) => {
     switch (status) {
       case 'PENDING':
@@ -252,10 +261,12 @@ export default function SubstitutionsPage() {
               ) : (
                 availableSubstitutions.map((substitution) => {
                   const shiftDate = getShiftDate(substitution.shifts)
+                  const shiftStartDateTime = getShiftStartDateTime(substitution.shifts)
                   
                   // Check if user can apply based on multiple criteria
                   const userHasRequiredRole = session?.user?.roles?.includes(substitution.shifts.role) || false
-                  const isNotPastDeadline = !isPast(shiftDate)
+                  // ✅ Verifica l'orario di inizio del turno, non solo la data
+                  const isNotPastDeadline = !isPast(shiftStartDateTime)
                   const isPending = substitution.status === 'PENDING'
                   const isNotOwnRequest = substitution.requesterId !== session?.user?.id
                   

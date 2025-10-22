@@ -169,15 +169,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if shift is in the future
+    // Check if shift has already started
     const weekStart = normalizeDate(shift.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
     const shiftDate = addDays(weekStart, shift.dayOfWeek)
+    
+    // Parse shift start time (format: "HH:MM")
+    const [startHour, startMinute] = shift.startTime.split(':').map(Number)
+    const shiftStartDateTime = new Date(shiftDate)
+    shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
+    
     const now = new Date()
 
-    if (shiftDate <= now) {
+    // ✅ Permetti sostituzioni fino all'orario di inizio del turno
+    if (shiftStartDateTime <= now) {
       return NextResponse.json(
-        { error: 'Cannot request substitution for past shifts' },
+        { error: 'Il turno è già iniziato. Non è più possibile richiedere una sostituzione.' },
         { status: 400 }
       )
     }
@@ -199,9 +206,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Set deadline to 2 hours before the shift
-    const deadline = new Date(shiftDate)
-    deadline.setHours(deadline.getHours() - 2)
+    // ⏰ Set deadline all'orario di inizio del turno (non più 2 ore prima)
+    const deadline = shiftStartDateTime
 
     // Create substitution request
     const substitution = await prisma.substitutions.create({

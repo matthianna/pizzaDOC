@@ -62,22 +62,28 @@ export async function POST(
       )
     }
 
-    // Check if deadline has passed
-    if (new Date() >= new Date(substitution.deadline)) {
-      return NextResponse.json(
-        { error: 'Substitution request deadline has passed' },
-        { status: 400 }
-      )
-    }
-
-    // Check if shift is in the future
+    // Check if shift has already started
     const weekStart = normalizeDate(substitution.shifts.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
     const shiftDate = addDays(weekStart, substitution.shifts.dayOfWeek)
     
-    if (shiftDate <= new Date()) {
+    // Parse shift start time (format: "HH:MM")
+    const [startHour, startMinute] = substitution.shifts.startTime.split(':').map(Number)
+    const shiftStartDateTime = new Date(shiftDate)
+    shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
+    
+    // ✅ Permetti candidature fino all'orario di inizio del turno
+    if (shiftStartDateTime <= new Date()) {
       return NextResponse.json(
-        { error: 'Cannot apply for past shifts' },
+        { error: 'Il turno è già iniziato. Non è più possibile candidarsi.' },
+        { status: 400 }
+      )
+    }
+    
+    // Check if deadline has passed (dovrebbe coincidere con l'orario di inizio)
+    if (new Date() >= new Date(substitution.deadline)) {
+      return NextResponse.json(
+        { error: 'Il periodo per candidarsi è scaduto.' },
         { status: 400 }
       )
     }

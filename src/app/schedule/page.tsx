@@ -287,7 +287,14 @@ export default function SchedulePage() {
                     <div className="space-y-2">
                       {dayShifts.map((shift) => {
                         const shiftDate = addDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
-                        const isFutureShift = !isPast(shiftDate)
+                        
+                        // ⏰ Calcola l'orario esatto di inizio del turno per determinare se è ancora possibile richiedere sostituzione
+                        const [startHour, startMinute] = shift.startTime.split(':').map(Number)
+                        const shiftStartDateTime = new Date(shiftDate)
+                        shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
+                        
+                        // ✅ Un turno è "futuro" se non è ancora iniziato (controlla data + orario)
+                        const isFutureShift = !isPast(shiftStartDateTime)
                         const shiftEnded = isShiftEnded(shift)
                         const needsHours = needsHoursEntry(shift)
                         
