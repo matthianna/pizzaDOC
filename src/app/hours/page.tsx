@@ -581,6 +581,7 @@ function ShiftCard({
                         <option value="18:30">18:30</option>
                         <option value="19:00">19:00</option>
                         <option value="19:30">19:30</option>
+                        <option value="20:00">20:00</option>
                       </>
                     )}
                   </select>
