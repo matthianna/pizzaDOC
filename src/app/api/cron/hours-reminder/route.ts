@@ -14,14 +14,30 @@ export const revalidate = 0
  */
 export async function GET(request: NextRequest) {
   try {
-    // 🔒 Verifica autenticazione cron (Vercel invia header Authorization)
+    // 🔒 Verifica autenticazione:
+    // 1. Vercel Cron invia automaticamente un header speciale
+    // 2. Oppure si può usare un CRON_SECRET per chiamate manuali
     const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    const vercelCronHeader = request.headers.get('x-vercel-cron') // Header speciale di Vercel
+    const cronSecret = process.env.CRON_SECRET
+    
+    // Accetta se:
+    // - È una chiamata da Vercel Cron (header x-vercel-cron presente)
+    // - Oppure ha il CRON_SECRET corretto (se configurato)
+    const isVercelCron = vercelCronHeader !== null
+    const hasValidSecret = cronSecret && authHeader === `Bearer ${cronSecret}`
+    
+    if (!isVercelCron && cronSecret && !hasValidSecret) {
       console.error('❌ [CRON hours-reminder] Unauthorized request')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ 
+        error: 'Unauthorized',
+        hint: 'Use Authorization: Bearer <CRON_SECRET> header or wait for Vercel to run the cron automatically'
+      }, { status: 401 })
     }
 
-    console.log('⏰ [CRON hours-reminder] Starting hours reminder job...')
+    console.log('⏰ [CRON hours-reminder] Starting hours reminder job...', {
+      triggeredBy: isVercelCron ? 'Vercel Cron' : 'Manual call'
+    })
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)

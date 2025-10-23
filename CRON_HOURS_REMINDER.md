@@ -86,12 +86,20 @@ https://pizzadoc.vercel.app/hours
 
 ## 🔒 Autenticazione
 
-Il cron è protetto da autenticazione Bearer token:
+Il cron accetta due modalità di autenticazione:
+
+### **1. Vercel Cron (AUTOMATICA)** ✅
+Quando Vercel esegue il cron automaticamente, invia l'header `x-vercel-cron` che viene riconosciuto e accettato.
+
+**Nessuna configurazione richiesta!**
+
+### **2. Chiamata Manuale (OPZIONALE)**
+Se vuoi chiamare il cron manualmente (per test), puoi configurare `CRON_SECRET`:
 ```typescript
 Authorization: Bearer ${process.env.CRON_SECRET}
 ```
 
-**Nota**: Vercel invia automaticamente questo header quando esegue il cron.
+**Nota**: Il `CRON_SECRET` è opzionale e serve solo per chiamate manuali.
 
 ---
 
@@ -197,10 +205,12 @@ Il cron genera log dettagliati:
 
 ## 🔧 Configurazione Ambiente
 
-### **Variabili richieste**:
+### **Variabili opzionali**:
 ```env
-CRON_SECRET=your_secret_token
+CRON_SECRET=your_secret_token  # ⚠️ OPZIONALE - solo per chiamate manuali
 ```
+
+**Nota**: Vercel gestisce automaticamente l'autenticazione dei cron job, quindi `CRON_SECRET` non è necessario per il funzionamento automatico.
 
 ### **Impostazioni Database**:
 ```sql
@@ -258,8 +268,18 @@ Vercel rileverà automaticamente il nuovo cron job e lo attiverà.
    - Dashboard > Project > Functions > Logs
 
 ### **Errore 401 Unauthorized**
-- Il header `Authorization` non è corretto
-- `CRON_SECRET` non è configurato in Vercel
+Questo errore si verifica solo se:
+- Stai chiamando il cron **manualmente** (non da Vercel)
+- E hai configurato `CRON_SECRET` ma l'header è errato
+
+**Soluzione per chiamate da Vercel:**
+- ✅ Vercel invia automaticamente l'header `x-vercel-cron`
+- ✅ Non serve configurare `CRON_SECRET`
+- ✅ Il cron funziona automaticamente
+
+**Soluzione per chiamate manuali:**
+- Rimuovi `CRON_SECRET` dalle variabili d'ambiente
+- Oppure usa l'header: `Authorization: Bearer <tuo_CRON_SECRET>`
 
 ### **Nessuna ora mancante ma dipendenti hanno turni**
 - Verifica che `trackHours = true` per i dipendenti
