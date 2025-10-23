@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
       message += `\n📝 Inserisci le ore su:\nhttps://pizzadoc.vercel.app/hours`
 
       // Invia messaggio
-      await whatsappService.sendMessage(groupChatId, message)
+      await whatsappService.sendMessage({ phoneNumber: groupChatId, message })
 
       console.log(`✅ [CRON hours-reminder] Messaggio inviato con successo al gruppo`)
       console.log(`📊 [CRON hours-reminder] ${result.length} ${result.length === 1 ? 'dipendente' : 'dipendenti'} nella lista`)

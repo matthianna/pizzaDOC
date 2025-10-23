@@ -71,6 +71,21 @@ export class WhatsAppService {
       }
     }
 
+    // ⚠️ Validazione parametri
+    if (!phoneNumber || typeof phoneNumber !== 'string') {
+      return {
+        success: false,
+        error: 'phoneNumber is required and must be a string'
+      }
+    }
+
+    if (!message || typeof message !== 'string') {
+      return {
+        success: false,
+        error: 'message is required and must be a string'
+      }
+    }
+
     // Se è già un group chat ID (contiene @g.us), usalo direttamente
     if (phoneNumber.includes('@g.us')) {
       try {
