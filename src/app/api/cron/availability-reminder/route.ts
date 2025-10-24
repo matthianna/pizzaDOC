@@ -44,10 +44,13 @@ export async function GET(request: NextRequest) {
     const today = new Date()
     const nextMonday = startOfWeek(addDays(today, 7), { weekStartsOn: 1 })
     const weekStart = normalizeDate(nextMonday)
+    
+    // Calcola l'ultimo giorno della settimana prossima (domenica)
+    const weekEnd = normalizeDate(addDays(weekStart, 6))
 
-    console.log(`📅 Checking availability for week: ${weekStart.toISOString()}`)
+    console.log(`📅 Checking availability for week: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`)
 
-    // Trova tutti gli utenti attivi
+    // Trova tutti gli utenti attivi con disponibilità e assenze
     const activeUsers = await prisma.user.findMany({
       where: { isActive: true },
       select: {
@@ -57,17 +60,37 @@ export async function GET(request: NextRequest) {
         availabilities: {
           where: { weekStart },
           select: { id: true }
+        },
+        absences: {
+          where: {
+            date: {
+              gte: weekStart,
+              lte: weekEnd
+            },
+            approved: true // Solo assenze approvate
+          },
+          select: { id: true, date: true }
         }
       }
     })
 
     // Filtra utenti senza disponibilità per la settimana prossima
     // Escludi l'utente "admin" dalla lista
-    const usersWithoutAvailability = activeUsers.filter(
-      user => user.availabilities.length === 0 && user.username.toLowerCase() !== 'admin'
-    )
+    // Escludi utenti che hanno assenze per TUTTI i 7 giorni della settimana
+    const usersWithoutAvailability = activeUsers.filter(user => {
+      const hasNoAvailability = user.availabilities.length === 0
+      const isNotAdmin = user.username.toLowerCase() !== 'admin'
+      const hasLessThan7Absences = user.absences.length < 7
+      
+      // Log per debug
+      if (hasNoAvailability && isNotAdmin && !hasLessThan7Absences) {
+        console.log(`⏭️ Skipping ${user.username}: has ${user.absences.length} absences (full week off)`)
+      }
+      
+      return hasNoAvailability && isNotAdmin && hasLessThan7Absences
+    })
 
-    console.log(`📊 Found ${usersWithoutAvailability.length} users without availability`)
+    console.log(`📊 Found ${usersWithoutAvailability.length} users without availability (after filtering full-week absences)`)
 
     // Recupera impostazioni WhatsApp
     const [groupChatIdSetting, notificationsEnabledSetting] = await Promise.all([
