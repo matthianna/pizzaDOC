@@ -653,7 +653,7 @@ export class MaxCoverageAlgorithm {
             
             // Verifica limite scooter se cambio comporta fattorini
             let canSwap = true
-            if (toRole === 'FATTORINO') {
+            if (toRole === 'FATTORINO' && userProfile.primaryTransport === 'SCOOTER') {
               // Esclude temporaneamente questo turno per il check
               const scheduleWithoutCurrent = schedule.filter(s => 
                 !(s.userId === shiftToMove.userId && s.dayOfWeek === day && s.shiftType === shift)
@@ -665,10 +665,20 @@ export class MaxCoverageAlgorithm {
                 shift,
                 transportLimits.maxScooter
               )
+              
+              if (!canSwap) {
+                // Controlla se ha mezzi alternativi (AUTO)
+                const hasAlternativeTransport = userProfile.transports.some(t => t !== 'SCOOTER')
+                
+                if (hasAlternativeTransport) {
+                  canSwap = true // Può fare lo swap usando AUTO
+                  console.log(`      🚗 ${userProfile.username}: usa AUTO per swap (limite scooter raggiunto)`)
+                }
+              }
             }
             
             if (!canSwap) {
-              console.log(`      ⛔ ${userProfile.username}: limite scooter raggiunto`)
+              console.log(`      ⛔ ${userProfile.username}: limite scooter raggiunto, no alternative`)
               continue
             }
             
@@ -742,7 +752,7 @@ export class MaxCoverageAlgorithm {
             if (added >= currentGap) break
             
             // Verifica vincolo scooter se necessario
-            if (toRole === 'FATTORINO') {
+            if (toRole === 'FATTORINO' && user.primaryTransport === 'SCOOTER') {
               const canAdd = await this.checkScooterLimit(
                 user,
                 schedule,
@@ -750,9 +760,17 @@ export class MaxCoverageAlgorithm {
                 shift,
                 transportLimits.maxScooter
               )
+              
               if (!canAdd) {
-                console.log(`         ⛔ ${user.username}: limite scooter raggiunto`)
-                continue
+                // Controlla se ha mezzi alternativi (AUTO)
+                const hasAlternativeTransport = user.transports.some(t => t !== 'SCOOTER')
+                
+                if (!hasAlternativeTransport) {
+                  console.log(`         ⛔ ${user.username}: limite scooter raggiunto, no alternative`)
+                  continue
+                }
+                // Ha alternative, può essere assegnato con AUTO
+                console.log(`         🚗 ${user.username}: usa AUTO (limite scooter raggiunto)`)
               }
             }
             
@@ -853,7 +871,8 @@ export class MaxCoverageAlgorithm {
       }
 
       // Trova e ordina candidati per score (con context dei gap e scarsità ruoli)
-      const candidates = this.findCandidatesWithScore(users, req, schedule, mode, roleScarcity, currentGaps)
+      // Il controllo del limite scooter è già integrato nella funzione
+      const candidates = await this.findCandidatesWithScore(users, req, schedule, mode, roleScarcity, transportLimits, currentGaps)
       
       if (candidates.length === 0) {
         console.log(`      ❌ Nessun candidato disponibile`)
@@ -879,24 +898,10 @@ export class MaxCoverageAlgorithm {
       let assignedCount2 = 0
       for (const candidate of candidates) {
         if (assignedCount2 >= needed) break
-
-        // Verifica limite scooter
-        const canAssignScooter = await this.checkScooterLimit(
-          candidate.user,
-          schedule,
-          req.dayOfWeek,
-          req.shiftType,
-          transportLimits.maxScooter
-        )
-        
-        if (!canAssignScooter) {
-          console.log(`      ⛔ ${candidate.user.username}: limite scooter raggiunto`)
-          continue
-        }
         
         // Ottieni orario ottimale (con supporto orari personalizzati)
         const startTime = await this.getOptimalStartTime(
-          req.shiftType, 
+          req.shiftType,
           req.role, 
           req.dayOfWeek, 
           assignedStartTimes,
@@ -981,15 +986,17 @@ export class MaxCoverageAlgorithm {
    * 1. Un dipendente DEVE essere disponibile per essere assegnato
    * 2. Un dipendente può lavorare sia PRANZO che CENA nello stesso giorno
    * 3. Un dipendente NON può fare 2 ruoli nello stesso turno (stesso giorno + stesso shiftType)
+   * 4. I fattorini con scooter devono rispettare il limite scooter del turno
    */
-  private findCandidatesWithScore(
+  private async findCandidatesWithScore(
     users: UserProfile[], 
     requirement: ShiftRequirement,
     currentSchedule: ScheduleShift[],
     mode: 'vip' | 'primary' | 'secondary' | 'flexible',
     roleScarcity: Record<Role, { demand: number; supply: number; scarcityScore: number }>,
+    transportLimits: { maxScooter: number },
     turnGaps?: Record<Role, { required: number; assigned: number; gap: number }>
-  ): CandidateScore[] {
+  ): Promise<CandidateScore[]> {
     
     const candidates: CandidateScore[] = []
 
@@ -1026,6 +1033,33 @@ export class MaxCoverageAlgorithm {
           shift.shiftType === requirement.shiftType
         )
       if (alreadyAssignedThisShift) continue
+
+      // VINCOLO 4.5: 🛵 Limite scooter per fattorini
+      // Se il ruolo è FATTORINO e l'utente usa SCOOTER come mezzo primario
+      let usesAlternativeTransport = false
+      if (requirement.role === 'FATTORINO' && user.primaryTransport === 'SCOOTER') {
+        const canAssignScooter = await this.checkScooterLimit(
+          user,
+          currentSchedule,
+          requirement.dayOfWeek,
+          requirement.shiftType,
+          transportLimits.maxScooter
+        )
+        
+        // Se il limite scooter è raggiunto, controlla se ha mezzi alternativi
+        if (!canAssignScooter) {
+          // Verifica se ha AUTO o altri mezzi disponibili
+          const hasAlternativeTransport = user.transports.some(t => t !== 'SCOOTER')
+          
+          if (!hasAlternativeTransport) {
+            // Non ha alternative, deve essere skippato
+            continue
+          }
+          // Ha alternative (AUTO/BICI), può essere assegnato comunque!
+          // (In questo caso userà l'auto invece dello scooter)
+          usesAlternativeTransport = true
+        }
+      }
 
       // VINCOLO 5 (mode-specific): Riposo tra turni consecutivi
       // VIP e flexible ignorano questo vincolo per massimizzare copertura
@@ -1212,6 +1246,11 @@ export class MaxCoverageAlgorithm {
         if (currentRoleGap.gap > 0) {
           reasonParts.push(`gap: ${currentRoleGap.gap}`)
         }
+      }
+
+      // 🚗 Nota se usa mezzo alternativo (AUTO invece di SCOOTER)
+      if (usesAlternativeTransport) {
+        reasonParts.push('🚗 usa AUTO')
       }
 
       candidates.push({
