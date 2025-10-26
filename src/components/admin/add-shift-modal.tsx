@@ -100,19 +100,18 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
     }
   }
 
+  // ⭐ PRIMO CARICAMENTO: esegue subito all'apertura del modal
   useEffect(() => {
-    // ⭐ Ricarica utenti quando weekStart cambia!
+    console.log('🚀 [Modal] Apertura modal - caricamento iniziale')
     fetchUsers()
-  }, [weekStart])
-
-  useEffect(() => {
-    // ⭐ Ricarica TUTTO quando cambiano giorno, turno o settimana
-    // Questo garantisce che le disponibilità siano sempre aggiornate
     fetchExistingShifts()
-    // Ricarica anche gli utenti per avere disponibilità fresche
-    if (!loading) {
-      fetchUsers()
-    }
+  }, []) // Array vuoto = solo al mount
+
+  // ⭐ Ricarica quando cambiano giorno, turno o settimana
+  useEffect(() => {
+    console.log('🔄 [Modal] Cambio parametri - ricaricamento dati')
+    fetchExistingShifts()
+    fetchUsers()
   }, [selectedDay, selectedShiftType, weekStart])
 
   useEffect(() => {
