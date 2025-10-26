@@ -66,12 +66,19 @@ export async function GET() {
       }
     })
 
-    // Filter out past shifts
+    // Filter out past shifts (considera anche l'orario di inizio)
     const futureAvailable = availableSubstitutions.filter(sub => {
       const weekStart = normalizeDate(sub.shifts.schedules.weekStart)
       // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
       const shiftDate = addDays(weekStart, sub.shifts.dayOfWeek)
-      return shiftDate > now
+      
+      // Calcola l'orario esatto di inizio del turno
+      const [startHour, startMinute] = sub.shifts.startTime.split(':').map(Number)
+      const shiftStartDateTime = new Date(shiftDate)
+      shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
+      
+      // Confronta con l'orario di inizio del turno, non solo la data
+      return shiftStartDateTime > now
     })
 
     // Get user's own substitution requests

@@ -235,7 +235,13 @@ export default function SubstitutionRequestsPage() {
               ) : (
                 availableSubstitutions.map((substitution) => {
                   const shiftDate = getShiftDate(substitution.shifts)
-                  const canApply = substitution.status === 'PENDING' && !isPast(shiftDate)
+                  
+                  // Calcola l'orario esatto di inizio del turno
+                  const [startHour, startMinute] = substitution.shifts.startTime.split(':').map(Number)
+                  const shiftStartDateTime = new Date(shiftDate)
+                  shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
+                  
+                  const canApply = substitution.status === 'PENDING' && !isPast(shiftStartDateTime)
                   const isAlreadyApplied = substitution.substitute?.id === session.user.id
                   
                   return (
