@@ -40,26 +40,13 @@ export async function GET(request: NextRequest) {
       triggeredBy: isVercelCron ? 'Vercel Cron' : 'Manual call'
     })
 
-    // Calcola la settimana prossima (lunedì prossimo) in UTC
+    // Calcola la settimana prossima (lunedì prossimo)
     const today = new Date()
+    const nextMonday = startOfWeek(addDays(today, 7), { weekStartsOn: 1 })
+    const weekStart = normalizeDate(nextMonday)
     
-    // Trova il lunedì PROSSIMO usando solo UTC per evitare problemi di fuso orario
-    const todayUTC = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
-    const todayUTCDate = new Date(todayUTC)
-    const dayOfWeek = todayUTCDate.getUTCDay() // 0=Domenica, 1=Lunedì, ..., 6=Sabato
-    
-    // Calcola giorni fino al prossimo lunedì
-    const daysUntilNextMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek)
-    
-    // Crea weekStart (lunedì prossimo a mezzanotte UTC)
-    const weekStart = new Date(todayUTC)
-    weekStart.setUTCDate(weekStart.getUTCDate() + daysUntilNextMonday)
-    weekStart.setUTCHours(0, 0, 0, 0)
-    
-    // Crea weekEnd (domenica successiva a 23:59:59.999 UTC)
-    const weekEnd = new Date(weekStart)
-    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6)
-    weekEnd.setUTCHours(23, 59, 59, 999)
+    // Calcola l'ultimo giorno della settimana prossima (domenica)
+    const weekEnd = normalizeDate(addDays(weekStart, 6))
 
     console.log(`📅 Checking availability for week: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`)
 
@@ -71,20 +58,18 @@ export async function GET(request: NextRequest) {
         username: true,
         phoneNumber: true,
         availabilities: {
-          where: { 
-            weekStart: {
-              equals: weekStart
-            }
-          },
-          select: { id: true, isAvailable: true }
+          where: { weekStart },
+          select: { id: true }
         },
         absences: {
           where: {
-            // Trova assenze che si sovrappongono con la settimana
-            startDate: { lte: weekEnd },
-            endDate: { gte: weekStart }
+            date: {
+              gte: weekStart,
+              lte: weekEnd
+            },
+            approved: true // Solo assenze approvate
           },
-          select: { id: true, startDate: true, endDate: true }
+          select: { id: true, date: true }
         }
       }
     })
@@ -93,38 +78,13 @@ export async function GET(request: NextRequest) {
     // Escludi l'utente "admin" dalla lista
     // Escludi utenti che hanno assenze per TUTTI i 7 giorni della settimana
     const usersWithoutAvailability = activeUsers.filter(user => {
-      // Un utente "ha disponibilità" solo se ha ALMENO UN giorno con isAvailable: true
-      const hasAtLeastOneAvailability = user.availabilities.some(a => a.isAvailable === true)
-      const hasNoAvailability = !hasAtLeastOneAvailability
+      const hasNoAvailability = user.availabilities.length === 0
       const isNotAdmin = user.username.toLowerCase() !== 'admin'
-      
-      // Calcola quanti giorni della settimana sono coperti da assenze
-      let coveredDays = new Set<number>()
-      for (const absence of user.absences) {
-        // Per ogni assenza, calcola quali giorni della settimana copre
-        const absenceStart = new Date(Math.max(absence.startDate.getTime(), weekStart.getTime()))
-        const absenceEnd = new Date(Math.min(absence.endDate.getTime(), weekEnd.getTime()))
-        
-        // Calcola i giorni tra start e end (inclusi)
-        const startDay = Math.floor((absenceStart.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24))
-        const endDay = Math.floor((absenceEnd.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24))
-        
-        for (let day = startDay; day <= endDay; day++) {
-          if (day >= 0 && day <= 6) {
-            coveredDays.add(day)
-          }
-        }
-      }
-      
-      const hasLessThan7Absences = coveredDays.size < 7
+      const hasLessThan7Absences = user.absences.length < 7
       
       // Log per debug
-      if (user.absences.length > 0) {
-        console.log(`📊 ${user.username}: ${user.absences.length} absences, covering ${coveredDays.size}/7 days`)
-      }
-      
       if (hasNoAvailability && isNotAdmin && !hasLessThan7Absences) {
-        console.log(`⏭️ Skipping ${user.username}: has absences covering all 7 days (full week off)`)
+        console.log(`⏭️ Skipping ${user.username}: has ${user.absences.length} absences (full week off)`)
       }
       
       return hasNoAvailability && isNotAdmin && hasLessThan7Absences
