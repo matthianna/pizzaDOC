@@ -52,24 +52,48 @@ export async function GET(request: NextRequest) {
 
     // Trova tutti gli utenti attivi con disponibilità e assenze
     const activeUsers = await prisma.user.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
+      },
       select: {
         id: true,
         username: true,
         phoneNumber: true,
         availabilities: {
           where: { weekStart },
-          select: { id: true }
+          select: { id: true, isAvailable: true }
         },
         absences: {
           where: {
-            date: {
-              gte: weekStart,
-              lte: weekEnd
-            },
-            approved: true // Solo assenze approvate
+            OR: [
+              {
+                AND: [
+                  { startDate: { lte: weekStart } },
+                  { endDate: { gte: weekEnd } }
+                ]
+              },
+              {
+                AND: [
+                  { startDate: { gte: weekStart } },
+                  { endDate: { lte: weekEnd } }
+                ]
+              },
+              {
+                AND: [
+                  { startDate: { lte: weekStart } },
+                  { endDate: { gte: weekStart, lte: weekEnd } }
+                ]
+              },
+              {
+                AND: [
+                  { startDate: { gte: weekStart, lte: weekEnd } },
+                  { endDate: { gte: weekEnd } }
+                ]
+              }
+            ]
           },
-          select: { id: true, date: true }
+          select: { id: true, startDate: true, endDate: true }
         }
       }
     })
@@ -78,16 +102,46 @@ export async function GET(request: NextRequest) {
     // Escludi l'utente "admin" dalla lista
     // Escludi utenti che hanno assenze per TUTTI i 7 giorni della settimana
     const usersWithoutAvailability = activeUsers.filter(user => {
-      const hasNoAvailability = user.availabilities.length === 0
+      // Controlla se ha VERA disponibilità (isAvailable: true)
+      const hasNoAvailability = !user.availabilities.some(a => a.isAvailable === true)
       const isNotAdmin = user.username.toLowerCase() !== 'admin'
-      const hasLessThan7Absences = user.absences.length < 7
       
-      // Log per debug
-      if (hasNoAvailability && isNotAdmin && !hasLessThan7Absences) {
-        console.log(`⏭️ Skipping ${user.username}: has ${user.absences.length} absences (full week off)`)
+      // Calcola quanti giorni della settimana sono coperti da assenze
+      const weekStartTime = weekStart.getTime()
+      const weekEndTime = weekEnd.getTime()
+      const oneDayMs = 24 * 60 * 60 * 1000
+      
+      // Crea set di tutti i giorni della settimana (7 giorni)
+      const weekDays = new Set<string>()
+      for (let i = 0; i < 7; i++) {
+        const dayDate = new Date(weekStartTime + i * oneDayMs)
+        weekDays.add(dayDate.toISOString().split('T')[0])
       }
       
-      return hasNoAvailability && isNotAdmin && hasLessThan7Absences
+      // Conta giorni coperti da assenze
+      const coveredDays = new Set<string>()
+      for (const absence of user.absences) {
+        const absenceStart = Math.max(absence.startDate.getTime(), weekStartTime)
+        const absenceEnd = Math.min(absence.endDate.getTime(), weekEndTime)
+        
+        let currentDay = absenceStart
+        while (currentDay <= absenceEnd) {
+          const dayStr = new Date(currentDay).toISOString().split('T')[0]
+          coveredDays.add(dayStr)
+          currentDay += oneDayMs
+        }
+      }
+      
+      // Se tutti i 7 giorni sono coperti da assenze, escludi l'utente
+      const allDaysCovered = weekDays.size === coveredDays.size && 
+                            Array.from(weekDays).every(day => coveredDays.has(day))
+      
+      // Log per debug
+      if (hasNoAvailability && isNotAdmin && allDaysCovered) {
+        console.log(`⏭️ Skipping ${user.username}: has ${coveredDays.size}/7 days covered by absences (full week off)`)
+      }
+      
+      return hasNoAvailability && isNotAdmin && !allDaysCovered
     })
 
     console.log(`📊 Found ${usersWithoutAvailability.length} users without availability (after filtering full-week absences)`)

@@ -55,7 +55,8 @@ export async function GET(request: NextRequest) {
         },
         user: {
           isActive: true,
-          trackHours: true
+          trackHours: true,
+          whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
         }
       },
       include: {
@@ -89,7 +90,8 @@ export async function GET(request: NextRequest) {
         },
         user: {
           isActive: true,
-          trackHours: true
+          trackHours: true,
+          whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
         }
       },
       include: {

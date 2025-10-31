@@ -17,7 +17,32 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { roles, primaryRole, transports, primaryTransport, isActive, trackHours } = await request.json()
+    const { roles, primaryRole, transports, primaryTransport, isActive, trackHours, whatsappNotificationsEnabled } = await request.json()
+
+    // Se la richiesta contiene solo whatsappNotificationsEnabled (quick toggle), fai un update semplice
+    if (whatsappNotificationsEnabled !== undefined && !roles && !primaryRole) {
+      const user = await prisma.User.update({
+        where: { id: id },
+        data: {
+          whatsappNotificationsEnabled,
+          updatedAt: new Date()
+        }
+      })
+
+      // Log audit
+      await logAuditAction({
+        userId: session.user.id,
+        userUsername: session.user.username,
+        action: 'USER_EDIT',
+        description: `Modificate notifiche WhatsApp per: ${user.username} → ${whatsappNotificationsEnabled ? 'Abilitate' : 'Disabilitate'}`,
+        metadata: {
+          userId: user.id,
+          whatsappNotificationsEnabled
+        }
+      })
+
+      return NextResponse.json(user)
+    }
 
     if (!roles || roles.length === 0 || !primaryRole) {
       return NextResponse.json(
@@ -43,6 +68,7 @@ export async function PUT(
         primaryTransport: primaryTransport || null,
         isActive,
         trackHours: trackHours ?? true,
+        whatsappNotificationsEnabled: whatsappNotificationsEnabled !== undefined ? whatsappNotificationsEnabled : undefined,
         updatedAt: new Date(),
         user_roles: {
           create: roles.map((role: string) => ({ 

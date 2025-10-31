@@ -19,7 +19,8 @@ import {
   UserPlusIcon,
   PresentationChartLineIcon,
   ShieldCheckIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline'
 import { 
   HomeIcon as HomeIconSolid,
@@ -32,7 +33,8 @@ import {
   UserPlusIcon as UserPlusIconSolid,
   PresentationChartLineIcon as PresentationChartLineIconSolid,
   ShieldCheckIcon as ShieldCheckIconSolid,
-  UserCircleIcon as UserCircleIconSolid
+  UserCircleIcon as UserCircleIconSolid,
+  BanknotesIcon as BanknotesIconSolid
 } from '@heroicons/react/24/solid'
 import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
@@ -166,6 +168,14 @@ export function Sidebar() {
       href: '/admin/hours-summary',
       icon: PresentationChartLineIcon,
       iconSolid: PresentationChartLineIconSolid,
+      adminOnly: true,
+      section: 'ore'
+    },
+    {
+      name: 'Acconti',
+      href: '/admin/advances',
+      icon: BanknotesIcon,
+      iconSolid: BanknotesIconSolid,
       adminOnly: true,
       section: 'ore'
     },

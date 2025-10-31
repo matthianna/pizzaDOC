@@ -102,16 +102,30 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
 
   // ⭐ PRIMO CARICAMENTO: esegue subito all'apertura del modal
   useEffect(() => {
-    console.log('🚀 [Modal] Apertura modal - caricamento iniziale')
-    fetchUsers()
-    fetchExistingShifts()
+    const loadInitialData = async () => {
+      setLoading(true)
+      console.log('🚀 [Modal] Apertura modal - caricamento iniziale')
+      await Promise.all([
+        fetchUsers(),
+        fetchExistingShifts()
+      ])
+      setLoading(false)
+      console.log('✅ [Modal] Caricamento iniziale completato')
+    }
+    loadInitialData()
   }, []) // Array vuoto = solo al mount
 
   // ⭐ Ricarica quando cambiano giorno, turno o settimana
   useEffect(() => {
-    console.log('🔄 [Modal] Cambio parametri - ricaricamento dati')
-    fetchExistingShifts()
-    fetchUsers()
+    const reloadData = async () => {
+      console.log('🔄 [Modal] Cambio parametri - ricaricamento dati')
+      await Promise.all([
+        fetchExistingShifts(),
+        fetchUsers()
+      ])
+      console.log('✅ [Modal] Ricaricamento completato')
+    }
+    reloadData()
   }, [selectedDay, selectedShiftType, weekStart])
 
   useEffect(() => {
@@ -149,7 +163,7 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
   const fetchUsers = async () => {
     try {
       // ⭐ PASSA weekStart per ottenere disponibilità della settimana specifica!
-      const weekStartStr = weekStart.toISOString().split('T')[0]
+      const weekStartStr = weekStart.toISOString()
       // ⚠️ Aggiungi timestamp per forzare bypass cache browser
       const timestamp = new Date().getTime()
       const response = await fetch(
@@ -172,14 +186,12 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
     } catch (error) {
       console.error('Error fetching users:', error)
       showToast('Errore nel caricamento utenti', 'error')
-    } finally {
-      setLoading(false)
     }
   }
 
   const fetchExistingShifts = async () => {
     try {
-      const weekStartStr = weekStart.toISOString().split('T')[0]
+      const weekStartStr = weekStart.toISOString()
       // ⚠️ Aggiungi timestamp per forzare bypass cache browser
       const timestamp = new Date().getTime()
       const response = await fetch(

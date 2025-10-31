@@ -15,6 +15,7 @@ interface User {
   username: string
   isActive: boolean
   trackHours: boolean
+  whatsappNotificationsEnabled: boolean
   primaryRole: Role
   primaryTransport: TransportType | null
   createdAt: string
@@ -94,6 +95,34 @@ export default function UsersPage() {
     }
   }
 
+  const toggleWhatsAppNotifications = async (userId: string, currentValue: boolean) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          whatsappNotificationsEnabled: !currentValue
+        })
+      })
+
+      if (response.ok) {
+        // Aggiorna lo stato locale
+        setUsers(users.map(u => 
+          u.id === userId 
+            ? { ...u, whatsappNotificationsEnabled: !currentValue }
+            : u
+        ))
+      } else {
+        alert('Errore durante l\'aggiornamento delle notifiche WhatsApp')
+      }
+    } catch (error) {
+      console.error('Error toggling WhatsApp notifications:', error)
+      alert('Errore durante l\'aggiornamento delle notifiche WhatsApp')
+    }
+  }
+
   if (loading) {
     return (
       <MainLayout adminOnly>
@@ -141,6 +170,9 @@ export default function UsersPage() {
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Trasporti
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Notifiche WhatsApp
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Stato
@@ -195,6 +227,21 @@ export default function UsersPage() {
                         </span>
                       ))}
                     </div>
+                  </td>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => toggleWhatsAppNotifications(user.id, user.whatsappNotificationsEnabled)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
+                        user.whatsappNotificationsEnabled ? 'bg-green-600' : 'bg-gray-300'
+                      }`}
+                      title={user.whatsappNotificationsEnabled ? 'Notifiche abilitate' : 'Notifiche disabilitate'}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          user.whatsappNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
                   </td>
                   <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                     <span

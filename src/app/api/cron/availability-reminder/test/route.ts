@@ -41,11 +41,15 @@ export async function GET(request: NextRequest) {
 
     // Trova tutti gli utenti attivi con disponibilità e assenze
     const activeUsers = await prisma.user.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
+      },
       select: {
         id: true,
         username: true,
         phoneNumber: true,
+        whatsappNotificationsEnabled: true, // Includi per debug
         availabilities: {
           where: { 
             weekStart: {
