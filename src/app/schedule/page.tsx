@@ -90,11 +90,13 @@ export default function SchedulePage() {
   }
 
   const goToPreviousWeek = () => {
-    setCurrentWeek(prev => subWeeks(prev, 1))
+    // ⭐ USA getWeekStart per garantire normalizzazione UTC corretta
+    setCurrentWeek(prev => getWeekStart(subWeeks(prev, 1)))
   }
 
   const goToNextWeek = () => {
-    setCurrentWeek(prev => addWeeks(prev, 1))
+    // ⭐ USA getWeekStart per garantire normalizzazione UTC corretta
+    setCurrentWeek(prev => getWeekStart(addWeeks(prev, 1)))
   }
 
   const goToCurrentWeek = () => {

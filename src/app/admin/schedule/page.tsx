@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { addWeeks, subWeeks } from 'date-fns'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit, ChevronDown, ChevronUp } from 'lucide-react'
-import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek } from '@/lib/date-utils'
+import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek, getWeekStart } from '@/lib/date-utils'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
 import { AddShiftModal } from '@/components/admin/add-shift-modal'
@@ -256,8 +257,10 @@ export default function AdminSchedulePage() {
   }
 
   const navigateWeek = (direction: 'prev' | 'next') => {
-    const newWeek = new Date(currentWeek)
-    newWeek.setDate(newWeek.getDate() + (direction === 'next' ? 7 : -7))
+    // ⭐ USA getWeekStart per garantire normalizzazione UTC corretta
+    const newWeek = direction === 'next' 
+      ? getWeekStart(addWeeks(currentWeek, 1))
+      : getWeekStart(subWeeks(currentWeek, 1))
     setCurrentWeek(newWeek)
   }
 

@@ -27,6 +27,14 @@ export async function GET(req: NextRequest) {
     // ⭐ USA normalizeDate per UTC consistency (come tutti gli altri endpoint!)
     const weekStart = normalizeDate(weekStartParam)
     
+    // Calculate weekEnd (Sunday UTC midnight)
+    const weekEnd = new Date(Date.UTC(
+      weekStart.getUTCFullYear(),
+      weekStart.getUTCMonth(),
+      weekStart.getUTCDate() + 6,
+      23, 59, 59, 999
+    ))
+    
     console.log(`🔍 [API /api/admin/users/available] Richiesta per settimana: ${weekStart.toISOString()}`)
 
     // Fetch all active users with their roles and availabilities FOR THIS SPECIFIC WEEK (excluding admins for scheduling)
@@ -58,6 +66,41 @@ export async function GET(req: NextRequest) {
             shiftType: true,
             isAvailable: true
           }
+        },
+        absences: {
+          where: {
+            OR: [
+              {
+                AND: [
+                  { startDate: { lte: weekStart } },
+                  { endDate: { gte: weekEnd } }
+                ]
+              },
+              {
+                AND: [
+                  { startDate: { gte: weekStart } },
+                  { endDate: { lte: weekEnd } }
+                ]
+              },
+              {
+                AND: [
+                  { startDate: { lte: weekStart } },
+                  { endDate: { gte: weekStart, lte: weekEnd } }
+                ]
+              },
+              {
+                AND: [
+                  { startDate: { gte: weekStart, lte: weekEnd } },
+                  { endDate: { gte: weekEnd } }
+                ]
+              }
+            ]
+          },
+          select: {
+            id: true,
+            startDate: true,
+            endDate: true
+          }
         }
       },
       orderBy: {
@@ -65,10 +108,54 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    console.log(`✅ [API] Utenti trovati: ${users.length}`)
+    console.log(`✅ [API] Utenti trovati (prima del filtro assenze): ${users.length}`)
+    
+    // Filter out users who are absent for the ENTIRE week
+    const filteredUsers = users.filter((user: any) => {
+      // Se non ha assenze, include l'utente
+      if (user.absences.length === 0) return true
+
+      // Calcola quanti giorni della settimana sono coperti da assenze
+      const weekStartTime = weekStart.getTime()
+      const weekEndTime = weekEnd.getTime()
+      const oneDayMs = 24 * 60 * 60 * 1000
+
+      // Create set of all days in the week (7 days)
+      const weekDays = new Set<string>()
+      for (let i = 0; i < 7; i++) {
+        const dayDate = new Date(weekStartTime + i * oneDayMs)
+        weekDays.add(dayDate.toISOString().split('T')[0])
+      }
+
+      // Mark days covered by absences
+      const coveredDays = new Set<string>()
+      for (const absence of user.absences) {
+        const absenceStart = Math.max(absence.startDate.getTime(), weekStartTime)
+        const absenceEnd = Math.min(absence.endDate.getTime(), weekEndTime)
+        
+        let currentDay = absenceStart
+        while (currentDay <= absenceEnd) {
+          const dayStr = new Date(currentDay).toISOString().split('T')[0]
+          coveredDays.add(dayStr)
+          currentDay += oneDayMs
+        }
+      }
+
+      // Se tutti i 7 giorni sono coperti da assenze, escludi l'utente
+      const allDaysCovered = weekDays.size === coveredDays.size && 
+                            Array.from(weekDays).every(day => coveredDays.has(day))
+      
+      if (allDaysCovered) {
+        console.log(`🚫 [API] Escludo ${user.username} - assente per tutta la settimana`)
+      }
+      
+      return !allDaysCovered // Include solo se NON completamente assente
+    })
+    
+    console.log(`✅ [API] Utenti disponibili (dopo filtro assenze): ${filteredUsers.length}`)
     
     // Transform to simpler format
-    const availableUsers = users.map((user: any) => ({
+    const availableUsers = filteredUsers.map((user: any) => ({
       id: user.id,
       username: user.username,
       primaryRole: user.primaryRole,
@@ -80,7 +167,7 @@ export async function GET(req: NextRequest) {
     const totalAvailabilities = availableUsers.reduce((sum: number, u: any) => sum + u.availabilities.length, 0)
     const usersWithAvailabilities = availableUsers.filter((u: any) => u.availabilities.length > 0).length
     console.log(`✅ [API] Disponibilità trovate: ${totalAvailabilities} totali`)
-    console.log(`✅ [API] Utenti con disponibilità: ${usersWithAvailabilities}/${users.length}`)
+    console.log(`✅ [API] Utenti con disponibilità: ${usersWithAvailabilities}/${filteredUsers.length}`)
     
     if (usersWithAvailabilities === 0) {
       console.warn(`⚠️  [API] NESSUN utente ha disponibilità per ${weekStart.toISOString().split('T')[0]}!`)
