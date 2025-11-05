@@ -75,21 +75,40 @@ export default function HoursPage() {
         const shiftsData = await shiftsResponse.json()
         const hoursData = await hoursResponse.json()
         
-        // Merge shifts with their worked hours and sort by day
+        // Merge shifts with their worked hours
         const shiftsWithHours = shiftsData.map((shift: Shift) => ({
           ...shift,
           workedHours: hoursData.find((wh: WorkedHours) => wh.shiftId === shift.id)
         }))
         
-        // Sort shifts by day of week (Monday = 1, Sunday = 0 -> 7)
-        const sortedShifts = shiftsWithHours.sort((a, b) => {
-          const dayA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek // Sunday becomes 7
-          const dayB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek
-          if (dayA !== dayB) return dayA - dayB
-          // If same day, sort by shift type (PRANZO before CENA)
+        // ✅ Sort shifts by ACTUAL DATE (not just day of week)
+        const sortedShifts = shiftsWithHours.sort((a: ShiftWithHours, b: ShiftWithHours) => {
+          // Calcola la data effettiva del turno per A
+          const weekStartA = new Date(a.schedule.weekStart)
+          const shiftDateA = new Date(Date.UTC(
+            weekStartA.getUTCFullYear(),
+            weekStartA.getUTCMonth(),
+            weekStartA.getUTCDate() + a.dayOfWeek
+          ))
+          
+          // Calcola la data effettiva del turno per B
+          const weekStartB = new Date(b.schedule.weekStart)
+          const shiftDateB = new Date(Date.UTC(
+            weekStartB.getUTCFullYear(),
+            weekStartB.getUTCMonth(),
+            weekStartB.getUTCDate() + b.dayOfWeek
+          ))
+          
+          // Ordina per data effettiva
+          if (shiftDateA.getTime() !== shiftDateB.getTime()) {
+            return shiftDateA.getTime() - shiftDateB.getTime()
+          }
+          
+          // Se stessa data, ordina per tipo turno (PRANZO prima di CENA)
           if (a.shiftType !== b.shiftType) {
             return a.shiftType === 'PRANZO' ? -1 : 1
           }
+          
           return 0
         })
         

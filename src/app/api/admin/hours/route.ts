@@ -56,10 +56,9 @@ export async function GET(request: NextRequest) {
             schedules: true
           }
         }
-      },
-      orderBy: {
-        submittedAt: 'desc'
       }
+      // ❌ Non possiamo ordinare qui per data effettiva del turno (weekStart + dayOfWeek)
+      // Lo faremo dopo aver recuperato i dati
     })
 
     // Map shifts -> shift and schedules -> schedule for frontend compatibility
@@ -73,7 +72,38 @@ export async function GET(request: NextRequest) {
       }
     }))
 
-    return NextResponse.json(mapped)
+    // ✅ Ordina per DATA EFFETTIVA DEL TURNO (chronological order)
+    const sorted = mapped.sort((a: any, b: any) => {
+      // Calcola la data effettiva del turno per A
+      const weekStartA = new Date(a.shifts.schedules.weekStart)
+      const shiftDateA = new Date(Date.UTC(
+        weekStartA.getUTCFullYear(),
+        weekStartA.getUTCMonth(),
+        weekStartA.getUTCDate() + a.shifts.dayOfWeek
+      ))
+      
+      // Calcola la data effettiva del turno per B
+      const weekStartB = new Date(b.shifts.schedules.weekStart)
+      const shiftDateB = new Date(Date.UTC(
+        weekStartB.getUTCFullYear(),
+        weekStartB.getUTCMonth(),
+        weekStartB.getUTCDate() + b.shifts.dayOfWeek
+      ))
+      
+      // Ordina cronologicamente (dal più vecchio al più recente)
+      if (shiftDateA.getTime() !== shiftDateB.getTime()) {
+        return shiftDateA.getTime() - shiftDateB.getTime()
+      }
+      
+      // Se stessa data, ordina per tipo turno (PRANZO prima di CENA)
+      if (a.shifts.shiftType !== b.shifts.shiftType) {
+        return a.shifts.shiftType === 'PRANZO' ? -1 : 1
+      }
+      
+      return 0
+    })
+
+    return NextResponse.json(sorted)
   } catch (error) {
     console.error('Error fetching hours for review:', error)
     return NextResponse.json(

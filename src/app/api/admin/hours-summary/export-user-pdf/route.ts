@@ -142,6 +142,36 @@ function generatePDFHtml(
   const weeks = Object.values(weeklyData).sort((a, b) => 
     new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime()
   )
+  
+  // ✅ Ordina i turni dentro ogni settimana cronologicamente
+  weeks.forEach(week => {
+    week.shifts.sort((a, b) => {
+      const weekStart = new Date(week.weekStart)
+      const shiftDateA = new Date(Date.UTC(
+        weekStart.getUTCFullYear(),
+        weekStart.getUTCMonth(),
+        weekStart.getUTCDate() + a.shifts.dayOfWeek
+      ))
+      
+      const shiftDateB = new Date(Date.UTC(
+        weekStart.getUTCFullYear(),
+        weekStart.getUTCMonth(),
+        weekStart.getUTCDate() + b.shifts.dayOfWeek
+      ))
+      
+      // Ordina cronologicamente
+      if (shiftDateA.getTime() !== shiftDateB.getTime()) {
+        return shiftDateA.getTime() - shiftDateB.getTime()
+      }
+      
+      // Se stessa data, ordina per tipo turno (PRANZO prima di CENA)
+      if (a.shifts.shiftType !== b.shifts.shiftType) {
+        return a.shifts.shiftType === 'PRANZO' ? -1 : 1
+      }
+      
+      return 0
+    })
+  })
 
   return `
 <!DOCTYPE html>

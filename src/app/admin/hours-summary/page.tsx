@@ -531,9 +531,13 @@ export default function AdminHoursSummaryPage() {
                               <div className="p-4 bg-gradient-to-br from-gray-50/50 to-blue-50/20">
                                 <div className="space-y-2">
                                   {month.details.map((detail) => {
-                                    // Calcola la data effettiva del turno
-                                    const shiftDate = new Date(detail.shift.schedules.weekStart)
-                                    shiftDate.setDate(shiftDate.getDate() + detail.shift.dayOfWeek)
+                                    // ✅ Calcola la data effettiva del turno usando UTC
+                                    const weekStartDate = new Date(detail.shift.schedules.weekStart)
+                                    const shiftDate = new Date(Date.UTC(
+                                      weekStartDate.getUTCFullYear(),
+                                      weekStartDate.getUTCMonth(),
+                                      weekStartDate.getUTCDate() + detail.shift.dayOfWeek
+                                    ))
                                     
                                     return (
                                       <div key={detail.id} className="flex items-center justify-between py-3 px-4 bg-white border border-gray-200/50 rounded-xl hover:shadow-sm transition-all duration-200">

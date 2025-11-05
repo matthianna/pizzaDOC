@@ -97,7 +97,15 @@ export async function GET(request: NextRequest) {
 
     workedHours.forEach(wh => {
       const userId = wh.user.id
-      const monthKey = new Date(wh.submittedAt).toISOString().slice(0, 7)
+      
+      // ✅ Calcola la data EFFETTIVA del turno usando UTC
+      const weekStartDate = new Date(wh.shifts.schedules.weekStart)
+      const shiftDate = new Date(Date.UTC(
+        weekStartDate.getUTCFullYear(),
+        weekStartDate.getUTCMonth(),
+        weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
+      ))
+      const monthKey = shiftDate.toISOString().slice(0, 7) // YYYY-MM format basato sulla DATA DEL TURNO
 
       if (!summary[userId]) {
         summary[userId] = {
@@ -118,6 +126,39 @@ export async function GET(request: NextRequest) {
       summary[userId].monthlyHours[monthKey].totalHours += wh.totalHours
       summary[userId].monthlyHours[monthKey].shiftsCount += 1
       summary[userId].yearlyTotal += wh.totalHours
+    })
+
+    // ✅ Ordina i dettagli (turni) cronologicamente dentro ogni mese
+    Object.values(summary).forEach(userSummary => {
+      Object.values(userSummary.monthlyHours).forEach((monthData: any) => {
+        monthData.details.sort((a: any, b: any) => {
+          const weekStartA = new Date(a.shift.schedules.weekStart)
+          const shiftDateA = new Date(Date.UTC(
+            weekStartA.getUTCFullYear(),
+            weekStartA.getUTCMonth(),
+            weekStartA.getUTCDate() + a.shift.dayOfWeek
+          ))
+          
+          const weekStartB = new Date(b.shift.schedules.weekStart)
+          const shiftDateB = new Date(Date.UTC(
+            weekStartB.getUTCFullYear(),
+            weekStartB.getUTCMonth(),
+            weekStartB.getUTCDate() + b.shift.dayOfWeek
+          ))
+          
+          // Ordina cronologicamente
+          if (shiftDateA.getTime() !== shiftDateB.getTime()) {
+            return shiftDateA.getTime() - shiftDateB.getTime()
+          }
+          
+          // Se stessa data, ordina per tipo turno (PRANZO prima di CENA)
+          if (a.shift.shiftType !== b.shift.shiftType) {
+            return a.shift.shiftType === 'PRANZO' ? -1 : 1
+          }
+          
+          return 0
+        })
+      })
     })
 
     const htmlContent = generateHoursSummaryHTML(summary, year, month, userId)

@@ -97,7 +97,15 @@ export async function GET(request: NextRequest) {
 
     workedHours.forEach(wh => {
       const userId = wh.user.id
-      const monthKey = new Date(wh.submittedAt).toISOString().slice(0, 7) // YYYY-MM format
+      
+      // ✅ Calcola la data EFFETTIVA del turno usando UTC
+      const weekStartDate = new Date(wh.shifts.schedules.weekStart)
+      const shiftDate = new Date(Date.UTC(
+        weekStartDate.getUTCFullYear(),
+        weekStartDate.getUTCMonth(),
+        weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
+      ))
+      const monthKey = shiftDate.toISOString().slice(0, 7) // YYYY-MM format basato sulla DATA DEL TURNO
 
       if (!summary[userId]) {
         summary[userId] = {
@@ -133,10 +141,43 @@ export async function GET(request: NextRequest) {
     // Convert to array format
     const result = Object.values(summary).map(userSummary => ({
       ...userSummary,
-      monthlyHours: Object.entries(userSummary.monthlyHours).map(([month, data]) => ({
-        month,
-        ...data
-      })).sort((a, b) => a.month.localeCompare(b.month))
+      monthlyHours: Object.entries(userSummary.monthlyHours).map(([month, data]) => {
+        // ✅ Ordina i dettagli (turni) cronologicamente per data effettiva
+        const sortedDetails = data.details.sort((a: any, b: any) => {
+          const weekStartA = new Date(a.shift.schedules.weekStart)
+          const shiftDateA = new Date(Date.UTC(
+            weekStartA.getUTCFullYear(),
+            weekStartA.getUTCMonth(),
+            weekStartA.getUTCDate() + a.shift.dayOfWeek
+          ))
+          
+          const weekStartB = new Date(b.shift.schedules.weekStart)
+          const shiftDateB = new Date(Date.UTC(
+            weekStartB.getUTCFullYear(),
+            weekStartB.getUTCMonth(),
+            weekStartB.getUTCDate() + b.shift.dayOfWeek
+          ))
+          
+          // Ordina cronologicamente
+          if (shiftDateA.getTime() !== shiftDateB.getTime()) {
+            return shiftDateA.getTime() - shiftDateB.getTime()
+          }
+          
+          // Se stessa data, ordina per tipo turno (PRANZO prima di CENA)
+          if (a.shift.shiftType !== b.shift.shiftType) {
+            return a.shift.shiftType === 'PRANZO' ? -1 : 1
+          }
+          
+          return 0
+        })
+        
+        return {
+          month,
+          totalHours: data.totalHours,
+          shiftsCount: data.shiftsCount,
+          details: sortedDetails
+        }
+      }).sort((a, b) => a.month.localeCompare(b.month))
     }))
 
     return NextResponse.json(result)
