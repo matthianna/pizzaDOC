@@ -78,6 +78,34 @@ npm run reset:database
 
 ---
 
+---
+
+### 4. Test Configurazione WAHA
+```bash
+npx tsx scripts/test-waha.ts
+```
+
+**Cosa fa:**
+- ✅ Verifica che WAHA_URL sia configurato
+- ✅ Testa la connessione con WAHA su Railway
+- ✅ Controlla lo stato della sessione WhatsApp
+- ✅ Mostra diagnostica dettagliata
+
+**Con test di invio:**
+```bash
+npx tsx scripts/test-waha.ts +41791234567
+```
+
+**Quando usarlo:**
+- Dopo aver riconfigurato WAHA su Railway
+- Per verificare che WhatsApp sia connesso
+- Per testare l'invio di messaggi
+- Per debug problemi di notifiche
+
+**Guida setup completo:** Vedi `WAHA_RICONFIGURAZIONE.md`
+
+---
+
 ## 🗂️ File nella cartella
 
 | File | Descrizione | Comando |
@@ -85,6 +113,7 @@ npm run reset:database
 | `setup-database.ts` | Setup completo del sistema | `npm run setup:database` |
 | `generate-availability.ts` | Genera disponibilità settimanale | `npm run generate:availability` |
 | `reset-database.ts` | ⚠️ Reset completo (elimina tutto) | `npm run reset:database` |
+| `test-waha.ts` | 🆕 Test configurazione WAHA/WhatsApp | `npx tsx scripts/test-waha.ts` |
 | `seed.ts` | Script base Prisma (legacy) | `npm run seed` |
 
 ## 🔄 Workflow Tipico
