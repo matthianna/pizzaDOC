@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || !session.user.roles.includes('ADMIN')) {
+    // ✅ ACCESSIBILE A TUTTI GLI UTENTI AUTENTICATI (non solo admin)
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

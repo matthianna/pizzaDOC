@@ -93,7 +93,7 @@ export default function AvailabilityOverviewPage() {
   const availabilityPercentage = totalSlots > 0 ? (totalAvailabilities / totalSlots) * 100 : 0
 
   return (
-    <MainLayout adminOnly>
+    <MainLayout>
       <div className="space-y-4 sm:space-y-6">
         {/* Header */}
         <div>
@@ -247,7 +247,7 @@ export default function AvailabilityOverviewPage() {
                           const isAbsent = isAbsentOnDay(dayIdx)
 
                           return (
-                            <React.Fragment key={`${user.id}-${dayIdx}`}>
+                            <React.Fragment key={`${user.userId}-${dayIdx}`}>
                               <td className="px-2 py-3 text-center border-l border-gray-200">
                                 {isAbsent ? (
                                   <span className="text-red-600 font-bold text-sm">A</span>

@@ -80,6 +80,16 @@ export function Sidebar() {
       emoji: '📊',
       section: 'lavoro'
     },
+    {
+      name: 'Disponibilità Utenti',
+      href: '/availability-overview',
+      icon: UsersIcon,
+      iconSolid: UsersIconSolid,
+      adminOnly: false,
+      hideForAdmin: true,
+      emoji: '👥',
+      section: 'lavoro'
+    },
     // ⏰ ORE & ASSENZE
     {
       name: 'Ore Lavorate',
@@ -123,7 +133,7 @@ export function Sidebar() {
     },
     {
       name: 'Disponibilità Utenti',
-      href: '/admin/availability-overview',
+      href: '/availability-overview',
       icon: UsersIcon,
       iconSolid: UsersIconSolid,
       adminOnly: true,
