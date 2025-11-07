@@ -10,6 +10,7 @@ import 'dotenv/config'
 const WAHA_URL = process.env.WAHA_URL || process.env.NEXT_PUBLIC_WAHA_URL
 const WAHA_SESSION = process.env.WAHA_SESSION || process.env.NEXT_PUBLIC_WAHA_SESSION || 'default'
 const WHATSAPP_ENABLED = process.env.WHATSAPP_ENABLED === 'true' || process.env.NEXT_PUBLIC_WHATSAPP_ENABLED === 'true'
+const WAHA_API_KEY = process.env.WAHA_API_KEY || process.env.NEXT_PUBLIC_WAHA_API_KEY
 
 console.log('\n🔍 ====== TEST WAHA CONFIGURATION ======\n')
 
@@ -17,6 +18,7 @@ console.log('\n🔍 ====== TEST WAHA CONFIGURATION ======\n')
 console.log('📋 **VARIABILI D\'AMBIENTE:**')
 console.log(`   WAHA_URL: ${WAHA_URL || '❌ NON CONFIGURATO'}`)
 console.log(`   WAHA_SESSION: ${WAHA_SESSION}`)
+console.log(`   WAHA_API_KEY: ${WAHA_API_KEY ? '✅ Configurata' : '⚠️  Non configurata (potrebbe servire)'}`)
 console.log(`   WHATSAPP_ENABLED: ${WHATSAPP_ENABLED ? '✅ Abilitato' : '❌ Disabilitato'}\n`)
 
 if (!WAHA_URL) {
@@ -41,11 +43,17 @@ async function testWahaConnection() {
     const url = `${WAHA_URL}/api/sessions/${WAHA_SESSION}`
     console.log(`   Connettendo a: ${url}`)
     
+    const headers: any = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (WAHA_API_KEY) {
+      headers['X-Api-Key'] = WAHA_API_KEY
+    }
+    
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     })
 
     if (response.ok) {
@@ -78,6 +86,12 @@ async function testWahaConnection() {
         console.log(`      1. Vai su: ${WAHA_URL}/dashboard`)
         console.log(`      2. Crea una sessione chiamata "${WAHA_SESSION}"`)
         console.log(`      3. Avvia la sessione e scansiona il QR code\n`)
+      } else if (response.status === 401) {
+        console.log(`\n   💡 SOLUZIONE - ERRORE 401 UNAUTHORIZED:`)
+        console.log(`      WAHA richiede autenticazione API!`)
+        console.log(`      \n      Leggi la guida: cat WAHA_API_KEY_FIX.md`)
+        console.log(`      \n      OPZIONE RAPIDA: Disabilita auth su Railway`)
+        console.log(`      → Aggiungi variabile: WHATSAPP_API_KEY_ENABLED=false\n`)
       }
       
       return false
@@ -105,11 +119,17 @@ async function testSendMessage(phoneNumber: string) {
   try {
     const chatId = phoneNumber.includes('@') ? phoneNumber : `${phoneNumber.replace(/[^\d]/g, '')}@c.us`
     
+    const headers: any = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (WAHA_API_KEY) {
+      headers['X-Api-Key'] = WAHA_API_KEY
+    }
+    
     const response = await fetch(`${WAHA_URL}/api/sendText`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         session: WAHA_SESSION,
         chatId,

@@ -25,6 +25,7 @@ export class WhatsAppService {
   private wahaUrl: string
   private session: string
   private enabled: boolean
+  private apiKey: string | undefined
 
   constructor() {
     // Supporta sia WAHA_URL che NEXT_PUBLIC_WAHA_URL
@@ -38,12 +39,29 @@ export class WhatsAppService {
     this.wahaUrl = rawUrl
     this.session = process.env.WAHA_SESSION || process.env.NEXT_PUBLIC_WAHA_SESSION || 'default'
     this.enabled = (process.env.WHATSAPP_ENABLED === 'true') || (process.env.NEXT_PUBLIC_WHATSAPP_ENABLED === 'true')
+    this.apiKey = process.env.WAHA_API_KEY || process.env.NEXT_PUBLIC_WAHA_API_KEY
     
     console.log('🔧 WhatsApp Service Config:', {
       wahaUrl: this.wahaUrl ? this.wahaUrl : 'Not set',
       session: this.session,
-      enabled: this.enabled
+      enabled: this.enabled,
+      apiKeyConfigured: !!this.apiKey
     })
+  }
+
+  /**
+   * Crea headers con autenticazione API se configurata
+   */
+  private getHeaders(): HeadersInit {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (this.apiKey) {
+      headers['X-Api-Key'] = this.apiKey
+    }
+    
+    return headers
   }
 
   /**
@@ -94,9 +112,7 @@ export class WhatsAppService {
         
         const response = await fetch(`${this.wahaUrl}/api/sendText`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: this.getHeaders(),
           body: JSON.stringify({
             session: this.session,
             chatId,
@@ -145,9 +161,7 @@ export class WhatsAppService {
       
       const response = await fetch(`${this.wahaUrl}/api/sendText`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           session: this.session,
           chatId,
@@ -198,9 +212,7 @@ export class WhatsAppService {
     try {
       const response = await fetch(`${this.wahaUrl}/api/sessions/${this.session}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
       })
 
       if (response.ok) {
@@ -242,6 +254,7 @@ export class WhatsAppService {
     try {
       const response = await fetch(`${this.wahaUrl}/api/sessions/${this.session}`, {
         method: 'GET',
+        headers: this.getHeaders(),
       })
 
       if (response.ok) {
@@ -391,9 +404,7 @@ ${data.reason ? `💬 *Motivo:* ${data.reason}` : ''}
       
       const response = await fetch(`${this.wahaUrl}/api/sendText`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           session: this.session,
           chatId: data.groupChatId,
