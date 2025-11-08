@@ -185,3 +185,4 @@ Dopo aver completato questi step, PizzaDOC sarà connesso a WAHA! 🚀
 **Creato:** 2025-11-07
 **Per:** Railway URL `waha-production-ce21.up.railway.app`
 
+
