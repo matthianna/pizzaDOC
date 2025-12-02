@@ -20,10 +20,6 @@ export async function GET(request: NextRequest) {
     const where: {
       status: string;
       userId?: string;
-      submittedAt?: {
-        gte: Date;
-        lte: Date;
-      };
     } = {
       status: 'APPROVED' // Solo ore approvate
     }
@@ -32,19 +28,8 @@ export async function GET(request: NextRequest) {
       where.userId = userId
     }
 
-    // Filter by year and optionally month
-    const startDate = month 
-      ? new Date(year, month - 1, 1) // Specific month
-      : new Date(year, 0, 1) // Whole year
-
-    const endDate = month
-      ? new Date(year, month, 0, 23, 59, 59) // End of specific month
-      : new Date(year, 11, 31, 23, 59, 59) // End of year
-
-    where.submittedAt = {
-      gte: startDate,
-      lte: endDate
-    }
+    // ⚠️ NON filtriamo per submittedAt perché vogliamo filtrare sulla data EFFETTIVA del turno
+    // Il filtro per mese/anno verrà applicato DOPO aver calcolato la data del turno
 
     // Get worked hours with user and shift info
     const workedHours = await prisma.worked_hours.findMany({
@@ -105,6 +90,15 @@ export async function GET(request: NextRequest) {
         weekStartDate.getUTCMonth(),
         weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
       ))
+      
+      // ✅ Filtra per anno e mese basandosi sulla data EFFETTIVA del turno
+      const shiftYear = shiftDate.getUTCFullYear()
+      const shiftMonth = shiftDate.getUTCMonth() + 1 // getUTCMonth() returns 0-11
+      
+      // Salta turni che non corrispondono ai filtri anno/mese
+      if (shiftYear !== year) return
+      if (month !== null && shiftMonth !== month) return
+      
       const monthKey = shiftDate.toISOString().slice(0, 7) // YYYY-MM format basato sulla DATA DEL TURNO
 
       if (!summary[userId]) {
@@ -172,7 +166,7 @@ export async function GET(request: NextRequest) {
         })
         
         return {
-          month,
+        month,
           totalHours: data.totalHours,
           shiftsCount: data.shiftsCount,
           details: sortedDetails

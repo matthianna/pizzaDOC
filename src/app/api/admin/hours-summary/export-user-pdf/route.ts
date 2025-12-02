@@ -37,19 +37,11 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: 'Utente non trovato' }, { status: 404 })
     }
 
-    // Calcola range (mese specifico o anno intero)
-    const startDate = month ? startOfMonth(new Date(year, month - 1)) : new Date(year, 0, 1)
-    const endDate = month ? endOfMonth(new Date(year, month - 1)) : new Date(year, 11, 31, 23, 59, 59)
-
-    // Ottieni ore lavorate del periodo
-    const workedHours = await prisma.worked_hours.findMany({
+    // Ottieni ore lavorate (filtreremo per data effettiva del turno dopo)
+    const allWorkedHours = await prisma.worked_hours.findMany({
       where: {
         userId: userId,
-        status: 'APPROVED',
-        submittedAt: {
-          gte: startDate,
-          lte: endDate
-        }
+        status: 'APPROVED'
       },
       include: {
         shifts: {
@@ -61,6 +53,25 @@ export async function GET(request: NextRequest) {
       orderBy: {
         submittedAt: 'asc'
       }
+    })
+
+    // ✅ Filtra in base alla data EFFETTIVA del turno (non submittedAt)
+    const workedHours = allWorkedHours.filter(wh => {
+      const weekStartDate = new Date(wh.shifts.schedules.weekStart)
+      const shiftDate = new Date(Date.UTC(
+        weekStartDate.getUTCFullYear(),
+        weekStartDate.getUTCMonth(),
+        weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
+      ))
+      
+      const shiftYear = shiftDate.getUTCFullYear()
+      const shiftMonth = shiftDate.getUTCMonth() + 1
+      
+      // Filtra per anno e mese
+      if (shiftYear !== year) return false
+      if (month && shiftMonth !== month) return false
+      
+      return true
     })
 
     // Genera HTML del PDF

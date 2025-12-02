@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const today = new Date()
     const nextMonday = startOfWeek(addDays(today, 7), { weekStartsOn: 1 })
     const weekStart = normalizeDate(nextMonday)
-    
+
     // Calcola l'ultimo giorno della settimana prossima (domenica)
     const weekEnd = normalizeDate(addDays(weekStart, 6))
 

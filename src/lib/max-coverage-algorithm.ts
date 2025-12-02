@@ -603,7 +603,7 @@ export class MaxCoverageAlgorithm {
       // Calcola stato attuale del turno
       const turnGaps = this.calculateTurnGaps(schedule, requirements, day, shift)
       const turnShifts = schedule.filter(s => s.dayOfWeek === day && s.shiftType === shift)
-      
+
       // DEBUG: Mostra tutti i gap
       const gapDebug = Object.entries(turnGaps)
         .filter(([_, info]) => info.required > 0)
@@ -673,7 +673,7 @@ export class MaxCoverageAlgorithm {
                 if (hasAlternativeTransport) {
                   canSwap = true // Può fare lo swap usando AUTO
                   console.log(`      🚗 ${userProfile.username}: usa AUTO per swap (limite scooter raggiunto)`)
-                }
+      }
               }
             }
             
@@ -857,7 +857,7 @@ export class MaxCoverageAlgorithm {
       if (needed <= 0) continue
 
       console.log(`\n   📋 ${this.getDayName(req.dayOfWeek)} ${req.shiftType} ${req.role}: cerco ${needed} persone`)
-
+      
       // 🎯 CALCOLA GAP ATTUALI per questo turno (per ottimizzazione globale)
       const currentGaps = this.calculateTurnGaps(schedule, requirements, req.dayOfWeek, req.shiftType)
       
@@ -893,7 +893,7 @@ export class MaxCoverageAlgorithm {
         })
         console.log(`         ... altri ${candidates.length - 3} candidati`)
       }
-
+      
       // Assegna i migliori candidati
       let assignedCount2 = 0
       for (const candidate of candidates) {
@@ -930,7 +930,7 @@ export class MaxCoverageAlgorithm {
         
         console.log(`      ✅ ${candidate.user.username} → ${startTime}-${end} (${candidate.reason})`)
       }
-
+      
       if (assignedCount2 < needed) {
         console.log(`      ⚠️  Assegnati ${assignedCount2}/${needed}`)
       }
@@ -1188,7 +1188,7 @@ export class MaxCoverageAlgorithm {
 
       // Conta turni già assegnati
       const userShiftsCount = currentSchedule.filter(s => s.userId === user.id).length
-
+        
       // Bonus per distribuzione equa (chi ha meno turni)
       if (userShiftsCount === 0) {
         score += 30
@@ -1206,8 +1206,8 @@ export class MaxCoverageAlgorithm {
         score -= userShiftsCount * 1  // Penalità minima per prioritari
         } else {
         score -= userShiftsCount * 3  // Penalità normale per altri
-      }
-
+        }
+        
       // 🎯 OTTIMIZZAZIONE GLOBALE: Considera i gap di altri ruoli
       if (turnGaps && mode !== 'vip') {
         const currentRoleGap = turnGaps[requirement.role]
