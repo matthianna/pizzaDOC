@@ -420,19 +420,19 @@ export default function SchedulePage() {
                                 
                                 // Mostra bottone per richiedere sostituzione
                                 return (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => openSubstitutionModal(shift)}
-                                    className={`w-full text-xs h-8 border transition-all font-medium ${
-                                      shift.shiftType === 'PRANZO'
-                                        ? 'text-orange-700 border-orange-300 hover:bg-orange-100'
-                                        : 'text-blue-700 border-blue-300 hover:bg-blue-100'
-                                    }`}
-                                  >
-                                    <Users className="h-3 w-3 mr-1" />
-                                    Sostituto
-                                  </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openSubstitutionModal(shift)}
+                                  className={`w-full text-xs h-8 border transition-all font-medium ${
+                                    shift.shiftType === 'PRANZO'
+                                      ? 'text-orange-700 border-orange-300 hover:bg-orange-100'
+                                      : 'text-blue-700 border-blue-300 hover:bg-blue-100'
+                                  }`}
+                                >
+                                  <Users className="h-3 w-3 mr-1" />
+                                  Sostituto
+                                </Button>
                                 )
                               })()}
                             </div>

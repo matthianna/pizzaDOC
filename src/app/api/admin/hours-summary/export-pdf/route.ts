@@ -62,6 +62,26 @@ export async function GET(request: NextRequest) {
       ]
     })
 
+    // ✅ PRIMA filtra i workedHours per anno/mese basandosi sulla data EFFETTIVA del turno
+    const filteredWorkedHours = workedHours.filter(wh => {
+      const weekStartDate = new Date(wh.shifts.schedules.weekStart)
+      const shiftDate = new Date(Date.UTC(
+        weekStartDate.getUTCFullYear(),
+        weekStartDate.getUTCMonth(),
+        weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
+      ))
+      
+      const shiftYear = shiftDate.getUTCFullYear()
+      const shiftMonth = shiftDate.getUTCMonth() + 1 // getUTCMonth() returns 0-11
+      
+      // Filtra per anno
+      if (shiftYear !== year) return false
+      // Filtra per mese (se specificato)
+      if (month !== null && shiftMonth !== month) return false
+      
+      return true
+    })
+
     // Process data into summary
     const summary: Record<string, {
       user: {
@@ -81,7 +101,7 @@ export async function GET(request: NextRequest) {
       yearlyTotal: number
     }> = {}
 
-    workedHours.forEach(wh => {
+    filteredWorkedHours.forEach(wh => {
       const userId = wh.user.id
       
       // ✅ Calcola la data EFFETTIVA del turno usando UTC
@@ -91,14 +111,6 @@ export async function GET(request: NextRequest) {
         weekStartDate.getUTCMonth(),
         weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
       ))
-      
-      // ✅ Filtra per anno e mese basandosi sulla data EFFETTIVA del turno
-      const shiftYear = shiftDate.getUTCFullYear()
-      const shiftMonth = shiftDate.getUTCMonth() + 1 // getUTCMonth() returns 0-11
-      
-      // Salta turni che non corrispondono ai filtri anno/mese
-      if (shiftYear !== year) return
-      if (month !== null && shiftMonth !== month) return
       
       const monthKey = shiftDate.toISOString().slice(0, 7) // YYYY-MM format basato sulla DATA DEL TURNO
 

@@ -629,7 +629,7 @@ function SidebarContent({
           Il Mio Profilo
         </Link>
 
-        {/* Logout button */}
+      {/* Logout button */}
         <button
           onClick={async () => {
             console.log('Signing out...')
