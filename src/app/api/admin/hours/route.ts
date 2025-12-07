@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
-    const month = searchParams.get('month')
-    const year = searchParams.get('year')
+    const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : null
+    const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : null
 
     const whereClause: {
       status?: string;
@@ -28,18 +28,8 @@ export async function GET(request: NextRequest) {
       whereClause.status = status
     }
 
-    if (month && year) {
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1)
-      const endDate = new Date(parseInt(year), parseInt(month), 0)
-      whereClause.shifts = {
-        schedules: {
-          weekStart: {
-            gte: startDate,
-            lte: endDate
-          }
-        }
-      }
-    }
+    // ⚠️ NON filtriamo per weekStart perché dobbiamo calcolare la data EFFETTIVA del turno
+    // (weekStart + dayOfWeek) e filtrare in base a quella!
 
     const workedHours = await prisma.worked_hours.findMany({
       where: whereClause,
@@ -72,8 +62,26 @@ export async function GET(request: NextRequest) {
       }
     }))
 
+    // ✅ Filtra per mese/anno basandosi sulla DATA EFFETTIVA del turno
+    let filtered = mapped
+    if (month !== null && year !== null) {
+      filtered = mapped.filter((wh: any) => {
+        const weekStartDate = new Date(wh.shifts.schedules.weekStart)
+        const shiftDate = new Date(Date.UTC(
+          weekStartDate.getUTCFullYear(),
+          weekStartDate.getUTCMonth(),
+          weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
+        ))
+        
+        const shiftYear = shiftDate.getUTCFullYear()
+        const shiftMonth = shiftDate.getUTCMonth() + 1 // getUTCMonth() returns 0-11
+        
+        return shiftYear === year && shiftMonth === month
+      })
+    }
+
     // ✅ Ordina per DATA EFFETTIVA DEL TURNO (chronological order)
-    const sorted = mapped.sort((a: any, b: any) => {
+    const sorted = filtered.sort((a: any, b: any) => {
       // Calcola la data effettiva del turno per A
       const weekStartA = new Date(a.shifts.schedules.weekStart)
       const shiftDateA = new Date(Date.UTC(
