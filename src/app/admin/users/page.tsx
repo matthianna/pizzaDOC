@@ -133,6 +133,109 @@ export default function UsersPage() {
     )
   }
 
+  // ✅ Separa gli utenti attivi da quelli disattivati
+  const activeUsers = users.filter(user => user.isActive)
+  const inactiveUsers = users.filter(user => !user.isActive)
+
+  const renderUserRow = (user: User) => (
+    <tr key={user.id} className="hover:bg-gray-50">
+      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+        <div className="text-xs sm:text-sm font-medium text-gray-900">
+          {user.username}
+        </div>
+      </td>
+      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+      <div className="flex flex-wrap gap-1">
+        {user.user_roles.map((userRole, index) => (
+          <span
+            key={index}
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              userRole.role === user.primaryRole
+                ? 'bg-orange-100 text-orange-800 border border-orange-300'
+                : 'bg-blue-100 text-blue-800'
+            }`}
+          >
+            {getRoleName(userRole.role)}
+            {userRole.role === user.primaryRole && (
+              <span className="ml-1 text-orange-600">★</span>
+            )}
+          </span>
+        ))}
+      </div>
+    </td>
+    <td className="px-6 py-4 whitespace-nowrap">
+      <div className="flex flex-wrap gap-1">
+        {user.user_transports.map((userTransport, index) => (
+          <span
+            key={index}
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              userTransport.transport === user.primaryTransport
+                ? 'bg-orange-100 text-orange-800 border border-orange-300'
+                : 'bg-green-100 text-green-800'
+            }`}
+          >
+            {getTransportName(userTransport.transport)}
+            {userTransport.transport === user.primaryTransport && (
+              <span className="ml-1 text-orange-600">★</span>
+            )}
+          </span>
+        ))}
+      </div>
+    </td>
+    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+      <button
+        onClick={() => toggleWhatsAppNotifications(user.id, user.whatsappNotificationsEnabled)}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
+          user.whatsappNotificationsEnabled ? 'bg-green-600' : 'bg-gray-300'
+        }`}
+        title={user.whatsappNotificationsEnabled ? 'Notifiche abilitate' : 'Notifiche disabilitate'}
+      >
+        <span
+          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+            user.whatsappNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+          }`}
+        />
+      </button>
+    </td>
+    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          user.isActive
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+        }`}
+      >
+        {user.isActive ? 'Attivo' : 'Disattivato'}
+      </span>
+    </td>
+    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+      <div className="flex space-x-1 sm:space-x-2">
+        <button
+          onClick={() => setEditingUser(user)}
+          className="text-indigo-600 hover:text-indigo-900"
+          title="Modifica"
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => handleResetPassword(user.id)}
+          className="text-yellow-600 hover:text-yellow-900"
+          title="Reset Password"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => openDeleteConfirm(user)}
+          className="text-red-600 hover:text-red-900"
+          title="Elimina"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </td>
+  </tr>
+  )
+
   return (
     <MainLayout adminOnly>
       <div className="space-y-4 sm:space-y-6">
@@ -156,8 +259,14 @@ export default function UsersPage() {
           </button>
         </div>
 
-        {/* Users Table */}
+        {/* Active Users Table */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="px-4 py-3 bg-green-50 border-b border-green-100">
+            <h2 className="text-sm font-semibold text-green-900 flex items-center">
+              <span className="inline-block w-2 h-2 bg-green-600 rounded-full mr-2"></span>
+              Utenti Attivi ({activeUsers.length})
+            </h2>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -183,115 +292,59 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="text-xs sm:text-sm font-medium text-gray-900">
-                        {user.username}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-wrap gap-1">
-                      {user.user_roles.map((userRole, index) => (
-                        <span
-                          key={index}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            userRole.role === user.primaryRole
-                              ? 'bg-orange-100 text-orange-800 border border-orange-300'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
-                        >
-                          {getRoleName(userRole.role)}
-                          {userRole.role === user.primaryRole && (
-                            <span className="ml-1 text-orange-600">★</span>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-wrap gap-1">
-                      {user.user_transports.map((userTransport, index) => (
-                        <span
-                          key={index}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            userTransport.transport === user.primaryTransport
-                              ? 'bg-orange-100 text-orange-800 border border-orange-300'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {getTransportName(userTransport.transport)}
-                          {userTransport.transport === user.primaryTransport && (
-                            <span className="ml-1 text-orange-600">★</span>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => toggleWhatsAppNotifications(user.id, user.whatsappNotificationsEnabled)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
-                        user.whatsappNotificationsEnabled ? 'bg-green-600' : 'bg-gray-300'
-                      }`}
-                      title={user.whatsappNotificationsEnabled ? 'Notifiche abilitate' : 'Notifiche disabilitate'}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          user.whatsappNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {user.isActive ? 'Attivo' : 'Disattivato'}
-                    </span>
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-1 sm:space-x-2">
-                      <button
-                        onClick={() => setEditingUser(user)}
-                        className="text-indigo-600 hover:text-indigo-900"
-                        title="Modifica"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleResetPassword(user.id)}
-                        className="text-yellow-600 hover:text-yellow-900"
-                        title="Reset Password"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => openDeleteConfirm(user)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Elimina"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                {activeUsers.map(renderUserRow)}
+              </tbody>
+            </table>
           </div>
 
-          {users.length === 0 && (
+          {activeUsers.length === 0 && (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-700">Nessun utente trovato</p>
+              <p className="text-gray-700">Nessun utente attivo trovato</p>
             </div>
           )}
         </div>
+
+        {/* Inactive Users Table */}
+        {inactiveUsers.length > 0 && (
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="px-4 py-3 bg-red-50 border-b border-red-100">
+              <h2 className="text-sm font-semibold text-red-900 flex items-center">
+                <span className="inline-block w-2 h-2 bg-red-600 rounded-full mr-2"></span>
+                Utenti Disattivati ({inactiveUsers.length})
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Utente
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ruoli
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Trasporti
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Notifiche WhatsApp
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Stato
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Azioni
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {inactiveUsers.map(renderUserRow)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Create/Edit User Modals would go here */}
