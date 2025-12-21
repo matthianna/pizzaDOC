@@ -1008,11 +1008,19 @@ export class MaxCoverageAlgorithm {
       const hasRole = user.roles.includes(requirement.role)
       if (!hasRole) continue
 
-      // VINCOLO 2 (mode-specific): Ruolo primario vs secondario
+      // VINCOLO 2 (mode-specific): Priorità al ruolo primario
       const isPrimaryRole = user.primaryRole === requirement.role
+      
+      // MODE PRIMARY: Solo utenti con questo come ruolo primario
+      // (per dare priorità agli specialisti)
       if (mode === 'primary' && !isPrimaryRole) continue
-      if (mode === 'secondary' && isPrimaryRole) continue
-      // mode 'vip' e 'flexible' accettano entrambi
+      
+      // MODE SECONDARY: Tutti quelli che hanno il ruolo (primario o secondario)
+      // ✅ RIMOSSO IL FILTRO CHE ESCLUDEVA I RUOLI PRIMARI!
+      // Se uno è disponibile e ha il ruolo, può essere assegnato anche se è il suo primario
+      // (questo permette a Mario di fare CUCINA anche se è PIZZAIOLO primario)
+      
+      // mode 'vip' e 'flexible' accettano tutti
 
       // ⚠️ VINCOLO 3 FONDAMENTALE: Deve essere disponibile per questo turno
       // Questo vincolo è SEMPRE rispettato in TUTTE le fasi!
