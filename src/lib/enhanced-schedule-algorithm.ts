@@ -303,7 +303,7 @@ export class EnhancedScheduleAlgorithm {
     
     // 1. Carica tutti i dati necessari
     const users = await this.loadUserProfiles(weekStart)
-    const requirements = await this.loadShiftRequirements()
+    const requirements = await this.loadShiftRequirements(weekStart)  // ✅ Passa weekStart per filtrare festivi
     const existingShifts = await this.loadExistingShifts(weekStart)
     
     console.log(`👥 Utenti caricati: ${users.length}`)
@@ -415,18 +415,57 @@ export class EnhancedScheduleAlgorithm {
       })
   }
 
-  private async loadShiftRequirements(): Promise<ShiftRequirement[]> {
+  private async loadShiftRequirements(weekStart: Date): Promise<ShiftRequirement[]> {
     const limits = await prisma.shift_limits.findMany({
       where: { requiredStaff: { gt: 0 } }
     })
 
-    return limits.map(limit => ({
-      dayOfWeek: limit.dayOfWeek,
-      shiftType: limit.shiftType,
-      role: limit.role,
-      requiredStaff: limit.requiredStaff,
-      priority: this.getRolePriority(limit.role) + this.getShiftPriority(limit.dayOfWeek, limit.shiftType)
-    }))
+    // ✅ Carica i giorni festivi per questa settimana
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+    weekEnd.setHours(23, 59, 59, 999)
+    
+    const holidays = await prisma.holidays.findMany({
+      where: {
+        date: {
+          gte: weekStart,
+          lte: weekEnd
+        }
+      }
+    })
+    
+    console.log(`🎄 Giorni festivi trovati: ${holidays.length}`)
+    
+    // ✅ Helper per controllare se un turno è festivo
+    const isShiftHoliday = (dayOfWeek: number, shiftType: ShiftType): boolean => {
+      const shiftDate = new Date(weekStart)
+      shiftDate.setDate(shiftDate.getDate() + dayOfWeek)
+      shiftDate.setHours(0, 0, 0, 0)
+      
+      return holidays.some(h => {
+        const holidayDate = new Date(h.date)
+        holidayDate.setHours(0, 0, 0, 0)
+        
+        if (shiftDate.getTime() !== holidayDate.getTime()) return false
+        
+        if (h.closureType === 'FULL_DAY') return true
+        if (h.closureType === 'PRANZO_ONLY' && shiftType === 'PRANZO') return true
+        if (h.closureType === 'CENA_ONLY' && shiftType === 'CENA') return true
+        
+        return false
+      })
+    }
+
+    // ✅ Filtra i requisiti escludendo i turni festivi
+    return limits
+      .filter(limit => !isShiftHoliday(limit.dayOfWeek, limit.shiftType))
+      .map(limit => ({
+        dayOfWeek: limit.dayOfWeek,
+        shiftType: limit.shiftType,
+        role: limit.role,
+        requiredStaff: limit.requiredStaff,
+        priority: this.getRolePriority(limit.role) + this.getShiftPriority(limit.dayOfWeek, limit.shiftType)
+      }))
   }
 
   private async loadExistingShifts(weekStart: Date): Promise<ScheduleShift[]> {

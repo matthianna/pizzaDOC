@@ -164,6 +164,14 @@ export function Sidebar() {
       adminOnly: true,
       section: 'pianificazione'
     },
+    {
+      name: 'Giorni Festivi',
+      href: '/admin/holidays',
+      icon: CalendarIcon,
+      iconSolid: CalendarIconSolid,
+      adminOnly: true,
+      section: 'pianificazione'
+    },
     // ⏰ ORE LAVORATE
     {
       name: 'Gestione Ore',

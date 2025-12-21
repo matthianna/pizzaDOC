@@ -15,6 +15,13 @@ interface Availability {
   isAvailable: boolean
 }
 
+interface Holiday {
+  id: string
+  date: string
+  closureType: 'FULL_DAY' | 'PRANZO_ONLY' | 'CENA_ONLY'
+  description: string | null
+}
+
 export default function AvailabilityPage() {
   const { data: session } = useSession()
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
@@ -23,6 +30,7 @@ export default function AvailabilityPage() {
   const [saving, setSaving] = useState(false)
   const [disabledDays, setDisabledDays] = useState<number[]>([])
   const [absenceInfo, setAbsenceInfo] = useState<{startDate: string, endDate: string, reason: string | null}[]>([])
+  const [holidays, setHolidays] = useState<Holiday[]>([])
 
   const isAdmin = session?.user.roles.includes('ADMIN')
   
@@ -38,6 +46,7 @@ export default function AvailabilityPage() {
   useEffect(() => {
     fetchAvailability()
     fetchAbsences()
+    fetchHolidays()
   }, [currentWeek])
 
   const fetchAvailability = async () => {
@@ -73,6 +82,41 @@ export default function AvailabilityPage() {
     }
   }
 
+  const fetchHolidays = async () => {
+    try {
+      const weekDays = getWeekDays(currentWeek)
+      const startDate = weekDays[0].toISOString().split('T')[0]
+      const endDate = weekDays[6].toISOString().split('T')[0]
+      
+      const response = await fetch(`/api/holidays?startDate=${startDate}&endDate=${endDate}`)
+      if (response.ok) {
+        const data = await response.json()
+        setHolidays(data)
+      }
+    } catch (error) {
+      console.error('Error fetching holidays:', error)
+    }
+  }
+
+  // ✅ Check if a specific shift is a holiday
+  const isHoliday = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA'): Holiday | null => {
+    const weekDays = getWeekDays(currentWeek)
+    const dayDate = weekDays[dayOfWeek].toISOString().split('T')[0]
+    
+    const holiday = holidays.find(h => {
+      const holidayDate = new Date(h.date).toISOString().split('T')[0]
+      if (holidayDate !== dayDate) return false
+      
+      if (h.closureType === 'FULL_DAY') return true
+      if (h.closureType === 'PRANZO_ONLY' && shiftType === 'PRANZO') return true
+      if (h.closureType === 'CENA_ONLY' && shiftType === 'CENA') return true
+      
+      return false
+    })
+    
+    return holiday || null
+  }
+
   const saveAvailability = async () => {
     setSaving(true)
     try {
@@ -102,6 +146,7 @@ export default function AvailabilityPage() {
 
   const toggleAvailability = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA') => {
     if (disabledDays.includes(dayOfWeek)) return // Non permettere toggle per giorni in assenza
+    if (isHoliday(dayOfWeek, shiftType)) return // ✅ Non permettere toggle per giorni festivi
 
     const existing = availabilities.find(a => a.dayOfWeek === dayOfWeek && a.shiftType === shiftType)
     
@@ -122,6 +167,11 @@ export default function AvailabilityPage() {
 
   const isDayDisabled = (dayOfWeek: number) => {
     return disabledDays.includes(dayOfWeek)
+  }
+
+  // ✅ Check if a shift cell should be disabled (absence or holiday)
+  const isShiftDisabled = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA') => {
+    return isDayDisabled(dayOfWeek) || isHoliday(dayOfWeek, shiftType) !== null
   }
 
   const isAvailable = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA') => {
@@ -258,6 +308,8 @@ export default function AvailabilityPage() {
                 {weekDays.map((day, index) => {
                   const dayOfWeek = getDayOfWeek(day)
                   const dayDisabled = isDayDisabled(dayOfWeek)
+                  const pranzoHoliday = isHoliday(dayOfWeek, 'PRANZO')
+                  const cenaHoliday = isHoliday(dayOfWeek, 'CENA')
                   
                   return (
                     <tr key={index} className={`border-b border-gray-100 ${dayDisabled ? 'bg-red-50' : 'hover:bg-gray-50'}`}>
@@ -282,6 +334,14 @@ export default function AvailabilityPage() {
                             <Lock className="h-6 w-6 text-red-400" />
                             <span className="text-xs text-red-600 mt-1">Non disponibile</span>
                           </div>
+                        ) : pranzoHoliday ? (
+                          <div className="flex flex-col items-center">
+                            <Calendar className="h-6 w-6 text-orange-400" />
+                            <span className="text-xs text-orange-600 mt-1 font-medium">Festivo</span>
+                            {pranzoHoliday.description && (
+                              <span className="text-xs text-gray-500 mt-0.5">{pranzoHoliday.description}</span>
+                            )}
+                          </div>
                         ) : (
                           <button
                             onClick={() => toggleAvailability(dayOfWeek, 'PRANZO')}
@@ -301,6 +361,14 @@ export default function AvailabilityPage() {
                           <div className="flex flex-col items-center">
                             <Lock className="h-6 w-6 text-red-400" />
                             <span className="text-xs text-red-600 mt-1">Non disponibile</span>
+                          </div>
+                        ) : cenaHoliday ? (
+                          <div className="flex flex-col items-center">
+                            <Calendar className="h-6 w-6 text-orange-400" />
+                            <span className="text-xs text-orange-600 mt-1 font-medium">Festivo</span>
+                            {cenaHoliday.description && (
+                              <span className="text-xs text-gray-500 mt-0.5">{cenaHoliday.description}</span>
+                            )}
                           </div>
                         ) : (
                           <button
