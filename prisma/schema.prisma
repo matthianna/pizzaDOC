@@ -253,6 +253,25 @@ model audit_logs {
   @@index([createdAt])
 }
 
+model holidays {
+  id          String      @id
+  date        DateTime
+  closureType ClosureType
+  description String?
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime
+
+  @@unique([date, closureType])
+  @@index([date])
+}
+
+enum ClosureType {
+  FULL_DAY
+  PRANZO_ONLY
+  CENA_ONLY
+}
+
 enum HoursStatus {
   PENDING
   APPROVED
