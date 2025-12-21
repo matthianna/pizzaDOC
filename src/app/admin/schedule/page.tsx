@@ -43,12 +43,20 @@ interface Gap {
   assigned: number
 }
 
+interface Holiday {
+  id: string
+  date: string
+  closureType: 'FULL_DAY' | 'PRANZO_ONLY' | 'CENA_ONLY'
+  description: string | null
+}
+
 export default function AdminSchedulePage() {
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [schedule, setSchedule] = useState<Schedule | null>(null)
   const [gaps, setGaps] = useState<Gap[]>([])
   const [shiftLimits, setShiftLimits] = useState<{ dayOfWeek: number; shiftType: string; role: string; requiredStaff: number }[]>([])
   const [missingAvailability, setMissingAvailability] = useState<string[]>([])
+  const [holidays, setHolidays] = useState<Holiday[]>([])
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [showAddShiftModal, setShowAddShiftModal] = useState(false)
@@ -81,6 +89,7 @@ export default function AdminSchedulePage() {
     fetchSchedule()
     fetchShiftLimits()
     fetchMissingAvailability()
+    fetchHolidays()
   }, [currentWeek])
 
   useEffect(() => {
@@ -105,6 +114,22 @@ export default function AdminSchedulePage() {
       console.error('Error fetching schedule:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchHolidays = async () => {
+    try {
+      const weekStart = new Date(currentWeek)
+      const weekEnd = new Date(currentWeek)
+      weekEnd.setDate(weekEnd.getDate() + 6)
+      
+      const response = await fetch(`/api/holidays?startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setHolidays(data)
+      }
+    } catch (error) {
+      console.error('Error fetching holidays:', error)
     }
   }
 
@@ -593,10 +618,12 @@ export default function AdminSchedulePage() {
                         <td className="px-3 sm:px-6 py-4">
                           <ShiftCrew 
                             shifts={pranzoCrew} 
+                            day={day}
                             dayOfWeek={dayOfWeek}
                             shiftType="PRANZO"
                             gaps={gaps}
                             shiftLimits={shiftLimits}
+                            holidays={holidays}
                             onRemoveShift={handleRemoveShift}
                             onEditTime={handleEditShiftTime}
                             onEditRole={handleEditRole}
@@ -606,10 +633,12 @@ export default function AdminSchedulePage() {
                         <td className="px-6 py-4">
                           <ShiftCrew 
                             shifts={cenaCrew} 
+                            day={day}
                             dayOfWeek={dayOfWeek}
                             shiftType="CENA"
                             gaps={gaps}
                             shiftLimits={shiftLimits}
+                            holidays={holidays}
                             onRemoveShift={handleRemoveShift}
                             onEditTime={handleEditShiftTime}
                             onEditRole={handleEditRole}
@@ -949,25 +978,50 @@ function getTransportIcon(user: ScheduleShift['user'], role: Role) {
 
 function ShiftCrew({ 
   shifts, 
+  day,
   dayOfWeek, 
   shiftType, 
   gaps, 
   shiftLimits,
+  holidays,
   onRemoveShift,
   onEditTime,
   onEditRole,
   onQuickAdd
 }: { 
   shifts: ScheduleShift[]
+  day: Date
   dayOfWeek: number
   shiftType: ShiftType
   gaps: Gap[]
   shiftLimits: { dayOfWeek: number; shiftType: string; role: string; requiredStaff: number }[]
+  holidays: Holiday[]
   onRemoveShift?: (shift: ScheduleShift) => void
   onEditTime?: (shift: ScheduleShift) => void
   onEditRole?: (shift: ScheduleShift) => void
   onQuickAdd?: (dayOfWeek: number, shiftType: ShiftType, role: Role) => void
 }) {
+  // Check if this day/shift is a holiday
+  const isHoliday = holidays.some(h => {
+    const holidayDate = new Date(h.date).toISOString().split('T')[0]
+    const currentDate = day.toISOString().split('T')[0]
+    return holidayDate === currentDate && (
+      h.closureType === 'FULL_DAY' ||
+      (h.closureType === 'PRANZO_ONLY' && shiftType === 'PRANZO') ||
+      (h.closureType === 'CENA_ONLY' && shiftType === 'CENA')
+    )
+  })
+
+  if (isHoliday) {
+    return (
+      <div className="flex items-center justify-center py-2">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800 border border-red-200">
+          🔒 CHIUSO
+        </span>
+      </div>
+    )
+  }
+
   // Group by role
   const byRole = shifts.reduce((acc, shift) => {
     if (!acc[shift.role]) acc[shift.role] = []

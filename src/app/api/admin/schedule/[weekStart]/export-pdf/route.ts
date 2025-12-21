@@ -50,11 +50,22 @@ export async function GET(
       )
     }
     
+    // Carica i giorni festivi per la settimana
+    const weekEnd = addDays(rawWeekStart, 6)
+    const holidays = await prisma.holidays.findMany({
+      where: {
+        date: {
+          gte: rawWeekStart,
+          lte: weekEnd
+        }
+      }
+    })
+    
     // weekStart dal DB è già normalizzato a lunedì UTC
     const weekStart = normalizeDate(schedule.weekStart)
     
     // Genera l'HTML per il PDF
-    const html = generateScheduleHTML(schedule, weekStart)
+    const html = generateScheduleHTML(schedule, weekStart, holidays)
 
     return new NextResponse(html, {
       headers: {
@@ -83,7 +94,12 @@ function generateScheduleHTML(schedule: {
     };
   }>;
   weekStart: Date;
-}, weekStart: Date): string {
+}, weekStart: Date, holidays: Array<{
+  id: string;
+  date: Date;
+  closureType: string;
+  description: string | null;
+}>): string {
   
   const weekEnd = addDays(weekStart, 6)
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
@@ -368,6 +384,17 @@ function generateScheduleHTML(schedule: {
                   const pranzoShifts = shiftsByDayAndType[dayIndex]['PRANZO'] || []
                   const cenaShifts = shiftsByDayAndType[dayIndex]['CENA'] || []
                   
+                  // Check if this day has holidays
+                  const dayDateStr = dayDate.toISOString().split('T')[0]
+                  const isPranzoHoliday = holidays.some(h => {
+                    const holidayDateStr = new Date(h.date).toISOString().split('T')[0]
+                    return holidayDateStr === dayDateStr && (h.closureType === 'FULL_DAY' || h.closureType === 'PRANZO_ONLY')
+                  })
+                  const isCenaHoliday = holidays.some(h => {
+                    const holidayDateStr = new Date(h.date).toISOString().split('T')[0]
+                    return holidayDateStr === dayDateStr && (h.closureType === 'FULL_DAY' || h.closureType === 'CENA_ONLY')
+                  })
+                  
                   return `
                 <tr>
                     <td class="day-cell">
@@ -375,7 +402,11 @@ function generateScheduleHTML(schedule: {
                         <div class="day-date">${format(dayDate, 'dd/MM')}</div>
                     </td>
                     <td class="shift-cell">
-                        ${pranzoShifts.length > 0 ? `
+                        ${isPranzoHoliday ? `
+                        <div style="text-align: center; padding: 20px; font-weight: 700; font-size: 14px; color: #dc2626; background: #fef2f2; border: 2px solid #dc2626; border-radius: 4px;">
+                            🔒 CHIUSO
+                        </div>
+                        ` : pranzoShifts.length > 0 ? `
                         <div class="workers-grid">
                             ${pranzoShifts.map(shift => `
                             <div class="worker-item ${shift.role.toLowerCase()}">
@@ -392,7 +423,11 @@ function generateScheduleHTML(schedule: {
                         `}
                     </td>
                     <td class="shift-cell">
-                        ${cenaShifts.length > 0 ? `
+                        ${isCenaHoliday ? `
+                        <div style="text-align: center; padding: 20px; font-weight: 700; font-size: 14px; color: #dc2626; background: #fef2f2; border: 2px solid #dc2626; border-radius: 4px;">
+                            🔒 CHIUSO
+                        </div>
+                        ` : cenaShifts.length > 0 ? `
                         <div class="workers-grid">
                             ${cenaShifts.map(shift => `
                             <div class="worker-item ${shift.role.toLowerCase()}">
