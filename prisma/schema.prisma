@@ -51,15 +51,18 @@ model VerificationToken {
 }
 
 model absences {
-  id        String   @id
-  userId    String
-  startDate DateTime
-  endDate   DateTime
-  reason    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  notes     String?
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id
+  userId     String
+  startDate  DateTime
+  endDate    DateTime
+  reason     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  notes      String?
+  approved   Boolean  @default(false)
+  approvedBy String?
+  approver   User?    @relation("absences_approvedByTousers", fields: [approvedBy], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model advances {
@@ -204,7 +207,8 @@ model User {
   updatedAt                                       DateTime
   Account                                         Account[]
   Session                                         Session[]
-  absences                                        absences[]
+  absences                                        absences[]       @relation
+  approvedAbsences                                absences[]       @relation("absences_approvedByTousers")
   advances                                        advances[]
   audit_logs                                      audit_logs[]
   availabilities                                  availabilities[]
@@ -332,4 +336,7 @@ enum AuditActionType {
   DATABASE_RESET
   DATABASE_BACKUP
   SETTINGS_CHANGE
+  HOLIDAY_CREATE
+  HOLIDAY_EDIT
+  HOLIDAY_DELETE
 }
