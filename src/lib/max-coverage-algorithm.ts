@@ -342,11 +342,20 @@ export class MaxCoverageAlgorithm {
       console.log(`   ${this.getDayName(req.dayOfWeek)} ${req.shiftType} ${req.role}: ${req.requiredStaff} persone (priorità: ${req.priority})`)
     })
     
-    // 3. FASE 0: Assegnamento Prioritario per VIP (valentino, mario, alessio)
-    console.log(`\n\n🌟 === FASE 0: ASSEGNAMENTO UTENTI PRIORITARI ===`)
+    // 3. FASE 0: Assegnamento Prioritario per VIP ai RUOLI PREFERITI
+    // Assegna valentino→PIZZAIOLO e mario→CUCINA prima di tutto
+    console.log(`\n\n🌟 === FASE 0: ASSEGNAMENTO VIP AI RUOLI PREFERITI ===`)
+    console.log(`   valentino.dipietro → PIZZAIOLO (preferito)`)
+    console.log(`   mario.dipietro → CUCINA (preferito)`)
+    
+    // Filtra solo i requisiti per PIZZAIOLO e CUCINA (ruoli preferiti dei VIP)
+    const vipPreferredRequirements = sortedRequirements.filter(req => 
+      req.role === 'PIZZAIOLO' || req.role === 'CUCINA'
+    )
+    
     let schedule = await this.intelligentAssignment(
       users, 
-      sortedRequirements, 
+      vipPreferredRequirements,  // Solo PIZZAIOLO e CUCINA
       existingShifts, 
       transportLimits,
       'vip',
@@ -357,7 +366,7 @@ export class MaxCoverageAlgorithm {
     console.log(`\n\n🥇 === FASE 1: ASSEGNAMENTO CON RUOLI PRIMARI ===`)
     schedule = await this.intelligentAssignment(
       users, 
-      sortedRequirements, 
+      sortedRequirements,  // Tutti i requisiti
       schedule, 
       transportLimits,
       'primary',
@@ -1002,7 +1011,14 @@ export class MaxCoverageAlgorithm {
 
     for (const user of users) {
       // MODE VIP: Solo utenti prioritari (valentino, mario, alessio)
-      if (mode === 'vip' && !this.isPriorityUser(user.username)) continue
+      if (mode === 'vip') {
+        if (!this.isPriorityUser(user.username)) continue
+        
+        // 🎯 VINCOLO VIP: In modalità VIP, assegna SOLO al ruolo preferito!
+        // valentino → PIZZAIOLO, mario → CUCINA
+        const preferredRole = this.VIP_ROLE_PREFERENCES[user.username]
+        if (preferredRole && requirement.role !== preferredRole) continue
+      }
 
       // VINCOLO 1: Deve avere il ruolo richiesto
       const hasRole = user.roles.includes(requirement.role)
