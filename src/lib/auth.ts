@@ -33,7 +33,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           console.log('[AUTH] Prisma client OK, querying user...')
-          const user = await prisma.User.findUnique({
+          const user = await prisma.users.findUnique({
             where: {
               username: credentials.username
             },
