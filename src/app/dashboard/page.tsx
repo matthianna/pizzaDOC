@@ -289,13 +289,20 @@ export default function DashboardPage() {
                   {/* Mostra i primi turni mancanti */}
                   <div className="space-y-2 mb-4">
                     {missingHours.missingShifts.slice(0, 3).map((shift) => {
-                      const shiftDate = new Date(shift.date)
+                      let shiftDate = new Date()
+                      let isValidDate = false
+                      try {
+                        shiftDate = new Date(shift.date)
+                        isValidDate = !isNaN(shiftDate.getTime())
+                      } catch (e) {
+                        isValidDate = false
+                      }
 
                       return (
                         <div key={shift.id} className="flex items-center justify-between p-2 sm:p-3 bg-white/60 backdrop-blur-sm rounded-lg border border-red-200">
                           <div className="flex-1 min-w-0">
                             <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
-                              {getDayName(shift.dayOfWeek)} {format(shiftDate, 'dd/MM/yyyy')}
+                              {getDayName(shift.dayOfWeek)} {isValidDate ? format(shiftDate, 'dd/MM/yyyy') : ''}
                             </p>
                             <p className="text-xs text-gray-600">
                               {shift.shiftType} - {getRoleName(shift.role as any)}
@@ -644,17 +651,26 @@ export default function DashboardPage() {
                       <div
                         key={shift.id}
                         className={`flex items-center justify-between p-3 rounded-xl border ${shift.isToday
-                            ? 'bg-orange-50 border-orange-200 shadow-sm'
-                            : shift.isPast
-                              ? 'bg-gray-50 border-gray-200 opacity-75'
-                              : 'bg-white border-gray-100 shadow-sm'
+                          ? 'bg-orange-50 border-orange-200 shadow-sm'
+                          : shift.isPast
+                            ? 'bg-gray-50 border-gray-200 opacity-75'
+                            : 'bg-white border-gray-100 shadow-sm'
                           }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`flex flex-col items-center justify-center w-10 h-10 rounded-lg ${shift.isToday ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
                             }`}>
                             <span className="text-xs font-bold uppercase">{shift.dayName.substring(0, 3)}</span>
-                            <span className="text-sm font-bold">{format(new Date(shift.date), 'd')}</span>
+                            <span className="text-sm font-bold">
+                              {(() => {
+                                try {
+                                  const d = new Date(shift.date)
+                                  return isNaN(d.getTime()) ? '' : format(d, 'd')
+                                } catch {
+                                  return ''
+                                }
+                              })()}
+                            </span>
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">
@@ -751,8 +767,8 @@ function ActionButton({
     <a
       href={href}
       className={`block p-3 sm:p-4 border rounded-lg transition-all ${highlight
-          ? 'border-orange-400 bg-orange-50 hover:bg-orange-100 shadow-md ring-2 ring-orange-200'
-          : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+        ? 'border-orange-400 bg-orange-50 hover:bg-orange-100 shadow-md ring-2 ring-orange-200'
+        : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
         }`}
     >
       <div className="flex items-center mb-1 sm:mb-2">
