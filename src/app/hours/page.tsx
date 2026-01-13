@@ -506,40 +506,36 @@ function ShiftCard({
     (!shift.workedHours || shift.workedHours.status === 'REJECTED')
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+    <div className="glass rounded-xl shadow-soft overflow-hidden card-hover border-0">
       {/* Header with gradient */}
-      <div className={`px-6 py-4 border-b ${shift.shiftType === 'PRANZO'
-        ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-orange-100'
-        : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100'
+      <div className={`px-6 py-4 border-b border-white/20 ${shift.shiftType === 'PRANZO'
+        ? 'bg-gradient-to-r from-amber-50/80 to-orange-50/80'
+        : 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80'
         }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className={`w-3 h-3 rounded-full ${shift.shiftType === 'PRANZO' ? 'bg-orange-400' : 'bg-blue-500'
-              }`}></div>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${shift.shiftType === 'PRANZO' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
+              }`}>
+              {shift.shiftType === 'PRANZO' ? <span className="text-xl">☀️</span> : <span className="text-xl">🌙</span>}
+            </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                {getDayName(shift.dayOfWeek)} - {getShiftTypeName(shift.shiftType)}
+              <h3 className="text-lg font-bold text-gray-900">
+                {getDayName(shift.dayOfWeek)}
               </h3>
-              <div className="flex items-center space-x-3 text-sm text-gray-600 mt-1">
-                <span className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  {format(shiftDate, 'dd/MM/yyyy', { locale: it })}
-                </span>
-                <span className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
-                  Inizio: {shift.startTime}
-                </span>
-                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">
-                  {getRoleName(shift.role)}
-                </span>
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <span className="font-medium text-gray-900">{getShiftTypeName(shift.shiftType)}</span>
+                <span>•</span>
+                <span>{format(shiftDate, 'dd/MM', { locale: it })}</span>
+                <span>•</span>
+                <span>{shift.startTime}</span>
               </div>
             </div>
           </div>
 
           {shift.workedHours && (
-            <div className={`px-4 py-2 rounded-full border text-sm font-medium flex items-center shadow-sm ${getStatusColor(shift.workedHours.status)}`}>
+            <div className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center shadow-sm border ${getStatusColor(shift.workedHours.status)}`}>
               {getStatusIcon(shift.workedHours.status)}
-              <span className="ml-2">{getStatusText(shift.workedHours.status)}</span>
+              <span className="ml-1.5 uppercase tracking-wide">{getStatusText(shift.workedHours.status)}</span>
             </div>
           )}
         </div>
@@ -710,16 +706,16 @@ function ShiftCard({
                   onClick={() => onSubmitHours(shift, startTime, endTime)}
                   disabled={!canSubmit || submitting}
                   isLoading={submitting}
-                  className={`flex items-center shadow-lg text-white ${shift.workedHours && shift.workedHours.status === 'REJECTED'
+                  className={`w-full sm:w-auto flex items-center justify-center shadow-lg shadow-orange-500/20 text-white font-bold py-6 rounded-xl transition-all transform active:scale-95 ${shift.workedHours && shift.workedHours.status === 'REJECTED'
                     ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-                    : 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700'
+                    : 'bg-gradient-primary hover:brightness-110'
                     }`}
                   size="lg"
                 >
-                  <Send className="h-4 w-4 mr-2" />
+                  <Send className="h-5 w-5 mr-2" />
                   {shift.workedHours && shift.workedHours.status === 'REJECTED'
-                    ? 'Reinvia corretto'
-                    : 'Invia per approvazione'
+                    ? 'Reinvia Correzione'
+                    : 'Invia Ore'
                   }
                 </Button>
               </div>

@@ -3,6 +3,9 @@ import { addDays, startOfWeek } from 'date-fns'
 import { whatsappService } from '@/lib/whatsapp-service'
 import { prisma } from '@/lib/prisma'
 
+import { createNotification } from '@/lib/notifications'
+import { NotificationType } from '@prisma/client'
+
 // Normalizza una data a mezzanotte UTC
 function normalizeDate(dateInput: string | Date): Date {
   const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
@@ -22,15 +25,15 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
     const vercelCronHeader = request.headers.get('x-vercel-cron') // Header speciale di Vercel
     const cronSecret = process.env.CRON_SECRET
-    
+
     // Accetta se:
     // - È una chiamata da Vercel Cron (header x-vercel-cron presente)
     // - Oppure ha il CRON_SECRET corretto
     const isVercelCron = vercelCronHeader !== null
     const hasValidSecret = cronSecret && authHeader === `Bearer ${cronSecret}`
-    
+
     if (!isVercelCron && cronSecret && !hasValidSecret) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Unauthorized',
         hint: 'Use Authorization: Bearer <CRON_SECRET> header or wait for Vercel to run the cron automatically'
       }, { status: 401 })
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     // Trova tutti gli utenti attivi con disponibilità e assenze
     const activeUsers = await prisma.user.findMany({
-      where: { 
+      where: {
         isActive: true,
         whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
       },
@@ -105,25 +108,25 @@ export async function GET(request: NextRequest) {
       // Controlla se ha VERA disponibilità (isAvailable: true)
       const hasNoAvailability = !user.availabilities.some(a => a.isAvailable === true)
       const isNotAdmin = user.username.toLowerCase() !== 'admin'
-      
+
       // Calcola quanti giorni della settimana sono coperti da assenze
       const weekStartTime = weekStart.getTime()
       const weekEndTime = weekEnd.getTime()
       const oneDayMs = 24 * 60 * 60 * 1000
-      
+
       // Crea set di tutti i giorni della settimana (7 giorni)
       const weekDays = new Set<string>()
       for (let i = 0; i < 7; i++) {
         const dayDate = new Date(weekStartTime + i * oneDayMs)
         weekDays.add(dayDate.toISOString().split('T')[0])
       }
-      
+
       // Conta giorni coperti da assenze
       const coveredDays = new Set<string>()
       for (const absence of user.absences) {
         const absenceStart = Math.max(absence.startDate.getTime(), weekStartTime)
         const absenceEnd = Math.min(absence.endDate.getTime(), weekEndTime)
-        
+
         let currentDay = absenceStart
         while (currentDay <= absenceEnd) {
           const dayStr = new Date(currentDay).toISOString().split('T')[0]
@@ -131,16 +134,16 @@ export async function GET(request: NextRequest) {
           currentDay += oneDayMs
         }
       }
-      
+
       // Se tutti i 7 giorni sono coperti da assenze, escludi l'utente
-      const allDaysCovered = weekDays.size === coveredDays.size && 
-                            Array.from(weekDays).every(day => coveredDays.has(day))
-      
+      const allDaysCovered = weekDays.size === coveredDays.size &&
+        Array.from(weekDays).every(day => coveredDays.has(day))
+
       // Log per debug
       if (hasNoAvailability && isNotAdmin && allDaysCovered) {
         console.log(`⏭️ Skipping ${user.username}: has ${coveredDays.size}/7 days covered by absences (full week off)`)
       }
-      
+
       return hasNoAvailability && isNotAdmin && !allDaysCovered
     })
 
@@ -242,6 +245,34 @@ Ciao ${user.username}!
       console.log('📱 WhatsApp notifications disabled or no users without availability')
     }
 
+    // 🔔 Send Push Notifications
+    if (usersWithoutAvailability.length > 0) {
+      console.log('🔔 Sending push notifications to', usersWithoutAvailability.length, 'users')
+
+      const pushResults = await Promise.allSettled(
+        usersWithoutAvailability.map(async (user) => {
+          try {
+            await createNotification({
+              userId: user.id,
+              type: NotificationType.AVAILABILITY_REMINDER,
+              title: 'Promemoria Disponibilità',
+              body: 'Ricordati di inserire le tue disponibilità per la prossima settimana entro domenica sera!',
+              data: {
+                url: '/availability'
+              }
+            })
+            return { success: true, userId: user.id }
+          } catch (error) {
+            console.error(`❌ Failed to send push to ${user.username}:`, error)
+            return { success: false, userId: user.id, error }
+          }
+        })
+      )
+
+      const successfulPush = pushResults.filter(r => r.status === 'fulfilled' && r.value.success).length
+      console.log(`✅ Push notifications sent: ${successfulPush}/${usersWithoutAvailability.length}`)
+    }
+
     console.log('✅ Availability reminder cron job completed:', results)
 
     return NextResponse.json({
@@ -252,7 +283,7 @@ Ciao ${user.username}!
   } catch (error) {
     console.error('❌ Error in availability reminder cron:', error)
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'

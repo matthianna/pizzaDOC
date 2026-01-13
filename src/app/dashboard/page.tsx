@@ -396,29 +396,29 @@ export default function DashboardPage() {
         {/* Quick Actions - Mobile Only */}
         {!isAdmin && (
           <div className="grid grid-cols-2 gap-3 sm:hidden">
-            <a href="/hours" className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform">
-              <div className="p-3 bg-orange-100 rounded-full mb-2">
+            <a href="/hours" className="flex flex-col items-center justify-center p-4 glass rounded-xl shadow-soft border-0 active:scale-95 transition-transform">
+              <div className="p-3 bg-orange-100 rounded-full mb-2 shadow-sm">
                 <Clock className="h-6 w-6 text-orange-600" />
               </div>
-              <span className="text-sm font-medium text-gray-900">Segna Ore</span>
+              <span className="text-sm font-bold text-gray-900">Segna Ore</span>
             </a>
-            <a href="/schedule" className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform">
-              <div className="p-3 bg-blue-100 rounded-full mb-2">
+            <a href="/schedule" className="flex flex-col items-center justify-center p-4 glass rounded-xl shadow-soft border-0 active:scale-95 transition-transform">
+              <div className="p-3 bg-blue-100 rounded-full mb-2 shadow-sm">
                 <CalendarDays className="h-6 w-6 text-blue-600" />
               </div>
-              <span className="text-sm font-medium text-gray-900">Mio Piano</span>
+              <span className="text-sm font-bold text-gray-900">Mio Piano</span>
             </a>
-            <a href="/substitution-requests" className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform">
-              <div className="p-3 bg-purple-100 rounded-full mb-2">
+            <a href="/substitution-requests" className="flex flex-col items-center justify-center p-4 glass rounded-xl shadow-soft border-0 active:scale-95 transition-transform">
+              <div className="p-3 bg-purple-100 rounded-full mb-2 shadow-sm">
                 <UserCheck className="h-6 w-6 text-purple-600" />
               </div>
-              <span className="text-sm font-medium text-gray-900">Sostituzioni</span>
+              <span className="text-sm font-bold text-gray-900">Sostituzioni</span>
             </a>
-            <a href="/availability" className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform">
-              <div className="p-3 bg-green-100 rounded-full mb-2">
+            <a href="/availability" className="flex flex-col items-center justify-center p-4 glass rounded-xl shadow-soft border-0 active:scale-95 transition-transform">
+              <div className="p-3 bg-green-100 rounded-full mb-2 shadow-sm">
                 <Calendar className="h-6 w-6 text-green-600" />
               </div>
-              <span className="text-sm font-medium text-gray-900">Disponibilità</span>
+              <span className="text-sm font-bold text-gray-900">Disponibilità</span>
             </a>
           </div>
         )}
@@ -709,43 +709,29 @@ export default function DashboardPage() {
   )
 }
 
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  color,
-  subtitle
-}: {
-  title: string
-  value: string | number
-  icon: any
-  color: string
-  subtitle?: string
-}) {
+function StatCard({ title, value, icon: Icon, color, subtitle }: any) {
   const colorClasses = {
-    blue: 'text-blue-600 bg-blue-50',
-    green: 'text-green-600 bg-green-50',
-    yellow: 'text-yellow-600 bg-yellow-50',
-    purple: 'text-purple-600 bg-purple-50',
-    orange: 'text-orange-600 bg-orange-50'
+    blue: 'bg-blue-50 text-blue-600',
+    green: 'bg-green-50 text-green-600',
+    yellow: 'bg-yellow-50 text-yellow-600',
+    purple: 'bg-purple-50 text-purple-600',
+    orange: 'bg-orange-50 text-orange-600',
   }
 
-  const baseColor = color as keyof typeof colorClasses
-
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{title}</p>
-          <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{value}</h3>
-          {subtitle && (
-            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
-          )}
-        </div>
-        <div className={`p-2 rounded-lg ${colorClasses[baseColor]}`}>
+    <div className="glass rounded-xl p-4 sm:p-6 shadow-soft border-0">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+        <div className={`p-2 rounded-lg ${(colorClasses as any)[color]}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
+      <div className="flex items-baseline">
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
+      </div>
+      {subtitle && (
+        <p className="mt-1 text-xs text-gray-500">{subtitle}</p>
+      )}
     </div>
   )
 }

@@ -153,21 +153,23 @@ export default function AbsencesPage() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header Moderno */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-              <Calendar className="h-7 w-7 mr-3 text-orange-600" />
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center tracking-tight">
+              <div className="w-12 h-12 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-lg mr-4 animate-float">
+                <Calendar className="h-6 w-6 text-white" />
+              </div>
               Assenze e Vacanze
             </h1>
-            <p className="text-gray-600 mt-1.5">
-              Gestisci i tuoi periodi di assenza
+            <p className="text-gray-500 mt-2 font-medium">
+              Gestisci i tuoi periodi di riposo e comunica le tue assenze
             </p>
           </div>
           <Button
             onClick={() => setShowForm(true)}
-            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105"
+            className="bg-gradient-primary hover:brightness-110 text-white rounded-2xl shadow-lg shadow-orange-500/20 py-6 px-8 font-bold transition-all transform active:scale-95"
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-5 w-5 mr-2" />
             Nuova Assenza
           </Button>
         </div>
@@ -289,14 +291,14 @@ export default function AbsencesPage() {
           </div>
         )}
 
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50/50 border border-blue-200/50 rounded-xl p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <AlertCircle className="h-5 w-5 text-blue-600" />
+        <div className="glass rounded-2xl p-5 border-0 shadow-soft">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm">
+              <AlertCircle className="h-6 w-6 text-blue-600" />
             </div>
-            <div className="text-sm text-blue-800">
-              <p className="font-bold mb-1">Importante</p>
-              <p>Le assenze già iniziate o nel passato non possono essere modificate o eliminate. Durante i periodi di assenza, non potrai inserire disponibilità per i giorni in cui sei assente.</p>
+            <div className="text-sm text-gray-600 leading-relaxed">
+              <p className="font-bold text-gray-900 mb-1">Informazioni importanti</p>
+              <p>Le assenze già iniziate o nel passato sono bloccate. Durante i periodi di assenza, il sistema disabiliterà automaticamente la possibilità di inserire disponibilità per quei giorni.</p>
             </div>
           </div>
         </div>
@@ -395,12 +397,13 @@ function AbsenceCard({
   const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
   return (
-    <div className={`rounded-xl border shadow-sm transition-all ${isActive
-      ? 'bg-white border-green-200 shadow-green-100/50'
+    <div className={`glass rounded-2xl border-0 shadow-soft transition-all card-hover overflow-hidden ${isActive
+      ? 'ring-2 ring-green-400/50'
       : isPast
-        ? 'bg-gray-50 border-gray-200 opacity-75'
-        : 'bg-white border-blue-200 shadow-blue-100/50'
+        ? 'opacity-60 grayscale-[0.5]'
+        : 'ring-2 ring-blue-400/30'
       }`}>
+      <div className={`h-1.5 w-full ${isActive ? 'bg-gradient-success' : isPast ? 'bg-gray-300' : 'bg-gradient-secondary'}`} />
       <div className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">

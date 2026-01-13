@@ -203,28 +203,28 @@ export default function SchedulePage() {
         </div>
 
         {/* Week Navigation */}
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+        <div className="glass rounded-xl shadow-soft p-4 sm:p-6 mb-6">
           {/* Mobile View */}
           <div className="flex sm:hidden items-center justify-between">
             <button
               onClick={goToPreviousWeek}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors active:scale-95"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
 
             <div className="text-center" onClick={goToCurrentWeek}>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-1">
                 {format(currentWeek, 'MMMM yyyy', { locale: it })}
               </p>
-              <p className="text-lg font-bold text-gray-900">
+              <p className="text-xl font-black text-gray-900">
                 {format(currentWeek, 'd', { locale: it })} - {format(weekEnd, 'd', { locale: it })}
               </p>
             </div>
 
             <button
               onClick={goToNextWeek}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors active:scale-95"
             >
               <ChevronRight className="h-6 w-6" />
             </button>
@@ -234,17 +234,17 @@ export default function SchedulePage() {
           <div className="hidden sm:flex items-center justify-between">
             <button
               onClick={goToPreviousWeek}
-              className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+              className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
             >
               <ChevronLeft className="h-5 w-5 mr-1" />
               Settimana precedente
             </button>
 
             <div className="text-center">
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-2xl font-bold text-gray-900">
                 {format(currentWeek, 'dd/MM/yyyy', { locale: it })} - {format(weekEnd, 'dd/MM/yyyy', { locale: it })}
               </h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm font-medium text-orange-600 mt-1 uppercase tracking-wide">
                 {format(currentWeek, 'MMMM yyyy', { locale: it })}
               </p>
             </div>
@@ -252,13 +252,13 @@ export default function SchedulePage() {
             <div className="flex items-center space-x-2">
               <button
                 onClick={goToCurrentWeek}
-                className="px-4 py-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors font-medium"
+                className="px-4 py-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors font-bold"
               >
                 Questa settimana
               </button>
               <button
                 onClick={goToNextWeek}
-                className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
               >
                 Settimana successiva
                 <ChevronRight className="h-5 w-5 ml-1" />
@@ -292,17 +292,17 @@ export default function SchedulePage() {
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
 
             return (
-              <div key={dayIndex} className={`bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col ${isToday ? 'ring-2 ring-orange-400 border-orange-300' : 'border-gray-200'}`}>
+              <div key={dayIndex} className={`glass rounded-xl shadow-sm border overflow-hidden flex flex-col transition-all duration-300 ${isToday ? 'ring-2 ring-orange-400 border-orange-300 shadow-glow-orange transform scale-[1.02]' : 'border-white/40 hover:border-orange-200'}`}>
                 {/* Day Header */}
-                <div className={`px-3 py-2 text-center border-b ${isToday ? 'bg-orange-500 text-white border-orange-500' : 'bg-gray-50 border-gray-100'}`}>
-                  <div className={`text-base font-bold ${isToday ? 'text-white' : 'text-gray-900'}`}>
+                <div className={`px-3 py-3 text-center border-b ${isToday ? 'bg-gradient-to-b from-orange-500 to-orange-600 text-white border-orange-500' : 'bg-gradient-to-b from-gray-50 to-gray-100 border-gray-100'}`}>
+                  <div className={`text-sm font-black tracking-wider ${isToday ? 'text-white' : 'text-gray-500'}`}>
                     {format(day, 'EEE', { locale: it }).toUpperCase()}
                   </div>
-                  <div className={`text-xs ${isToday ? 'text-orange-100' : 'text-gray-500'}`}>
-                    {format(day, 'dd/MM', { locale: it })}
+                  <div className={`text-lg font-bold ${isToday ? 'text-white' : 'text-gray-900'}`}>
+                    {format(day, 'dd', { locale: it })}
                   </div>
                   {isToday && (
-                    <div className="text-[10px] text-orange-600 font-bold bg-white rounded-full px-2 py-0.5 inline-block mt-1 shadow-sm">OGGI</div>
+                    <div className="text-[10px] text-orange-600 font-bold bg-white rounded-full px-2 py-0.5 inline-block mt-1 shadow-sm uppercase tracking-widest">Oggi</div>
                   )}
                 </div>
 
@@ -328,22 +328,22 @@ export default function SchedulePage() {
                           <div
                             key={shift.id}
                             className={`rounded-lg border transition-all hover:shadow-md ${shiftEnded
-                                ? 'bg-gray-50 border-gray-200 opacity-75'
-                                : shift.shiftType === 'PRANZO'
-                                  ? 'bg-amber-50/50 border-amber-200'
-                                  : 'bg-blue-50/50 border-blue-200'
+                              ? 'bg-gray-50 border-gray-200 opacity-75'
+                              : shift.shiftType === 'PRANZO'
+                                ? 'bg-amber-50/50 border-amber-200'
+                                : 'bg-blue-50/50 border-blue-200'
                               }`}
                           >
                             {/* Header */}
                             <div className={`px-2 py-1.5 border-b flex items-center justify-between ${shiftEnded
-                                ? 'border-gray-200'
-                                : shift.shiftType === 'PRANZO'
-                                  ? 'border-amber-100'
-                                  : 'border-blue-100'
+                              ? 'border-gray-200'
+                              : shift.shiftType === 'PRANZO'
+                                ? 'border-amber-100'
+                                : 'border-blue-100'
                               }`}>
                               <div className="flex items-center space-x-1.5">
                                 <div className={`w-2 h-2 rounded-full ${shiftEnded ? 'bg-gray-400' :
-                                    shift.shiftType === 'PRANZO' ? 'bg-amber-500' : 'bg-blue-600'
+                                  shift.shiftType === 'PRANZO' ? 'bg-amber-500' : 'bg-blue-600'
                                   }`}></div>
                                 <span className={`text-xs font-bold uppercase ${shiftEnded ? 'text-gray-600' : 'text-gray-900'
                                   }`}>
@@ -365,8 +365,8 @@ export default function SchedulePage() {
                                 </div>
                                 <div className="flex items-center justify-center mt-0.5">
                                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${shiftEnded
-                                      ? 'bg-gray-200 text-gray-600'
-                                      : 'bg-white border shadow-sm text-gray-700'
+                                    ? 'bg-gray-200 text-gray-600'
+                                    : 'bg-white border shadow-sm text-gray-700'
                                     }`}>
                                     {getRoleName(shift.role)}
                                   </span>
@@ -376,8 +376,8 @@ export default function SchedulePage() {
                               {/* Hours Status */}
                               {shift.workedHours && (
                                 <div className={`p-1.5 rounded-md border text-center text-xs ${shift.workedHours.status === 'PENDING' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                                    shift.workedHours.status === 'APPROVED' ? 'bg-green-50 border-green-200 text-green-800' :
-                                      'bg-red-50 border-red-200 text-red-800'
+                                  shift.workedHours.status === 'APPROVED' ? 'bg-green-50 border-green-200 text-green-800' :
+                                    'bg-red-50 border-red-200 text-red-800'
                                   }`}>
                                   <div className="font-bold flex items-center justify-center gap-1">
                                     {shift.workedHours.status === 'PENDING' && <Clock className="h-3 w-3" />}
@@ -425,8 +425,8 @@ export default function SchedulePage() {
                                   <button
                                     onClick={() => openSubstitutionModal(shift)}
                                     className={`w-full text-xs py-1.5 border rounded-md transition-all font-medium flex items-center justify-center gap-1 ${shift.shiftType === 'PRANZO'
-                                        ? 'text-amber-700 border-amber-200 bg-white hover:bg-amber-50'
-                                        : 'text-blue-700 border-blue-200 bg-white hover:bg-blue-50'
+                                      ? 'text-amber-700 border-amber-200 bg-white hover:bg-amber-50'
+                                      : 'text-blue-700 border-blue-200 bg-white hover:bg-blue-50'
                                       }`}
                                   >
                                     <Users className="h-3 w-3" />

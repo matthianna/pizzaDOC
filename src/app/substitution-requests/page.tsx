@@ -205,14 +205,16 @@ export default function SubstitutionRequestsPage() {
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-              <Users className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500 mr-2" />
-              Richieste di Sostituzione
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center tracking-tight">
+              <div className="w-12 h-12 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-lg mr-4 animate-float">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              Sostituzioni
             </h1>
-            <p className="text-gray-800 mt-1 text-sm sm:text-base">
-              Vedi le richieste di altri colleghi e candidati per aiutarli
+            <p className="text-gray-500 mt-2 font-medium">
+              Aiuta i tuoi colleghi candidandoti per i loro turni
             </p>
           </div>
         </div>
@@ -249,12 +251,12 @@ export default function SubstitutionRequestsPage() {
                   const isAlreadyApplied = substitution.substitute?.id === session.user.id
 
                   return (
-                    <div key={substitution.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <div key={substitution.id} className="glass rounded-2xl shadow-soft border-0 overflow-hidden card-hover">
                       {/* Card Header */}
-                      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                      <div className="px-4 py-3 border-b border-white/20 flex items-center justify-between bg-white/30">
                         <div className="flex items-center space-x-2">
                           {getStatusIcon(substitution.status)}
-                          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${getStatusColor(substitution.status)}`}>
+                          <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border ${getStatusColor(substitution.status)}`}>
                             {getStatusText(substitution.status)}
                           </span>
                         </div>
@@ -310,10 +312,10 @@ export default function SubstitutionRequestsPage() {
                             onClick={() => applyForSubstitution(substitution.id)}
                             disabled={applying === substitution.id}
                             isLoading={applying === substitution.id}
-                            className="w-full bg-orange-600 hover:bg-orange-700 text-white shadow-sm"
+                            className="w-full bg-gradient-primary hover:brightness-110 text-white shadow-lg shadow-orange-500/20 py-6 rounded-xl font-bold transition-all transform active:scale-95"
                           >
                             <Send className="h-4 w-4 mr-2" />
-                            Candidati
+                            Candidati Ora
                           </Button>
                         )}
 
@@ -354,12 +356,12 @@ export default function SubstitutionRequestsPage() {
                   const shiftDate = getShiftDate(substitution.shifts)
 
                   return (
-                    <div key={substitution.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <div key={substitution.id} className="glass rounded-2xl shadow-soft border-0 overflow-hidden card-hover">
                       {/* Card Header */}
-                      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                      <div className="px-4 py-3 border-b border-white/20 flex items-center justify-between bg-white/30">
                         <div className="flex items-center space-x-2">
                           {getStatusIcon(substitution.status)}
-                          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${getStatusColor(substitution.status)}`}>
+                          <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border ${getStatusColor(substitution.status)}`}>
                             {getStatusText(substitution.status)}
                           </span>
                         </div>

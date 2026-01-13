@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { useSession } from 'next-auth/react'
 import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock, CheckCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { getWeekStart, getNextWeekStart, canEditAvailability, getWeekDays, formatDate, getDayOfWeek, getShiftTimes } from '@/lib/date-utils'
 import { getDayName, getShiftTypeName } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -211,20 +212,22 @@ export default function AvailabilityPage() {
     <MainLayout>
       <div className="space-y-4 sm:space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-              <Calendar className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-orange-600" />
-              Gestione Disponibilità
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center tracking-tight">
+              <div className="w-12 h-12 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-lg mr-4 animate-float">
+                <Calendar className="h-6 w-6 text-white" />
+              </div>
+              Disponibilità
             </h1>
-            <p className="text-gray-600 mt-1 text-sm sm:text-base">
-              Indica la tua disponibilità per i turni settimanali
+            <p className="text-gray-500 mt-2 font-medium">
+              Indica i turni in cui sei disponibile per lavorare
             </p>
           </div>
         </div>
 
         {/* Week Navigation */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-4 sm:p-6">
+        <div className="glass rounded-2xl shadow-soft p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 mb-4">
             <button
               onClick={() => navigateWeek('prev')}
@@ -295,8 +298,8 @@ export default function AvailabilityPage() {
                 const cenaHoliday = isHoliday(dayOfWeek, 'CENA')
 
                 return (
-                  <div key={index} className={`bg-white rounded-xl shadow-sm border p-4 ${dayDisabled ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}>
-                    <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+                  <div key={index} className={`glass rounded-2xl shadow-soft border-0 p-5 card-hover ${dayDisabled ? 'ring-2 ring-red-400/30' : ''}`}>
+                    <div className="flex items-center justify-between mb-4 border-b border-white/20 pb-3">
                       <div>
                         <span className={`font-bold text-lg ${dayDisabled ? 'text-red-800' : 'text-gray-900'}`}>
                           {getDayName(dayOfWeek)}
@@ -475,15 +478,16 @@ export default function AvailabilityPage() {
           </div>
 
           {canEdit && (
-            <div className="mt-6 flex justify-end">
-              <button
+            <div className="mt-8 flex justify-end">
+              <Button
                 onClick={saveAvailability}
                 disabled={saving}
-                className="bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 flex items-center disabled:opacity-50"
+                isLoading={saving}
+                className="bg-gradient-primary hover:brightness-110 text-white px-10 py-7 rounded-2xl font-bold shadow-lg shadow-orange-500/20 transition-all transform active:scale-95"
               >
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? 'Salvando...' : 'Salva Disponibilità'}
-              </button>
+                <Save className="h-5 w-5 mr-2" />
+                Salva Disponibilità
+              </Button>
             </div>
           )}
         </div>
