@@ -83,13 +83,11 @@ export default function AdminHoursPage() {
 
       if (response.ok) {
         fetchWorkedHours()
-        alert('Ore approvate con successo')
       } else {
-        alert('Errore durante l\'approvazione')
+        console.error('Errore durante l\'approvazione')
       }
     } catch (error) {
       console.error('Error approving hours:', error)
-      alert('Errore durante l\'approvazione')
     }
   }
 
@@ -107,13 +105,11 @@ export default function AdminHoursPage() {
         setRejectingId(null)
         setRejectReason('')
         fetchWorkedHours()
-        alert('Ore rifiutate con successo')
       } else {
-        alert('Errore durante il rifiuto')
+        console.error('Errore durante il rifiuto')
       }
     } catch (error) {
       console.error('Error rejecting hours:', error)
-      alert('Errore durante il rifiuto')
     }
   }
 
@@ -147,14 +143,12 @@ export default function AdminHoursPage() {
       if (response.ok) {
         closeEditModal()
         fetchWorkedHours()
-        alert('Ore modificate con successo')
       } else {
         const error = await response.json()
-        alert(error.error || 'Errore durante la modifica')
+        console.error(error.error || 'Errore durante la modifica')
       }
     } catch (error) {
       console.error('Error editing hours:', error)
-      alert('Errore durante la modifica')
     }
   }
 

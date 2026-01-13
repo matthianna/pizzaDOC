@@ -63,7 +63,11 @@ export async function GET(request: NextRequest) {
 
     // ✅ PRIMA filtra i workedHours per anno/mese basandosi sulla data EFFETTIVA del turno
     const filteredWorkedHours = workedHours.filter(wh => {
-      const weekStartDate = new Date(wh.shifts.schedules.weekStart)
+      // Forza parsing UTC per evitare problemi di timezone
+      const weekStartStr = wh.shifts.schedules.weekStart.toISOString().split('T')[0]
+      const [y, m, d] = weekStartStr.split('-').map(Number)
+      const weekStartDate = new Date(Date.UTC(y, m - 1, d))
+      
       const shiftDate = new Date(Date.UTC(
         weekStartDate.getUTCFullYear(),
         weekStartDate.getUTCMonth(),
@@ -104,7 +108,11 @@ export async function GET(request: NextRequest) {
       const userId = wh.user.id
       
       // ✅ Calcola la data EFFETTIVA del turno usando UTC
-      const weekStartDate = new Date(wh.shifts.schedules.weekStart)
+      // Forza parsing UTC per evitare problemi di timezone
+      const weekStartStr = wh.shifts.schedules.weekStart.toISOString().split('T')[0]
+      const [y, m, d] = weekStartStr.split('-').map(Number)
+      const weekStartDate = new Date(Date.UTC(y, m - 1, d))
+      
       const shiftDate = new Date(Date.UTC(
         weekStartDate.getUTCFullYear(),
         weekStartDate.getUTCMonth(),

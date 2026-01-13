@@ -57,7 +57,11 @@ export async function GET(request: NextRequest) {
 
     // ✅ Filtra in base alla data EFFETTIVA del turno (non submittedAt)
     const workedHours = allWorkedHours.filter(wh => {
-      const weekStartDate = new Date(wh.shifts.schedules.weekStart)
+      // Forza parsing UTC per evitare problemi di timezone
+      const weekStartStr = wh.shifts.schedules.weekStart.toISOString().split('T')[0]
+      const [y, m, d] = weekStartStr.split('-').map(Number)
+      const weekStartDate = new Date(Date.UTC(y, m - 1, d))
+      
       const shiftDate = new Date(Date.UTC(
         weekStartDate.getUTCFullYear(),
         weekStartDate.getUTCMonth(),
