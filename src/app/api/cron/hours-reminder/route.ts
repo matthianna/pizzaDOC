@@ -20,16 +20,16 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
     const vercelCronHeader = request.headers.get('x-vercel-cron') // Header speciale di Vercel
     const cronSecret = process.env.CRON_SECRET
-    
+
     // Accetta se:
     // - È una chiamata da Vercel Cron (header x-vercel-cron presente)
     // - Oppure ha il CRON_SECRET corretto (se configurato)
     const isVercelCron = vercelCronHeader !== null
     const hasValidSecret = cronSecret && authHeader === `Bearer ${cronSecret}`
-    
+
     if (!isVercelCron && cronSecret && !hasValidSecret) {
       console.error('❌ [CRON hours-reminder] Unauthorized request')
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Unauthorized',
         hint: 'Use Authorization: Bearer <CRON_SECRET> header or wait for Vercel to run the cron automatically'
       }, { status: 401 })
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
       .map(shift => {
         const shiftDate = new Date(shift.schedules.weekStart)
         shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
-        
+
         return {
           userId: shift.user.id,
           username: shift.user.username,
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
       return acc
     }, {} as Record<string, { username: string; count: number }>)
 
-    const result = Object.values(groupedByUser).sort((a, b) => 
+    const result = Object.values(groupedByUser).sort((a, b) =>
       b.count - a.count // Ordina per numero di turni mancanti (decrescente)
     )
 
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
       // Costruisci il messaggio
       let message = '⏰ *PROMEMORIA ORE LAVORATE*\n\n'
       message += `📋 Questi dipendenti devono ancora inserire le ore:\n\n`
-      
+
       result.forEach(user => {
         const turnoLabel = user.count === 1 ? 'turno' : 'turni'
         message += `• *${user.username}* - ${user.count} ${turnoLabel}\n`
@@ -202,17 +202,50 @@ export async function GET(request: NextRequest) {
 
     } catch (whatsappError) {
       console.error('❌ [CRON hours-reminder] Error sending WhatsApp message:', whatsappError)
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to send WhatsApp message',
-        usersWithMissingHours: result.length
-      }, { status: 500 })
+      // Proseguiamo comunque con le notifiche push
     }
 
+    // 🔔 Send Push Notifications
+    if (result.length > 0) {
+      const { createNotification } = await import('@/lib/notifications')
+      const { NotificationType } = await import('@prisma/client')
+
+      console.log('🔔 Sending push notifications to', result.length, 'users')
+
+      const pushResults = await Promise.allSettled(
+        Object.entries(groupedByUser).map(async ([userId, data]) => {
+          try {
+            await createNotification({
+              userId: userId,
+              type: NotificationType.HOURS_REMINDER,
+              title: 'Promemoria Ore Lavorate',
+              body: `Hai ${data.count} ${data.count === 1 ? 'turno' : 'turni'} senza ore inserite. Ricordati di completarle!`,
+              data: {
+                url: '/hours'
+              }
+            })
+            return { success: true, userId }
+          } catch (error) {
+            console.error(`❌ Failed to send push to ${data.username}:`, error)
+            return { success: false, userId, error }
+          }
+        })
+      )
+
+      const successfulPush = pushResults.filter(r => r.status === 'fulfilled' && r.value.success).length
+      console.log(`✅ Push notifications sent: ${successfulPush}/${result.length}`)
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Hours reminder completed',
+      usersWithMissingHours: result.length,
+      users: result.map(u => ({ username: u.username, missingCount: u.count }))
+    })
   } catch (error) {
     console.error('❌ [CRON hours-reminder] Error in cron job:', error)
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
