@@ -6,6 +6,8 @@ import { addDays, format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
 import { whatsappService } from '@/lib/whatsapp-service'
+import { createNotification } from '@/lib/notifications'
+import { NotificationType } from '@prisma/client'
 
 export async function POST(
   request: NextRequest,
@@ -13,7 +15,7 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -66,12 +68,12 @@ export async function POST(
     const weekStart = normalizeDate(substitution.shifts.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
     const shiftDate = addDays(weekStart, substitution.shifts.dayOfWeek)
-    
+
     // Parse shift start time (format: "HH:MM")
     const [startHour, startMinute] = substitution.shifts.startTime.split(':').map(Number)
     const shiftStartDateTime = new Date(shiftDate)
     shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
-    
+
     // ✅ Permetti candidature fino all'orario di inizio del turno
     if (shiftStartDateTime <= new Date()) {
       return NextResponse.json(
@@ -79,7 +81,7 @@ export async function POST(
         { status: 400 }
       )
     }
-    
+
     // Check if deadline has passed (dovrebbe coincidere con l'orario di inizio)
     if (new Date() >= new Date(substitution.deadline)) {
       return NextResponse.json(
@@ -95,7 +97,7 @@ export async function POST(
     })
 
     const canPerformRole = user_roles.some(ur => ur.role === substitution.shifts.role)
-    
+
     if (!canPerformRole) {
       return NextResponse.json(
         { error: `Non puoi candidarti per questo turno. Ruolo richiesto: ${substitution.shifts.role}` },
@@ -205,6 +207,24 @@ export async function POST(
     } catch (whatsappError) {
       // Log error but don't fail the request
       console.error('Error sending WhatsApp notification:', whatsappError)
+    }
+
+    // 🔔 Invia notifica Push al richiedente
+    try {
+      await createNotification({
+        userId: substitution.requesterId,
+        type: NotificationType.SUBSTITUTION_APPLIED,
+        title: 'Candidatura Ricevuta',
+        body: `${session.user.name || session.user.username} si è candidato per il tuo turno di ${substitution.shifts.shiftType} del ${format(shiftDate, 'dd/MM')}.`,
+        data: {
+          url: '/substitution-requests',
+          relatedId: substitutionId
+        }
+      })
+
+      console.log('✅ Push notification sent to requester')
+    } catch (notificationError) {
+      console.error('❌ Error sending push notification:', notificationError)
     }
 
     return NextResponse.json({

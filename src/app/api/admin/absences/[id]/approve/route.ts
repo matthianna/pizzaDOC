@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logAuditAction } from '@/lib/audit-logger'
+import { createNotification } from '@/lib/notifications'
+import { NotificationType } from '@prisma/client'
+import { format } from 'date-fns'
+import { it } from 'date-fns/locale'
 
 export async function POST(
   request: NextRequest,
@@ -10,7 +14,7 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -55,6 +59,28 @@ export async function POST(
         approvedBy: session.user.id
       }
     })
+
+    // 🔔 Notify user
+    try {
+      const formattedStartDate = format(new Date(absence.startDate), 'dd/MM/yyyy', { locale: it })
+      const formattedEndDate = format(new Date(absence.endDate), 'dd/MM/yyyy', { locale: it })
+      const dateRange = formattedStartDate === formattedEndDate ? formattedStartDate : `${formattedStartDate} - ${formattedEndDate}`
+
+      await createNotification({
+        userId: absence.userId,
+        type: NotificationType.ABSENCE_APPROVED,
+        title: 'Assenza Approvata',
+        body: `La tua richiesta di assenza per ${dateRange} è stata approvata.`,
+        data: {
+          url: '/absences',
+          relatedId: id
+        }
+      })
+
+      console.log('✅ Push notification sent for absence approval')
+    } catch (notificationError) {
+      console.error('❌ Error sending push notification:', notificationError)
+    }
 
     return NextResponse.json(updated)
   } catch (error) {

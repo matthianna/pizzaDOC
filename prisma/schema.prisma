@@ -203,6 +203,7 @@ model User {
   primaryTransport                                TransportType?
   phoneNumber                                     String?
   whatsappNotificationsEnabled                    Boolean           @default(true)
+  pushNotificationsEnabled                        Boolean           @default(true)
   createdAt                                       DateTime          @default(now())
   updatedAt                                       DateTime
   Account                                         Account[]
@@ -219,8 +220,42 @@ model User {
   user_roles                                      user_roles[]
   user_transports                                 user_transports[]
   worked_hours                                    worked_hours[]
+  push_subscriptions                              push_subscriptions[]
+  notifications                                   notifications[]
 
   @@map("users")  // Mantiene il nome della tabella nel database
+}
+
+model push_subscriptions {
+  id         String   @id @default(cuid())
+  userId     String
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model notifications {
+  id         String           @id @default(cuid())
+  userId     String
+  type       NotificationType
+  title      String
+  body       String
+  data       Json?
+  isRead     Boolean          @default(false)
+  sentAt     DateTime         @default(now())
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([sentAt])
 }
 
 model worked_hours {
@@ -342,3 +377,22 @@ enum AuditActionType {
   HOLIDAY_EDIT
   HOLIDAY_DELETE
 }
+
+enum NotificationType {
+  SCHEDULE_PUBLISHED
+  SHIFT_ASSIGNED
+  SHIFT_CHANGED
+  SHIFT_REMOVED
+  HOURS_APPROVED
+  HOURS_REJECTED
+  SUBSTITUTION_REQUEST
+  SUBSTITUTION_APPLIED
+  SUBSTITUTION_APPROVED
+  SUBSTITUTION_REJECTED
+  AVAILABILITY_REMINDER
+  HOURS_REMINDER
+  ABSENCE_APPROVED
+  ABSENCE_REJECTED
+  GENERAL
+}
+

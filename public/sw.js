@@ -18,7 +18,7 @@ const STATIC_ASSETS = [
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
-  
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -38,7 +38,7 @@ self.addEventListener('install', (event) => {
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating service worker...');
-  
+
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -155,63 +155,68 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Handle push notifications (for future use)
+// Push Notifications
 self.addEventListener('push', (event) => {
-  if (event.data) {
-    const data = event.data.json();
+  if (!event.data) return
+
+  try {
+    const payload = event.data.json()
+
+    const title = payload.title || 'PizzaDOC'
     const options = {
-      body: data.body || 'Nuovo aggiornamento',
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
-      vibrate: [100, 50, 100],
-      data: {
-        url: data.url || '/dashboard'
-      },
-      actions: [
-        { action: 'open', title: 'Apri' },
-        { action: 'close', title: 'Chiudi' }
-      ]
-    };
+      body: payload.body || 'Nuova notifica',
+      icon: payload.icon || '/icons/icon-192x192.png',
+      badge: payload.badge || '/icons/icon-72x72.png',
+      data: payload.data || {},
+      tag: payload.tag,
+      requireInteraction: payload.requireInteraction || false,
+      vibrate: [100, 50, 100]
+    }
 
     event.waitUntil(
-      self.registration.showNotification(data.title || 'PizzaDOC', options)
-    );
+      self.registration.showNotification(title, options)
+    )
+  } catch (error) {
+    console.error('Error handling push event:', error)
   }
-});
+})
 
-// Handle notification clicks
+// Notification Click
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
+  event.notification.close()
 
-  if (event.action === 'open' || !event.action) {
-    const urlToOpen = event.notification.data?.url || '/dashboard';
-    
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then((clientList) => {
-          // If a window is already open, focus it
-          for (const client of clientList) {
-            if (client.url.includes(self.location.origin) && 'focus' in client) {
-              client.navigate(urlToOpen);
-              return client.focus();
-            }
-          }
-          // Otherwise, open a new window
-          return self.clients.openWindow(urlToOpen);
-        })
-    );
-  }
-});
+  const urlToOpen = event.notification.data?.url || '/'
 
-// Background sync for offline data submission
+  event.waitUntil(
+    clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    }).then((windowClients) => {
+      // Check if there is already a window/tab open with the target URL
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i]
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus()
+        }
+      }
+      // If not, open a new window/tab
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen)
+      }
+    })
+  )
+})
+
+// Background Sync (Placeholder for future implementation)
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-hours') {
-    event.waitUntil(syncHours());
+    // event.waitUntil(syncHours())
   }
-});
+})
 
 async function syncHours() {
   // Get pending hours from IndexedDB and sync them
   // This is a placeholder for future background sync implementation
   console.log('[SW] Syncing hours...');
 }
+

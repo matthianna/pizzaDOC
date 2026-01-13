@@ -5,8 +5,8 @@ import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { 
-  Bars3Icon, 
+import {
+  Bars3Icon,
   XMarkIcon,
   HomeIcon,
   CalendarIcon,
@@ -20,9 +20,10 @@ import {
   PresentationChartLineIcon,
   ShieldCheckIcon,
   UserCircleIcon,
-  BanknotesIcon
+  BanknotesIcon,
+  BellIcon
 } from '@heroicons/react/24/outline'
-import { 
+import {
   HomeIcon as HomeIconSolid,
   CalendarIcon as CalendarIconSolid,
   ClockIcon as ClockIconSolid,
@@ -34,7 +35,8 @@ import {
   PresentationChartLineIcon as PresentationChartLineIconSolid,
   ShieldCheckIcon as ShieldCheckIconSolid,
   UserCircleIcon as UserCircleIconSolid,
-  BanknotesIcon as BanknotesIconSolid
+  BanknotesIcon as BanknotesIconSolid,
+  BellIcon as BellIconSolid
 } from '@heroicons/react/24/solid'
 import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
@@ -57,6 +59,15 @@ export function Sidebar() {
       iconSolid: HomeIconSolid,
       adminOnly: false,
       emoji: '🏠',
+      section: 'home'
+    },
+    {
+      name: 'Notifiche',
+      href: '/notifications',
+      icon: BellIcon,
+      iconSolid: BellIconSolid,
+      adminOnly: false,
+      emoji: '🔔',
       section: 'home'
     },
     // 📅 IL MIO LAVORO
@@ -213,6 +224,14 @@ export function Sidebar() {
       iconSolid: ShieldCheckIconSolid,
       adminOnly: true,
       section: 'sistema'
+    },
+    {
+      name: 'Invia Notifiche',
+      href: '/admin/notifications',
+      icon: BellIcon,
+      iconSolid: BellIconSolid,
+      adminOnly: true,
+      section: 'sistema'
     }
   ]
 
@@ -258,7 +277,7 @@ export function Sidebar() {
                   <XMarkIcon className="h-6 w-6 text-white" aria-hidden="true" />
                 </button>
               </div>
-              <SidebarContent 
+              <SidebarContent
                 regularItems={regularItems}
                 adminItems={adminItems}
                 pathname={pathname}
@@ -275,7 +294,7 @@ export function Sidebar() {
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
         <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r border-gray-200">
-          <SidebarContent 
+          <SidebarContent
             regularItems={regularItems}
             adminItems={adminItems}
             pathname={pathname}
@@ -289,14 +308,14 @@ export function Sidebar() {
   )
 }
 
-function SidebarContent({ 
-  regularItems, 
-  adminItems, 
-  pathname, 
-  session, 
-  isUserAdmin, 
-  isMobile, 
-  onItemClick 
+function SidebarContent({
+  regularItems,
+  adminItems,
+  pathname,
+  session,
+  isUserAdmin,
+  isMobile,
+  onItemClick
 }: {
   regularItems: any[]
   adminItems: any[]
@@ -503,11 +522,11 @@ function SidebarContent({
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       )}
                     >
-                      <Icon 
+                      <Icon
                         className={cn(
                           'mr-3 h-5 w-5 flex-shrink-0',
                           pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
-                        )} 
+                        )}
                       />
                       {item.name}
                     </Link>
@@ -537,11 +556,11 @@ function SidebarContent({
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       )}
                     >
-                      <Icon 
+                      <Icon
                         className={cn(
                           'mr-3 h-5 w-5 flex-shrink-0',
                           pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
-                        )} 
+                        )}
                       />
                       {item.name}
                     </Link>
@@ -558,29 +577,29 @@ function SidebarContent({
               </h3>
               <div className="space-y-1">
                 {adminItems.filter(item => item.section === 'ore').map((item) => {
-          const Icon = pathname === item.href ? item.iconSolid : item.icon
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={onItemClick}
-              className={cn(
-                'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                pathname === item.href
+                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={onItemClick}
+                      className={cn(
+                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                        pathname === item.href
                           ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              )}
-            >
-              <Icon 
-                className={cn(
-                  'mr-3 h-5 w-5 flex-shrink-0',
-                  pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
-                )} 
-              />
-              {item.name}
-            </Link>
-          )
-        })}
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          'mr-3 h-5 w-5 flex-shrink-0',
+                          pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
+                        )}
+                      />
+                      {item.name}
+                    </Link>
+                  )
+                })}
               </div>
             </div>
 
@@ -605,11 +624,11 @@ function SidebarContent({
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       )}
                     >
-                      <Icon 
+                      <Icon
                         className={cn(
                           'mr-3 h-5 w-5 flex-shrink-0',
                           pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
-                        )} 
+                        )}
                       />
                       {item.name}
                     </Link>
@@ -637,13 +656,13 @@ function SidebarContent({
           Il Mio Profilo
         </Link>
 
-      {/* Logout button */}
+        {/* Logout button */}
         <button
           onClick={async () => {
             console.log('Signing out...')
-            await signOut({ 
+            await signOut({
               callbackUrl: '/auth/signin',
-              redirect: true 
+              redirect: true
             })
           }}
           className="group flex items-center w-full px-4 py-3 text-sm font-semibold text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 hover:text-red-700 transition-all hover:shadow-md border-2 border-transparent hover:border-red-200"

@@ -150,7 +150,7 @@ export default function AbsencesPage() {
   const futureAbsences = absences.filter(a => new Date(a.startDate) > new Date())
 
   return (
-    <MainLayout title="Assenze e Vacanze">
+    <MainLayout>
       <div className="space-y-6">
         {/* Header Moderno */}
         <div className="flex items-center justify-between">
@@ -312,9 +312,9 @@ export default function AbsencesPage() {
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">🟢 Assenze Attive</h2>
                 <div className="grid grid-cols-1 gap-4">
                   {activeAbsences.map(absence => (
-                    <AbsenceCard 
-                      key={absence.id} 
-                      absence={absence} 
+                    <AbsenceCard
+                      key={absence.id}
+                      absence={absence}
                       isPast={false}
                       isActive={true}
                       onEdit={handleEdit}
@@ -330,9 +330,9 @@ export default function AbsencesPage() {
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">📅 Assenze Future</h2>
                 <div className="grid grid-cols-1 gap-4">
                   {futureAbsences.map(absence => (
-                    <AbsenceCard 
-                      key={absence.id} 
-                      absence={absence} 
+                    <AbsenceCard
+                      key={absence.id}
+                      absence={absence}
                       isPast={false}
                       isActive={false}
                       onEdit={handleEdit}
@@ -348,9 +348,9 @@ export default function AbsencesPage() {
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">📋 Storico Assenze</h2>
                 <div className="grid grid-cols-1 gap-4">
                   {pastAbsences.map(absence => (
-                    <AbsenceCard 
-                      key={absence.id} 
-                      absence={absence} 
+                    <AbsenceCard
+                      key={absence.id}
+                      absence={absence}
                       isPast={true}
                       isActive={false}
                       onEdit={handleEdit}
@@ -395,60 +395,69 @@ function AbsenceCard({
   const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
   return (
-    <div className={`rounded-lg border-2 p-4 ${
-      isActive 
-        ? 'bg-green-50 border-green-300'
-        : isPast 
-          ? 'bg-gray-50 border-gray-300 opacity-75' 
-          : 'bg-blue-50 border-blue-300'
-    }`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className={`h-5 w-5 ${
-              isActive ? 'text-green-600' : isPast ? 'text-gray-500' : 'text-blue-600'
-            }`} />
-            <h3 className="font-semibold text-gray-900">
-              {format(startDate, 'dd/MM/yyyy', { locale: it })} - {format(endDate, 'dd/MM/yyyy', { locale: it })}
-            </h3>
-            <span className="text-sm text-gray-600">
-              ({daysDiff} {daysDiff === 1 ? 'giorno' : 'giorni'})
-            </span>
+    <div className={`rounded-xl border shadow-sm transition-all ${isActive
+      ? 'bg-white border-green-200 shadow-green-100/50'
+      : isPast
+        ? 'bg-gray-50 border-gray-200 opacity-75'
+        : 'bg-white border-blue-200 shadow-blue-100/50'
+      }`}>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`p-2 rounded-lg ${isActive ? 'bg-green-100 text-green-600' : isPast ? 'bg-gray-200 text-gray-500' : 'bg-blue-100 text-blue-600'
+                }`}>
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm sm:text-base">
+                  {format(startDate, 'dd/MM/yyyy', { locale: it })} - {format(endDate, 'dd/MM/yyyy', { locale: it })}
+                </h3>
+                <p className={`text-xs font-medium ${isActive ? 'text-green-600' : isPast ? 'text-gray-500' : 'text-blue-600'
+                  }`}>
+                  {daysDiff} {daysDiff === 1 ? 'giorno' : 'giorni'} • {isActive ? 'In corso' : isPast ? 'Passata' : 'Programmata'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pl-1">
+              {absence.reason && (
+                <div className="flex items-start gap-2 text-sm text-gray-700">
+                  <span className="font-semibold min-w-[60px]">Motivo:</span>
+                  <span>{absence.reason}</span>
+                </div>
+              )}
+
+              {absence.notes && (
+                <div className="flex items-start gap-2 text-sm text-gray-600">
+                  <span className="font-semibold min-w-[60px]">Note:</span>
+                  <span className="italic">{absence.notes}</span>
+                </div>
+              )}
+            </div>
           </div>
-          
-          {absence.reason && (
-            <p className="text-sm text-gray-700 mb-1">
-              <strong>Motivo:</strong> {absence.reason}
-            </p>
-          )}
-          
-          {absence.notes && (
-            <p className="text-sm text-gray-600">
-              <strong>Note:</strong> {absence.notes}
-            </p>
+
+          {!isPast && (
+            <div className="flex flex-col gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onEdit(absence)}
+                className="h-8 w-8 p-0 rounded-lg border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onDelete(absence.id)}
+                className="h-8 w-8 p-0 rounded-lg border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
-
-        {!isPast && (
-          <div className="flex gap-2 ml-4">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onEdit(absence)}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onDelete(absence.id)}
-              className="text-red-600 hover:text-red-700"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   )

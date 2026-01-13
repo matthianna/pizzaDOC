@@ -12,7 +12,8 @@ import {
     Settings,
     Users,
     LayoutGrid,
-    Menu
+    Menu,
+    Bell
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
@@ -94,6 +95,11 @@ export function MobileBottomNav() {
     // Additional items for the "More" menu
     const employeeMoreItems: NavItem[] = [
         {
+            name: 'Notifiche',
+            href: '/notifications',
+            icon: Bell,
+        },
+        {
             name: 'Sostituzioni',
             href: '/substitution-requests',
             icon: ArrowLeftRight,
@@ -116,6 +122,11 @@ export function MobileBottomNav() {
     ]
 
     const adminMoreItems: NavItem[] = [
+        {
+            name: 'Notifiche',
+            href: '/notifications',
+            icon: Bell,
+        },
         {
             name: 'Sostituzioni',
             href: '/admin/substitutions',

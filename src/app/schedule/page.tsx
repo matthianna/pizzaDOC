@@ -65,7 +65,7 @@ export default function SchedulePage() {
     try {
       const weekStart = currentWeek.toISOString()
       const response = await fetch(`/api/user/schedule?weekStart=${weekStart}`)
-      
+
       if (response.ok) {
         const shiftsData = await response.json()
         setShifts(shiftsData)
@@ -167,15 +167,15 @@ export default function SchedulePage() {
     const now = new Date()
     const currentTime = now.getHours()
     const shiftDate = addDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
-    
+
     // Se il turno non è oggi, controlla se è passato
     if (!isToday(shiftDate)) {
       return isPast(shiftDate)
     }
-    
+
     // Se è oggi, controlla l'orario
-    return (shift.shiftType === 'PRANZO' && currentTime >= 14) || 
-           (shift.shiftType === 'CENA' && currentTime >= 22)
+    return (shift.shiftType === 'PRANZO' && currentTime >= 14) ||
+      (shift.shiftType === 'CENA' && currentTime >= 22)
   }
 
   const needsHoursEntry = (shift: Shift) => {
@@ -203,8 +203,35 @@ export default function SchedulePage() {
         </div>
 
         {/* Week Navigation */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+          {/* Mobile View */}
+          <div className="flex sm:hidden items-center justify-between">
+            <button
+              onClick={goToPreviousWeek}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+
+            <div className="text-center" onClick={goToCurrentWeek}>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                {format(currentWeek, 'MMMM yyyy', { locale: it })}
+              </p>
+              <p className="text-lg font-bold text-gray-900">
+                {format(currentWeek, 'd', { locale: it })} - {format(weekEnd, 'd', { locale: it })}
+              </p>
+            </div>
+
+            <button
+              onClick={goToNextWeek}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden sm:flex items-center justify-between">
             <button
               onClick={goToPreviousWeek}
               className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -265,94 +292,82 @@ export default function SchedulePage() {
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
 
             return (
-              <div key={dayIndex} className={`bg-white rounded-lg shadow-md border overflow-hidden ${isToday ? 'ring-2 ring-orange-400 border-orange-300' : 'border-gray-200'}`}>
+              <div key={dayIndex} className={`bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col ${isToday ? 'ring-2 ring-orange-400 border-orange-300' : 'border-gray-200'}`}>
                 {/* Day Header */}
-                <div className={`px-3 py-2 text-center ${isToday ? 'bg-orange-500 text-white' : 'bg-gray-100'}`}>
+                <div className={`px-3 py-2 text-center border-b ${isToday ? 'bg-orange-500 text-white border-orange-500' : 'bg-gray-50 border-gray-100'}`}>
                   <div className={`text-base font-bold ${isToday ? 'text-white' : 'text-gray-900'}`}>
                     {format(day, 'EEE', { locale: it }).toUpperCase()}
                   </div>
-                  <div className={`text-xs ${isToday ? 'text-orange-100' : 'text-gray-600'}`}>
+                  <div className={`text-xs ${isToday ? 'text-orange-100' : 'text-gray-500'}`}>
                     {format(day, 'dd/MM', { locale: it })}
                   </div>
                   {isToday && (
-                    <div className="text-xs text-white mt-0.5 font-bold bg-orange-600 rounded px-2 py-0.5 inline-block">OGGI</div>
+                    <div className="text-[10px] text-orange-600 font-bold bg-white rounded-full px-2 py-0.5 inline-block mt-1 shadow-sm">OGGI</div>
                   )}
                 </div>
 
                 {/* Shifts Content */}
-                <div className="p-2 space-y-2 min-h-[200px]">
+                <div className="p-2 space-y-2 flex-1 min-h-[160px] bg-white">
                   {loading ? (
-                    <div className="flex items-center justify-center h-32">
+                    <div className="flex items-center justify-center h-full">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
                     </div>
                   ) : dayShifts.length > 0 ? (
                     <div className="space-y-2">
                       {dayShifts.map((shift) => {
-                        const shiftDate = addDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
-                        
-                        // ⏰ Calcola l'orario esatto di inizio del turno per determinare se è ancora possibile richiedere sostituzione
+                        const shiftDate = addDays(currentWeek, shift.dayOfWeek)
                         const [startHour, startMinute] = shift.startTime.split(':').map(Number)
                         const shiftStartDateTime = new Date(shiftDate)
                         shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
-                        
-                        // ✅ Un turno è "futuro" se non è ancora iniziato (controlla data + orario)
+
                         const isFutureShift = !isPast(shiftStartDateTime)
                         const shiftEnded = isShiftEnded(shift)
                         const needsHours = needsHoursEntry(shift)
-                        
+
                         return (
                           <div
                             key={shift.id}
-                            className={`rounded-lg border-2 transition-all hover:shadow-md ${
-                              shiftEnded 
-                                ? 'bg-gray-50 border-gray-300' 
+                            className={`rounded-lg border transition-all hover:shadow-md ${shiftEnded
+                                ? 'bg-gray-50 border-gray-200 opacity-75'
                                 : shift.shiftType === 'PRANZO'
-                                  ? 'bg-amber-50 border-orange-300'
-                                  : 'bg-blue-50 border-blue-300'
-                            }`}
+                                  ? 'bg-amber-50/50 border-amber-200'
+                                  : 'bg-blue-50/50 border-blue-200'
+                              }`}
                           >
                             {/* Header */}
-                            <div className={`px-2 py-1.5 border-b text-center ${
-                              shiftEnded 
-                                ? 'border-gray-200 bg-gray-100' 
+                            <div className={`px-2 py-1.5 border-b flex items-center justify-between ${shiftEnded
+                                ? 'border-gray-200'
                                 : shift.shiftType === 'PRANZO'
-                                  ? 'border-orange-200 bg-orange-100'
-                                  : 'border-blue-200 bg-blue-100'
-                            }`}>
-                              <div className="flex items-center justify-center space-x-1.5">
-                                <div className={`w-2 h-2 rounded-full ${
-                                  shiftEnded ? 'bg-gray-400' : 
-                                  shift.shiftType === 'PRANZO' ? 'bg-orange-500' : 'bg-blue-600'
-                                }`}></div>
-                                <span className={`text-sm font-bold ${
-                                  shiftEnded ? 'text-gray-600' : 'text-gray-900'
-                                }`}>
+                                  ? 'border-amber-100'
+                                  : 'border-blue-100'
+                              }`}>
+                              <div className="flex items-center space-x-1.5">
+                                <div className={`w-2 h-2 rounded-full ${shiftEnded ? 'bg-gray-400' :
+                                    shift.shiftType === 'PRANZO' ? 'bg-amber-500' : 'bg-blue-600'
+                                  }`}></div>
+                                <span className={`text-xs font-bold uppercase ${shiftEnded ? 'text-gray-600' : 'text-gray-900'
+                                  }`}>
                                   {getShiftTypeName(shift.shiftType)}
                                 </span>
-                                {shiftEnded && (
-                                  <span className="bg-gray-500 text-white px-1.5 py-0.5 rounded text-xs font-medium ml-1">
-                                    FINITO
-                                  </span>
-                                )}
                               </div>
+                              {shiftEnded && (
+                                <span className="text-[10px] font-bold text-gray-500 uppercase">Finito</span>
+                              )}
                             </div>
 
                             {/* Content */}
-                            <div className="p-2 space-y-1.5">
+                            <div className="p-2 space-y-2">
                               {/* Time & Role */}
                               <div className="text-center">
-                                <div className={`text-lg font-bold ${
-                                  shiftEnded ? 'text-gray-600' : 'text-gray-900'
-                                }`}>
+                                <div className={`text-lg font-bold tracking-tight ${shiftEnded ? 'text-gray-600' : 'text-gray-900'
+                                  }`}>
                                   {shift.startTime}
                                 </div>
                                 <div className="flex items-center justify-center mt-0.5">
-                                  <MapPin className={`h-3 w-3 mr-1 ${
-                                    shiftEnded ? 'text-gray-400' : 'text-gray-500'
-                                  }`} />
-                                  <span className={`text-xs font-medium ${
-                                    shiftEnded ? 'text-gray-500' : 'text-gray-700'
-                                  }`}>
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${shiftEnded
+                                      ? 'bg-gray-200 text-gray-600'
+                                      : 'bg-white border shadow-sm text-gray-700'
+                                    }`}>
                                     {getRoleName(shift.role)}
                                   </span>
                                 </div>
@@ -360,17 +375,14 @@ export default function SchedulePage() {
 
                               {/* Hours Status */}
                               {shift.workedHours && (
-                                <div className={`p-1.5 rounded border text-center text-xs ${
-                                  shift.workedHours.status === 'PENDING' ? 'bg-yellow-50 border-yellow-300 text-yellow-900' :
-                                  shift.workedHours.status === 'APPROVED' ? 'bg-green-50 border-green-300 text-green-900' :
-                                  'bg-red-50 border-red-300 text-red-900'
-                                }`}>
-                                  <div className="font-bold">
-                                    {shift.workedHours.status === 'PENDING' && '⏳ In attesa'}
-                                    {shift.workedHours.status === 'APPROVED' && '✅ Approvate'}
-                                    {shift.workedHours.status === 'REJECTED' && '❌ Rifiutate'}
-                                  </div>
-                                  <div className="text-sm font-bold mt-0.5">
+                                <div className={`p-1.5 rounded-md border text-center text-xs ${shift.workedHours.status === 'PENDING' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+                                    shift.workedHours.status === 'APPROVED' ? 'bg-green-50 border-green-200 text-green-800' :
+                                      'bg-red-50 border-red-200 text-red-800'
+                                  }`}>
+                                  <div className="font-bold flex items-center justify-center gap-1">
+                                    {shift.workedHours.status === 'PENDING' && <Clock className="h-3 w-3" />}
+                                    {shift.workedHours.status === 'APPROVED' && <div className="h-1.5 w-1.5 rounded-full bg-green-500" />}
+                                    {shift.workedHours.status === 'REJECTED' && <AlertCircle className="h-3 w-3" />}
                                     {shift.workedHours.totalHours}h
                                   </div>
                                 </div>
@@ -378,61 +390,48 @@ export default function SchedulePage() {
 
                               {/* Need Hours Entry Alert */}
                               {needsHours && (
-                                <div className="bg-red-50 border border-red-300 rounded p-2">
-                                  <div className="text-center mb-1">
-                                    <AlertCircle className="h-3 w-3 text-red-500 mx-auto" />
-                                    <span className="text-xs font-bold text-red-800 block">
-                                      Ore mancanti
-                                    </span>
-                                  </div>
-                                  <a 
-                                    href="/hours"
-                                    className="inline-flex items-center justify-center w-full px-2 py-1.5 text-xs font-bold text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
-                                  >
-                                    <FileText className="h-3 w-3 mr-1" />
-                                    Inserisci
-                                  </a>
-                                </div>
+                                <a
+                                  href="/hours"
+                                  className="flex items-center justify-center w-full px-2 py-1.5 text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors gap-1"
+                                >
+                                  <AlertCircle className="h-3 w-3" />
+                                  Inserisci Ore
+                                </a>
                               )}
 
                               {/* Request Substitution Button / Status */}
                               {isFutureShift && !shiftEnded && (() => {
                                 const existingSubstitution = substitutions.find(sub => sub.shiftId === shift.id)
-                                
+
                                 if (existingSubstitution) {
-                                  // Mostra stato della richiesta
                                   const statusConfig = {
-                                    PENDING: { text: 'In attesa', color: 'bg-yellow-100 text-yellow-800 border-yellow-300', icon: '⏳' },
-                                    APPLIED: { text: 'Candidature ricevute', color: 'bg-blue-100 text-blue-800 border-blue-300', icon: '👥' },
-                                    APPROVED: { text: `Approvato: ${existingSubstitution.substitute?.username || 'N/A'}`, color: 'bg-green-100 text-green-800 border-green-300', icon: '✅' },
-                                    REJECTED: { text: 'Rifiutato', color: 'bg-red-100 text-red-800 border-red-300', icon: '❌' },
-                                    CANCELLED: { text: 'Annullato', color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '🚫' }
+                                    PENDING: { text: 'In attesa', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: '⏳' },
+                                    APPLIED: { text: 'Candidature', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: '👥' },
+                                    APPROVED: { text: 'Approvato', color: 'bg-green-50 text-green-700 border-green-200', icon: '✅' },
+                                    REJECTED: { text: 'Rifiutato', color: 'bg-red-50 text-red-700 border-red-200', icon: '❌' },
+                                    CANCELLED: { text: 'Annullato', color: 'bg-gray-50 text-gray-700 border-gray-200', icon: '🚫' }
                                   }
                                   const status = statusConfig[existingSubstitution.status] || statusConfig.PENDING
-                                  
+
                                   return (
-                                    <div className={`w-full text-xs h-8 border-2 rounded-md flex items-center justify-center font-semibold ${status.color}`}>
+                                    <div className={`w-full text-xs py-1.5 border rounded-md flex items-center justify-center font-semibold ${status.color}`}>
                                       <span className="mr-1.5">{status.icon}</span>
                                       {status.text}
                                     </div>
                                   )
                                 }
-                                
-                                // Mostra bottone per richiedere sostituzione
+
                                 return (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => openSubstitutionModal(shift)}
-                                  className={`w-full text-xs h-8 border transition-all font-medium ${
-                                    shift.shiftType === 'PRANZO'
-                                      ? 'text-orange-700 border-orange-300 hover:bg-orange-100'
-                                      : 'text-blue-700 border-blue-300 hover:bg-blue-100'
-                                  }`}
-                                >
-                                  <Users className="h-3 w-3 mr-1" />
-                                  Sostituto
-                                </Button>
+                                  <button
+                                    onClick={() => openSubstitutionModal(shift)}
+                                    className={`w-full text-xs py-1.5 border rounded-md transition-all font-medium flex items-center justify-center gap-1 ${shift.shiftType === 'PRANZO'
+                                        ? 'text-amber-700 border-amber-200 bg-white hover:bg-amber-50'
+                                        : 'text-blue-700 border-blue-200 bg-white hover:bg-blue-50'
+                                      }`}
+                                  >
+                                    <Users className="h-3 w-3" />
+                                    Cerca Sostituto
+                                  </button>
                                 )
                               })()}
                             </div>
@@ -441,12 +440,11 @@ export default function SchedulePage() {
                       })}
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center h-32 text-center">
-                      <div className="text-gray-400">
-                        <Calendar className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm font-medium">Nessun turno</p>
-                        <p className="text-xs text-gray-500">Riposo!</p>
+                    <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                      <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-2">
+                        <Calendar className="h-6 w-6 text-gray-300" />
                       </div>
+                      <p className="text-xs font-medium text-gray-400">Nessun turno</p>
                     </div>
                   )}
                 </div>
@@ -492,7 +490,7 @@ export default function SchedulePage() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Cerca un Sostituto
                 </h3>
-                
+
                 <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                   <div className="text-sm font-medium text-gray-900">
                     {getDayName(selectedShift.dayOfWeek)} - {getShiftTypeName(selectedShift.shiftType)}

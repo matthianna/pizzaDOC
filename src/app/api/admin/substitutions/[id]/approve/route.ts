@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { format, addDays } from 'date-fns'
+import { it } from 'date-fns/locale'
+import { createNotification } from '@/lib/notifications'
+import { NotificationType } from '@prisma/client'
 
 export async function POST(
   request: NextRequest,
@@ -9,7 +13,7 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -98,6 +102,42 @@ export async function POST(
 
       return updatedSubstitution
     })
+
+    // 🔔 Send notifications
+    try {
+      const shiftDate = addDays(new Date(result.shifts.schedules.weekStart), result.shifts.dayOfWeek)
+      const formattedDate = format(shiftDate, 'dd/MM', { locale: it })
+
+      // 1. Notify Requester (Approved)
+      await createNotification({
+        userId: result.requesterId,
+        type: NotificationType.SUBSTITUTION_APPROVED,
+        title: 'Sostituzione Approvata',
+        body: `La tua richiesta di sostituzione per il ${formattedDate} è stata approvata. ${result.substitute?.username} ti sostituirà.`,
+        data: {
+          url: '/substitution-requests',
+          relatedId: substitutionId
+        }
+      })
+
+      // 2. Notify Substitute (Approved)
+      if (result.substituteId) {
+        await createNotification({
+          userId: result.substituteId,
+          type: NotificationType.SUBSTITUTION_APPROVED,
+          title: 'Sostituzione Confermata',
+          body: `La tua candidatura per il turno del ${formattedDate} è stata approvata. Il turno è ora assegnato a te.`,
+          data: {
+            url: '/schedule',
+            relatedId: substitutionId
+          }
+        })
+      }
+
+      console.log('✅ Push notifications sent for substitution approval')
+    } catch (notificationError) {
+      console.error('❌ Error sending push notifications:', notificationError)
+    }
 
     return NextResponse.json({
       success: true,
