@@ -51,7 +51,7 @@ export async function createNotification({
                 type,
                 title,
                 body,
-                data: data || {},
+                data: (data as any) || {},
                 isRead: false,
                 sentAt: new Date()
             }
@@ -284,4 +284,25 @@ export async function cleanupOldNotifications() {
 
     console.log(`[Notification] Cleaned up ${result.count} old notifications`)
     return result.count
+}
+
+/**
+ * Delete a specific notification
+ */
+export async function deleteNotification(userId: string, notificationId: string) {
+    return prisma.notifications.delete({
+        where: {
+            id: notificationId,
+            userId
+        }
+    })
+}
+
+/**
+ * Delete all notifications for a user
+ */
+export async function deleteAllNotifications(userId: string) {
+    return prisma.notifications.deleteMany({
+        where: { userId }
+    })
 }

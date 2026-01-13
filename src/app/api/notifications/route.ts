@@ -52,3 +52,21 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Errore interno' }, { status: 500 })
     }
 }
+
+// DELETE /api/notifications - Delete all notifications
+export async function DELETE(request: Request) {
+    try {
+        const session = await getServerSession(authOptions)
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+        }
+
+        const { deleteAllNotifications } = await import('@/lib/notifications')
+        await deleteAllNotifications(session.user.id)
+
+        return NextResponse.json({ success: true })
+    } catch (error) {
+        console.error('[API] Error deleting notifications:', error)
+        return NextResponse.json({ error: 'Errore interno' }, { status: 500 })
+    }
+}

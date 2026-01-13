@@ -11,7 +11,9 @@ import {
     ArrowLeftRight,
     AlertCircle,
     Loader2,
-    Settings
+    Settings,
+    Trash2,
+    X
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -36,6 +38,9 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(true)
     const [hasMore, setHasMore] = useState(true)
     const [offset, setOffset] = useState(0)
+    const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
+    const [isDeleting, setIsDeleting] = useState<string | null>(null)
+    const [isDeletingAll, setIsDeletingAll] = useState(false)
 
     const { isSupported, isSubscribed, subscribe, unsubscribe, isLoading: pushLoading } = usePushNotifications()
 
@@ -91,15 +96,47 @@ export default function NotificationsPage() {
         }
     }
 
+    const deleteNotification = async (e: React.MouseEvent, notificationId: string) => {
+        e.stopPropagation()
+        setIsDeleting(notificationId)
+        try {
+            const response = await fetch(`/api/notifications/${notificationId}`, { method: 'DELETE' })
+            if (response.ok) {
+                setNotifications(prev => prev.filter(n => n.id !== notificationId))
+            }
+        } catch (error) {
+            console.error('Error deleting notification:', error)
+        } finally {
+            setIsDeleting(null)
+        }
+    }
+
+    const deleteAllNotifications = async () => {
+        if (!confirm('Sei sicuro di voler eliminare tutte le notifiche? Questa azione è irreversibile.')) return
+
+        setIsDeletingAll(true)
+        try {
+            const response = await fetch('/api/notifications', { method: 'DELETE' })
+            if (response.ok) {
+                setNotifications([])
+                setHasMore(false)
+            }
+        } catch (error) {
+            console.error('Error deleting all notifications:', error)
+        } finally {
+            setIsDeletingAll(false)
+        }
+    }
+
     const handleNotificationClick = (notification: Notification) => {
         if (!notification.isRead) {
             markAsRead(notification.id)
         }
+        setSelectedNotification(notification)
+    }
 
-        const url = notification.data?.url as string | undefined
-        if (url) {
-            window.location.href = url
-        }
+    const handleGoToLink = (url: string) => {
+        window.location.href = url
     }
 
     const getNotificationIcon = (type: string) => {
@@ -142,6 +179,16 @@ export default function NotificationsPage() {
                         </div>
 
                         <div className="flex items-center gap-3">
+                            {notifications.length > 0 && (
+                                <button
+                                    onClick={deleteAllNotifications}
+                                    disabled={isDeletingAll}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
+                                >
+                                    {isDeletingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                    Elimina tutte
+                                </button>
+                            )}
                             {notifications.some(n => !n.isRead) && (
                                 <button
                                     onClick={markAllAsRead}
@@ -233,20 +280,33 @@ export default function NotificationsPage() {
                                                 )}>
                                                     {notification.title}
                                                 </h4>
-                                                <span className="text-xs text-gray-500 whitespace-nowrap mt-1">
-                                                    {(() => {
-                                                        try {
-                                                            const date = new Date(notification.sentAt)
-                                                            if (isNaN(date.getTime())) return ''
-                                                            return formatDistanceToNow(date, {
-                                                                addSuffix: true,
-                                                                locale: it
-                                                            })
-                                                        } catch {
-                                                            return ''
-                                                        }
-                                                    })()}
-                                                </span>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xs text-gray-500 whitespace-nowrap mt-1">
+                                                        {(() => {
+                                                            try {
+                                                                const date = new Date(notification.sentAt)
+                                                                if (isNaN(date.getTime())) return ''
+                                                                return formatDistanceToNow(date, {
+                                                                    addSuffix: true,
+                                                                    locale: it
+                                                                })
+                                                            } catch {
+                                                                return ''
+                                                            }
+                                                        })()}
+                                                    </span>
+                                                    <button
+                                                        onClick={(e) => deleteNotification(e, notification.id)}
+                                                        disabled={isDeleting === notification.id}
+                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                    >
+                                                        {isDeleting === notification.id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-4 w-4" />
+                                                        )}
+                                                    </button>
+                                                </div>
                                             </div>
                                             <p className="text-gray-600 mt-1 line-clamp-2">
                                                 {notification.body}
@@ -278,6 +338,67 @@ export default function NotificationsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Notification Detail Modal */}
+            {selectedNotification && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-orange-50 to-white">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-white rounded-2xl shadow-sm ring-1 ring-gray-200">
+                                    {getNotificationIcon(selectedNotification.type)}
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">{selectedNotification.title}</h3>
+                                    <p className="text-xs text-gray-500">
+                                        {(() => {
+                                            try {
+                                                const date = new Date(selectedNotification.sentAt)
+                                                if (isNaN(date.getTime())) return ''
+                                                return formatDistanceToNow(date, {
+                                                    addSuffix: true,
+                                                    locale: it
+                                                })
+                                            } catch {
+                                                return ''
+                                            }
+                                        })()}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedNotification(null)}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+                            >
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+                        <div className="p-8">
+                            <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-wrap">
+                                {selectedNotification.body as string}
+                            </p>
+
+                            {typeof selectedNotification.data?.url === 'string' && (
+                                <button
+                                    onClick={() => handleGoToLink(selectedNotification.data?.url as string)}
+                                    className="w-full mt-8 py-4 bg-gradient-primary text-white rounded-2xl font-bold shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all transform active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    Vai alla pagina
+                                    <ArrowLeftRight className="h-5 w-5" />
+                                </button>
+                            )}
+                        </div>
+                        <div className="p-4 bg-gray-50 flex justify-end">
+                            <button
+                                onClick={() => setSelectedNotification(null)}
+                                className="px-6 py-2 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors"
+                            >
+                                Chiudi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </MainLayout>
     )
 }
