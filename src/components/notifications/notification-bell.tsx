@@ -241,10 +241,18 @@ export function NotificationBell() {
                                                     {notification.body}
                                                 </p>
                                                 <p className="text-xs text-gray-400 mt-1">
-                                                    {formatDistanceToNow(new Date(notification.sentAt), {
-                                                        addSuffix: true,
-                                                        locale: it
-                                                    })}
+                                                    {(() => {
+                                                        try {
+                                                            const date = new Date(notification.sentAt)
+                                                            if (isNaN(date.getTime())) return ''
+                                                            return formatDistanceToNow(date, {
+                                                                addSuffix: true,
+                                                                locale: it
+                                                            })
+                                                        } catch {
+                                                            return ''
+                                                        }
+                                                    })()}
                                                 </p>
                                             </div>
                                         </button>
@@ -338,7 +346,7 @@ export function usePushNotifications() {
             const registration = await navigator.serviceWorker.ready
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(publicKey)
+                applicationServerKey: urlBase64ToUint8Array(publicKey) as any
             })
 
             // Send subscription to server

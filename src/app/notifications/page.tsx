@@ -234,10 +234,18 @@ export default function NotificationsPage() {
                                                     {notification.title}
                                                 </h4>
                                                 <span className="text-xs text-gray-500 whitespace-nowrap mt-1">
-                                                    {formatDistanceToNow(new Date(notification.sentAt), {
-                                                        addSuffix: true,
-                                                        locale: it
-                                                    })}
+                                                    {(() => {
+                                                        try {
+                                                            const date = new Date(notification.sentAt)
+                                                            if (isNaN(date.getTime())) return ''
+                                                            return formatDistanceToNow(date, {
+                                                                addSuffix: true,
+                                                                locale: it
+                                                            })
+                                                        } catch {
+                                                            return ''
+                                                        }
+                                                    })()}
                                                 </span>
                                             </div>
                                             <p className="text-gray-600 mt-1 line-clamp-2">
