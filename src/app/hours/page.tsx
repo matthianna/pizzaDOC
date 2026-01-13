@@ -267,12 +267,51 @@ export default function HoursPage() {
                 fetchHistory()
               }
             }}
-            className="text-orange-700 border-orange-300 hover:bg-orange-100"
+            className="glass text-orange-700 border-0 shadow-soft hover:bg-orange-100 font-bold rounded-xl"
           >
             <BarChart3 className="h-4 w-4 mr-2" />
-            {showHistory ? 'Settimana Corrente' : 'Storico Mensile'}
+            {showHistory ? 'Torna ai Turni' : 'Storico Completo'}
           </Button>
         </div>
+
+        {/* Monthly Summary Card (Always Visible or prominent) */}
+        {!loading && historyData && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="glass rounded-2xl p-5 border-0 shadow-soft flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-lg">
+                <Clock className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ore Mese Corrente</p>
+                <p className="text-2xl font-black text-gray-900">
+                  {historyData.months.find((m: any) => m.month.toLowerCase().includes(format(new Date(), 'MMMM', { locale: it }).toLowerCase()))?.totalHours || 0}h
+                </p>
+              </div>
+            </div>
+            <div className="glass rounded-2xl p-5 border-0 shadow-soft flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-secondary rounded-2xl flex items-center justify-center shadow-lg">
+                <Calendar className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Turni Mese</p>
+                <p className="text-2xl font-black text-gray-900">
+                  {historyData.months.find((m: any) => m.month.toLowerCase().includes(format(new Date(), 'MMMM', { locale: it }).toLowerCase()))?.shiftsCount || 0}
+                </p>
+              </div>
+            </div>
+            <div className="glass rounded-2xl p-5 border-0 shadow-soft flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-success rounded-2xl flex items-center justify-center shadow-lg">
+                <TrendingUp className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Media Ore/Turno</p>
+                <p className="text-2xl font-black text-gray-900">
+                  {historyData.months.find((m: any) => m.month.toLowerCase().includes(format(new Date(), 'MMMM', { locale: it }).toLowerCase()))?.avgHoursPerShift || 0}h
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Week Navigation - Hidden when showing history */}
         {!showHistory && (
@@ -326,17 +365,23 @@ export default function HoursPage() {
 
         {showHistory ? (
           /* Monthly History */
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center">
-                  <TrendingUp className="h-5 w-5 text-orange-500 mr-2" />
+          <div className="glass rounded-2xl shadow-soft border-0 overflow-hidden">
+            <div className="p-6 border-b border-white/20 bg-white/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 className="text-xl font-black text-gray-900 flex items-center tracking-tight">
+                  <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-md mr-3">
+                    <TrendingUp className="h-5 w-5 text-white" />
+                  </div>
                   Storico Ore {new Date().getFullYear()}
                 </h2>
                 {historyData && (
-                  <div className="text-sm text-gray-700">
-                    <span className="font-medium">{historyData.totalYearHours}h</span> totali •
-                    <span className="ml-1 font-medium">{historyData.totalYearShifts}</span> turni
+                  <div className="flex items-center gap-3">
+                    <div className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-xl text-sm font-bold shadow-sm">
+                      {historyData.totalYearHours}h totali
+                    </div>
+                    <div className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-xl text-sm font-bold shadow-sm">
+                      {historyData.totalYearShifts} turni
+                    </div>
                   </div>
                 )}
               </div>
@@ -344,47 +389,55 @@ export default function HoursPage() {
 
             {historyLoading ? (
               <div className="p-12 text-center">
-                <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                <p className="text-gray-800">Caricamento storico...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                <p className="text-gray-500 font-medium tracking-wide">Caricamento storico...</p>
               </div>
             ) : historyData && historyData.months.length > 0 ? (
-              <div className="divide-y divide-gray-200">
-                {historyData.months.map((month: any, index: number) => (
-                  <div key={index} className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 capitalize">
+              <div className="divide-y divide-white/10">
+                {[...historyData.months].reverse().map((month: any, index: number) => (
+                  <div key={index} className="p-6 hover:bg-white/20 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                      <h3 className="text-2xl font-black text-gray-900 capitalize tracking-tight">
                         {month.month}
                       </h3>
-                      <div className="flex items-center space-x-4 text-sm">
-                        <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full font-medium">
-                          {month.totalHours}h totali
-                        </span>
-                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
-                          {month.shiftsCount} turni
-                        </span>
-                        <span className="text-gray-600">
-                          Media: {month.avgHoursPerShift}h/turno
-                        </span>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white/50 rounded-2xl shadow-sm border border-white/20">
+                          <Clock className="h-4 w-4 text-orange-500" />
+                          <span className="text-sm font-black text-gray-900">{month.totalHours}h</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white/50 rounded-2xl shadow-sm border border-white/20">
+                          <Calendar className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm font-black text-gray-900">{month.shiftsCount} turni</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white/50 rounded-2xl shadow-sm border border-white/20">
+                          <BarChart3 className="h-4 w-4 text-green-500" />
+                          <span className="text-sm font-black text-gray-900">{month.avgHoursPerShift}h/turno</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {month.details.map((detail: any, detailIndex: number) => (
-                        <div key={detailIndex} className="bg-gray-50 rounded-lg p-3">
-                          <div className="flex justify-between items-start mb-2">
+                        <div key={detailIndex} className="glass rounded-2xl p-4 border-0 shadow-soft card-hover">
+                          <div className="flex justify-between items-start mb-3">
                             <div>
-                              <p className="font-medium text-gray-900">{detail.date}</p>
-                              <p className="text-sm text-gray-700">
-                                {getRoleName(detail.role)} • {getShiftTypeName(detail.shiftType)}
-                              </p>
+                              <p className="font-black text-gray-900">{detail.date}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border ${detail.shiftType === 'PRANZO' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-blue-50 text-blue-600 border-blue-100'
+                                  }`}>
+                                  {getShiftTypeName(detail.shiftType)}
+                                </span>
+                                <span className="text-xs font-bold text-gray-500">{getRoleName(detail.role)}</span>
+                              </div>
                             </div>
-                            <span className="text-sm font-medium text-orange-600">
+                            <div className="bg-gradient-primary text-white px-3 py-1 rounded-xl font-black text-sm shadow-md">
                               {detail.hours}h
-                            </span>
+                            </div>
                           </div>
-                          <p className="text-xs text-gray-600">
+                          <div className="flex items-center text-xs font-bold text-gray-400">
+                            <Clock className="h-3 w-3 mr-1" />
                             {detail.startTime} - {detail.endTime}
-                          </p>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -393,9 +446,11 @@ export default function HoursPage() {
               </div>
             ) : (
               <div className="p-12 text-center">
-                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Nessun dato storico</h3>
-                <p className="text-gray-700">Non ci sono ore approvate per questo anno.</p>
+                <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                  <BarChart3 className="h-10 w-10 text-gray-300" />
+                </div>
+                <h3 className="text-xl font-black text-gray-900 mb-2">Nessun dato storico</h3>
+                <p className="text-gray-500 font-medium">Non ci sono ore approvate per questo anno.</p>
               </div>
             )}
           </div>

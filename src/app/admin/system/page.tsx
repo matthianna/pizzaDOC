@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { 
-  Shield, Database, Activity, Download, Trash2, 
+import {
+  Shield, Database, Activity, Download, Trash2,
   AlertCircle, Clock, User, Filter, RefreshCw,
   HardDrive, Calendar, TrendingUp
 } from 'lucide-react'
@@ -47,8 +47,8 @@ interface SystemStats {
 }
 
 export default function SystemAdminPage() {
-  const [activeTab, setActiveTab] = useState<'logs' | 'backups' | 'stats'>('logs')
-  
+  const [activeTab, setActiveTab] = useState<'logs' | 'backups' | 'stats' | 'crons'>('logs')
+
   // Audit Logs
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [logsLoading, setLogsLoading] = useState(true)
@@ -56,15 +56,15 @@ export default function SystemAdminPage() {
   const [logsPage, setLogsPage] = useState(1)
   const [filterAction, setFilterAction] = useState<string | null>(null)
   const [filterUser, setFilterUser] = useState<string | null>(null)
-  
+
   // Backups
   const [backups, setBackups] = useState<Backup[]>([])
   const [backupsLoading, setBackupsLoading] = useState(false)
   const [creatingBackup, setCreatingBackup] = useState(false)
-  
+
   // Stats
   const [stats, setStats] = useState<SystemStats | null>(null)
-  
+
   // Confirmation Modal
   const [showBackupConfirm, setShowBackupConfirm] = useState(false)
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false)
@@ -73,6 +73,7 @@ export default function SystemAdminPage() {
     if (activeTab === 'logs') fetchLogs()
     if (activeTab === 'backups') fetchBackups()
     if (activeTab === 'stats') fetchStats()
+    if (activeTab === 'crons') fetchCrons()
   }, [activeTab, logsPage, filterAction, filterUser])
 
   const fetchLogs = async () => {
@@ -81,7 +82,7 @@ export default function SystemAdminPage() {
       let url = `/api/admin/audit-logs?limit=20&offset=${(logsPage - 1) * 20}`
       if (filterAction) url += `&action=${filterAction}`
       if (filterUser) url += `&userId=${filterUser}`
-      
+
       const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
@@ -110,6 +111,49 @@ export default function SystemAdminPage() {
     }
   }
 
+  // Crons
+  const [crons, setCrons] = useState<any[]>([])
+  const [cronsLoading, setCronsLoading] = useState(false)
+  const [triggeringCron, setTriggeringCron] = useState<string | null>(null)
+
+  const fetchCrons = async () => {
+    setCronsLoading(true)
+    try {
+      const response = await fetch('/api/admin/system/crons')
+      if (response.ok) {
+        const data = await response.json()
+        setCrons(data.crons)
+      }
+    } catch (error) {
+      console.error('Error fetching crons:', error)
+    } finally {
+      setCronsLoading(false)
+    }
+  }
+
+  const runCron = async (cronId: string) => {
+    setTriggeringCron(cronId)
+    try {
+      const response = await fetch('/api/admin/system/crons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cronId })
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        alert(`✅ ${data.message}`)
+      } else {
+        alert(`❌ Errore: ${data.error || 'Esecuzione fallita'}`)
+      }
+    } catch (error) {
+      console.error('Error running cron:', error)
+      alert('❌ Errore durante l\'esecuzione del cron')
+    } finally {
+      setTriggeringCron(null)
+    }
+  }
+
   const fetchStats = async () => {
     // Mock stats - implementare endpoint reale se necessario
     setStats({
@@ -128,7 +172,7 @@ export default function SystemAdminPage() {
       const response = await fetch('/api/admin/database/backup', {
         method: 'POST'
       })
-      
+
       if (response.ok) {
         alert('✅ Backup creato con successo!')
         fetchBackups()
@@ -149,7 +193,7 @@ export default function SystemAdminPage() {
       const response = await fetch('/api/admin/database/backup?days=30', {
         method: 'DELETE'
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         alert(`✅ Eliminati ${data.deletedCount} backup vecchi`)
@@ -176,6 +220,9 @@ export default function SystemAdminPage() {
     ABSENCE_CREATE: 'Assenza Creata',
     ABSENCE_EDIT: 'Assenza Modificata',
     ABSENCE_DELETE: 'Assenza Eliminata',
+    ABSENCE_APPROVE: 'Assenza Approvata',
+    ABSENCE_REJECT: 'Assenza Rifiutata',
+    CRON_RUN: 'Cron Eseguito',
   }
 
   const totalPages = Math.ceil(logsTotal / 20)
@@ -200,11 +247,10 @@ export default function SystemAdminPage() {
             <nav className="flex -mb-px">
               <button
                 onClick={() => setActiveTab('logs')}
-                className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'logs'
+                className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'logs'
                     ? 'border-orange-500 text-orange-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <div className="flex items-center space-x-2">
                   <Activity className="h-4 w-4" />
@@ -213,11 +259,10 @@ export default function SystemAdminPage() {
               </button>
               <button
                 onClick={() => setActiveTab('backups')}
-                className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'backups'
+                className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'backups'
                     ? 'border-orange-500 text-orange-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <div className="flex items-center space-x-2">
                   <Database className="h-4 w-4" />
@@ -226,15 +271,26 @@ export default function SystemAdminPage() {
               </button>
               <button
                 onClick={() => setActiveTab('stats')}
-                className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'stats'
+                className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'stats'
                     ? 'border-orange-500 text-orange-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <div className="flex items-center space-x-2">
                   <TrendingUp className="h-4 w-4" />
                   <span>Statistiche</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('crons')}
+                className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'crons'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Cron Jobs</span>
                 </div>
               </button>
             </nav>
@@ -443,72 +499,88 @@ export default function SystemAdminPage() {
               </div>
             )}
 
-            {/* STATS TAB */}
-            {activeTab === 'stats' && stats && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-blue-600">Audit Log Totali</p>
-                      <p className="text-3xl font-bold text-blue-900 mt-2">{stats.totalLogs}</p>
-                    </div>
-                    <Activity className="h-12 w-12 text-blue-300" />
+            {/* CRONS TAB */}
+            {activeTab === 'crons' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Cron Jobs Attivi</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Monitora e gestisci le attività pianificate del sistema
+                    </p>
                   </div>
+                  <button
+                    onClick={fetchCrons}
+                    className="p-2 text-gray-500 hover:text-orange-600 transition-colors"
+                  >
+                    <RefreshCw className={`h-5 w-5 ${cronsLoading ? 'animate-spin' : ''}`} />
+                  </button>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-green-600">Log Oggi</p>
-                      <p className="text-3xl font-bold text-green-900 mt-2">{stats.logsToday}</p>
-                    </div>
-                    <Clock className="h-12 w-12 text-green-300" />
+                {cronsLoading && crons.length === 0 ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
                   </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-purple-600">Log Settimana</p>
-                      <p className="text-3xl font-bold text-purple-900 mt-2">{stats.logsThisWeek}</p>
-                    </div>
-                    <TrendingUp className="h-12 w-12 text-purple-300" />
+                ) : crons.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">Nessun cron job trovato</p>
                   </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-orange-600">Backup Disponibili</p>
-                      <p className="text-3xl font-bold text-orange-900 mt-2">{stats.backupsCount}</p>
-                    </div>
-                    <Database className="h-12 w-12 text-orange-300" />
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Dimensione DB</p>
-                      <p className="text-3xl font-bold text-gray-900 mt-2">{stats.databaseSize}</p>
-                    </div>
-                    <HardDrive className="h-12 w-12 text-gray-300" />
-                  </div>
-                </div>
-
-                {stats.lastBackup && (
-                  <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200 rounded-lg p-6">
-                    <div>
-                      <p className="text-sm font-medium text-cyan-600">Ultimo Backup</p>
-                      <p className="text-lg font-bold text-cyan-900 mt-2">
-                        {format(new Date(stats.lastBackup), 'dd MMM yyyy', { locale: it })}
-                      </p>
-                      <p className="text-xs text-cyan-700 mt-1">
-                        {format(new Date(stats.lastBackup), 'HH:mm', { locale: it })}
-                      </p>
-                    </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {crons.map((cron) => (
+                      <div key={cron.id} className="glass rounded-2xl p-6 border-0 shadow-soft hover:shadow-md transition-all">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex items-start space-x-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center flex-shrink-0">
+                              <Clock className="h-6 w-6 text-orange-600" />
+                            </div>
+                            <div>
+                              <h4 className="text-lg font-bold text-gray-900">{cron.name}</h4>
+                              <p className="text-sm text-gray-600 mt-1">{cron.description}</p>
+                              <div className="flex flex-wrap items-center gap-4 mt-3">
+                                <div className="flex items-center text-xs font-bold text-orange-700 bg-orange-100 px-2 py-1 rounded-lg">
+                                  <Calendar className="h-3 w-3 mr-1" />
+                                  {cron.schedule}
+                                </div>
+                                <div className="flex items-center text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
+                                  {cron.path}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <button
+                              onClick={() => runCron(cron.id)}
+                              disabled={triggeringCron === cron.id}
+                              className="flex-1 md:flex-none px-6 py-2.5 bg-gradient-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                            >
+                              {triggeringCron === cron.id ? (
+                                <>
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                  <span>Esecuzione...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Activity className="h-4 w-4" />
+                                  <span>Esegui Ora</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
+
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 flex items-start space-x-3">
+                  <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
+                  <div className="text-sm text-blue-700">
+                    <p className="font-bold mb-1">Nota sulla pianificazione</p>
+                    <p>Gli orari sono espressi in formato Cron (UTC). Le attività vengono eseguite automaticamente da Vercel secondo la pianificazione definita in <code className="bg-blue-100 px-1 rounded">vercel.json</code>.</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>

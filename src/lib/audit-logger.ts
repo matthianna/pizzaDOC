@@ -21,6 +21,7 @@ export type AuditActionType =
   | 'DATABASE_RESET'
   | 'DATABASE_BACKUP'
   | 'SETTINGS_CHANGE'
+  | 'CRON_RUN'
 
 interface AuditLogData {
   userId: string
@@ -37,12 +38,12 @@ export async function logAuditAction(data: AuditLogData): Promise<void> {
   try {
     // Ottieni IP e User Agent dalle headers
     const headersList = await headers()
-    const ipAddress = 
+    const ipAddress =
       headersList.get('x-forwarded-for')?.split(',')[0] ||
       headersList.get('x-real-ip') ||
       headersList.get('cf-connecting-ip') ||
       'unknown'
-    
+
     const userAgent = headersList.get('user-agent') || 'unknown'
 
     await prisma.audit_logs.create({

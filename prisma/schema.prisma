@@ -376,6 +376,7 @@ enum AuditActionType {
   HOLIDAY_CREATE
   HOLIDAY_EDIT
   HOLIDAY_DELETE
+  CRON_RUN
 }
 
 enum NotificationType {
