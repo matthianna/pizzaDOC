@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, Filter, User, Edit, Trash2, X } from 'lucide-react'
+import { Calendar, Filter, User, Edit, Trash2, X, Check, XCircle, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,8 @@ interface Absence {
   endDate: string
   reason: string | null
   notes: string | null
+  approved: boolean
+  approvedBy: string | null
   createdAt: string
   updatedAt: string
   user: {
@@ -28,6 +30,8 @@ export default function AdminAbsencesPage() {
   const [filter, setFilter] = useState<'all' | 'past' | 'active' | 'future'>('all')
   const [editingAbsence, setEditingAbsence] = useState<Absence | null>(null)
   const [deletingAbsence, setDeletingAbsence] = useState<Absence | null>(null)
+  const [rejectingId, setRejectingId] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState('')
   const [editForm, setEditForm] = useState({
     startDate: '',
     endDate: '',
@@ -81,6 +85,47 @@ export default function AdminAbsencesPage() {
     })
   }
 
+  const approveAbsence = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/absences/${id}/approve`, {
+        method: 'POST'
+      })
+
+      if (response.ok) {
+        fetchAbsences()
+      } else {
+        console.error('Errore durante l\'approvazione')
+      }
+    } catch (error) {
+      console.error('Error approving absence:', error)
+    }
+  }
+
+  const rejectAbsence = async (id: string) => {
+    if (!rejectionReason.trim()) {
+      alert('Inserisci un motivo per il rifiuto')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/absences/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: rejectionReason })
+      })
+
+      if (response.ok) {
+        setRejectingId(null)
+        setRejectionReason('')
+        fetchAbsences()
+      } else {
+        console.error('Errore durante il rifiuto')
+      }
+    } catch (error) {
+      console.error('Error rejecting absence:', error)
+    }
+  }
+
   const handleSaveEdit = async () => {
     if (!editingAbsence) return
 
@@ -92,16 +137,14 @@ export default function AdminAbsencesPage() {
       })
 
       if (response.ok) {
-        alert('Assenza modificata con successo!')
         setEditingAbsence(null)
         fetchAbsences()
       } else {
         const error = await response.json()
-        alert(error.error || 'Errore nella modifica')
+        console.error(error.error || 'Errore nella modifica')
       }
     } catch (error) {
       console.error('Error updating absence:', error)
-      alert('Errore nella modifica dell\'assenza')
     }
   }
 
@@ -114,16 +157,14 @@ export default function AdminAbsencesPage() {
       })
 
       if (response.ok) {
-        alert('Assenza eliminata con successo!')
         setDeletingAbsence(null)
         fetchAbsences()
       } else {
         const error = await response.json()
-        alert(error.error || 'Errore nell\'eliminazione')
+        console.error(error.error || 'Errore nell\'eliminazione')
       }
     } catch (error) {
       console.error('Error deleting absence:', error)
-      alert('Errore nell\'eliminazione dell\'assenza')
     }
   }
 
@@ -202,6 +243,8 @@ export default function AdminAbsencesPage() {
                 isPast={isPast(absence)}
                 onEdit={() => handleEdit(absence)}
                 onDelete={() => setDeletingAbsence(absence)}
+                onApprove={() => approveAbsence(absence.id)}
+                onReject={() => setRejectingId(absence.id)}
               />
             ))}
           </div>
@@ -361,6 +404,64 @@ export default function AdminAbsencesPage() {
             </div>
           </div>
         )}
+
+        {/* Modal Rifiuto */}
+        {rejectingId && (
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Rifiuta Assenza
+                  </h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setRejectingId(null)
+                      setRejectionReason('')
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-gray-700">
+                    Inserisci il motivo del rifiuto:
+                  </p>
+                  <textarea
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder="Es: Date non disponibili, necessità operative..."
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  />
+
+                  <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setRejectingId(null)
+                        setRejectionReason('')
+                      }}
+                    >
+                      Annulla
+                    </Button>
+                    <Button
+                      onClick={() => rejectAbsence(rejectingId)}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Rifiuta
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   )
@@ -403,13 +504,17 @@ function AbsenceCard({
   isActive,
   isPast,
   onEdit,
-  onDelete
+  onDelete,
+  onApprove,
+  onReject
 }: {
   absence: Absence
   isActive: boolean
   isPast: boolean
   onEdit: () => void
   onDelete: () => void
+  onApprove: () => void
+  onReject: () => void
 }) {
   const startDate = new Date(absence.startDate)
   const endDate = new Date(absence.endDate)
@@ -437,12 +542,43 @@ function AbsenceCard({
               </span>
             </div>
           </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {isActive && (
             <span className={`px-3 py-1.5 text-xs font-bold ${statusConfig.badge} rounded-lg shadow-sm`}>
               IN CORSO
             </span>
           )}
+          {absence.approved ? (
+            <span className="px-3 py-1.5 text-xs font-bold bg-green-500 text-white rounded-lg shadow-sm flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              APPROVATA
+            </span>
+          ) : (
+            <span className="px-3 py-1.5 text-xs font-bold bg-amber-500 text-white rounded-lg shadow-sm flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              IN ATTESA
+            </span>
+          )}
+          
+          {!absence.approved && (
+            <>
+              <button
+                onClick={onApprove}
+                className="p-2.5 text-green-600 hover:bg-green-100 rounded-xl transition-all hover:scale-105"
+                title="Approva assenza"
+              >
+                <Check className="h-4 w-4" />
+              </button>
+              <button
+                onClick={onReject}
+                className="p-2.5 text-red-600 hover:bg-red-100 rounded-xl transition-all hover:scale-105"
+                title="Rifiuta assenza"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            </>
+          )}
+          
           <button
             onClick={onEdit}
             className="p-2.5 text-blue-600 hover:bg-blue-100 rounded-xl transition-all hover:scale-105"
