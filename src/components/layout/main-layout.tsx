@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { Sidebar } from './sidebar'
+import { MobileBottomNav } from './mobile-bottom-nav'
 import { LoadingSpinner } from '../ui/loading-spinner'
 import { isAdmin } from '@/lib/auth-utils'
 
@@ -52,7 +53,7 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
       <Sidebar />
       {/* Main content */}
       <div className="lg:pl-64">
-        <main className="py-6">
+        <main className="py-6 pb-24 lg:pb-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:pl-8">
             {/* Mobile header space */}
             <div className="lg:hidden h-16 mb-4"></div>
@@ -60,6 +61,9 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
           </div>
         </main>
       </div>
+      {/* Mobile bottom navigation */}
+      <MobileBottomNav />
     </div>
   )
 }
+
