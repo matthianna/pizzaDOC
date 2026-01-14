@@ -277,11 +277,16 @@ export default function AdminSchedulePage() {
         alert(data.message || 'Notifiche inviate con successo!')
       } else {
         const error = await response.json()
-        alert(error.error || 'Errore durante l\'invio delle notifiche')
+        const errorMessage = error.error || 'Errore durante l\'invio delle notifiche'
+        let details = error.message ? `\n\n${error.message}` : ''
+        if (error.debug) {
+          details += `\n\nDebug:\nCercato: ${error.debug.searched}\nEsistenti: ${error.debug.existing.join(', ')}`
+        }
+        alert(`${errorMessage}${details}`)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending notifications:', error)
-      alert('Errore durante l\'invio delle notifiche')
+      alert(`Errore durante l'invio delle notifiche: ${error.message}`)
     } finally {
       setNotifying(false)
     }

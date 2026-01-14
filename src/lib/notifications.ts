@@ -42,6 +42,7 @@ export async function createNotification({
     data,
     sendPush = true
 }: CreateNotificationOptions) {
+    console.log(`[Notification] Creating ${type} notification for user ${userId}`)
     try {
         // Create notification in database
         const notification = await prisma.notifications.create({
