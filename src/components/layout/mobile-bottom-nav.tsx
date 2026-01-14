@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface NavItem {
     name: string
@@ -30,6 +30,28 @@ export function MobileBottomNav() {
     const { data: session } = useSession()
     const pathname = usePathname()
     const [showMore, setShowMore] = useState(false)
+    const [unreadCount, setUnreadCount] = useState(0)
+
+    // Fetch unread count periodically
+    useEffect(() => {
+        if (!session?.user?.id) return
+
+        const fetchUnreadCount = async () => {
+            try {
+                const response = await fetch('/api/notifications?limit=1')
+                if (response.ok) {
+                    const data = await response.json()
+                    setUnreadCount(data.unreadCount)
+                }
+            } catch (error) {
+                console.error('Error fetching unread count:', error)
+            }
+        }
+
+        fetchUnreadCount()
+        const interval = setInterval(fetchUnreadCount, 30000)
+        return () => clearInterval(interval)
+    }, [session?.user?.id])
 
     if (!session) return null
 
@@ -195,7 +217,14 @@ export function MobileBottomNav() {
                                             : 'text-gray-600 hover:bg-gray-100'
                                     )}
                                 >
-                                    <Icon className="h-6 w-6 mb-1" />
+                                    <div className="relative">
+                                        <Icon className="h-6 w-6 mb-1" />
+                                        {item.name === 'Notifiche' && unreadCount > 0 && (
+                                            <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                                                {unreadCount > 9 ? '9+' : unreadCount}
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="text-xs font-medium">{item.name}</span>
                                 </Link>
                             )
@@ -238,6 +267,9 @@ export function MobileBottomNav() {
                                         'h-6 w-6 transition-all',
                                         isActive && 'scale-110'
                                     )} />
+                                    {item.name === 'Altro' && unreadCount > 0 && (
+                                        <span className="absolute top-1 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+                                    )}
                                 </div>
                                 <span className={cn(
                                     'text-xs mt-0.5 font-medium transition-all',

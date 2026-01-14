@@ -7,6 +7,8 @@ import { Sidebar } from './sidebar'
 import { MobileBottomNav } from './mobile-bottom-nav'
 import { LoadingSpinner } from '../ui/loading-spinner'
 import { isAdmin } from '@/lib/auth-utils'
+import { NotificationBell } from '../notifications/notification-bell'
+import Image from 'next/image'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -55,8 +57,27 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
       <div className="lg:pl-64">
         <main className="py-6 pb-24 lg:pb-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:pl-8">
-            {/* Mobile header space */}
+            {/* Mobile header */}
+            <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40 px-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center overflow-hidden">
+                  <Image
+                    src="/logo.png"
+                    alt="Logo"
+                    width={24}
+                    height={24}
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+                <span className="font-black text-orange-600 text-lg tracking-tight">PizzaDOC</span>
+              </div>
+              <NotificationBell />
+            </div>
+
+            {/* Spacer for mobile header */}
             <div className="lg:hidden h-16 mb-4"></div>
+
             {children}
           </div>
         </main>

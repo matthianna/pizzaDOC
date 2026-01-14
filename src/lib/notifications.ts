@@ -46,7 +46,6 @@ export async function createNotification({
         // Create notification in database
         const notification = await prisma.notifications.create({
             data: {
-                id: crypto.randomUUID(),
                 userId,
                 type,
                 title,

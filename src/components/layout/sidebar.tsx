@@ -40,6 +40,7 @@ import {
 } from '@heroicons/react/24/solid'
 import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
+import { NotificationBell } from '../notifications/notification-bell'
 
 export function Sidebar() {
   const { data: session } = useSession()
@@ -340,7 +341,12 @@ function SidebarContent({
               unoptimized
             />
           </div>
-          <h1 className="text-xl font-black text-white tracking-tight">PizzaDOC</h1>
+          <div className="flex-1 flex items-center justify-between">
+            <h1 className="text-xl font-black text-white tracking-tight">PizzaDOC</h1>
+            <div className="text-white">
+              <NotificationBell iconClassName="text-white" />
+            </div>
+          </div>
         </div>
       </div>
 
