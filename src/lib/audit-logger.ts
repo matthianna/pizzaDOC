@@ -1,27 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { headers } from 'next/headers'
-
-export type AuditActionType =
-  | 'SCHEDULE_GENERATE'
-  | 'SCHEDULE_DELETE'
-  | 'SHIFT_ADD'
-  | 'SHIFT_DELETE'
-  | 'SHIFT_EDIT'
-  | 'USER_CREATE'
-  | 'USER_DELETE'
-  | 'USER_EDIT'
-  | 'HOURS_APPROVE'
-  | 'HOURS_REJECT'
-  | 'HOURS_EDIT'
-  | 'ABSENCE_CREATE'
-  | 'ABSENCE_DELETE'
-  | 'ABSENCE_EDIT'
-  | 'SUBSTITUTION_APPROVE'
-  | 'SUBSTITUTION_REJECT'
-  | 'DATABASE_RESET'
-  | 'DATABASE_BACKUP'
-  | 'SETTINGS_CHANGE'
-  | 'CRON_RUN'
+import { AuditActionType } from '@prisma/client'
 
 interface AuditLogData {
   userId: string

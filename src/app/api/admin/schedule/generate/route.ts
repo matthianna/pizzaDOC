@@ -91,29 +91,6 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // 🔔 Notify users
-    try {
-      const uniqueUserIds = [...new Set(result.shifts.map(s => s.userId))]
-      const formattedDate = format(weekStartDate, 'dd/MM/yyyy', { locale: it })
-
-      await Promise.allSettled(uniqueUserIds.map(userId =>
-        createNotification({
-          userId,
-          type: NotificationType.SCHEDULE_PUBLISHED,
-          title: 'Nuovo Orario Pubblicato',
-          body: `È stato pubblicato l'orario per la settimana del ${formattedDate}.`,
-          data: {
-            url: '/schedule',
-            weekStart: weekStartDate.toISOString()
-          }
-        })
-      ))
-
-      console.log(`✅ Sent schedule notifications to ${uniqueUserIds.length} users`)
-    } catch (notificationError) {
-      console.error('❌ Error sending schedule notifications:', notificationError)
-    }
-
     return NextResponse.json({
       scheduleId,
       shiftsGenerated: result.shifts.length,

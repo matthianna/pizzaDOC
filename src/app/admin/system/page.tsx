@@ -5,12 +5,13 @@ import { MainLayout } from '@/components/layout/main-layout'
 import {
   Shield, Database, Activity, Download, Trash2,
   AlertCircle, Clock, User, Filter, RefreshCw,
-  HardDrive, Calendar, TrendingUp
+  HardDrive, Calendar, TrendingUp, Bell
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Select as ReactSelect } from '@/components/ui/react-select'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
+import { cn } from '@/lib/utils'
 
 interface AuditLog {
   id: string
@@ -47,7 +48,7 @@ interface SystemStats {
 }
 
 export default function SystemAdminPage() {
-  const [activeTab, setActiveTab] = useState<'logs' | 'backups' | 'stats' | 'crons'>('logs')
+  const [activeTab, setActiveTab] = useState<'logs' | 'backups' | 'stats' | 'tasks'>('logs')
 
   // Audit Logs
   const [logs, setLogs] = useState<AuditLog[]>([])
@@ -73,7 +74,7 @@ export default function SystemAdminPage() {
     if (activeTab === 'logs') fetchLogs()
     if (activeTab === 'backups') fetchBackups()
     if (activeTab === 'stats') fetchStats()
-    if (activeTab === 'crons') fetchCrons()
+    if (activeTab === 'tasks') fetchTasks()
   }, [activeTab, logsPage, filterAction, filterUser])
 
   const fetchLogs = async () => {
@@ -111,33 +112,33 @@ export default function SystemAdminPage() {
     }
   }
 
-  // Crons
-  const [crons, setCrons] = useState<any[]>([])
-  const [cronsLoading, setCronsLoading] = useState(false)
-  const [triggeringCron, setTriggeringCron] = useState<string | null>(null)
+  // Tasks/Reminders
+  const [tasks, setTasks] = useState<any[]>([])
+  const [tasksLoading, setTasksLoading] = useState(false)
+  const [triggeringTask, setTriggeringTask] = useState<string | null>(null)
 
-  const fetchCrons = async () => {
-    setCronsLoading(true)
+  const fetchTasks = async () => {
+    setTasksLoading(true)
     try {
-      const response = await fetch('/api/admin/system/crons')
+      const response = await fetch('/api/admin/system/tasks')
       if (response.ok) {
         const data = await response.json()
-        setCrons(data.crons)
+        setTasks(data.tasks)
       }
     } catch (error) {
-      console.error('Error fetching crons:', error)
+      console.error('Error fetching tasks:', error)
     } finally {
-      setCronsLoading(false)
+      setTasksLoading(false)
     }
   }
 
-  const runCron = async (cronId: string) => {
-    setTriggeringCron(cronId)
+  const runTask = async (taskId: string) => {
+    setTriggeringTask(taskId)
     try {
-      const response = await fetch('/api/admin/system/crons', {
+      const response = await fetch('/api/admin/system/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cronId })
+        body: JSON.stringify({ taskId })
       })
 
       const data = await response.json()
@@ -147,10 +148,10 @@ export default function SystemAdminPage() {
         alert(`❌ Errore: ${data.error || 'Esecuzione fallita'}`)
       }
     } catch (error) {
-      console.error('Error running cron:', error)
-      alert('❌ Errore durante l\'esecuzione del cron')
+      console.error('Error running task:', error)
+      alert('❌ Errore durante l\'esecuzione dell\'attività')
     } finally {
-      setTriggeringCron(null)
+      setTriggeringTask(null)
     }
   }
 
@@ -222,7 +223,7 @@ export default function SystemAdminPage() {
     ABSENCE_DELETE: 'Assenza Eliminata',
     ABSENCE_APPROVE: 'Assenza Approvata',
     ABSENCE_REJECT: 'Assenza Rifiutata',
-    CRON_RUN: 'Cron Eseguito',
+    TASK_RUN: 'Task Eseguito',
   }
 
   const totalPages = Math.ceil(logsTotal / 20)
@@ -248,8 +249,8 @@ export default function SystemAdminPage() {
               <button
                 onClick={() => setActiveTab('logs')}
                 className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'logs'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
               >
                 <div className="flex items-center space-x-2">
@@ -260,8 +261,8 @@ export default function SystemAdminPage() {
               <button
                 onClick={() => setActiveTab('backups')}
                 className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'backups'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
               >
                 <div className="flex items-center space-x-2">
@@ -272,8 +273,8 @@ export default function SystemAdminPage() {
               <button
                 onClick={() => setActiveTab('stats')}
                 className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'stats'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
               >
                 <div className="flex items-center space-x-2">
@@ -282,15 +283,15 @@ export default function SystemAdminPage() {
                 </div>
               </button>
               <button
-                onClick={() => setActiveTab('crons')}
-                className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'crons'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                onClick={() => setActiveTab('tasks')}
+                className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'tasks'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
               >
                 <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4" />
-                  <span>Cron Jobs</span>
+                  <Bell className="h-4 w-4" />
+                  <span>Promemoria</span>
                 </div>
               </button>
             </nav>
@@ -307,18 +308,18 @@ export default function SystemAdminPage() {
                     <ReactSelect
                       label="Filtra per azione"
                       options={[
-                        { value: null, label: 'Tutte le azioni' },
+                        { value: '', label: 'Tutte le azioni' },
                         ...Object.entries(actionLabels).map(([key, label]) => ({
                           value: key,
                           label
                         }))
                       ]}
                       value={{
-                        value: filterAction,
+                        value: filterAction || '',
                         label: filterAction ? actionLabels[filterAction] : 'Tutte le azioni'
                       }}
-                      onChange={(option) => {
-                        setFilterAction(option?.value as string | null)
+                      onChange={(option: any) => {
+                        setFilterAction(option?.value || null)
                         setLogsPage(1)
                       }}
                     />
@@ -499,71 +500,83 @@ export default function SystemAdminPage() {
               </div>
             )}
 
-            {/* CRONS TAB */}
-            {activeTab === 'crons' && (
+            {/* TASKS/REMINDERS TAB */}
+            {activeTab === 'tasks' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Cron Jobs Attivi</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">Promemoria e Task Manuali</h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      Monitora e gestisci le attività pianificate del sistema
+                      Invia promemoria manuali ai dipendenti e gestisci le attività di sistema
                     </p>
                   </div>
                   <button
-                    onClick={fetchCrons}
+                    onClick={fetchTasks}
                     className="p-2 text-gray-500 hover:text-orange-600 transition-colors"
                   >
-                    <RefreshCw className={`h-5 w-5 ${cronsLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`h-5 w-5 ${tasksLoading ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
 
-                {cronsLoading && crons.length === 0 ? (
+                {tasksLoading && tasks.length === 0 ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
                   </div>
-                ) : crons.length === 0 ? (
+                ) : tasks.length === 0 ? (
                   <div className="text-center py-12">
-                    <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Nessun cron job trovato</p>
+                    <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">Nessuna attività trovata</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
-                    {crons.map((cron) => (
-                      <div key={cron.id} className="glass rounded-2xl p-6 border-0 shadow-soft hover:shadow-md transition-all">
+                    {tasks.map((task) => (
+                      <div key={task.id} className="glass rounded-2xl p-6 border-0 shadow-soft hover:shadow-md transition-all">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center flex-shrink-0">
-                              <Clock className="h-6 w-6 text-orange-600" />
+                            <div className={cn(
+                              "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
+                              task.id.includes('reminder') ? "bg-gradient-to-br from-blue-100 to-blue-200" : "bg-gradient-to-br from-orange-100 to-orange-200"
+                            )}>
+                              {task.id.includes('reminder') ? (
+                                <Bell className={cn("h-6 w-6", task.id.includes('reminder') ? "text-blue-600" : "text-orange-600")} />
+                              ) : (
+                                <Clock className="h-6 w-6 text-orange-600" />
+                              )}
                             </div>
                             <div>
-                              <h4 className="text-lg font-bold text-gray-900">{cron.name}</h4>
-                              <p className="text-sm text-gray-600 mt-1">{cron.description}</p>
+                              <h4 className="text-lg font-bold text-gray-900">{task.name}</h4>
+                              <p className="text-sm text-gray-600 mt-1">{task.description}</p>
                               <div className="flex flex-wrap items-center gap-4 mt-3">
-                                <div className="flex items-center text-xs font-bold text-orange-700 bg-orange-100 px-2 py-1 rounded-lg">
-                                  <Calendar className="h-3 w-3 mr-1" />
-                                  {cron.schedule}
+                                <div className="flex items-center text-xs font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded-lg">
+                                  <Activity className="h-3 w-3 mr-1" />
+                                  Manuale
                                 </div>
                                 <div className="flex items-center text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
-                                  {cron.path}
+                                  {task.path}
                                 </div>
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center space-x-3">
                             <button
-                              onClick={() => runCron(cron.id)}
-                              disabled={triggeringCron === cron.id}
-                              className="flex-1 md:flex-none px-6 py-2.5 bg-gradient-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                              onClick={() => runTask(task.id)}
+                              disabled={triggeringTask === task.id}
+                              className={cn(
+                                "flex-1 md:flex-none px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2",
+                                task.id.includes('reminder')
+                                  ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-blue-500/20 hover:brightness-110"
+                                  : "bg-gradient-primary text-white shadow-orange-500/20 hover:brightness-110"
+                              )}
                             >
-                              {triggeringCron === cron.id ? (
+                              {triggeringTask === task.id ? (
                                 <>
                                   <RefreshCw className="h-4 w-4 animate-spin" />
-                                  <span>Esecuzione...</span>
+                                  <span>Invio...</span>
                                 </>
                               ) : (
                                 <>
-                                  <Activity className="h-4 w-4" />
-                                  <span>Esegui Ora</span>
+                                  {task.id.includes('reminder') ? <Bell className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
+                                  <span>{task.id.includes('reminder') ? 'Invia Ora' : 'Esegui Ora'}</span>
                                 </>
                               )}
                             </button>
@@ -574,11 +587,11 @@ export default function SystemAdminPage() {
                   </div>
                 )}
 
-                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 flex items-start space-x-3">
-                  <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
-                  <div className="text-sm text-blue-700">
-                    <p className="font-bold mb-1">Nota sulla pianificazione</p>
-                    <p>Gli orari sono espressi in formato Cron (UTC). Le attività vengono eseguite automaticamente da Vercel secondo la pianificazione definita in <code className="bg-blue-100 px-1 rounded">vercel.json</code>.</p>
+                <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5 flex items-start space-x-3">
+                  <AlertCircle className="h-5 w-5 text-orange-500 mt-0.5" />
+                  <div className="text-sm text-orange-700">
+                    <p className="font-bold mb-1">Attività Manuali</p>
+                    <p>Queste attività non sono più eseguite automaticamente. È responsabilità dell'amministratore inviare i promemoria quando necessario.</p>
                   </div>
                 </div>
               </div>

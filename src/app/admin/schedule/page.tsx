@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { addWeeks, subWeeks } from 'date-fns'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit, ChevronDown, ChevronUp } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit, ChevronDown, ChevronUp, Bell } from 'lucide-react'
 import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek, getWeekStart } from '@/lib/date-utils'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
@@ -62,6 +62,7 @@ export default function AdminSchedulePage() {
   const [showAddShiftModal, setShowAddShiftModal] = useState(false)
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [notifying, setNotifying] = useState(false)
   const [prefilledShiftData, setPrefilledShiftData] = useState<{
     dayOfWeek?: number
     shiftType?: ShiftType
@@ -71,7 +72,7 @@ export default function AdminSchedulePage() {
   const [selectedShift, setSelectedShift] = useState<ScheduleShift | null>(null)
   const [removeReason, setRemoveReason] = useState('')
   const [removing, setRemoving] = useState(false)
-  
+
   // Stati per modifica orari
   const [showTimeEditModal, setShowTimeEditModal] = useState(false)
   const [editingShift, setEditingShift] = useState<ScheduleShift | null>(null)
@@ -122,7 +123,7 @@ export default function AdminSchedulePage() {
       const weekStart = new Date(currentWeek)
       const weekEnd = new Date(currentWeek)
       weekEnd.setDate(weekEnd.getDate() + 6)
-      
+
       const response = await fetch(`/api/holidays?startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`)
       if (response.ok) {
         const data = await response.json()
@@ -166,7 +167,7 @@ export default function AdminSchedulePage() {
     const calculatedGaps: Gap[] = []
     const roles: Role[] = ['CUCINA', 'FATTORINO', 'SALA']
     const shiftTypes: ShiftType[] = ['PRANZO', 'CENA']
-    
+
     // Group shifts by day/shift/role
     const shiftGroups: Record<string, ScheduleShift[]> = {}
     schedule.shifts.forEach(shift => {
@@ -181,16 +182,16 @@ export default function AdminSchedulePage() {
     for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
       for (const shiftType of shiftTypes) {
         for (const role of roles) {
-          const limit = shiftLimits.find(l => 
-            l.dayOfWeek === dayOfWeek && 
-            l.shiftType === shiftType && 
+          const limit = shiftLimits.find(l =>
+            l.dayOfWeek === dayOfWeek &&
+            l.shiftType === shiftType &&
             l.role === role
           )
 
           if (limit && limit.requiredStaff > 0) {
             const key = `${dayOfWeek}-${shiftType}-${role}`
             const assigned = shiftGroups[key] ? shiftGroups[key].length : 0
-            
+
             if (assigned < limit.requiredStaff) {
               calculatedGaps.push({
                 dayOfWeek,
@@ -205,8 +206,8 @@ export default function AdminSchedulePage() {
       }
     }
 
-  setGaps(calculatedGaps)
-}
+    setGaps(calculatedGaps)
+  }
 
   const generateSchedule = async () => {
     setGenerating(true)
@@ -256,6 +257,36 @@ export default function AdminSchedulePage() {
     }
   }
 
+  const notifyUsers = async () => {
+    if (!schedule) return
+
+    setNotifying(true)
+    try {
+      const response = await fetch('/api/admin/schedule/notify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          weekStart: currentWeek.toISOString()
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(data.message || 'Notifiche inviate con successo!')
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Errore durante l\'invio delle notifiche')
+      }
+    } catch (error) {
+      console.error('Error sending notifications:', error)
+      alert('Errore durante l\'invio delle notifiche')
+    } finally {
+      setNotifying(false)
+    }
+  }
+
   const exportToPDF = async () => {
     try {
       // Apri l'HTML in una nuova finestra
@@ -266,7 +297,7 @@ export default function AdminSchedulePage() {
         if (newWindow) {
           newWindow.document.write(html)
           newWindow.document.close()
-          
+
           // Aspetta che il contenuto sia caricato e poi stampa
           setTimeout(() => {
             newWindow.print()
@@ -283,7 +314,7 @@ export default function AdminSchedulePage() {
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     // ⭐ USA getWeekStart per garantire normalizzazione UTC corretta
-    const newWeek = direction === 'next' 
+    const newWeek = direction === 'next'
       ? getWeekStart(addWeeks(currentWeek, 1))
       : getWeekStart(subWeeks(currentWeek, 1))
     setCurrentWeek(newWeek)
@@ -316,7 +347,7 @@ export default function AdminSchedulePage() {
         const result = await response.json()
         setShowRemoveModal(false)
         await fetchSchedule()
-        
+
         alert(`Turno di ${result.username} rimosso definitivamente.`)
       } else {
         const error = await response.json()
@@ -420,15 +451,15 @@ export default function AdminSchedulePage() {
 
   const groupShiftsByDayAndShift = () => {
     if (!schedule) return {}
-    
+
     const groups: Record<string, ScheduleShift[]> = {}
-    
+
     schedule.shifts.forEach(shift => {
       const key = `${shift.dayOfWeek}-${shift.shiftType}`
       if (!groups[key]) groups[key] = []
       groups[key].push(shift)
     })
-    
+
     return groups
   }
 
@@ -468,6 +499,16 @@ export default function AdminSchedulePage() {
                 </button>
               </>
             )}
+            {schedule && (
+              <button
+                onClick={notifyUsers}
+                disabled={notifying}
+                className="bg-blue-600 text-white px-3 py-2 text-sm rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50"
+              >
+                <Bell className="h-4 w-4 mr-1 sm:mr-2" />
+                {notifying ? 'Invio...' : 'Notifica Utenti'}
+              </button>
+            )}
             <button
               onClick={() => setShowGenerateConfirm(true)}
               disabled={generating}
@@ -500,13 +541,13 @@ export default function AdminSchedulePage() {
               <span className="hidden sm:inline">Settimana precedente</span>
               <span className="sm:hidden">Precedente</span>
             </button>
-            
+
             <div className="text-center order-first sm:order-none">
               <h2 className="text-base sm:text-lg md:text-2xl font-bold text-gray-900">
                 {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
               </h2>
             </div>
-            
+
             <button
               onClick={() => navigateWeek('next')}
               className="flex items-center px-3 py-2 text-sm sm:text-base text-gray-600 hover:text-gray-800 w-full sm:w-auto justify-center sm:justify-end"
@@ -568,8 +609,8 @@ export default function AdminSchedulePage() {
 
         {/* Coverage Report */}
         {schedule && shiftLimits.length > 0 && (
-          <CoverageReport 
-            schedule={schedule} 
+          <CoverageReport
+            schedule={schedule}
             shiftLimits={shiftLimits}
             currentWeek={currentWeek}
           />
@@ -602,7 +643,7 @@ export default function AdminSchedulePage() {
                     const dayOfWeek = getDayOfWeek(day)
                     const pranzoCrew = shiftGroups[`${dayOfWeek}-PRANZO`] || []
                     const cenaCrew = shiftGroups[`${dayOfWeek}-CENA`] || []
-                    
+
                     return (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
@@ -616,8 +657,8 @@ export default function AdminSchedulePage() {
                           </div>
                         </td>
                         <td className="px-3 sm:px-6 py-4">
-                          <ShiftCrew 
-                            shifts={pranzoCrew} 
+                          <ShiftCrew
+                            shifts={pranzoCrew}
                             day={day}
                             dayOfWeek={dayOfWeek}
                             shiftType="PRANZO"
@@ -631,8 +672,8 @@ export default function AdminSchedulePage() {
                           />
                         </td>
                         <td className="px-6 py-4">
-                          <ShiftCrew 
-                            shifts={cenaCrew} 
+                          <ShiftCrew
+                            shifts={cenaCrew}
                             day={day}
                             dayOfWeek={dayOfWeek}
                             shiftType="CENA"
@@ -716,7 +757,7 @@ export default function AdminSchedulePage() {
                     <p><strong>Orario:</strong> {selectedShift.startTime} - {selectedShift.endTime}</p>
                   </div>
                 </div>
-                
+
                 {/* Reason */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -965,7 +1006,7 @@ function getTransportIcon(user: ScheduleShift['user'], role: Role) {
   }
 
   const primaryTransport = user.primaryTransport
-  
+
   switch (primaryTransport) {
     case 'AUTO':
       return <Car className="h-3 w-3 text-blue-600" />
@@ -976,19 +1017,19 @@ function getTransportIcon(user: ScheduleShift['user'], role: Role) {
   }
 }
 
-function ShiftCrew({ 
-  shifts, 
+function ShiftCrew({
+  shifts,
   day,
-  dayOfWeek, 
-  shiftType, 
-  gaps, 
+  dayOfWeek,
+  shiftType,
+  gaps,
   shiftLimits,
   holidays,
   onRemoveShift,
   onEditTime,
   onEditRole,
   onQuickAdd
-}: { 
+}: {
   shifts: ScheduleShift[]
   day: Date
   dayOfWeek: number
@@ -1031,14 +1072,14 @@ function ShiftCrew({
 
   // Get all roles that should be displayed (configured + assigned)
   const allRoles = new Set<Role>()
-  
+
   // Add roles from shift limits
   shiftLimits.forEach(limit => {
     if (limit.dayOfWeek === dayOfWeek && limit.shiftType === shiftType && limit.requiredStaff > 0) {
       allRoles.add(limit.role as Role)
     }
   })
-  
+
   // Add roles from assigned shifts
   shifts.forEach(shift => allRoles.add(shift.role))
 
@@ -1050,17 +1091,17 @@ function ShiftCrew({
     <div className="space-y-2">
       {Array.from(allRoles).map((role) => {
         const roleShifts = byRole[role] || []
-        const limit = shiftLimits.find(l => 
-          l.dayOfWeek === dayOfWeek && 
-          l.shiftType === shiftType && 
+        const limit = shiftLimits.find(l =>
+          l.dayOfWeek === dayOfWeek &&
+          l.shiftType === shiftType &&
           l.role === role
         )
-        const gap = gaps.find(g => 
-          g.dayOfWeek === dayOfWeek && 
-          g.shiftType === shiftType && 
+        const gap = gaps.find(g =>
+          g.dayOfWeek === dayOfWeek &&
+          g.shiftType === shiftType &&
           g.role === role
         )
-        
+
         const required = limit?.requiredStaff || 0
         const assigned = roleShifts.length
         const missing = Math.max(0, required - assigned)
@@ -1150,11 +1191,11 @@ function ShiftCrew({
   )
 }
 
-function CoverageReport({ 
-  schedule, 
-  shiftLimits, 
-  currentWeek 
-}: { 
+function CoverageReport({
+  schedule,
+  shiftLimits,
+  currentWeek
+}: {
   schedule: Schedule
   shiftLimits: { dayOfWeek: number; shiftType: string; role: string; requiredStaff: number }[]
   currentWeek: Date
@@ -1207,7 +1248,7 @@ function CoverageReport({
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
               <BarChart3 className="h-6 w-6 text-white" />
             </div>
-            
+
             {/* Title */}
             <div className="text-left">
               <h3 className="text-lg font-bold text-gray-900">
@@ -1290,20 +1331,18 @@ function CoverageReport({
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-3">
                         <div className="w-20 bg-gray-200 rounded-full h-2.5">
-                          <div 
-                            className={`h-2.5 rounded-full transition-all duration-300 ${
-                              user.assignmentPercentage >= 80 ? 'bg-green-500' :
+                          <div
+                            className={`h-2.5 rounded-full transition-all duration-300 ${user.assignmentPercentage >= 80 ? 'bg-green-500' :
                               user.assignmentPercentage >= 50 ? 'bg-yellow-500' :
-                              'bg-red-500'
-                            }`}
+                                'bg-red-500'
+                              }`}
                             style={{ width: `${Math.min(100, user.assignmentPercentage)}%` }}
                           />
                         </div>
-                        <span className={`text-sm font-bold min-w-[45px] ${
-                          user.assignmentPercentage >= 80 ? 'text-green-600' :
+                        <span className={`text-sm font-bold min-w-[45px] ${user.assignmentPercentage >= 80 ? 'text-green-600' :
                           user.assignmentPercentage >= 50 ? 'text-yellow-600' :
-                          'text-red-600'
-                        }`}>
+                            'text-red-600'
+                          }`}>
                           {user.assignmentPercentage}%
                         </span>
                       </div>
