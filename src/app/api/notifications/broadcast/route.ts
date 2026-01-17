@@ -41,6 +41,36 @@ export async function POST(request: Request) {
                 select: { id: true }
             })
             userIds = targetUsers.map(u => u.id)
+        } else if (filter === 'missing_hours') {
+            // Trova turni negli ultimi 30 giorni che non hanno ore inserite
+            const now = new Date()
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+
+            const pastShifts = await prisma.shifts.findMany({
+                where: {
+                    schedules: {
+                        weekStart: {
+                            gte: thirtyDaysAgo,
+                            lte: now
+                        }
+                    }
+                },
+                include: {
+                    worked_hours: true,
+                    schedules: true
+                }
+            })
+
+            const targetUserIds = new Set<string>()
+            pastShifts.forEach(shift => {
+                const shiftDate = new Date(shift.schedules.weekStart)
+                shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
+
+                if (shiftDate < now && (!shift.worked_hours || shift.worked_hours.status === 'REJECTED')) {
+                    targetUserIds.add(shift.userId)
+                }
+            })
+            userIds = Array.from(targetUserIds)
         } else {
             // Get all active users
             const users = await prisma.user.findMany({
@@ -55,7 +85,7 @@ export async function POST(request: Request) {
             data: userIds.map(userId => ({
                 id: crypto.randomUUID(),
                 userId,
-                type: 'GENERAL' as NotificationType,
+                type: (filter === 'missing_hours' ? 'HOURS_REMINDER' : 'GENERAL') as NotificationType,
                 title,
                 body: message,
                 data: { url: url || '/dashboard' },
@@ -72,9 +102,9 @@ export async function POST(request: Request) {
             badge: '/icons/icon-72x72.png',
             data: {
                 url: url || '/dashboard',
-                type: 'GENERAL'
+                type: filter === 'missing_hours' ? 'HOURS_REMINDER' : 'GENERAL'
             },
-            tag: 'general-broadcast'
+            tag: filter === 'missing_hours' ? 'hours-reminder' : 'general-broadcast'
         })
 
         return NextResponse.json({
@@ -84,6 +114,91 @@ export async function POST(request: Request) {
         })
     } catch (error) {
         console.error('[API] Error sending broadcast notification:', error)
+        return NextResponse.json({ error: 'Errore interno' }, { status: 500 })
+    }
+}
+
+// GET /api/notifications/broadcast - Get stats for filters
+export async function GET(request: Request) {
+    try {
+        const session = await getServerSession(authOptions)
+        if (!session || !isAdmin(session)) {
+            return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+        }
+
+        const stats: any = {}
+
+        // --- Availability Stats ---
+        const nextWeek = getNextWeekStart()
+        const usersWithAvail = await prisma.availabilities.findMany({
+            where: { weekStart: nextWeek },
+            select: {
+                userId: true,
+                user: { select: { username: true } }
+            },
+            distinct: ['userId']
+        })
+        const submittedAvailIds = usersWithAvail.map(a => a.userId)
+        const submittedAvailNames = Array.from(new Set(usersWithAvail.map(a => a.user.username)))
+
+        const activeUsers = await prisma.user.findMany({
+            where: { isActive: true },
+            select: { id: true, username: true }
+        })
+
+        stats.availability = {
+            weekStart: nextWeek,
+            submitted: submittedAvailNames.sort(),
+            missing: activeUsers
+                .filter(u => !submittedAvailIds.includes(u.id))
+                .map(u => u.username)
+                .sort()
+        }
+
+        // --- Hours Stats ---
+        const now = new Date()
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        const pastShifts = await prisma.shifts.findMany({
+            where: {
+                schedules: {
+                    weekStart: { gte: thirtyDaysAgo, lte: now }
+                }
+            },
+            include: {
+                worked_hours: true,
+                schedules: true,
+                user: { select: { username: true } }
+            }
+        })
+
+        const missingHoursUsers = new Set<string>()
+        const submittedHoursUsers = new Set<string>()
+
+        pastShifts.forEach(shift => {
+            const shiftDate = new Date(shift.schedules.weekStart)
+            shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
+            if (shiftDate < now) {
+                if (!shift.worked_hours || shift.worked_hours.status === 'REJECTED') {
+                    missingHoursUsers.add(shift.user.username)
+                } else {
+                    submittedHoursUsers.add(shift.user.username)
+                }
+            }
+        })
+
+        const finalizedMissing = Array.from(missingHoursUsers).sort()
+        const finalizedSubmitted = Array.from(submittedHoursUsers)
+            .filter(name => !missingHoursUsers.has(name))
+            .sort()
+
+        stats.hours = {
+            submitted: finalizedSubmitted,
+            missing: finalizedMissing
+        }
+
+        return NextResponse.json(stats)
+    } catch (error) {
+        console.error('[API] Error fetching broadcast stats:', error)
         return NextResponse.json({ error: 'Errore interno' }, { status: 500 })
     }
 }

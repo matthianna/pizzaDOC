@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Bell, Send, Loader2, CheckCircle, AlertCircle, Calendar } from 'lucide-react'
+import { Bell, Send, Loader2, CheckCircle, AlertCircle, Calendar, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function AdminNotificationsPage() {
@@ -10,9 +10,36 @@ export default function AdminNotificationsPage() {
     const [message, setMessage] = useState('')
     const [url, setUrl] = useState('')
     const [filter, setFilter] = useState<string | null>(null)
+    const [stats, setStats] = useState<any>(null)
+    const [showLists, setShowLists] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [statsLoading, setStatsLoading] = useState(false)
     const [result, setResult] = useState<{ success: boolean; recipients?: number; pushResult?: any } | null>(null)
     const [error, setError] = useState<string | null>(null)
+
+    const fetchStats = async () => {
+        setStatsLoading(true)
+        try {
+            const response = await fetch('/api/notifications/broadcast')
+            if (response.ok) {
+                const data = await response.json()
+                setStats(data)
+            }
+        } catch (err) {
+            console.error('Error fetching stats:', err)
+        } finally {
+            setStatsLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        if (filter && (filter === 'missing_availability' || filter === 'missing_hours')) {
+            fetchStats()
+        } else {
+            setStats(null)
+            setShowLists(false)
+        }
+    }, [filter])
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -56,10 +83,17 @@ export default function AdminNotificationsPage() {
                         <div className="p-3 bg-orange-100 rounded-xl">
                             <Bell className="h-6 w-6 text-orange-600" />
                         </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-gray-900">Notifiche Broadcast</h1>
-                            <p className="text-sm text-gray-500">Invia notifiche a tutti gli utenti attivi</p>
+                        <div className="flex-1">
+                            <h1 className="text-xl font-bold text-gray-900">Invia Broadcast</h1>
+                            <p className="text-sm text-gray-500">Invia notifiche a tutta la squadra</p>
                         </div>
+                        <a
+                            href="/admin/notifications/all"
+                            className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-200 transition-all flex items-center gap-2"
+                        >
+                            <Clock className="h-4 w-4" />
+                            Vedi Storico
+                        </a>
                     </div>
 
                     <div className="mb-8 p-4 bg-orange-50/50 rounded-2xl border border-orange-100 shadow-sm">
@@ -95,16 +129,20 @@ export default function AdminNotificationsPage() {
                                     setTitle('Sollecito Ore')
                                     setMessage('Ricordati di inserire le ore lavorate per i tuoi ultimi turni!')
                                     setUrl('/hours')
-                                    setFilter(null)
+                                    setFilter('missing_hours')
+                                    fetchStats()
                                 }}
-                                className="flex items-center gap-3 p-3 bg-white hover:bg-orange-50 border border-orange-100 rounded-xl transition-all text-left group"
+                                className={cn(
+                                    "flex items-center gap-3 p-3 bg-white hover:bg-orange-50 border rounded-xl transition-all text-left group",
+                                    filter === 'missing_hours' ? "ring-2 ring-orange-500 border-orange-500" : "border-orange-100"
+                                )}
                             >
                                 <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-orange-600 transition-colors">
-                                    <Loader2 className="h-5 w-5 text-orange-600 group-hover:text-white" />
+                                    <Clock className="h-5 w-5 text-orange-600 group-hover:text-white" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-bold text-gray-900">Sollecito Ore</p>
-                                    <p className="text-[9px] font-medium text-gray-500 uppercase tracking-wider">Invia a tutti i dipendenti</p>
+                                    <p className="text-[9px] font-medium text-gray-500 uppercase tracking-wider">Solo chi manca</p>
                                 </div>
                             </button>
 
@@ -146,18 +184,73 @@ export default function AdminNotificationsPage() {
                         </div>
                     </div>
 
-                    {filter === 'missing_availability' && (
-                        <div className="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 rounded-lg">
-                                    <CheckCircle className="h-4 w-4 text-blue-600" />
+                    {filter && (filter === 'missing_availability' || filter === 'missing_hours') && (
+                        <div className="mb-6 space-y-3">
+                            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-100 rounded-lg">
+                                        <CheckCircle className="h-4 w-4 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-blue-900">Filtro Intelligente Attivo</p>
+                                        <p className="text-[10px] text-blue-600">
+                                            {filter === 'missing_availability'
+                                                ? "La notifica verrà inviata solo a chi non ha ancora inserito la disponibilità."
+                                                : "La notifica verrà inviata solo a chi non ha inserito tutte le ore lavorate."
+                                            }
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-xs font-bold text-blue-900">Filtro Intelligente Attivo</p>
-                                    <p className="text-[10px] text-blue-600">La notifica verrà inviata solo a chi non ha ancora inserito la disponibilità.</p>
-                                </div>
+                                <button onClick={() => setFilter(null)} className="text-[10px] font-black text-blue-600 uppercase hover:underline">Disattiva</button>
                             </div>
-                            <button onClick={() => setFilter(null)} className="text-[10px] font-black text-blue-600 uppercase hover:underline">Disattiva</button>
+
+                            {statsLoading ? (
+                                <div className="flex items-center justify-center py-4">
+                                    <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
+                                </div>
+                            ) : stats && (
+                                <div className="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden">
+                                    <button
+                                        onClick={() => setShowLists(!showLists)}
+                                        className="w-full flex items-center justify-between p-3 hover:bg-gray-100 transition-all"
+                                    >
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                                            Riepilogo Destinatari ({filter === 'missing_availability' ? stats.availability?.missing.length : stats.hours?.missing.length})
+                                        </p>
+                                        <span className="text-[10px] font-bold text-blue-600">
+                                            {showLists ? 'Nascondi Dettagli' : 'Mostra Dettagli'}
+                                        </span>
+                                    </button>
+
+                                    {showLists && (
+                                        <div className="p-3 border-t border-gray-100 grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-red-600 uppercase mb-2">Mancano ({filter === 'missing_availability' ? stats.availability?.missing.length : stats.hours?.missing.length})</p>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {(filter === 'missing_availability' ? stats.availability?.missing : stats.hours?.missing).map((name: string) => (
+                                                        <span key={name} className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-[10px] font-medium border border-red-200">
+                                                            {name}
+                                                        </span>
+                                                    ))}
+                                                    {(filter === 'missing_availability' ? stats.availability?.missing.length : stats.hours?.missing.length) === 0 && (
+                                                        <span className="text-[10px] text-gray-400 italic">Nessuno</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-green-600 uppercase mb-2">Inserito ({filter === 'missing_availability' ? stats.availability?.submitted.length : stats.hours?.submitted.length})</p>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {(filter === 'missing_availability' ? stats.availability?.submitted : stats.hours?.submitted).map((name: string) => (
+                                                        <span key={name} className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[10px] font-medium border border-green-200">
+                                                            {name}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 

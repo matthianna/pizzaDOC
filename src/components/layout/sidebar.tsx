@@ -236,7 +236,15 @@ export function Sidebar() {
       section: 'sistema'
     },
     {
-      name: 'Invia Notifiche',
+      name: 'Centro Notifiche',
+      href: '/admin/notifications/all',
+      icon: BellIcon,
+      iconSolid: BellIconSolid,
+      adminOnly: true,
+      section: 'sistema'
+    },
+    {
+      name: 'Invia Broadcast',
       href: '/admin/notifications',
       icon: BellIcon,
       iconSolid: BellIconSolid,

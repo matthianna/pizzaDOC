@@ -65,7 +65,12 @@ export function MobileBottomNav() {
             icon: Home,
         },
         {
-            name: 'Piano',
+            name: 'Settimana',
+            href: '/weekly-plan',
+            icon: Calendar,
+        },
+        {
+            name: 'Mio Piano',
             href: '/schedule',
             icon: LayoutGrid,
         },
@@ -73,11 +78,6 @@ export function MobileBottomNav() {
             name: 'Disponibilità',
             href: '/availability',
             icon: Calendar,
-        },
-        {
-            name: 'Ore',
-            href: '/hours',
-            icon: Clock,
         },
         {
             name: 'Altro',
@@ -93,7 +93,12 @@ export function MobileBottomNav() {
             icon: Home,
         },
         {
-            name: 'Piano',
+            name: 'Settimana',
+            href: '/weekly-plan',
+            icon: Calendar,
+        },
+        {
+            name: 'Mio Piano',
             href: '/admin/schedule',
             icon: LayoutGrid,
         },
@@ -101,11 +106,6 @@ export function MobileBottomNav() {
             name: 'Utenti',
             href: '/admin/users',
             icon: Users,
-        },
-        {
-            name: 'Ore',
-            href: '/admin/hours',
-            icon: Clock,
         },
         {
             name: 'Altro',
@@ -116,6 +116,11 @@ export function MobileBottomNav() {
 
     // Additional items for the "More" menu
     const employeeMoreItems: NavItem[] = [
+        {
+            name: 'Ore Lavorate',
+            href: '/hours',
+            icon: Clock,
+        },
         {
             name: 'Notifiche',
             href: '/notifications',
@@ -144,6 +149,11 @@ export function MobileBottomNav() {
     ]
 
     const adminMoreItems: NavItem[] = [
+        {
+            name: 'Gestione Ore',
+            href: '/admin/hours',
+            icon: Clock,
+        },
         {
             name: 'Notifiche',
             href: '/notifications',
