@@ -1,172 +1,306 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Download, Share, Plus } from 'lucide-react'
+import { X, Download, Share2, Home, Smartphone, Chrome, CheckCircle } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 
 interface BeforeInstallPromptEvent extends Event {
-    prompt: () => Promise<void>
-    userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
 export function PWAInstallPrompt() {
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-    const [showPrompt, setShowPrompt] = useState(false)
-    const [isIOS, setIsIOS] = useState(false)
-    const [isStandalone, setIsStandalone] = useState(false)
+  const { data: session } = useSession()
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [showGuide, setShowGuide] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [isIOS, setIsIOS] = useState(false)
+  const [isAndroid, setIsAndroid] = useState(false)
+  const [isInstalled, setIsInstalled] = useState(false)
 
-    useEffect(() => {
-        // Check if already installed
-        const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches
-            || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-        setIsStandalone(isInStandaloneMode)
-
-        if (isInStandaloneMode) return
-
-        // Detect iOS
-        const isIOSDevice = /iPhone|iPad|iPod/.test(navigator.userAgent) && !(window as Window & { MSStream?: unknown }).MSStream
-        setIsIOS(isIOSDevice)
-
-        // Check if user dismissed in last 7 days
-        const lastDismissed = localStorage.getItem('pwa_install_dismissed')
-        if (lastDismissed) {
-            const dismissedDate = new Date(lastDismissed)
-            const now = new Date()
-            const daysDiff = Math.floor((now.getTime() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24))
-            if (daysDiff < 7) return
-        }
-
-        // Show prompt after a delay for better UX
-        const timer = setTimeout(() => {
-            if (isIOSDevice) {
-                setShowPrompt(true)
-            }
-        }, 3000)
-
-        // Listen for beforeinstallprompt (Chrome, Edge, etc.)
-        const handleBeforeInstallPrompt = (e: Event) => {
-            e.preventDefault()
-            setDeferredPrompt(e as BeforeInstallPromptEvent)
-            // Show prompt after user has interacted with the app
-            setTimeout(() => setShowPrompt(true), 3000)
-        }
-
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-
-        return () => {
-            clearTimeout(timer)
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-        }
-    }, [])
-
-    const handleInstall = async () => {
-        if (!deferredPrompt) return
-
-        deferredPrompt.prompt()
-        const { outcome } = await deferredPrompt.userChoice
-
-        if (outcome === 'accepted') {
-            setDeferredPrompt(null)
-            setShowPrompt(false)
-        }
+  useEffect(() => {
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true)
+      return
     }
 
-    const handleDismiss = () => {
-        setShowPrompt(false)
-        localStorage.setItem('pwa_install_dismissed', new Date().toISOString())
+    // Check if user already dismissed
+    const dismissed = localStorage.getItem('pwa-install-guide-dismissed')
+    if (dismissed) return
+
+    // Detect platform
+    const userAgent = window.navigator.userAgent.toLowerCase()
+    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent)
+    const isAndroidDevice = /android/.test(userAgent)
+    
+    setIsIOS(isIOSDevice)
+    setIsAndroid(isAndroidDevice)
+
+    // Android/Desktop: Listen for install prompt
+    const handler = (e: Event) => {
+      e.preventDefault()
+      setDeferredPrompt(e as BeforeInstallPromptEvent)
     }
 
-    // Don't show if already installed
-    if (isStandalone || !showPrompt) return null
+    window.addEventListener('beforeinstallprompt', handler)
 
-    return (
-        <div className="fixed bottom-20 left-4 right-4 z-50 animate-slide-up lg:left-auto lg:right-6 lg:bottom-6 lg:w-96">
-            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Download className="h-5 w-5 text-white" />
-                        <span className="text-white font-semibold">Installa PizzaDOC</span>
-                    </div>
-                    <button
-                        onClick={handleDismiss}
-                        className="text-white/80 hover:text-white transition-colors"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
+    // Show guide after 3 seconds (only if logged in)
+    if (session) {
+      const timer = setTimeout(() => {
+        setShowGuide(true)
+      }, 3000)
+      return () => {
+        clearTimeout(timer)
+        window.removeEventListener('beforeinstallprompt', handler)
+      }
+    }
 
-                {/* Content */}
-                <div className="p-4">
-                    {isIOS ? (
-                        // iOS instructions
-                        <div className="space-y-3">
-                            <p className="text-gray-700 text-sm">
-                                Per installare PizzaDOC sul tuo iPhone:
-                            </p>
-                            <ol className="text-sm text-gray-600 space-y-2">
-                                <li className="flex items-center gap-2">
-                                    <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <Share className="h-4 w-4 text-gray-600" />
-                                    </div>
-                                    Tocca il pulsante Condividi
-                                </li>
-                                <li className="flex items-center gap-2">
-                                    <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <Plus className="h-4 w-4 text-gray-600" />
-                                    </div>
-                                    Seleziona "Aggiungi a Home"
-                                </li>
-                            </ol>
-                            <button
-                                onClick={handleDismiss}
-                                className="w-full mt-2 py-2 text-sm text-gray-600 hover:text-gray-800"
-                            >
-                                Ho capito
-                            </button>
-                        </div>
-                    ) : (
-                        // Chrome/Android install
-                        <div className="space-y-3">
-                            <p className="text-gray-700 text-sm">
-                                Installa PizzaDOC per accedere rapidamente ai tuoi turni e alla disponibilità.
-                            </p>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleInstall}
-                                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <Download className="h-4 w-4" />
-                                    Installa
-                                </button>
-                                <button
-                                    onClick={handleDismiss}
-                                    className="px-4 py-2.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors"
-                                >
-                                    Non ora
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [session])
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return
+
+    // Show native install prompt
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+
+    if (outcome === 'accepted') {
+      setShowGuide(false)
+      localStorage.setItem('pwa-install-guide-dismissed', 'true')
+    }
+
+    setDeferredPrompt(null)
+  }
+
+  const handleDismiss = () => {
+    setShowGuide(false)
+    localStorage.setItem('pwa-install-guide-dismissed', 'true')
+  }
+
+  const nextStep = () => {
+    if (isIOS && currentStep < iosSteps.length - 1) {
+      setCurrentStep(currentStep + 1)
+    } else if (!isIOS && currentStep < androidSteps.length - 1) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  if (isInstalled || !showGuide || !session) return null
+
+  const iosSteps = [
+    {
+      title: 'Installa PizzaDOC come App',
+      description: 'Usa PizzaDOC come una vera app sul tuo iPhone!',
+      icon: <Smartphone className="w-16 h-16 text-orange-600" />,
+      action: null
+    },
+    {
+      title: 'Tocca il pulsante Condividi',
+      description: 'Clicca l\'icona di condivisione in basso (Safari)',
+      icon: <Share2 className="w-16 h-16 text-blue-500" />,
+      action: null,
+      highlight: '📱 Cerca questo simbolo: ⬆️ (in basso al centro)'
+    },
+    {
+      title: 'Aggiungi alla schermata Home',
+      description: 'Scorri la lista e tocca "Aggiungi a Home"',
+      icon: <Home className="w-16 h-16 text-green-500" />,
+      action: null,
+      highlight: '🏠 Cerca "Aggiungi a Home" nella lista'
+    },
+    {
+      title: 'Conferma',
+      description: 'Tocca "Aggiungi" in alto a destra',
+      icon: <CheckCircle className="w-16 h-16 text-orange-600" />,
+      action: null,
+      highlight: '✅ L\'icona PizzaDOC apparirà sulla tua home!'
+    }
+  ]
+
+  const androidSteps = [
+    {
+      title: 'Installa PizzaDOC come App',
+      description: 'Usa PizzaDOC come una vera app sul tuo telefono!',
+      icon: <Smartphone className="w-16 h-16 text-orange-600" />,
+      action: deferredPrompt ? (
+        <button
+          onClick={handleInstallClick}
+          className="w-full mt-4 px-6 py-3 bg-orange-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+        >
+          <Download className="w-5 h-5" />
+          Installa Ora
+        </button>
+      ) : null
+    },
+    {
+      title: 'Tocca "Installa"',
+      description: 'Chrome ti chiederà di installare l\'app',
+      icon: <Chrome className="w-16 h-16 text-blue-500" />,
+      action: null,
+      highlight: '📱 Oppure: Menu (⋮) → "Installa app" o "Aggiungi a Home"'
+    },
+    {
+      title: 'Fatto! 🎉',
+      description: 'L\'icona PizzaDOC è sulla tua home screen',
+      icon: <CheckCircle className="w-16 h-16 text-green-500" />,
+      action: (
+        <button
+          onClick={handleDismiss}
+          className="w-full mt-4 px-6 py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-transform"
+        >
+          Ho capito!
+        </button>
+      )
+    }
+  ]
+
+  const steps = isIOS ? iosSteps : androidSteps
+  const step = steps[currentStep]
+
+  return (
+    <>
+      {/* Overlay */}
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998] animate-fade-in" />
+
+      {/* Modal */}
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden animate-slide-up">
+          {/* Close Button */}
+          <button
+            onClick={handleDismiss}
+            className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors z-10"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+
+          {/* Content */}
+          <div className="p-8 text-center">
+            {/* Icon */}
+            <div className="flex justify-center mb-6 animate-bounce-slow">
+              {step.icon}
             </div>
+
+            {/* Step Counter */}
+            <div className="flex justify-center gap-2 mb-4">
+              {steps.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-2 rounded-full transition-all ${
+                    index === currentStep
+                      ? 'w-8 bg-orange-600'
+                      : 'w-2 bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Title */}
+            <h2 className="text-2xl font-black text-gray-900 mb-3">
+              {step.title}
+            </h2>
+
+            {/* Description */}
+            <p className="text-gray-600 mb-4 text-base">
+              {step.description}
+            </p>
+
+            {/* Highlight */}
+            {step.highlight && (
+              <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 mb-4">
+                <p className="text-sm font-bold text-orange-900">
+                  {step.highlight}
+                </p>
+              </div>
+            )}
+
+            {/* Action Button */}
+            {step.action}
+          </div>
+
+          {/* Navigation */}
+          <div className="border-t border-gray-100 p-4 flex justify-between items-center bg-gray-50">
+            <button
+              onClick={prevStep}
+              disabled={currentStep === 0}
+              className={`px-4 py-2 font-bold rounded-lg transition-colors ${
+                currentStep === 0
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              ← Indietro
+            </button>
+
+            <span className="text-sm font-bold text-gray-500">
+              {currentStep + 1} / {steps.length}
+            </span>
+
+            {currentStep < steps.length - 1 ? (
+              <button
+                onClick={nextStep}
+                className="px-4 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition-colors"
+              >
+                Avanti →
+              </button>
+            ) : (
+              <button
+                onClick={handleDismiss}
+                className="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Chiudi
+              </button>
+            )}
+          </div>
+
+          {/* Skip Button */}
+          <div className="text-center pb-4">
+            <button
+              onClick={handleDismiss}
+              className="text-xs text-gray-400 hover:text-gray-600 underline"
+            >
+              Non mostrare più
+            </button>
+          </div>
         </div>
-    )
-}
+      </div>
 
-// Hook to check if PWA is installable
-export function usePWAInstall() {
-    const [canInstall, setCanInstall] = useState(false)
-    const [isInstalled, setIsInstalled] = useState(false)
-
-    useEffect(() => {
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-            || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-        setIsInstalled(isStandalone)
-
-        const handler = () => setCanInstall(true)
-        window.addEventListener('beforeinstallprompt', handler)
-        return () => window.removeEventListener('beforeinstallprompt', handler)
-    }, [])
-
-    return { canInstall, isInstalled }
+      <style jsx>{`
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+        .animate-slide-up {
+          animation: slide-up 0.4s ease-out;
+        }
+        .animate-bounce-slow {
+          animation: bounce-slow 2s ease-in-out infinite;
+        }
+      `}</style>
+    </>
+  )
 }

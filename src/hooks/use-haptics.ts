@@ -1,35 +1,42 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useEffect, useState } from 'react'
 
-/**
- * Hook for haptic feedback on mobile devices using the Vibration API.
- */
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
 export function useHaptics() {
-    const vibrate = useCallback((pattern: number | number[] = 10) => {
-        if (typeof window !== 'undefined' && navigator.vibrate) {
-            try {
-                navigator.vibrate(pattern)
-            } catch (e) {
-                // Ignore errors in browsers that don't support it or if blocked
-            }
-        }
-    }, [])
-
-    const lightClick = useCallback(() => vibrate(10), [vibrate])
-    const mediumClick = useCallback(() => vibrate(20), [vibrate])
-    const heavyClick = useCallback(() => vibrate(40), [vibrate])
-    const success = useCallback(() => vibrate([10, 30, 10]), [vibrate])
-    const error = useCallback(() => vibrate([50, 100, 50, 100, 50]), [vibrate])
-    const warning = useCallback(() => vibrate([30, 100, 30]), [vibrate])
-
-    return {
-        vibrate,
-        lightClick,
-        mediumClick,
-        heavyClick,
-        success,
-        error,
-        warning
+  const lightClick = () => {
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(10)
     }
+  }
+
+  const mediumClick = () => {
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(20)
+    }
+  }
+
+  const heavyClick = () => {
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(50)
+    }
+  }
+
+  const successClick = () => {
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate([10, 50, 10])
+    }
+  }
+
+  const errorClick = () => {
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate([50, 100, 50])
+    }
+  }
+
+  return { lightClick, mediumClick, heavyClick, successClick, errorClick }
 }

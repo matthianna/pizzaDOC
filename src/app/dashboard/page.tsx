@@ -13,6 +13,7 @@ import { it } from 'date-fns/locale'
 import { getRoleName, getDayName } from '@/lib/utils'
 import type { Role } from '@prisma/client'
 import { useHaptics } from '@/hooks/use-haptics'
+import { PWAInstallPrompt } from '@/components/pwa/install-prompt'
 
 interface DashboardStats {
   // Admin stats
@@ -239,6 +240,9 @@ export default function DashboardPage() {
 
   return (
     <MainLayout>
+      {/* PWA Install Guide */}
+      <PWAInstallPrompt />
+      
       <div className="space-y-4 sm:space-y-6">
         {/* Welcome Section */}
         <div className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg p-5 sm:p-8 text-white">
