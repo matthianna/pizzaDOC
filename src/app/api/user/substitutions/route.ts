@@ -5,13 +5,14 @@ import { prisma } from '@/lib/prisma'
 import { addDays, format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
-import { whatsappService } from '@/lib/whatsapp-service'
+import { createNotification } from '@/lib/notifications'
+import { NotificationType } from '@prisma/client'
 
 // GET - Fetch available substitutions and user's own substitution requests
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -71,12 +72,12 @@ export async function GET() {
       const weekStart = normalizeDate(sub.shifts.schedules.weekStart)
       // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
       const shiftDate = addDays(weekStart, sub.shifts.dayOfWeek)
-      
+
       // Calcola l'orario esatto di inizio del turno
       const [startHour, startMinute] = sub.shifts.startTime.split(':').map(Number)
       const shiftStartDateTime = new Date(shiftDate)
       shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
-      
+
       // Confronta con l'orario di inizio del turno, non solo la data
       return shiftStartDateTime > now
     })
@@ -144,7 +145,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -180,12 +181,12 @@ export async function POST(request: NextRequest) {
     const weekStart = normalizeDate(shift.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
     const shiftDate = addDays(weekStart, shift.dayOfWeek)
-    
+
     // Parse shift start time (format: "HH:MM")
     const [startHour, startMinute] = shift.startTime.split(':').map(Number)
     const shiftStartDateTime = new Date(shiftDate)
     shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
-    
+
     const now = new Date()
 
     // ✅ Permetti sostituzioni fino all'orario di inizio del turno
@@ -246,48 +247,53 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // 📱 Invia notifica WhatsApp al gruppo (in background, non bloccare la risposta)
+    // 🔔 Invia notifica Push a tutti i potenziali sostituti (background)
     try {
-      // Recupera le impostazioni WhatsApp
-      const [groupChatIdSetting, notificationsEnabledSetting] = await Promise.all([
-        prisma.systemSettings.findUnique({ where: { key: 'whatsapp_group_chat_id' } }),
-        prisma.systemSettings.findUnique({ where: { key: 'whatsapp_notifications_enabled' } })
-      ])
+      const dayNames = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+      const dayOfWeekName = dayNames[shift.dayOfWeek]
+      const formattedDate = format(shiftDate, 'dd/MM', { locale: it })
 
-      const groupChatId = groupChatIdSetting?.value
-      const notificationsEnabled = notificationsEnabledSetting?.value === 'true'
-
-      if (notificationsEnabled && groupChatId) {
-        // Formatta i dati per il messaggio
-        const dayNames = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
-        const dayOfWeekName = dayNames[shift.dayOfWeek]
-        const formattedDate = format(shiftDate, 'dd/MM/yyyy', { locale: it })
-        
-        // Invia messaggio in background (non aspettiamo il risultato)
-        whatsappService.sendGroupSubstitutionNotification({
-          groupChatId,
-          requesterName: substitution.requester.username,
-          dayOfWeek: dayOfWeekName,
-          date: formattedDate,
-          shiftType: shift.shiftType,
-          role: shift.role,
-          startTime: shift.startTime || undefined,
-          reason: requestNote || undefined
-        }).then(result => {
-          if (result.success) {
-            console.log('✅ WhatsApp notification sent for substitution:', substitution.id)
-          } else {
-            console.error('❌ Failed to send WhatsApp notification:', result.error)
+      // Trova tutti gli utenti attivi che hanno lo stesso ruolo del turno
+      const potentialSubstitutes = await prisma.user.findMany({
+        where: {
+          isActive: true,
+          id: { not: session.user.id },
+          user_roles: {
+            some: {
+              role: shift.role
+            }
           }
-        }).catch(error => {
-          console.error('📱 WhatsApp notification error:', error)
-        })
-      } else {
-        console.log('📱 WhatsApp notifications disabled or not configured')
-      }
-    } catch (whatsappError) {
+        },
+        select: { id: true, username: true }
+      })
+
+      console.log(`[Substitution] Broadcasting to ${potentialSubstitutes.length} potential substitutes`)
+
+      // Crea notifiche per tutti i potenziali sostituti
+      // Non usiamo Promise.all per non bloccare la risposta se sono molti
+      Promise.allSettled(
+        potentialSubstitutes.map(user =>
+          createNotification({
+            userId: user.id,
+            type: NotificationType.SUBSTITUTION_REQUEST,
+            title: 'Nuova Richiesta Sostituzione',
+            body: `${substitution.requester.username} cerca sostituzione: ${dayOfWeekName} ${formattedDate} (${shift.shiftType})`,
+            data: {
+              url: '/substitution-requests',
+              relatedId: substitution.id
+            }
+          })
+        )
+      ).then(results => {
+        const successful = results.filter(r => r.status === 'fulfilled').length
+        console.log(`✅ Push broadcast completed: ${successful}/${potentialSubstitutes.length} sent`)
+      }).catch(err => {
+        console.error('❌ Error during push broadcast:', err)
+      })
+
+    } catch (notificationError) {
       // Log error but don't fail the request
-      console.error('Error sending WhatsApp notification:', whatsappError)
+      console.error('Error broadcasting substitution notification:', notificationError)
     }
 
     return NextResponse.json({
