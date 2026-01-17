@@ -177,11 +177,11 @@ function generateScheduleHTML(schedule: {
         
         body { 
             font-family: 'Inter', 'Segoe UI', 'Helvetica', sans-serif;
-            font-size: 10px;
-            line-height: 1.3;
+            font-size: 9px;
+            line-height: 1.2;
             color: #1a1a1a;
             background: white;
-            padding: 20px;
+            padding: 10px;
         }
         
         .container {
@@ -194,8 +194,8 @@ function generateScheduleHTML(schedule: {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 25px;
-            padding-bottom: 20px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #f3f4f6;
         }
 
@@ -206,28 +206,28 @@ function generateScheduleHTML(schedule: {
         }
 
         .logo-box {
-            width: 45px;
-            height: 45px;
+            width: 35px;
+            height: 35px;
             background: #ea580c;
-            border-radius: 12px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 900;
             box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.2);
         }
 
         .header-text h1 {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: 900;
             color: #111827;
             letter-spacing: -0.5px;
         }
 
         .header-text p {
-            font-size: 11px;
+            font-size: 10px;
             color: #6b7280;
             font-weight: 600;
             text-transform: uppercase;
@@ -260,17 +260,17 @@ function generateScheduleHTML(schedule: {
         .worker-item.sala .worker-role { color: #15803d; }
             width: 100%;
             border-collapse: separate;
-            border-spacing: 0 8px;
-            margin-bottom: 20px;
+            border-spacing: 0 4px;
+            margin-bottom: 10px;
         }
         
         .schedule-table th {
             background: #f9fafb;
             color: #4b5563;
-            padding: 12px;
+            padding: 8px;
             text-align: left;
             font-weight: 800;
-            font-size: 10px;
+            font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 1px;
             border-bottom: 2px solid #e5e7eb;
@@ -290,26 +290,26 @@ function generateScheduleHTML(schedule: {
 
         .day-cell {
             background: #f9fafb;
-            padding: 15px !important;
+            padding: 8px !important;
             border-left: 1px solid #f3f4f6;
             width: 120px;
         }
         
         .day-name {
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 900;
             color: #111827;
             text-transform: capitalize;
         }
         
         .day-date {
-            font-size: 11px;
+            font-size: 8px;
             color: #ea580c;
             font-weight: 700;
         }
         
         .shift-cell {
-            padding: 10px !important;
+            padding: 6px !important;
             background: white;
             border-right: 1px solid #f3f4f6;
             width: 400px;
@@ -318,13 +318,13 @@ function generateScheduleHTML(schedule: {
         .workers-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 6px;
+            gap: 4px;
         }
         
         .worker-item {
-            padding: 8px 10px;
+            padding: 5px 8px;
             background: #ffffff;
-            border-radius: 8px;
+            border-radius: 6px;
             border: 1px solid #f3f4f6;
             display: flex;
             align-items: center;
@@ -341,11 +341,11 @@ function generateScheduleHTML(schedule: {
         .worker-name {
             font-weight: 800;
             color: #111827;
-            font-size: 11px;
+            font-size: 10px;
         }
         
         .worker-role {
-            font-size: 8px;
+            font-size: 7px;
             text-transform: uppercase;
             font-weight: 700;
             letter-spacing: 0.5px;
@@ -353,11 +353,11 @@ function generateScheduleHTML(schedule: {
         
         .worker-time {
             background: #f3f4f6;
-            padding: 3px 6px;
+            padding: 2px 5px;
             border-radius: 4px;
             font-weight: 800;
             color: #374151;
-            font-size: 9px;
+            font-size: 8px;
             white-space: nowrap;
         }
 
@@ -397,19 +397,19 @@ function generateScheduleHTML(schedule: {
             text-align: center;
             color: #9ca3af;
             font-style: italic;
-            padding: 15px;
-            font-size: 10px;
+            padding: 8px;
+            font-size: 9px;
         }
         
         .footer {
-            margin-top: 30px;
-            padding: 15px;
+            margin-top: 15px;
+            padding: 10px;
             background: #f9fafb;
-            border-radius: 12px;
+            border-radius: 10px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 10px;
+            font-size: 9px;
             color: #6b7280;
             font-weight: 700;
             letter-spacing: 0.5px;

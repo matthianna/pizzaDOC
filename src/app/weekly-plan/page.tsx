@@ -269,23 +269,35 @@ function ShiftSection({ title, shifts, isClosed, holidayName, colorClass }: any)
             ) : shifts.length > 0 ? (
                 <div className="grid grid-cols-1 gap-2">
                     {shifts.map((shift: any) => (
-                        <div key={shift.id} className="flex items-center justify-between p-3 bg-white/60 hover:bg-white rounded-[1.25rem] border border-gray-100/50 shadow-sm transition-all group/item">
+                        <div key={shift.id} className={cn(
+                            "flex items-center justify-between p-3 rounded-[1.25rem] border shadow-sm transition-all group/item",
+                            shift.role === 'PIZZAIOLO' ? "bg-red-50/30 border-red-100/50 hover:bg-red-50" :
+                                shift.role === 'CUCINA' ? "bg-orange-50/30 border-orange-100/50 hover:bg-orange-50" :
+                                    shift.role === 'SALA' ? "bg-green-50/30 border-green-100/50 hover:bg-green-50" :
+                                        "bg-blue-50/30 border-blue-100/50 hover:bg-blue-50"
+                        )}>
                             <div className="flex items-center gap-3">
                                 <div className={cn(
-                                    "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ring-2 ring-white",
-                                    shift.role === 'PIZZAIOLO' ? "bg-red-100 text-red-600" :
-                                        shift.role === 'CUCINA' ? "bg-orange-100 text-orange-600" :
-                                            shift.role === 'SALA' ? "bg-green-100 text-green-600" :
-                                                "bg-blue-100 text-blue-600"
+                                    "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ring-2 ring-white shadow-sm",
+                                    shift.role === 'PIZZAIOLO' ? "bg-red-500 text-white" :
+                                        shift.role === 'CUCINA' ? "bg-orange-500 text-white" :
+                                            shift.role === 'SALA' ? "bg-green-500 text-white" :
+                                                "bg-blue-500 text-white"
                                 )}>
                                     {shift.user.username.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                    <p className="text-sm font-black text-gray-900 leading-none mb-1">{shift.user.username}</p>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getRoleName(shift.role)}</p>
+                                    <p className="text-sm font-black text-gray-900 leading-none mb-1 text-ellipsis overflow-hidden">{shift.user.username}</p>
+                                    <p className={cn(
+                                        "text-[10px] font-bold uppercase tracking-widest",
+                                        shift.role === 'PIZZAIOLO' ? "text-red-600" :
+                                            shift.role === 'CUCINA' ? "text-orange-600" :
+                                                shift.role === 'SALA' ? "text-green-600" :
+                                                    "text-blue-600"
+                                    )}>{getRoleName(shift.role)}</p>
                                 </div>
                             </div>
-                            <div className="bg-gray-100 px-2 py-1 rounded-lg text-[10px] font-black text-gray-600 group-hover/item:bg-orange-100 group-hover/item:text-orange-600 transition-colors">
+                            <div className="bg-white/80 backdrop-blur px-2.5 py-1 rounded-lg text-[10px] font-black text-gray-700 shadow-sm border border-black/5 shrink-0">
                                 {shift.startTime}
                             </div>
                         </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Bell, Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { Bell, Send, Loader2, CheckCircle, AlertCircle, Calendar, ChevronRight } from 'lucide-react'
 
 export default function AdminNotificationsPage() {
     const [title, setTitle] = useState('')
@@ -54,8 +54,43 @@ export default function AdminNotificationsPage() {
                             <Bell className="h-6 w-6 text-orange-600" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold text-gray-900">Invia Notifica Broadcast</h1>
-                            <p className="text-sm text-gray-500">Invia una notifica a tutti gli utenti attivi</p>
+                            <h1 className="text-xl font-bold text-gray-900">Notifiche Broadcast</h1>
+                            <p className="text-sm text-gray-500">Invia notifiche a tutti gli utenti attivi</p>
+                        </div>
+                    </div>
+
+                    <div className="mb-8 p-4 bg-orange-50/50 rounded-2xl border border-orange-100">
+                        <h2 className="text-xs font-black text-orange-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <Send className="h-3 w-3" />
+                            Azioni Rapide
+                        </h2>
+                        <button
+                            onClick={() => {
+                                setTitle('Inserimento Disponibilità')
+                                setMessage('È ora di inserire le tue disponibilità per la prossima settimana. Grazie!')
+                                setUrl('/availability')
+                            }}
+                            className="w-full flex items-center justify-between p-4 bg-white hover:bg-orange-50 border border-orange-100 rounded-xl transition-all shadow-sm group"
+                        >
+                            <div className="flex items-center gap-3 text-left">
+                                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-600 transition-colors">
+                                    <Calendar className="h-5 w-5 text-orange-600 group-hover:text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900">Richiedi Disponibilità</p>
+                                    <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Invia sollecito inserimento orari</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-orange-300" />
+                        </button>
+                    </div>
+
+                    <div className="relative mb-6">
+                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div className="w-full border-t border-gray-100"></div>
+                        </div>
+                        <div className="relative flex justify-center text-xs font-black uppercase tracking-widest text-gray-400">
+                            <span className="bg-white px-3">Oppure invia messaggio personalizzato</span>
                         </div>
                     </div>
 
