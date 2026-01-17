@@ -73,11 +73,12 @@ input[type="time"] {
 
 /* Standalone mode detection (when installed as PWA) */
 @media all and (display-mode: standalone) {
+
   /* Hide browser UI elements */
   .hide-in-standalone {
     display: none !important;
   }
-  
+
   /* Adjust header for standalone mode */
   .standalone-header {
     padding-top: env(safe-area-inset-top);
@@ -87,12 +88,13 @@ input[type="time"] {
 
 /* iOS-specific fixes */
 @supports (-webkit-touch-callout: none) {
+
   /* Disable rubber-band scrolling effect */
   html {
     height: 100%;
     overflow: hidden;
   }
-  
+
   body {
     height: 100%;
     overflow: auto;
@@ -136,6 +138,7 @@ body {
     transform: translateY(100%);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -146,6 +149,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -159,23 +163,66 @@ body {
   animation: fadeIn 0.2s ease-out;
 }
 
-/* Pull-to-refresh indicator */
-.pull-indicator {
-  transition: transform 0.2s ease-out;
+/* Page Transition Animations */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.pull-indicator.pulling {
+.animate-page-enter {
+  animation: pageEnter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pull-to-refresh indicator */
+.pull-indicator {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease-out;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.pull-indicator span {
+  transition: transform 0.3s ease;
+}
+
+.pull-indicator.pulling span {
   transform: rotate(180deg);
+}
+
+.pull-indicator.refreshing span {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Loading states for PWA */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(243, 244, 246, 1) 0%,
-    rgba(229, 231, 235, 1) 50%,
-    rgba(243, 244, 246, 1) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(243, 244, 246, 1) 0%,
+      rgba(229, 231, 235, 1) 50%,
+      rgba(243, 244, 246, 1) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -184,6 +231,7 @@ body {
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
@@ -267,9 +315,17 @@ textarea:focus-visible {
 
 /* Animations */
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-5px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 .animate-float {
@@ -277,8 +333,15 @@ textarea:focus-visible {
 }
 
 @keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .animate-pulse-soft {

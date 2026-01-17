@@ -1,7 +1,7 @@
 // PizzaDOC Service Worker
-// Version: 1.0.0
+// Version: 1.1.0
 
-const CACHE_NAME = 'pizzadoc-v1';
+const CACHE_NAME = 'pizzadoc-v1.1';
 const OFFLINE_URL = '/offline';
 
 // Static assets to cache immediately
@@ -17,7 +17,7 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
+  console.log('[SW] Installing service worker v1.1...');
 
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -88,7 +88,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Skip auth requests
-  if (url.pathname.startsWith('/auth/')) {
+  if (url.pathname.startsWith('/api/auth/') || url.pathname.startsWith('/auth/')) {
     event.respondWith(fetch(request));
     return;
   }
@@ -173,6 +173,11 @@ self.addEventListener('push', (event) => {
       vibrate: [100, 50, 100]
     }
 
+    // Attempt to set app badge
+    if ('setAppBadge' in navigator) {
+      navigator.setAppBadge(1).catch(err => console.error('Error setting badge:', err));
+    }
+
     event.waitUntil(
       self.registration.showNotification(title, options)
     )
@@ -184,6 +189,11 @@ self.addEventListener('push', (event) => {
 // Notification Click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
+
+  // Clear app badge when a notification is clicked
+  if ('clearAppBadge' in navigator) {
+    navigator.clearAppBadge().catch(err => console.error('Error clearing badge:', err));
+  }
 
   const urlToOpen = event.notification.data?.url || '/'
 
