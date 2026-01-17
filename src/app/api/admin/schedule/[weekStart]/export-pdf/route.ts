@@ -12,14 +12,14 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const resolvedParams = await params
     const rawWeekStart = normalizeDate(resolvedParams.weekStart)
-    
+
     // Query con la data dal database
     const schedule = await prisma.schedules.findUnique({
       where: { weekStart: rawWeekStart },
@@ -49,7 +49,7 @@ export async function GET(
         { status: 404 }
       )
     }
-    
+
     // Carica i giorni festivi per la settimana
     const weekEnd = addDays(rawWeekStart, 6)
     const holidays = await prisma.holidays.findMany({
@@ -60,10 +60,10 @@ export async function GET(
         }
       }
     })
-    
+
     // weekStart dal DB è già normalizzato a lunedì UTC
     const weekStart = normalizeDate(schedule.weekStart)
-    
+
     // Genera l'HTML per il PDF
     const html = generateScheduleHTML(schedule, weekStart, holidays)
 
@@ -90,7 +90,7 @@ function generateScheduleHTML(schedule: {
     startTime: string;
     user: {
       username: string;
-      primaryRole: string;
+      primaryRole: string | null;
     };
   }>;
   weekStart: Date;
@@ -100,20 +100,20 @@ function generateScheduleHTML(schedule: {
   closureType: string;
   description: string | null;
 }>): string {
-  
+
   const weekEnd = addDays(weekStart, 6)
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
-  
+
   // Raggruppa turni per giorno e tipo (0=Lunedì, 6=Domenica)
   const shiftsByDayAndType: Record<number, Record<string, Array<{
     role: string;
     startTime: string;
     user: {
       username: string;
-      primaryRole: string;
+      primaryRole: string | null;
     };
   }>>> = {}
-  
+
   // Inizializza tutti i giorni
   for (let day = 0; day <= 6; day++) {
     shiftsByDayAndType[day] = {
@@ -128,7 +128,7 @@ function generateScheduleHTML(schedule: {
       shiftsByDayAndType[shift.dayOfWeek][shift.shiftType].push(shift)
     }
   })
-  
+
   // ORDINA ogni gruppo per startTime (ordine cronologico)
   for (let day = 0; day <= 6; day++) {
     ['PRANZO', 'CENA'].forEach(shiftType => {
@@ -159,7 +159,7 @@ function generateScheduleHTML(schedule: {
     <style>
         @page {
             size: A4;
-            margin: 15mm;
+            margin: 10mm;
         }
         
         @media print {
@@ -176,245 +176,308 @@ function generateScheduleHTML(schedule: {
         }
         
         body { 
-            font-family: 'Arial', 'Helvetica', sans-serif;
-            font-size: 11px;
-            line-height: 1.4;
-            color: #000;
+            font-family: 'Inter', 'Segoe UI', 'Helvetica', sans-serif;
+            font-size: 10px;
+            line-height: 1.3;
+            color: #1a1a1a;
             background: white;
+            padding: 20px;
         }
         
         .container {
             width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
         }
         
         .header {
-            text-align: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f3f4f6;
         }
-        
-        .title {
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-box {
+            width: 45px;
+            height: 45px;
+            background: #ea580c;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
             font-size: 24px;
-            font-weight: 700;
-            color: #000;
-            margin-bottom: 5px;
-            letter-spacing: 1px;
+            font-weight: 900;
+            box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.2);
+        }
+
+        .header-text h1 {
+            font-size: 20px;
+            font-weight: 900;
+            color: #111827;
+            letter-spacing: -0.5px;
+        }
+
+        .header-text p {
+            font-size: 11px;
+            color: #6b7280;
+            font-weight: 600;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
-        .subtitle {
-            font-size: 14px;
-            color: #333;
-            font-weight: 500;
-            margin-top: 5px;
+        /* Role Colors & Tints */
+        .worker-item.pizzaiolo { 
+            border-left: 4px solid #dc2626; 
+            background: #fef2f2;
         }
+        .worker-item.pizzaiolo .worker-role { color: #b91c1c; }
         
-        .schedule-table {
+        .worker-item.cucina { 
+            border-left: 4px solid #ea580c; 
+            background: #fff7ed;
+        }
+        .worker-item.cucina .worker-role { color: #c2410c; }
+        
+        .worker-item.fattorino { 
+            border-left: 4px solid #0284c7; 
+            background: #f0f9ff;
+        }
+        .worker-item.fattorino .worker-role { color: #0369a1; }
+        
+        .worker-item.sala { 
+            border-left: 4px solid #16a34a; 
+            background: #f0fdf4;
+        }
+        .worker-item.sala .worker-role { color: #15803d; }
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            margin-bottom: 20px;
         }
         
         .schedule-table th {
-            background: #000;
-            color: white;
-            padding: 10px 8px;
+            background: #f9fafb;
+            color: #4b5563;
+            padding: 12px;
             text-align: left;
-            font-weight: 700;
-            font-size: 11px;
+            font-weight: 800;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border: 2px solid #000;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #e5e7eb;
         }
         
         .schedule-table th:first-child {
-            width: 15%;
-            text-align: center;
+            width: 120px;
+            border-radius: 8px 0 0 0;
         }
         
-        .schedule-table th:nth-child(2),
-        .schedule-table th:nth-child(3) {
-            width: 42.5%;
-        }
-        
-        .schedule-table td {
-            padding: 8px;
-            border: 1px solid #333;
+        .day-row td {
+            padding: 0;
             vertical-align: top;
+            border-top: 1px solid #f3f4f6;
+            border-bottom: 1px solid #f3f4f6;
         }
-        
+
         .day-cell {
-            background: #f5f5f5;
-            text-align: center;
-            font-weight: 700;
-            font-size: 12px;
+            background: #f9fafb;
+            padding: 15px !important;
+            border-left: 1px solid #f3f4f6;
+            width: 120px;
         }
         
         .day-name {
-            font-size: 13px;
-            margin-bottom: 3px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 14px;
+            font-weight: 900;
+            color: #111827;
+            text-transform: capitalize;
         }
         
         .day-date {
             font-size: 11px;
-            color: #555;
-            font-weight: 600;
+            color: #ea580c;
+            font-weight: 700;
         }
         
         .shift-cell {
+            padding: 10px !important;
             background: white;
-            min-height: 60px;
-        }
-        
-        .shift-time {
-            font-weight: 700;
-            color: #000;
-            font-size: 10px;
-            margin-bottom: 6px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid #ddd;
-            text-transform: uppercase;
+            border-right: 1px solid #f3f4f6;
+            width: 400px;
         }
         
         .workers-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 3px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
         }
         
         .worker-item {
-            padding: 4px 5px;
-            background: #fafafa;
-            border-left: 3px solid #666;
+            padding: 8px 10px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        
+        .worker-info {
             display: flex;
             flex-direction: column;
-            gap: 2px;
-            font-size: 8px;
+            gap: 1px;
         }
-        
-        .worker-item.pizzaiolo {
-            border-left-color: #dc2626;
-            background: #fef2f2;
-        }
-        
-        .worker-item.cucina {
-            border-left-color: #ea580c;
-            background: #fff7ed;
-        }
-        
-        .worker-item.fattorino {
-            border-left-color: #0284c7;
-            background: #f0f9ff;
-        }
-        
-        .worker-item.sala {
-            border-left-color: #16a34a;
-            background: #f0fdf4;
-        }
-        
+
         .worker-name {
-            font-weight: 700;
-            color: #000;
-            font-size: 9px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .worker-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            font-weight: 800;
+            color: #111827;
+            font-size: 11px;
         }
         
         .worker-role {
-            font-size: 7px;
+            font-size: 8px;
             text-transform: uppercase;
-            color: #666;
-            font-weight: 600;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
         
         .worker-time {
-            font-weight: 700;
-            color: #000;
-            font-size: 8px;
+            background: #f3f4f6;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: 800;
+            color: #374151;
+            font-size: 9px;
             white-space: nowrap;
         }
+
+        /* Role Colors */
+        .pizzaiolo .worker-role { color: #dc2626; }
+        .pizzaiolo { border-left: 3px solid #dc2626; }
         
+        .cucina .worker-role { color: #ea580c; }
+        .cucina { border-left: 3px solid #ea580c; }
+        
+        .fattorino .worker-role { color: #0284c7; }
+        .fattorino { border-left: 3px solid #0284c7; }
+        
+        .sala .worker-role { color: #16a34a; }
+        .sala { border-left: 3px solid #16a34a; }
+        
+        .closed-cell {
+            background: #fff1f2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 50px;
+            border-radius: 8px;
+            border: 2px dashed #fecaca;
+        }
+
+        .closed-text {
+            color: #be123c;
+            font-weight: 900;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
         .empty-shift {
             text-align: center;
-            color: #999;
+            color: #9ca3af;
             font-style: italic;
-            padding: 15px 8px;
+            padding: 15px;
             font-size: 10px;
         }
         
         .footer {
-            margin-top: 12px;
-            padding-top: 8px;
-            border-top: 1px solid #ccc;
-            text-align: center;
-            font-size: 9px;
-            color: #666;
+            margin-top: 30px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            color: #6b7280;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1 class="title">🍕 Piano di Lavoro Settimanale</h1>
-            <p class="subtitle">Dal ${format(weekStart, 'EEEE d MMMM', { locale: it })} al ${format(weekEnd, 'EEEE d MMMM yyyy', { locale: it })}</p>
+            <div class="header-logo">
+                <div class="logo-box">P</div>
+                <div class="header-text">
+                    <h1>Piano di Lavoro Settimanale</h1>
+                    <p>PizzaDOC • Gestione Turni</p>
+                </div>
+            </div>
+            <div style="text-align: right">
+                <div style="font-size: 14px; font-weight: 900; color: #111827; text-transform: capitalize;">
+                    Settimana ${format(weekStart, 'd', { locale: it })} - ${format(weekEnd, 'd MMMM yyyy', { locale: it })}
+                </div>
+                <div style="font-size: 10px; color: #6b7280; font-weight: 600;">Emesso il ${format(new Date(), 'dd/MM/yyyy HH:mm')}</div>
+            </div>
         </div>
 
         <table class="schedule-table">
             <thead>
                 <tr>
-                    <th>GIORNO</th>
-                    <th>PRANZO (11:00 - 14:00)</th>
-                    <th>CENA (17:00 - 22:00)</th>
+                    <th>Giorno</th>
+                    <th>Pranzo (11:30 - 14:00)</th>
+                    <th>Cena (18:00 - 22:30)</th>
                 </tr>
             </thead>
             <tbody>
                 ${days.map((dayName, dayIndex) => {
-                  // Calcola la data CORRETTA per questo giorno
-                  const dayDate = addDays(weekStart, dayIndex)
-                  const pranzoShifts = shiftsByDayAndType[dayIndex]['PRANZO'] || []
-                  const cenaShifts = shiftsByDayAndType[dayIndex]['CENA'] || []
-                  
-                  // Check if this day has holidays
-                  const dayDateStr = dayDate.toISOString().split('T')[0]
-                  const isPranzoHoliday = holidays.some(h => {
-                    const holidayDateStr = new Date(h.date).toISOString().split('T')[0]
-                    return holidayDateStr === dayDateStr && (h.closureType === 'FULL_DAY' || h.closureType === 'PRANZO_ONLY')
-                  })
-                  const isCenaHoliday = holidays.some(h => {
-                    const holidayDateStr = new Date(h.date).toISOString().split('T')[0]
-                    return holidayDateStr === dayDateStr && (h.closureType === 'FULL_DAY' || h.closureType === 'CENA_ONLY')
-                  })
-                  
-                  return `
-                <tr>
+    const dayDate = addDays(weekStart, dayIndex)
+    const pranzoShifts = shiftsByDayAndType[dayIndex]['PRANZO'] || []
+    const cenaShifts = shiftsByDayAndType[dayIndex]['CENA'] || []
+
+    const dayDateStr = dayDate.toISOString().split('T')[0]
+    const isPranzoHoliday = holidays.some(h => {
+      const holidayDateStr = new Date(h.date).toISOString().split('T')[0]
+      return holidayDateStr === dayDateStr && (h.closureType === 'FULL_DAY' || h.closureType === 'PRANZO_ONLY')
+    })
+    const isCenaHoliday = holidays.some(h => {
+      const holidayDateStr = new Date(h.date).toISOString().split('T')[0]
+      return holidayDateStr === dayDateStr && (h.closureType === 'FULL_DAY' || h.closureType === 'CENA_ONLY')
+    })
+
+    return `
+                <tr class="day-row">
                     <td class="day-cell">
                         <div class="day-name">${dayName}</div>
-                        <div class="day-date">${format(dayDate, 'dd/MM')}</div>
+                        <div class="day-date">${format(dayDate, 'dd MMMM', { locale: it })}</div>
                     </td>
                     <td class="shift-cell">
                         ${isPranzoHoliday ? `
-                        <div style="text-align: center; padding: 20px; font-weight: 700; font-size: 14px; color: #dc2626; background: #fef2f2; border: 2px solid #dc2626; border-radius: 4px;">
-                            🔒 CHIUSO
+                        <div class="closed-cell">
+                            <span class="closed-text">🔒 Chiuso</span>
                         </div>
                         ` : pranzoShifts.length > 0 ? `
                         <div class="workers-grid">
                             ${pranzoShifts.map(shift => `
                             <div class="worker-item ${shift.role.toLowerCase()}">
-                                <div class="worker-name">${shift.user.username}</div>
-                                <div class="worker-meta">
+                                <div class="worker-info">
+                                    <span class="worker-name">${shift.user.username}</span>
                                     <span class="worker-role">${getRoleShort(shift.role)}</span>
-                                    <span class="worker-time">${shift.startTime}</span>
                                 </div>
+                                <span class="worker-time">${shift.startTime}</span>
                             </div>
                             `).join('')}
                         </div>
@@ -424,18 +487,18 @@ function generateScheduleHTML(schedule: {
                     </td>
                     <td class="shift-cell">
                         ${isCenaHoliday ? `
-                        <div style="text-align: center; padding: 20px; font-weight: 700; font-size: 14px; color: #dc2626; background: #fef2f2; border: 2px solid #dc2626; border-radius: 4px;">
-                            🔒 CHIUSO
+                        <div class="closed-cell">
+                            <span class="closed-text">🔒 Chiuso</span>
                         </div>
                         ` : cenaShifts.length > 0 ? `
                         <div class="workers-grid">
                             ${cenaShifts.map(shift => `
                             <div class="worker-item ${shift.role.toLowerCase()}">
-                                <div class="worker-name">${shift.user.username}</div>
-                                <div class="worker-meta">
+                                <div class="worker-info">
+                                    <span class="worker-name">${shift.user.username}</span>
                                     <span class="worker-role">${getRoleShort(shift.role)}</span>
-                                    <span class="worker-time">${shift.startTime}</span>
                                 </div>
+                                <span class="worker-time">${shift.startTime}</span>
                             </div>
                             `).join('')}
                         </div>
@@ -445,12 +508,12 @@ function generateScheduleHTML(schedule: {
                     </td>
                 </tr>
                   `
-                }).join('')}
+  }).join('')}
             </tbody>
         </table>
 
         <div class="footer">
-            Piano di lavoro generato il ${format(new Date(), 'dd/MM/yyyy')} alle ${format(new Date(), 'HH:mm', { locale: it })} • Turni: ${totalWorkers} • Dipendenti: ${uniqueWorkers}
+            PizzaDOC Gestione Turni © ${new Date().getFullYear()} • www.pizzadoc.it
         </div>
     </div>
 </body>

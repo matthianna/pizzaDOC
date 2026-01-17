@@ -52,6 +52,7 @@ export default function HoursPage() {
   const [showHistory, setShowHistory] = useState(false)
   const [historyData, setHistoryData] = useState<any>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const { showToast, ToastContainer } = useToast()
 
   useEffect(() => {
@@ -122,10 +123,10 @@ export default function HoursPage() {
     }
   }
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (year: number = selectedYear) => {
     setHistoryLoading(true)
     try {
-      const response = await fetch(`/api/user/hours-history?year=${new Date().getFullYear()}`)
+      const response = await fetch(`/api/user/hours-history?year=${year}`)
       if (response.ok) {
         const data = await response.json()
         setHistoryData(data)
@@ -138,6 +139,11 @@ export default function HoursPage() {
     } finally {
       setHistoryLoading(false)
     }
+  }
+
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year)
+    fetchHistory(year)
   }
 
   const calculateHours = (startTime: string, endTime: string): number => {
@@ -372,18 +378,34 @@ export default function HoursPage() {
                   <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-md mr-3">
                     <TrendingUp className="h-5 w-5 text-white" />
                   </div>
-                  Storico Ore {new Date().getFullYear()}
+                  Storico Ore {selectedYear}
                 </h2>
-                {historyData && (
-                  <div className="flex items-center gap-3">
-                    <div className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-xl text-sm font-bold shadow-sm">
-                      {historyData.totalYearHours}h totali
+                <div className="flex flex-wrap items-center gap-4">
+                  {historyData && historyData.availableYears && historyData.availableYears.length > 1 && (
+                    <div className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-xl border border-white/20">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Anno:</span>
+                      <select
+                        value={selectedYear}
+                        onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                        className="bg-transparent border-none text-sm font-black text-gray-900 focus:ring-0 cursor-pointer"
+                      >
+                        {historyData.availableYears.map((y: number) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-xl text-sm font-bold shadow-sm">
-                      {historyData.totalYearShifts} turni
+                  )}
+                  {historyData && (
+                    <div className="flex items-center gap-3">
+                      <div className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-xl text-sm font-bold shadow-sm">
+                        {historyData.totalYearHours}h totali
+                      </div>
+                      <div className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-xl text-sm font-bold shadow-sm">
+                        {historyData.totalYearShifts} turni
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
 

@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
         weekStartDate.getUTCMonth(),
         weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
       ))
-      
+
       const monthKey = format(shiftDate, 'yyyy-MM')
       const monthName = format(shiftDate, 'MMMM yyyy', { locale: it })
 
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     // Calculate averages
     Object.keys(monthlyData).forEach(key => {
       const data = monthlyData[key]
-      data.avgHoursPerShift = data.shiftsCount > 0 ? 
+      data.avgHoursPerShift = data.shiftsCount > 0 ?
         parseFloat((data.totalHours / data.shiftsCount).toFixed(2)) : 0
     })
 
@@ -107,11 +107,28 @@ export async function GET(request: NextRequest) {
       .sort()
       .map(key => monthlyData[key])
 
+    // Get all years that have data for this user
+    const yearsWithData = await prisma.worked_hours.findMany({
+      where: {
+        shifts: {
+          userId: session.user.id
+        },
+        status: 'APPROVED'
+      },
+      select: {
+        submittedAt: true
+      },
+      distinct: ['submittedAt']
+    })
+
+    const availableYears = Array.from(new Set(yearsWithData.map(wh => new Date(wh.submittedAt).getFullYear()))).sort((a, b) => b - a)
+
     return NextResponse.json({
       year: targetYear,
       months: result,
       totalYearHours: result.reduce((sum, month) => sum + month.totalHours, 0),
-      totalYearShifts: result.reduce((sum, month) => sum + month.shiftsCount, 0)
+      totalYearShifts: result.reduce((sum, month) => sum + month.shiftsCount, 0),
+      availableYears: availableYears.length > 0 ? availableYears : [targetYear]
     })
   } catch (error) {
     console.error('Error fetching hours history:', error)

@@ -255,14 +255,14 @@ export default function NotificationsPage() {
                     ) : (
                         <>
                             {notifications.map(notification => (
-                                <button
+                                <div
                                     key={notification.id}
                                     onClick={() => handleNotificationClick(notification)}
                                     className={cn(
-                                        "w-full text-left bg-white p-4 rounded-xl shadow-sm border transition-all hover:shadow-md",
+                                        "w-full text-left bg-white p-4 rounded-xl shadow-sm border transition-all hover:shadow-md cursor-pointer",
                                         notification.isRead
                                             ? "border-gray-100"
-                                            : "border-orange-200 bg-orange-50/30"
+                                            : "border-orange-200 bg-orange-50/30 font-semibold"
                                     )}
                                 >
                                     <div className="flex gap-4">
@@ -298,7 +298,7 @@ export default function NotificationsPage() {
                                                     <button
                                                         onClick={(e) => deleteNotification(e, notification.id)}
                                                         disabled={isDeleting === notification.id}
-                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all relative z-10"
                                                     >
                                                         {isDeleting === notification.id ? (
                                                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -318,7 +318,7 @@ export default function NotificationsPage() {
                                             </div>
                                         )}
                                     </div>
-                                </button>
+                                </div>
                             ))}
 
                             {hasMore && (

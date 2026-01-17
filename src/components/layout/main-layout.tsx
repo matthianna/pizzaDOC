@@ -110,9 +110,28 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
     <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
       <BadgeManager />
       <Sidebar />
+
+      {/* Mobile header - Moved outside transformed container */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 z-40 px-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center overflow-hidden shadow-sm">
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={20}
+              height={20}
+              className="object-contain"
+              unoptimized
+            />
+          </div>
+          <span className="font-black text-orange-600 text-lg tracking-tight">PizzaDOC</span>
+        </div>
+        <NotificationBell />
+      </div>
+
       {/* Main content */}
       <div
-        className="flex-1 lg:pl-64 relative"
+        className="flex-1 lg:pl-64"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -133,24 +152,6 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
           </div>
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:pl-8">
-            {/* Mobile header */}
-            <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 z-40 px-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center overflow-hidden shadow-sm">
-                  <Image
-                    src="/logo.png"
-                    alt="Logo"
-                    width={20}
-                    height={20}
-                    className="object-contain"
-                    unoptimized
-                  />
-                </div>
-                <span className="font-black text-orange-600 text-lg tracking-tight">PizzaDOC</span>
-              </div>
-              <NotificationBell />
-            </div>
-
             {/* Spacer for mobile header */}
             <div className="lg:hidden h-16 mb-4"></div>
 

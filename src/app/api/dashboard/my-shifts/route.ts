@@ -10,13 +10,13 @@ import { getWeekStart } from '@/lib/date-utils'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const today = normalizeDate(new Date())
-    
+
     // Usa getWeekStart per calcolare correttamente l'inizio della settimana
     const startOfWeek = getWeekStart(new Date())
 
@@ -42,14 +42,14 @@ export async function GET() {
         const weekStartDate = normalizeDate(shift.schedules.weekStart)
         // Usa UTC per calcolare la data del turno
         const shiftDate = new Date(Date.UTC(
-          weekStartDate.getUTCFullYear(), 
-          weekStartDate.getUTCMonth(), 
+          weekStartDate.getUTCFullYear(),
+          weekStartDate.getUTCMonth(),
           weekStartDate.getUTCDate() + shift.dayOfWeek
         ))
-        
+
         const dayName = format(shiftDate, 'EEEE', { locale: it })
-        const dateStr = format(shiftDate, 'd MMMM', { locale: it })
-        
+        const dateStr = shiftDate.toISOString()
+
         return {
           id: shift.id,
           dayOfWeek: shift.dayOfWeek,

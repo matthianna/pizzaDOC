@@ -93,6 +93,15 @@ export function Sidebar() {
       section: 'lavoro'
     },
     {
+      name: 'Piano Settimanale',
+      href: '/weekly-plan',
+      icon: CalendarIcon,
+      iconSolid: CalendarIconSolid,
+      adminOnly: false,
+      emoji: '📅',
+      section: 'lavoro'
+    },
+    {
       name: 'Disponibilità Utenti',
       href: '/availability-overview',
       icon: UsersIcon,
@@ -293,7 +302,7 @@ export function Sidebar() {
       )}
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
+      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 z-30">
         <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r border-gray-200">
           <SidebarContent
             regularItems={regularItems}
