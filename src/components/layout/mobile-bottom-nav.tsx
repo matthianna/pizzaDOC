@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
 import { useState, useEffect } from 'react'
+import { useNotifications } from '../notifications/notification-provider'
 
 interface NavItem {
     name: string
@@ -30,28 +31,7 @@ export function MobileBottomNav() {
     const { data: session } = useSession()
     const pathname = usePathname()
     const [showMore, setShowMore] = useState(false)
-    const [unreadCount, setUnreadCount] = useState(0)
-
-    // Fetch unread count periodically
-    useEffect(() => {
-        if (!session?.user?.id) return
-
-        const fetchUnreadCount = async () => {
-            try {
-                const response = await fetch('/api/notifications?limit=1')
-                if (response.ok) {
-                    const data = await response.json()
-                    setUnreadCount(data.unreadCount)
-                }
-            } catch (error) {
-                console.error('Error fetching unread count:', error)
-            }
-        }
-
-        fetchUnreadCount()
-        const interval = setInterval(fetchUnreadCount, 30000)
-        return () => clearInterval(interval)
-    }, [session?.user?.id])
+    const { unreadCount } = useNotifications()
 
     if (!session) return null
 

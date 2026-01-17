@@ -17,6 +17,7 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { useNotifications } from './notification-provider'
 
 interface Notification {
     id: string
@@ -31,9 +32,9 @@ interface Notification {
 
 export function NotificationBell({ iconClassName }: { iconClassName?: string }) {
     const { data: session } = useSession()
+    const { unreadCount, setUnreadCount, refreshUnreadCount } = useNotifications()
     const [isOpen, setIsOpen] = useState(false)
     const [notifications, setNotifications] = useState<Notification[]>([])
-    const [unreadCount, setUnreadCount] = useState(0)
     const [loading, setLoading] = useState(false)
     const [hasMore, setHasMore] = useState(true)
 
@@ -59,50 +60,16 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
         } finally {
             setLoading(false)
         }
-    }, [session?.user?.id, notifications.length])
+    }, [session?.user?.id, notifications.length, setUnreadCount])
 
     // Initial fetch
     useEffect(() => {
         if (session?.user?.id && isOpen) {
             fetchNotifications(true)
         }
-    }, [session?.user?.id, isOpen])
+    }, [session?.user?.id, isOpen, fetchNotifications])
 
-    // ⭐ App Badging API
-    useEffect(() => {
-        if ('setAppBadge' in navigator) {
-            if (unreadCount > 0) {
-                navigator.setAppBadge(unreadCount).catch(err => {
-                    console.error('Error setting app badge:', err)
-                })
-            } else {
-                navigator.clearAppBadge().catch(err => {
-                    console.error('Error clearing app badge:', err)
-                })
-            }
-        }
-    }, [unreadCount])
-
-    // Poll for new notifications every 30 seconds
-    useEffect(() => {
-        if (!session?.user?.id) return
-
-        const fetchUnreadCount = async () => {
-            try {
-                const response = await fetch('/api/notifications?limit=1')
-                if (response.ok) {
-                    const data = await response.json()
-                    setUnreadCount(data.unreadCount)
-                }
-            } catch (error) {
-                console.error('Error fetching unread count:', error)
-            }
-        }
-
-        fetchUnreadCount()
-        const interval = setInterval(fetchUnreadCount, 30000)
-        return () => clearInterval(interval)
-    }, [session?.user?.id])
+    // Remove local App Badging and Polling as they are now handled by NotificationProvider
 
     const markAsRead = async (notificationId: string) => {
         try {

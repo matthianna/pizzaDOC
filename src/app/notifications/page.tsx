@@ -20,6 +20,7 @@ import { it } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { MainLayout } from '@/components/layout/main-layout'
 import { usePushNotifications } from '@/components/notifications/notification-bell'
+import { useNotifications } from '@/components/notifications/notification-provider'
 
 interface Notification {
     id: string
@@ -34,6 +35,7 @@ interface Notification {
 
 export default function NotificationsPage() {
     const { data: session } = useSession()
+    const { setUnreadCount } = useNotifications()
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [loading, setLoading] = useState(true)
     const [hasMore, setHasMore] = useState(true)
@@ -78,6 +80,7 @@ export default function NotificationsPage() {
             setNotifications(prev =>
                 prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
             )
+            setUnreadCount(prev => Math.max(0, prev - 1))
         } catch (error) {
             console.error('Error marking notification as read:', error)
         }
@@ -91,6 +94,7 @@ export default function NotificationsPage() {
                 body: JSON.stringify({ action: 'markAllRead' })
             })
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+            setUnreadCount(0)
         } catch (error) {
             console.error('Error marking all as read:', error)
         }
@@ -98,10 +102,14 @@ export default function NotificationsPage() {
 
     const deleteNotification = async (e: React.MouseEvent, notificationId: string) => {
         e.stopPropagation()
+        const notification = notifications.find(n => n.id === notificationId)
         setIsDeleting(notificationId)
         try {
             const response = await fetch(`/api/notifications/${notificationId}`, { method: 'DELETE' })
             if (response.ok) {
+                if (notification && !notification.isRead) {
+                    setUnreadCount(prev => Math.max(0, prev - 1))
+                }
                 setNotifications(prev => prev.filter(n => n.id !== notificationId))
             }
         } catch (error) {
@@ -119,6 +127,7 @@ export default function NotificationsPage() {
             const response = await fetch('/api/notifications', { method: 'DELETE' })
             if (response.ok) {
                 setNotifications([])
+                setUnreadCount(0)
                 setHasMore(false)
             }
         } catch (error) {
