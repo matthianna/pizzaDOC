@@ -12,16 +12,16 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions)
     const { id } = await params
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { roles, primaryRole, transports, primaryTransport, isActive, trackHours, whatsappNotificationsEnabled } = await request.json()
+    const { roles, primaryRole, transports, primaryTransport, isActive, trackHours, whatsappNotificationsEnabled, pushNotificationsEnabled } = await request.json()
 
     // Se la richiesta contiene solo whatsappNotificationsEnabled (quick toggle), fai un update semplice
     if (whatsappNotificationsEnabled !== undefined && !roles && !primaryRole) {
-      const user = await prisma.User.update({
+      const user = await prisma.user.update({
         where: { id: id },
         data: {
           whatsappNotificationsEnabled,
@@ -38,6 +38,31 @@ export async function PUT(
         metadata: {
           userId: user.id,
           whatsappNotificationsEnabled
+        }
+      })
+
+      return NextResponse.json(user)
+    }
+
+    // Se la richiesta contiene solo pushNotificationsEnabled (quick toggle), fai un update semplice
+    if (pushNotificationsEnabled !== undefined && !roles && !primaryRole) {
+      const user = await prisma.user.update({
+        where: { id: id },
+        data: {
+          pushNotificationsEnabled,
+          updatedAt: new Date()
+        }
+      })
+
+      // Log audit
+      await logAuditAction({
+        userId: session.user.id,
+        userUsername: session.user.username,
+        action: 'USER_EDIT',
+        description: `Modificate notifiche Push per: ${user.username} → ${pushNotificationsEnabled ? 'Abilitate' : 'Disabilitate'}`,
+        metadata: {
+          userId: user.id,
+          pushNotificationsEnabled
         }
       })
 
@@ -61,7 +86,7 @@ export async function PUT(
     })
 
     // Update user with new data
-    const user = await prisma.User.update({
+    const user = await prisma.user.update({
       where: { id: id },
       data: {
         primaryRole,
@@ -69,17 +94,18 @@ export async function PUT(
         isActive,
         trackHours: trackHours ?? true,
         whatsappNotificationsEnabled: whatsappNotificationsEnabled !== undefined ? whatsappNotificationsEnabled : undefined,
+        pushNotificationsEnabled: pushNotificationsEnabled !== undefined ? pushNotificationsEnabled : undefined,
         updatedAt: new Date(),
         user_roles: {
-          create: roles.map((role: string) => ({ 
+          create: roles.map((role: string) => ({
             id: crypto.randomUUID(),
-            role 
+            role
           }))
         },
         user_transports: transports?.length > 0 ? {
-          create: transports.map((transport: string) => ({ 
+          create: transports.map((transport: string) => ({
             id: crypto.randomUUID(),
-            transport 
+            transport
           }))
         } : undefined
       },
@@ -123,13 +149,13 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions)
     const { id } = await params
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user exists
-    const user = await prisma.User.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: id }
     })
 
@@ -148,7 +174,7 @@ export async function DELETE(
       )
     }
 
-    await prisma.User.delete({
+    await prisma.user.delete({
       where: { id: id }
     })
 

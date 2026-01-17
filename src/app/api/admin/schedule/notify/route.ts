@@ -90,19 +90,27 @@ export async function POST(request: NextRequest) {
             console.error(`[NOTIFY] ${failed.length} notifications failed. First error:`, (failed[0] as any).reason)
         }
 
+        // Get usernames for feedback
+        const notifiedUsers = await prisma.user.findMany({
+            where: { id: { in: uniqueUserIds } },
+            select: { username: true }
+        })
+        const usernames = notifiedUsers.map((u: { username: string }) => u.username)
+
         console.log(`[NOTIFY] Successfully sent ${successful} notifications out of ${uniqueUserIds.length}`)
 
         // Log audit
         await logAuditAction({
             userId: session.user.id,
             userUsername: session.user.username,
-            action: 'TASK_RUN' as any,
-            description: `Inviate notifiche piano settimanale per ${formattedDate}`,
+            action: 'SETTINGS_CHANGE' as any, // Temporary fix for missing TASK_RUN in DB enum
+            description: `Inviate notifiche piano settimanale per ${formattedDate} a: ${usernames.join(', ')}`,
             metadata: {
                 weekStart: weekStartDate.toISOString(),
                 usersNotified: successful,
                 totalUsers: uniqueUserIds.length,
                 failedCount: failed.length,
+                usernames,
                 errors: failed.slice(0, 5).map(f => String((f as any).reason))
             }
         })
@@ -117,10 +125,11 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: `Notifiche inviate a ${successful} utenti su ${uniqueUserIds.length}`,
+            message: `Notifiche inviate a ${successful} utenti: ${usernames.join(', ')}`,
             successful,
             total: uniqueUserIds.length,
-            failed: failed.length
+            failed: failed.length,
+            usernames
         })
     } catch (error: any) {
         console.error('Error sending schedule notifications:', error)

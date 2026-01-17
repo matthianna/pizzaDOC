@@ -9,15 +9,20 @@ import { logAuditAction } from '@/lib/audit-logger'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const users = await prisma.User.findMany({
+    const users = await prisma.user.findMany({
       include: {
         user_roles: true,
-        user_transports: true
+        user_transports: true,
+        push_subscriptions: {
+          select: {
+            id: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
@@ -38,7 +43,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -53,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if username already exists
-    const existingUser = await prisma.User.findUnique({
+    const existingUser = await prisma.user.findUnique({
       where: { username }
     })
 
@@ -67,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Create user with password = username (lowercase)
     const hashedPassword = await hashPassword(username.toLowerCase())
 
-    const user = await prisma.User.create({
+    const user = await prisma.user.create({
       data: {
         id: crypto.randomUUID(),
         username,
@@ -76,15 +81,15 @@ export async function POST(request: NextRequest) {
         primaryTransport: primaryTransport || null,
         updatedAt: new Date(),
         user_roles: {
-          create: roles.map((role: string) => ({ 
+          create: roles.map((role: string) => ({
             id: crypto.randomUUID(),
-            role 
+            role
           }))
         },
         user_transports: transports?.length > 0 ? {
-          create: transports.map((transport: string) => ({ 
+          create: transports.map((transport: string) => ({
             id: crypto.randomUUID(),
-            transport 
+            transport
           }))
         } : undefined
       },

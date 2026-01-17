@@ -16,11 +16,13 @@ interface User {
   isActive: boolean
   trackHours: boolean
   whatsappNotificationsEnabled: boolean
+  pushNotificationsEnabled: boolean
   primaryRole: Role
   primaryTransport: TransportType | null
   createdAt: string
   user_roles: { role: Role }[]
   user_transports: { transport: TransportType }[]
+  push_subscriptions: { id: string }[]
 }
 
 export default function UsersPage() {
@@ -108,9 +110,8 @@ export default function UsersPage() {
       })
 
       if (response.ok) {
-        // Aggiorna lo stato locale
-        setUsers(users.map(u => 
-          u.id === userId 
+        setUsers(users.map(u =>
+          u.id === userId
             ? { ...u, whatsappNotificationsEnabled: !currentValue }
             : u
         ))
@@ -120,6 +121,33 @@ export default function UsersPage() {
     } catch (error) {
       console.error('Error toggling WhatsApp notifications:', error)
       alert('Errore durante l\'aggiornamento delle notifiche WhatsApp')
+    }
+  }
+
+  const togglePushNotifications = async (userId: string, currentValue: boolean) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          pushNotificationsEnabled: !currentValue
+        })
+      })
+
+      if (response.ok) {
+        setUsers(users.map(u =>
+          u.id === userId
+            ? { ...u, pushNotificationsEnabled: !currentValue }
+            : u
+        ))
+      } else {
+        alert('Errore durante l\'aggiornamento delle notifiche Push')
+      }
+    } catch (error) {
+      console.error('Error toggling Push notifications:', error)
+      alert('Errore durante l\'aggiornamento delle notifiche Push')
     }
   }
 
@@ -145,95 +173,111 @@ export default function UsersPage() {
         </div>
       </td>
       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-      <div className="flex flex-wrap gap-1">
-        {user.user_roles.map((userRole, index) => (
-          <span
-            key={index}
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              userRole.role === user.primaryRole
+        <div className="flex flex-wrap gap-1">
+          {user.user_roles.map((userRole, index) => (
+            <span
+              key={index}
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${userRole.role === user.primaryRole
                 ? 'bg-orange-100 text-orange-800 border border-orange-300'
                 : 'bg-blue-100 text-blue-800'
-            }`}
-          >
-            {getRoleName(userRole.role)}
-            {userRole.role === user.primaryRole && (
-              <span className="ml-1 text-orange-600">★</span>
-            )}
-          </span>
-        ))}
-      </div>
-    </td>
-    <td className="px-6 py-4 whitespace-nowrap">
-      <div className="flex flex-wrap gap-1">
-        {user.user_transports.map((userTransport, index) => (
-          <span
-            key={index}
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              userTransport.transport === user.primaryTransport
+                }`}
+            >
+              {getRoleName(userRole.role)}
+              {userRole.role === user.primaryRole && (
+                <span className="ml-1 text-orange-600">★</span>
+              )}
+            </span>
+          ))}
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex flex-wrap gap-1">
+          {user.user_transports.map((userTransport, index) => (
+            <span
+              key={index}
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${userTransport.transport === user.primaryTransport
                 ? 'bg-orange-100 text-orange-800 border border-orange-300'
                 : 'bg-green-100 text-green-800'
+                }`}
+            >
+              {getTransportName(userTransport.transport)}
+              {userTransport.transport === user.primaryTransport && (
+                <span className="ml-1 text-orange-600">★</span>
+              )}
+            </span>
+          ))}
+        </div>
+      </td>
+      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+        <button
+          onClick={() => toggleWhatsAppNotifications(user.id, user.whatsappNotificationsEnabled)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${user.whatsappNotificationsEnabled ? 'bg-green-600' : 'bg-gray-300'
             }`}
+          title={user.whatsappNotificationsEnabled ? 'WhatsApp Abilitato' : 'WhatsApp Disabilitato'}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.whatsappNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+          />
+        </button>
+      </td>
+      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${user.pushNotificationsEnabled ? 'bg-orange-600' : 'bg-gray-300'
+              }`}
+            title={user.pushNotificationsEnabled ? 'Push Abilitato' : 'Push Disabilitato'}
           >
-            {getTransportName(userTransport.transport)}
-            {userTransport.transport === user.primaryTransport && (
-              <span className="ml-1 text-orange-600">★</span>
-            )}
-          </span>
-        ))}
-      </div>
-    </td>
-    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-      <button
-        onClick={() => toggleWhatsAppNotifications(user.id, user.whatsappNotificationsEnabled)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
-          user.whatsappNotificationsEnabled ? 'bg-green-600' : 'bg-gray-300'
-        }`}
-        title={user.whatsappNotificationsEnabled ? 'Notifiche abilitate' : 'Notifiche disabilitate'}
-      >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.pushNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+            />
+          </button>
+          {user.pushNotificationsEnabled && (
+            <span
+              className={`w-2 h-2 rounded-full ${user.push_subscriptions?.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}
+              title={user.push_subscriptions?.length > 0 ? 'Dispositivo collegato' : 'Nessun dispositivo collegato'}
+            />
+          )}
+        </div>
+      </td>
+      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
         <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-            user.whatsappNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </button>
-    </td>
-    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          user.isActive
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.isActive
             ? 'bg-green-100 text-green-800'
             : 'bg-red-100 text-red-800'
-        }`}
-      >
-        {user.isActive ? 'Attivo' : 'Disattivato'}
-      </span>
-    </td>
-    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-      <div className="flex space-x-1 sm:space-x-2">
-        <button
-          onClick={() => setEditingUser(user)}
-          className="text-indigo-600 hover:text-indigo-900"
-          title="Modifica"
+            }`}
         >
-          <Edit className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => handleResetPassword(user.id)}
-          className="text-yellow-600 hover:text-yellow-900"
-          title="Reset Password"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => openDeleteConfirm(user)}
-          className="text-red-600 hover:text-red-900"
-          title="Elimina"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
-    </td>
-  </tr>
+          {user.isActive ? 'Attivo' : 'Disattivato'}
+        </span>
+      </td>
+      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+        <div className="flex space-x-1 sm:space-x-2">
+          <button
+            onClick={() => setEditingUser(user)}
+            className="text-indigo-600 hover:text-indigo-900"
+            title="Modifica"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleResetPassword(user.id)}
+            className="text-yellow-600 hover:text-yellow-900"
+            title="Reset Password"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => openDeleteConfirm(user)}
+            className="text-red-600 hover:text-red-900"
+            title="Elimina"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
   )
 
   return (
@@ -281,7 +325,10 @@ export default function UsersPage() {
                     Trasporti
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Notifiche WhatsApp
+                    WhatsApp
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Push
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Stato
@@ -328,7 +375,10 @@ export default function UsersPage() {
                       Trasporti
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Notifiche WhatsApp
+                      WhatsApp
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Push
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Stato
@@ -398,14 +448,14 @@ export default function UsersPage() {
 }
 
 // User Form Modal Component
-function UserFormModal({ 
-  user, 
-  onClose, 
-  onSave 
-}: { 
+function UserFormModal({
+  user,
+  onClose,
+  onSave
+}: {
   user?: User | null
   onClose: () => void
-  onSave: () => void 
+  onSave: () => void
 }) {
   const [formData, setFormData] = useState({
     username: user?.username || '',
@@ -414,7 +464,8 @@ function UserFormModal({
     transports: user?.user_transports.map(ut => ut.transport) || [],
     primaryTransport: user?.primaryTransport || '',
     isActive: user?.isActive ?? true,
-    trackHours: user?.trackHours ?? true
+    trackHours: user?.trackHours ?? true,
+    pushNotificationsEnabled: user?.pushNotificationsEnabled ?? true
   })
   const [loading, setLoading] = useState(false)
 
@@ -583,7 +634,7 @@ function UserFormModal({
                   />
                   <span className="text-sm font-medium text-gray-900">Utente attivo</span>
                 </label>
-                
+
                 <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                   <input
                     type="checkbox"
@@ -592,6 +643,16 @@ function UserFormModal({
                     className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <span className="text-sm font-medium text-gray-900">Contare ore lavorate</span>
+                </label>
+
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={formData.pushNotificationsEnabled}
+                    onChange={(e) => setFormData({ ...formData, pushNotificationsEnabled: e.target.checked })}
+                    className="mr-3 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-900">Notifiche Push</span>
                 </label>
               </div>
             )}

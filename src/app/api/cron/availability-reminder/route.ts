@@ -56,13 +56,14 @@ export async function GET(request: NextRequest) {
     // Trova tutti gli utenti attivi con disponibilità e assenze
     const activeUsers = await prisma.user.findMany({
       where: {
-        isActive: true,
-        whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
+        isActive: true
       },
       select: {
         id: true,
         username: true,
         phoneNumber: true,
+        whatsappNotificationsEnabled: true,
+        pushNotificationsEnabled: true,
         availabilities: {
           where: { weekStart },
           select: { id: true, isAvailable: true }
@@ -203,7 +204,7 @@ ${usersWithoutAvailability.map(u => `• ${u.username}`).join('\n')}
 
       // Messaggi individuali (opzionale)
       for (const user of usersWithoutAvailability) {
-        if (user.phoneNumber) {
+        if (user.phoneNumber && user.whatsappNotificationsEnabled) {
           const personalMessage = `
 ⏰ *PROMEMORIA PERSONALE*
 
@@ -252,6 +253,8 @@ Ciao ${user.username}!
       const pushResults = await Promise.allSettled(
         usersWithoutAvailability.map(async (user) => {
           try {
+            // createNotification will check if user.pushNotificationsEnabled is true
+            // before calling sendPushNotification
             await createNotification({
               userId: user.id,
               type: NotificationType.AVAILABILITY_REMINDER,
@@ -259,11 +262,12 @@ Ciao ${user.username}!
               body: 'Ricordati di inserire le tue disponibilità per la prossima settimana entro domenica sera!',
               data: {
                 url: '/availability'
-              }
+              },
+              sendPush: user.pushNotificationsEnabled // Explicitly pass user preference
             })
             return { success: true, userId: user.id }
           } catch (error) {
-            console.error(`❌ Failed to send push to ${user.username}:`, error)
+            console.error(`❌ Failed to send notification to ${user.username}:`, error)
             return { success: false, userId: user.id, error }
           }
         })
