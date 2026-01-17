@@ -253,43 +253,38 @@ export async function POST(request: NextRequest) {
       const dayOfWeekName = dayNames[shift.dayOfWeek]
       const formattedDate = format(shiftDate, 'dd/MM', { locale: it })
 
-      // Trova tutti gli utenti attivi che hanno lo stesso ruolo del turno
+      // Trova TUTTI gli utenti attivi (tranne il richiedente)
       const potentialSubstitutes = await prisma.user.findMany({
         where: {
           isActive: true,
-          id: { not: session.user.id },
-          user_roles: {
-            some: {
-              role: shift.role
-            }
-          }
+          id: { not: session.user.id }
         },
         select: { id: true, username: true }
       })
 
-      console.log(`[Substitution] Broadcasting to ${potentialSubstitutes.length} potential substitutes`)
+      console.log(`[Substitution] Broadcasting to ${potentialSubstitutes.length} users`)
 
-      // Crea notifiche per tutti i potenziali sostituti
-      // Non usiamo Promise.all per non bloccare la risposta se sono molti
+      // Crea notifiche per tutti gli utenti
       Promise.allSettled(
         potentialSubstitutes.map(user =>
           createNotification({
             userId: user.id,
             type: NotificationType.SUBSTITUTION_REQUEST,
             title: 'Nuova Richiesta Sostituzione',
-            body: `${substitution.requester.username} cerca sostituzione: ${dayOfWeekName} ${formattedDate} (${shift.shiftType})`,
+            body: `${substitution.requester.username} cerca sostituzione (${shift.role}): ${dayOfWeekName} ${formattedDate} (${shift.shiftType})`,
             data: {
               url: '/substitution-requests',
               relatedId: substitution.id
             }
           })
         )
-      ).then(results => {
-        const successful = results.filter(r => r.status === 'fulfilled').length
-        console.log(`✅ Push broadcast completed: ${successful}/${potentialSubstitutes.length} sent`)
-      }).catch(err => {
-        console.error('❌ Error during push broadcast:', err)
-      })
+      )
+        .then(results => {
+          const successful = results.filter(r => r.status === 'fulfilled').length
+          console.log(`✅ Push broadcast completed: ${successful}/${potentialSubstitutes.length} sent`)
+        }).catch(err => {
+          console.error('❌ Error during push broadcast:', err)
+        })
 
     } catch (notificationError) {
       // Log error but don't fail the request

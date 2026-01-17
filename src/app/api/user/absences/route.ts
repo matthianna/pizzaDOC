@@ -4,12 +4,16 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { convertJsDayToOurDay, getWeekStart } from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
+import { format } from 'date-fns'
+import { it } from 'date-fns/locale'
+import { createNotification } from '@/lib/notifications'
+import { NotificationType } from '@prisma/client'
 
 // GET /api/user/absences - Get user's absences
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -37,7 +41,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -110,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Trova tutte le settimane che si sovrappongono con l'assenza
     const weekStarts: Date[] = []
     let currentWeek = getWeekStart(start) // Calcola lunedì della settimana
-    
+
     while (currentWeek <= end) {
       weekStarts.push(new Date(currentWeek))
       currentWeek = new Date(Date.UTC(currentWeek.getUTCFullYear(), currentWeek.getUTCMonth(), currentWeek.getUTCDate() + 7))
@@ -118,15 +122,15 @@ export async function POST(request: NextRequest) {
 
     // Per ogni giorno nell'intervallo di assenza, disabilita disponibilità
     let dayToCheck = new Date(start)
-    
+
     while (dayToCheck <= end) {
       // Trova il lunedì di questa settimana
       const mondayOfWeek = getWeekStart(dayToCheck)
-      
+
       // Converti da JS day (0=Sunday) al nostro sistema (0=Monday)
       const jsDay = dayToCheck.getUTCDay()
       const ourDay = convertJsDayToOurDay(jsDay)
-      
+
       // Aggiorna disponibilità per questo giorno (sia PRANZO che CENA)
       await prisma.availabilities.updateMany({
         where: {
@@ -139,9 +143,42 @@ export async function POST(request: NextRequest) {
           isAvailable: false
         }
       })
-      
+
       // Vai al giorno successivo (usa UTC)
       dayToCheck = new Date(Date.UTC(dayToCheck.getUTCFullYear(), dayToCheck.getUTCMonth(), dayToCheck.getUTCDate() + 1))
+    }
+
+    // 🔔 Invia notifica Push agli Amministratori
+    try {
+      const activeAdmins = await prisma.user.findMany({
+        where: {
+          isActive: true,
+          user_roles: { some: { role: 'ADMIN' } }
+        },
+        select: { id: true }
+      })
+
+      const formattedStart = format(start, 'dd/MM', { locale: it })
+      const formattedEnd = format(end, 'dd/MM', { locale: it })
+      const dateRange = start.getTime() === end.getTime() ? formattedStart : `${formattedStart} - ${formattedEnd}`
+
+      await Promise.allSettled(
+        activeAdmins.map(admin =>
+          createNotification({
+            userId: admin.id,
+            type: NotificationType.GENERAL,
+            title: 'Nuova Assenza Inserita',
+            body: `${session.user.username} ha inserito un'assenza per il periodo: ${dateRange}.`,
+            data: {
+              url: '/admin/absences',
+              relatedId: absence.id
+            }
+          })
+        )
+      )
+      console.log(`[Absence] Notification sent to ${activeAdmins.length} admins`)
+    } catch (notificationError) {
+      console.error('Error sending absence notification to admins:', notificationError)
     }
 
     return NextResponse.json(absence, { status: 201 })

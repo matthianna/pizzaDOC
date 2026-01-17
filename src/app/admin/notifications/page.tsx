@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Bell, Send, Loader2, CheckCircle, AlertCircle, Calendar, ChevronRight } from 'lucide-react'
+import { Bell, Send, Loader2, CheckCircle, AlertCircle, Calendar } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function AdminNotificationsPage() {
     const [title, setTitle] = useState('')
     const [message, setMessage] = useState('')
     const [url, setUrl] = useState('')
+    const [filter, setFilter] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const [result, setResult] = useState<{ success: boolean; recipients?: number; pushResult?: any } | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -24,7 +26,7 @@ export default function AdminNotificationsPage() {
             const response = await fetch('/api/notifications/broadcast', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, message, url })
+                body: JSON.stringify({ title, message, url, filter })
             })
 
             const data = await response.json()
@@ -34,6 +36,7 @@ export default function AdminNotificationsPage() {
                 setTitle('')
                 setMessage('')
                 setUrl('')
+                setFilter(null)
             } else {
                 setError(data.error || 'Errore durante l\'invio')
             }
@@ -59,38 +62,111 @@ export default function AdminNotificationsPage() {
                         </div>
                     </div>
 
-                    <div className="mb-8 p-4 bg-orange-50/50 rounded-2xl border border-orange-100">
+                    <div className="mb-8 p-4 bg-orange-50/50 rounded-2xl border border-orange-100 shadow-sm">
                         <h2 className="text-xs font-black text-orange-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                             <Send className="h-3 w-3" />
                             Azioni Rapide
                         </h2>
-                        <button
-                            onClick={() => {
-                                setTitle('Inserimento Disponibilità')
-                                setMessage('È ora di inserire le tue disponibilità per la prossima settimana. Grazie!')
-                                setUrl('/availability')
-                            }}
-                            className="w-full flex items-center justify-between p-4 bg-white hover:bg-orange-50 border border-orange-100 rounded-xl transition-all shadow-sm group"
-                        >
-                            <div className="flex items-center gap-3 text-left">
-                                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-600 transition-colors">
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <button
+                                onClick={() => {
+                                    setTitle('Inserimento Disponibilità')
+                                    setMessage('È ora di inserire le tue disponibilità per la prossima settimana. Grazie!')
+                                    setUrl('/availability')
+                                    setFilter('missing_availability')
+                                }}
+                                className={cn(
+                                    "flex items-center gap-3 p-3 bg-white hover:bg-orange-50 border rounded-xl transition-all text-left group",
+                                    filter === 'missing_availability' ? "ring-2 ring-orange-500 border-orange-500" : "border-orange-100"
+                                )}
+                            >
+                                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-orange-600 transition-colors">
                                     <Calendar className="h-5 w-5 text-orange-600 group-hover:text-white" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-bold text-gray-900">Richiedi Disponibilità</p>
-                                    <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Invia sollecito inserimento orari</p>
+                                    <p className="text-[9px] font-medium text-gray-500 uppercase tracking-wider">Solo chi non ha ancora inserito</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setTitle('Sollecito Ore')
+                                    setMessage('Ricordati di inserire le ore lavorate per i tuoi ultimi turni!')
+                                    setUrl('/hours')
+                                    setFilter(null)
+                                }}
+                                className="flex items-center gap-3 p-3 bg-white hover:bg-orange-50 border border-orange-100 rounded-xl transition-all text-left group"
+                            >
+                                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-orange-600 transition-colors">
+                                    <Loader2 className="h-5 w-5 text-orange-600 group-hover:text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900">Sollecito Ore</p>
+                                    <p className="text-[9px] font-medium text-gray-500 uppercase tracking-wider">Invia a tutti i dipendenti</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setTitle('Piano Pubblicato')
+                                    setMessage('Il nuovo piano settimanale è online. Controlla i tuoi turni!')
+                                    setUrl('/weekly-plan')
+                                    setFilter(null)
+                                }}
+                                className="flex items-center gap-3 p-3 bg-white hover:bg-orange-50 border border-orange-100 rounded-xl transition-all text-left group"
+                            >
+                                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center shrink-0 group-hover:bg-orange-600 transition-colors">
+                                    <Bell className="h-5 w-5 text-orange-600 group-hover:text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900">Nuovo Piano</p>
+                                    <p className="text-[9px] font-medium text-gray-500 uppercase tracking-wider">Invia a tutta la squadra</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setTitle('')
+                                    setMessage('')
+                                    setUrl('')
+                                    setFilter(null)
+                                }}
+                                className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all text-left group"
+                            >
+                                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shrink-0 group-hover:bg-gray-900 transition-colors">
+                                    <Bell className="h-5 w-5 text-gray-400 group-hover:text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-gray-500">Messaggio Libero</p>
+                                    <p className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">Pulisci tutti i campi</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    {filter === 'missing_availability' && (
+                        <div className="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-100 rounded-lg">
+                                    <CheckCircle className="h-4 w-4 text-blue-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-blue-900">Filtro Intelligente Attivo</p>
+                                    <p className="text-[10px] text-blue-600">La notifica verrà inviata solo a chi non ha ancora inserito la disponibilità.</p>
                                 </div>
                             </div>
-                            <ChevronRight className="h-5 w-5 text-orange-300" />
-                        </button>
-                    </div>
+                            <button onClick={() => setFilter(null)} className="text-[10px] font-black text-blue-600 uppercase hover:underline">Disattiva</button>
+                        </div>
+                    )}
 
                     <div className="relative mb-6">
                         <div className="absolute inset-0 flex items-center" aria-hidden="true">
                             <div className="w-full border-t border-gray-100"></div>
                         </div>
                         <div className="relative flex justify-center text-xs font-black uppercase tracking-widest text-gray-400">
-                            <span className="bg-white px-3">Oppure invia messaggio personalizzato</span>
+                            <span className="bg-white px-3">Revisione Messaggio</span>
                         </div>
                     </div>
 
@@ -149,7 +225,7 @@ export default function AdminNotificationsPage() {
                             ) : (
                                 <>
                                     <Send className="h-5 w-5" />
-                                    Invia a Tutti
+                                    {filter ? 'Invia ai Destinatari Filtrati' : 'Invia a Tutta la Squadra'}
                                 </>
                             )}
                         </button>
