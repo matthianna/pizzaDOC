@@ -12,6 +12,7 @@ import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
+import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
 
 interface Shift {
   id: string
@@ -281,7 +282,13 @@ export default function HoursPage() {
         </div>
 
         {/* Monthly Summary Card (Always Visible or prominent) */}
-        {!loading && historyData && (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
+          </div>
+        ) : historyData && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="glass rounded-2xl p-5 border-0 shadow-soft flex items-center space-x-4">
               <div className="w-12 h-12 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-lg">
@@ -480,10 +487,11 @@ export default function HoursPage() {
           /* Shifts List */
           <div className="space-y-4">
             {loading ? (
-              <div className="bg-white rounded-lg shadow p-12 text-center">
-                <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                <p className="text-gray-800">Caricamento turni...</p>
-              </div>
+              <>
+                <CardSkeleton />
+                <CardSkeleton />
+                <CardSkeleton />
+              </>
             ) : shifts.length === 0 ? (
               <div className="bg-white rounded-lg shadow p-12 text-center">
                 <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />

@@ -68,6 +68,21 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
         }
     }, [session?.user?.id, isOpen])
 
+    // ⭐ App Badging API
+    useEffect(() => {
+        if ('setAppBadge' in navigator) {
+            if (unreadCount > 0) {
+                navigator.setAppBadge(unreadCount).catch(err => {
+                    console.error('Error setting app badge:', err)
+                })
+            } else {
+                navigator.clearAppBadge().catch(err => {
+                    console.error('Error clearing app badge:', err)
+                })
+            }
+        }
+    }, [unreadCount])
+
     // Poll for new notifications every 30 seconds
     useEffect(() => {
         if (!session?.user?.id) return

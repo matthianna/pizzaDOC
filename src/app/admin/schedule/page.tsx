@@ -11,6 +11,7 @@ import { AddShiftModal } from '@/components/admin/add-shift-modal'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
+import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 
 interface ScheduleShift {
   id: string
@@ -624,8 +625,9 @@ export default function AdminSchedulePage() {
         {/* Schedule Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+            <div className="p-6 space-y-4">
+              <Skeleton className="h-10 w-full rounded-lg" />
+              <TableSkeleton rows={7} cols={3} />
             </div>
           ) : schedule ? (
             <div className="overflow-x-auto">

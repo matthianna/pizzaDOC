@@ -36,6 +36,7 @@ export async function POST(request: Request) {
             const targetUsers = await prisma.user.findMany({
                 where: {
                     isActive: true,
+                    primaryRole: { not: 'ADMIN' }, // ⭐ Escludi ADMIN
                     id: { notIn: userIdsWithAvail }
                 },
                 select: { id: true }
@@ -53,6 +54,9 @@ export async function POST(request: Request) {
                             gte: thirtyDaysAgo,
                             lte: now
                         }
+                    },
+                    user: {
+                        primaryRole: { not: 'ADMIN' } // ⭐ Escludi ADMIN
                     }
                 },
                 include: {
@@ -72,9 +76,12 @@ export async function POST(request: Request) {
             })
             userIds = Array.from(targetUserIds)
         } else {
-            // Get all active users
+            // Get all active non-admin users
             const users = await prisma.user.findMany({
-                where: { isActive: true },
+                where: { 
+                    isActive: true,
+                    primaryRole: { not: 'ADMIN' } // ⭐ Escludi ADMIN
+                },
                 select: { id: true }
             })
             userIds = users.map(u => u.id)

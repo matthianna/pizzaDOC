@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Plus, Edit, Trash2, RotateCcw, Users, X } from 'lucide-react'
+import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Smartphone } from 'lucide-react'
 import { getRoleName, getTransportName } from '@/lib/utils'
 import { Role, TransportType } from '@prisma/client'
 import { Select } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
+import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 
 interface User {
   id: string
@@ -154,8 +155,20 @@ export default function UsersPage() {
   if (loading) {
     return (
       <MainLayout adminOnly>
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+          </div>
+          <TableSkeleton rows={8} cols={6} />
         </div>
       </MainLayout>
     )
@@ -164,6 +177,105 @@ export default function UsersPage() {
   // ✅ Separa gli utenti attivi da quelli disattivati
   const activeUsers = users.filter(user => user.isActive)
   const inactiveUsers = users.filter(user => !user.isActive)
+
+  const pushEnabledCount = activeUsers.filter(u => u.pushNotificationsEnabled).length
+  const pushSubscribedCount = activeUsers.filter(u => u.push_subscriptions?.length > 0).length
+
+  const renderUserCard = (user: User) => (
+    <div key={user.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-sm font-bold text-gray-900">{user.username}</h3>
+          <p className="text-xs text-gray-500 mt-0.5">{getRoleName(user.primaryRole)}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setEditingUser(user)}
+            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleResetPassword(user.id)}
+            className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => openDeleteConfirm(user)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ruoli</p>
+          <div className="flex flex-wrap gap-1">
+            {user.user_roles.map((ur, i) => (
+              <span key={i} className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold">
+                {getRoleName(ur.role).substring(0, 3)}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1 text-right">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Stato</p>
+          <span className={cn(
+            "text-[10px] px-2 py-0.5 rounded-full font-black uppercase",
+            user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+          )}>
+            {user.isActive ? 'ATTIVO' : 'OFF'}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-[8px] font-black text-gray-400 uppercase">WA</p>
+            <button
+              onClick={() => toggleWhatsAppNotifications(user.id, user.whatsappNotificationsEnabled)}
+              className={cn(
+                "w-8 h-4 rounded-full relative transition-colors",
+                user.whatsappNotificationsEnabled ? "bg-green-500" : "bg-gray-200"
+              )}
+            >
+              <div className={cn(
+                "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
+                user.whatsappNotificationsEnabled ? "left-4.5" : "left-0.5"
+              )} />
+            </button>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-[8px] font-black text-gray-400 uppercase">PUSH</p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
+                className={cn(
+                  "w-8 h-4 rounded-full relative transition-colors",
+                  user.pushNotificationsEnabled ? "bg-orange-500" : "bg-gray-200"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
+                  user.pushNotificationsEnabled ? "left-4.5" : "left-0.5"
+                )} />
+              </button>
+              {user.pushNotificationsEnabled && (
+                <div className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  user.push_subscriptions?.length > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"
+                )} />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   const renderUserRow = (user: User) => (
     <tr key={user.id} className="hover:bg-gray-50">
@@ -303,6 +415,39 @@ export default function UsersPage() {
           </button>
         </div>
 
+        {/* 🔔 Notification Stats Summary */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="bg-white p-4 rounded-xl shadow-soft border border-gray-100 flex items-center gap-4">
+            <div className="p-3 bg-orange-50 rounded-lg">
+              <Bell className="h-5 w-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Push Abilitate</p>
+              <p className="text-xl font-black text-gray-900">{pushEnabledCount} / {activeUsers.length}</p>
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-xl shadow-soft border border-gray-100 flex items-center gap-4">
+            <div className="p-3 bg-green-50 rounded-lg">
+              <Smartphone className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Dispositivi Collegati</p>
+              <p className="text-xl font-black text-gray-900">{pushSubscribedCount}</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-4 rounded-xl shadow-soft border border-gray-100 flex items-center gap-4">
+            <div className="p-3 bg-red-50 rounded-lg">
+              <BellOff className="h-5 w-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Push Disabilitate</p>
+              <p className="text-xl font-black text-gray-900">{activeUsers.length - pushEnabledCount}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Active Users Table */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="px-4 py-3 bg-green-50 border-b border-green-100">
@@ -311,7 +456,14 @@ export default function UsersPage() {
               Utenti Attivi ({activeUsers.length})
             </h2>
           </div>
-          <div className="overflow-x-auto">
+          
+          {/* Mobile Card View */}
+          <div className="grid grid-cols-1 gap-3 p-4 sm:hidden">
+            {activeUsers.map(renderUserCard)}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -361,7 +513,13 @@ export default function UsersPage() {
                 Utenti Disattivati ({inactiveUsers.length})
               </h2>
             </div>
-            <div className="overflow-x-auto">
+            
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-3 p-4 sm:hidden">
+              {inactiveUsers.map(renderUserCard)}
+            </div>
+
+            <div className="hidden sm:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>

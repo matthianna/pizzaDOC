@@ -7,6 +7,7 @@ import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { formatDate } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Select as ReactSelect } from '@/components/ui/react-select'
+import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
 
 interface Shift {
   id: string
@@ -331,10 +332,10 @@ export default function AdminHoursPage() {
 
         {/* Worked Hours - Grouped by User */}
         {loading ? (
-          <div className="bg-white rounded-lg shadow p-12">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-            </div>
+          <div className="space-y-4">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
           </div>
         ) : workedHours.length > 0 ? (
           <div className="space-y-4">

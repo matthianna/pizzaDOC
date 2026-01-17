@@ -14,6 +14,7 @@ import { getRoleName, getDayName } from '@/lib/utils'
 import type { Role } from '@prisma/client'
 import { useHaptics } from '@/hooks/use-haptics'
 import { PWAInstallPrompt } from '@/components/pwa/install-prompt'
+import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
 
 interface DashboardStats {
   // Admin stats
@@ -231,8 +232,24 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        <div className="space-y-6">
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Skeleton className="h-24 rounded-2xl" />
+            <Skeleton className="h-24 rounded-2xl" />
+            <Skeleton className="h-24 rounded-2xl" />
+            <Skeleton className="h-24 rounded-2xl" />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Skeleton className="h-20 rounded-2xl" />
+            <Skeleton className="h-20 rounded-2xl" />
+            <Skeleton className="h-20 rounded-2xl" />
+            <Skeleton className="h-20 rounded-2xl" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
         </div>
       </MainLayout>
     )

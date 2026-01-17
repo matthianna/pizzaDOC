@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
         user: {
           isActive: true,
           trackHours: true,
+          primaryRole: { not: 'ADMIN' }, // ⭐ Escludi ADMIN
           whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
         }
       },
@@ -91,6 +92,7 @@ export async function GET(request: NextRequest) {
         user: {
           isActive: true,
           trackHours: true,
+          primaryRole: { not: 'ADMIN' }, // ⭐ Escludi ADMIN
           whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
         }
       },

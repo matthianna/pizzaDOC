@@ -67,10 +67,22 @@ export async function POST(request: NextRequest) {
         const uniqueUserIds = [...new Set(schedule.shifts.map(s => s.userId))]
         console.log(`[NOTIFY] Found ${uniqueUserIds.length} unique users to notify`)
 
+        // ⭐ Filtra per escludere gli ADMIN
+        const usersToNotify = await prisma.user.findMany({
+            where: {
+                id: { in: uniqueUserIds },
+                primaryRole: { not: 'ADMIN' }
+            },
+            select: { id: true }
+        })
+
+        const finalUserIds = usersToNotify.map(u => u.id)
+        console.log(`[NOTIFY] After filtering admins, ${finalUserIds.length} users remain to notify`)
+
         const formattedDate = format(weekStartDate, 'dd/MM/yyyy', { locale: it })
 
         // Invia notifiche
-        const results = await Promise.allSettled(uniqueUserIds.map(userId =>
+        const results = await Promise.allSettled(finalUserIds.map(userId =>
             createNotification({
                 userId,
                 type: NotificationType.SCHEDULE_PUBLISHED,

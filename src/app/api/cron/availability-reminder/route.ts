@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
     // Trova tutti gli utenti attivi con disponibilità e assenze
     const activeUsers = await prisma.user.findMany({
       where: {
-        isActive: true
+        isActive: true,
+        primaryRole: { not: 'ADMIN' } // ⭐ Escludi ADMIN dai promemoria
       },
       select: {
         id: true,
