@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Smartphone } from 'lucide-react'
-import { getRoleName, getTransportName } from '@/lib/utils'
+import { cn, getRoleName, getTransportName } from '@/lib/utils'
 import { Role, TransportType } from '@prisma/client'
 import { Select } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
