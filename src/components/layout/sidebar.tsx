@@ -296,11 +296,11 @@ export function Sidebar() {
         <div className="lg:hidden">
           <div className="fixed inset-0 flex z-50">
             <div className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={handleCloseSidebar} />
-            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white animate-in slide-in-from-left duration-300 shadow-2xl border-r border-orange-100">
-              <div className="absolute top-0 right-0 -mr-14 pt-safe mt-4">
+            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white animate-in slide-in-from-left duration-500 shadow-2xl">
+              <div className="absolute top-0 right-0 -mr-16 pt-safe mt-6">
                 <button
                   type="button"
-                  className="ml-1 flex items-center justify-center h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white active:scale-90 transition-all"
+                  className="ml-1 flex items-center justify-center h-12 w-12 rounded-2xl bg-orange-600 text-white shadow-xl shadow-orange-200 border border-orange-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white active:scale-90 transition-all"
                   onClick={handleCloseSidebar}
                 >
                   <span className="sr-only">Close sidebar</span>
@@ -360,22 +360,22 @@ function SidebarContent({
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className={cn("flex items-center flex-shrink-0 px-4", isMobile ? "pt-2" : "pt-5")}>
-        <div className="flex items-center space-x-3 bg-gradient-to-r from-orange-500 to-orange-600 p-3 rounded-2xl shadow-lg w-full">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center ring-4 ring-orange-300 shadow-md relative overflow-hidden">
+      <div className={cn("flex items-center flex-shrink-0 px-4", isMobile ? "pt-4" : "pt-6")}>
+        <div className="flex items-center space-x-3 bg-gradient-to-r from-orange-600 to-red-600 p-4 rounded-[2rem] shadow-xl w-full border border-white/20">
+          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center ring-4 ring-orange-500/30 shadow-inner relative overflow-hidden">
             <Image
               src="/logo.png"
               alt="PizzaDOC Logo"
-              width={32}
-              height={32}
+              width={36}
+              height={36}
               className="object-cover"
               unoptimized
             />
           </div>
           <div className="flex-1 flex items-center justify-between">
-            <h1 className="text-xl font-black text-white tracking-tight">PizzaDOC</h1>
-            <div className="text-white">
-              <NotificationBell iconClassName="text-white" />
+            <h1 className="text-xl font-black text-white tracking-tighter uppercase">PizzaDOC</h1>
+            <div className="text-white bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
+              <NotificationBell iconClassName="text-white h-5 w-5" />
             </div>
           </div>
         </div>
@@ -383,77 +383,86 @@ function SidebarContent({
 
       {/* User info */}
       <div className="mt-6 px-4">
-        <div className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-orange-100 to-orange-50 rounded-2xl p-4 shadow-lg border border-orange-200">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-orange-200 rounded-full blur-2xl opacity-30 -mr-10 -mt-10"></div>
+        <div className="relative overflow-hidden bg-white rounded-[2rem] p-4 shadow-soft border border-gray-100 group hover:shadow-lg transition-all duration-500">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-50 rounded-full blur-3xl opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
           <div className="relative flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-lg ring-4 ring-orange-100">
-                <span className="text-white font-bold text-lg">
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-red-600 rounded-2xl flex items-center justify-center shadow-lg transform -rotate-3 group-hover:rotate-0 transition-transform duration-300">
+                <span className="text-white font-black text-xl">
                   {session.user.username.charAt(0).toUpperCase()}
                 </span>
               </div>
             </div>
             <div className="ml-4 flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-900 truncate">
+              <p className="text-sm font-black text-gray-900 truncate tracking-tight">
                 {session.user.username}
               </p>
-              <p className="text-xs font-semibold text-orange-700 bg-orange-200 px-2 py-0.5 rounded-full inline-block mt-1">
-                {getRoleName(session.user.primaryRole)}
-              </p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg uppercase tracking-wider border border-orange-100">
+                  {getRoleName(session.user.primaryRole)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="mt-6 flex-1 px-4 space-y-1">
+      <nav className="mt-8 flex-1 px-4 space-y-8 pb-8">
         {/* Regular navigation items - grouped by section */}
         {!isUserAdmin && regularItems.length > 0 && (
           <>
             {/* Home - Dashboard */}
-            {regularItems.filter(item => item.section === 'home').map((item) => {
-              const Icon = pathname === item.href ? item.iconSolid : item.icon
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={onItemClick}
-                  className={cn(
-                    'group flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-all mb-4',
-                    pathname === item.href
-                      ? 'bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 shadow-md border-l-4 border-orange-500 scale-105'
-                      : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white hover:shadow-sm hover:scale-102'
-                  )}
-                >
-                  <span className="text-2xl mr-3">{item.emoji}</span>
-                  {item.name}
-                </Link>
-              )
-            })}
+            <div className="space-y-1">
+              {regularItems.filter(item => item.section === 'home').map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={onItemClick}
+                    className={cn(
+                      'group flex items-center px-4 py-3.5 text-sm font-black rounded-[1.25rem] transition-all relative overflow-hidden',
+                      isActive
+                        ? 'bg-orange-600 text-white shadow-lg shadow-orange-100 ring-1 ring-orange-400'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                    )}
+                  >
+                    <span className={cn("text-xl mr-3 transition-transform duration-300 group-hover:scale-110", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
+                      {item.emoji}
+                    </span>
+                    <span className="uppercase tracking-widest text-[11px]">{item.name}</span>
+                    {isActive && <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/20" />}
+                  </Link>
+                )
+              })}
+            </div>
 
             {/* Il Mio Lavoro */}
-            <div className="mt-6">
-              <h3 className="px-3 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center">
-                <span className="mr-2">📋</span>
+            <div className="space-y-3">
+              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
                 Il Mio Lavoro
               </h3>
               <div className="space-y-1">
                 {regularItems.filter(item => item.section === 'lavoro').map((item) => {
-                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  const isActive = pathname === item.href
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={onItemClick}
                       className={cn(
-                        'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all',
-                        pathname === item.href
-                          ? 'bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 shadow-sm border-l-4 border-orange-500'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:shadow-sm'
+                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                        isActive
+                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                       )}
                     >
-                      <span className="text-lg mr-3">{item.emoji}</span>
-                      {item.name}
+                      <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
+                        {item.emoji}
+                      </span>
+                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
                     </Link>
                   )
                 })}
@@ -461,28 +470,30 @@ function SidebarContent({
             </div>
 
             {/* Ore & Assenze */}
-            <div className="mt-6">
-              <h3 className="px-3 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center">
-                <span className="mr-2">⏰</span>
+            <div className="space-y-3">
+              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
                 Ore & Assenze
               </h3>
               <div className="space-y-1">
                 {regularItems.filter(item => item.section === 'ore').map((item) => {
-                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  const isActive = pathname === item.href
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={onItemClick}
                       className={cn(
-                        'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all',
-                        pathname === item.href
-                          ? 'bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 shadow-sm border-l-4 border-orange-500'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:shadow-sm'
+                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                        isActive
+                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                       )}
                     >
-                      <span className="text-lg mr-3">{item.emoji}</span>
-                      {item.name}
+                      <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
+                        {item.emoji}
+                      </span>
+                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
                     </Link>
                   )
                 })}
@@ -490,28 +501,30 @@ function SidebarContent({
             </div>
 
             {/* Sostituzioni */}
-            <div className="mt-6">
-              <h3 className="px-3 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center">
-                <span className="mr-2">🔄</span>
+            <div className="space-y-3">
+              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
                 Sostituzioni
               </h3>
               <div className="space-y-1">
                 {regularItems.filter(item => item.section === 'sostituzioni').map((item) => {
-                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  const isActive = pathname === item.href
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={onItemClick}
                       className={cn(
-                        'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all',
-                        pathname === item.href
-                          ? 'bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 shadow-sm border-l-4 border-orange-500'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:shadow-sm'
+                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                        isActive
+                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                       )}
                     >
-                      <span className="text-lg mr-3">{item.emoji}</span>
-                      {item.name}
+                      <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
+                        {item.emoji}
+                      </span>
+                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
                     </Link>
                   )
                 })}
@@ -524,48 +537,49 @@ function SidebarContent({
         {isUserAdmin && adminItems.length > 0 && (
           <>
             {/* Dashboard - Admin */}
-            <Link
-              href="/dashboard"
-              onClick={onItemClick}
-              className={cn(
-                'group flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-all mb-4',
-                pathname === '/dashboard'
-                  ? 'bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 shadow-md border-l-4 border-orange-500 scale-105'
-                  : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white hover:shadow-sm hover:scale-102'
-              )}
-            >
-              <span className="text-2xl mr-3">🏠</span>
-              Dashboard
-            </Link>
+            <div className="space-y-1">
+              <Link
+                href="/dashboard"
+                onClick={onItemClick}
+                className={cn(
+                  'group flex items-center px-4 py-3.5 text-sm font-black rounded-[1.25rem] transition-all relative overflow-hidden',
+                  pathname === '/dashboard'
+                    ? 'bg-orange-600 text-white shadow-lg shadow-orange-100 ring-1 ring-orange-400'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                )}
+              >
+                <span className={cn("text-xl mr-3 transition-transform duration-300 group-hover:scale-110", pathname === '/dashboard' ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
+                  🏠
+                </span>
+                <span className="uppercase tracking-widest text-[11px]">Dashboard</span>
+                {pathname === '/dashboard' && <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/20" />}
+              </Link>
+            </div>
 
             {/* Gestione Personale */}
-            <div className="mt-8">
-              <h3 className="px-3 text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center">
-                <span className="mr-2">👥</span>
+            <div className="space-y-3">
+              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
                 Gestione Personale
               </h3>
               <div className="space-y-1">
                 {adminItems.filter(item => item.section === 'personale').map((item) => {
-                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  const isActive = pathname === item.href
+                  const Icon = isActive ? item.iconSolid : item.icon
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={onItemClick}
                       className={cn(
-                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                        pathname === item.href
-                          ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                        isActive
+                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                       )}
                     >
-                      <Icon
-                        className={cn(
-                          'mr-3 h-5 w-5 flex-shrink-0',
-                          pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
-                        )}
-                      />
-                      {item.name}
+                      <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
+                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
                     </Link>
                   )
                 })}
@@ -573,33 +587,29 @@ function SidebarContent({
             </div>
 
             {/* Pianificazione */}
-            <div className="mt-6">
-              <h3 className="px-3 text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center">
-                <span className="mr-2">📅</span>
+            <div className="space-y-3">
+              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
                 Pianificazione
               </h3>
               <div className="space-y-1">
                 {adminItems.filter(item => item.section === 'pianificazione').map((item) => {
-                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  const isActive = pathname === item.href
+                  const Icon = isActive ? item.iconSolid : item.icon
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={onItemClick}
                       className={cn(
-                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                        pathname === item.href
-                          ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                        isActive
+                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                       )}
                     >
-                      <Icon
-                        className={cn(
-                          'mr-3 h-5 w-5 flex-shrink-0',
-                          pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
-                        )}
-                      />
-                      {item.name}
+                      <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
+                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
                     </Link>
                   )
                 })}
@@ -607,33 +617,29 @@ function SidebarContent({
             </div>
 
             {/* Ore Lavorate */}
-            <div className="mt-6">
-              <h3 className="px-3 text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center">
-                <span className="mr-2">⏰</span>
+            <div className="space-y-3">
+              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
                 Ore Lavorate
               </h3>
               <div className="space-y-1">
                 {adminItems.filter(item => item.section === 'ore').map((item) => {
-                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  const isActive = pathname === item.href
+                  const Icon = isActive ? item.iconSolid : item.icon
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={onItemClick}
                       className={cn(
-                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                        pathname === item.href
-                          ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                        isActive
+                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                       )}
                     >
-                      <Icon
-                        className={cn(
-                          'mr-3 h-5 w-5 flex-shrink-0',
-                          pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
-                        )}
-                      />
-                      {item.name}
+                      <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
+                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
                     </Link>
                   )
                 })}
@@ -641,33 +647,29 @@ function SidebarContent({
             </div>
 
             {/* Sistema */}
-            <div className="mt-6">
-              <h3 className="px-3 text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center">
-                <span className="mr-2">⚙️</span>
+            <div className="space-y-3">
+              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
                 Sistema
               </h3>
               <div className="space-y-1">
                 {adminItems.filter(item => item.section === 'sistema').map((item) => {
-                  const Icon = pathname === item.href ? item.iconSolid : item.icon
+                  const isActive = pathname === item.href
+                  const Icon = isActive ? item.iconSolid : item.icon
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={onItemClick}
                       className={cn(
-                        'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                        pathname === item.href
-                          ? 'bg-orange-100 text-orange-700 border-l-4 border-orange-500'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                        isActive
+                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                       )}
                     >
-                      <Icon
-                        className={cn(
-                          'mr-3 h-5 w-5 flex-shrink-0',
-                          pathname === item.href ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500'
-                        )}
-                      />
-                      {item.name}
+                      <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
+                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
                     </Link>
                   )
                 })}

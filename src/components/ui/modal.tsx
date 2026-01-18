@@ -48,21 +48,21 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex justify-center items-start sm:items-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-300"
+        className="fixed inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-300"
         onClick={onClose}
       />
 
       {/* Modal Content */}
       <div className={cn(
-        "relative bg-white w-full rounded-[2.5rem] shadow-2xl border border-white/50 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-500",
+        "relative bg-white w-full rounded-[2.5rem] shadow-2xl border border-white/50 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 my-auto",
         maxWidthClasses[maxWidth],
         className
       )}>
         {/* Header Visual Layer */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-gray-50 to-white -z-10" />
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-gray-50 to-white rounded-t-[2.5rem] -z-10" />
         
         {/* Modal Header */}
         <div className="px-8 pt-8 pb-4 flex items-start justify-between">
@@ -86,7 +86,7 @@ export function Modal({
         </div>
 
         {/* Content Body */}
-        <div className="px-8 pb-8 overflow-y-auto max-h-[calc(90vh-140px)] scrollbar-hide">
+        <div className="px-8 pb-8">
           {children}
         </div>
       </div>
