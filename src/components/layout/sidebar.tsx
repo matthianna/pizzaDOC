@@ -41,15 +41,27 @@ import {
 import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
 import { NotificationBell } from '../notifications/notification-bell'
+import { useHaptics } from '@/hooks/use-haptics'
 
 export function Sidebar() {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { lightClick } = useHaptics()
 
   if (!session) return null
 
   const isUserAdmin = isAdmin(session)
+
+  const handleOpenSidebar = () => {
+    lightClick()
+    setSidebarOpen(true)
+  }
+
+  const handleCloseSidebar = () => {
+    lightClick()
+    setSidebarOpen(false)
+  }
 
   const navigation = [
     // 🏠 HOME
@@ -268,14 +280,14 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-0 left-0 z-50 p-4">
+      <div className="lg:hidden fixed top-0 left-0 z-50 p-2 sm:p-4 pt-safe">
         <button
           type="button"
-          className="rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500"
-          onClick={() => setSidebarOpen(true)}
+          className="rounded-2xl p-3 inline-flex items-center justify-center text-gray-500 hover:text-orange-600 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500 bg-white/80 backdrop-blur-md shadow-lg border border-white transition-all active:scale-90"
+          onClick={handleOpenSidebar}
         >
           <span className="sr-only">Open sidebar</span>
-          <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+          <Bars3Icon className="h-7 w-7" aria-hidden="true" />
         </button>
       </div>
 
@@ -283,27 +295,29 @@ export function Sidebar() {
       {sidebarOpen && (
         <div className="lg:hidden">
           <div className="fixed inset-0 flex z-50">
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-            <div className="relative flex-1 flex flex-col max-w-xs w-full pt-5 pb-4 bg-white">
-              <div className="absolute top-0 right-0 -mr-12 pt-2">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={handleCloseSidebar} />
+            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white animate-in slide-in-from-left duration-300 shadow-2xl border-r border-orange-100">
+              <div className="absolute top-0 right-0 -mr-14 pt-safe mt-4">
                 <button
                   type="button"
-                  className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-                  onClick={() => setSidebarOpen(false)}
+                  className="ml-1 flex items-center justify-center h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white active:scale-90 transition-all"
+                  onClick={handleCloseSidebar}
                 >
                   <span className="sr-only">Close sidebar</span>
-                  <XMarkIcon className="h-6 w-6 text-white" aria-hidden="true" />
+                  <XMarkIcon className="h-7 w-7" aria-hidden="true" />
                 </button>
               </div>
-              <SidebarContent
-                regularItems={regularItems}
-                adminItems={adminItems}
-                pathname={pathname}
-                session={session}
-                isUserAdmin={isUserAdmin}
-                isMobile={true}
-                onItemClick={() => setSidebarOpen(false)}
-              />
+              <div className="flex-1 flex flex-col h-0 pt-safe overflow-y-auto pb-safe">
+                <SidebarContent
+                  regularItems={regularItems}
+                  adminItems={adminItems}
+                  pathname={pathname}
+                  session={session}
+                  isUserAdmin={isUserAdmin}
+                  isMobile={true}
+                  onItemClick={handleCloseSidebar}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -311,7 +325,7 @@ export function Sidebar() {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 z-30">
-        <div className="flex flex-col flex-grow pt-5 bg-white overflow-y-auto border-r border-gray-200">
+        <div className="flex flex-col flex-grow bg-white overflow-y-auto border-r border-gray-200">
           <SidebarContent
             regularItems={regularItems}
             adminItems={adminItems}
@@ -344,9 +358,9 @@ function SidebarContent({
   onItemClick?: () => void
 }) {
   return (
-    <>
+    <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center flex-shrink-0 px-4">
+      <div className={cn("flex items-center flex-shrink-0 px-4", isMobile ? "pt-2" : "pt-5")}>
         <div className="flex items-center space-x-3 bg-gradient-to-r from-orange-500 to-orange-600 p-3 rounded-2xl shadow-lg w-full">
           <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center ring-4 ring-orange-300 shadow-md relative overflow-hidden">
             <Image
@@ -694,6 +708,6 @@ function SidebarContent({
           Esci
         </button>
       </div>
-    </>
+    </div>
   )
 }

@@ -166,9 +166,9 @@ export async function POST(request: NextRequest) {
         activeAdmins.map(admin =>
           createNotification({
             userId: admin.id,
-            type: NotificationType.GENERAL,
-            title: 'Nuova Assenza Inserita',
-            body: `${session.user.username} ha inserito un'assenza per il periodo: ${dateRange}.`,
+            type: NotificationType.ABSENCE_REQUESTED,
+            title: '🏖️ Nuova Richiesta Assenza',
+            body: `${session.user.username} ha richiesto un'assenza per il periodo: ${dateRange}.`,
             data: {
               url: '/admin/absences',
               relatedId: absence.id

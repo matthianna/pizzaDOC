@@ -164,10 +164,14 @@ export default function NotificationsPage() {
             case 'SUBSTITUTION_APPROVED':
             case 'SUBSTITUTION_REJECTED':
                 return <ArrowLeftRight className="h-6 w-6 text-purple-500" />
-            case 'AVAILABILITY_REMINDER':
-                return <AlertCircle className="h-6 w-6 text-yellow-500" />
-            default:
-                return <Bell className="h-6 w-6 text-gray-500" />
+                case 'AVAILABILITY_REMINDER':
+                    return <AlertCircle className="h-6 w-6 text-yellow-500" />
+                case 'ABSENCE_REQUESTED':
+                case 'ABSENCE_APPROVED':
+                case 'ABSENCE_REJECTED':
+                    return <Calendar className="h-6 w-6 text-red-500" />
+                default:
+                    return <Bell className="h-6 w-6 text-gray-500" />
         }
     }
 

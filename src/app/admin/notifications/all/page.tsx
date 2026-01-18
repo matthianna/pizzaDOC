@@ -39,7 +39,7 @@ interface Notification {
 const CATEGORIES = [
     { id: 'ALL', label: 'Tutte', icon: Bell },
     { id: 'SUBSTITUTION', label: 'Sostituzioni', icon: ArrowLeftRight, types: ['SUBSTITUTION_REQUEST', 'SUBSTITUTION_APPLIED', 'SUBSTITUTION_APPROVED', 'SUBSTITUTION_REJECTED'] },
-    { id: 'ABSENCE', label: 'Assenze', icon: Calendar, types: ['GENERAL'] }, // User general for now as absence alerts use GENERAL type
+    { id: 'ABSENCE', label: 'Assenze', icon: Calendar, types: ['ABSENCE_REQUESTED', 'ABSENCE_APPROVED', 'ABSENCE_REJECTED'] },
     { id: 'HOURS', label: 'Ore', icon: Clock, types: ['HOURS_APPROVED', 'HOURS_REJECTED', 'HOURS_REMINDER'] },
     { id: 'SCHEDULE', label: 'Piano', icon: Calendar, types: ['SCHEDULE_PUBLISHED', 'SHIFT_ASSIGNED', 'SHIFT_CHANGED', 'SHIFT_REMOVED'] },
 ]
@@ -117,9 +117,7 @@ export default function AdminNotificationBoard() {
         // Tab filter
         const category = CATEGORIES.find(c => c.id === activeTab)
         if (category && category.types && !category.types.includes(n.type)) {
-            // Hack for Absence: filter by body content if it's GENERAL
-            if (activeTab === 'ABSENCE' && !n.body.toLowerCase().includes('assenza')) return false
-            if (activeTab !== 'ABSENCE') return false
+            return false
         }
 
         // Unread filter
@@ -137,9 +135,11 @@ export default function AdminNotificationBoard() {
     })
 
     const getNotificationIcon = (type: string, body: string) => {
-        if (body.toLowerCase().includes('assenza')) return <Calendar className="h-5 w-5 text-red-500" />
-
         switch (type) {
+            case 'ABSENCE_REQUESTED':
+            case 'ABSENCE_APPROVED':
+            case 'ABSENCE_REJECTED':
+                return <Calendar className="h-5 w-5 text-red-500" />
             case 'SUBSTITUTION_REQUEST':
             case 'SUBSTITUTION_APPLIED':
                 return <ArrowLeftRight className="h-5 w-5 text-purple-500" />
