@@ -48,7 +48,7 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-center items-start sm:items-center p-4 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex justify-center items-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-300"
@@ -86,7 +86,7 @@ export function Modal({
         </div>
 
         {/* Content Body */}
-        <div className="px-8 pb-8">
+        <div className="px-8 pb-8 overflow-y-auto max-h-[calc(85vh-120px)] scrollbar-thin scrollbar-thumb-gray-200">
           {children}
         </div>
       </div>

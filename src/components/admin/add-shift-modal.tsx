@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { X, ChevronRight, Calendar, User, Clock, ShieldCheck, Check, Info, Users, Plus } from 'lucide-react'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -42,6 +42,9 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const { showToast, ToastContainer } = useToast()
+
+  // ⭐ Ref per gestire le richieste in corso ed evitare race conditions
+  const fetchControllerRef = useRef<AbortController | null>(null)
 
   const days = [
     { value: 0, label: 'Lunedì' },
@@ -101,32 +104,73 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
     }
   }
 
-  // ⭐ PRIMO CARICAMENTO: esegue subito all'apertura del modal
-  useEffect(() => {
-    const loadInitialData = async () => {
-      setLoading(true)
-      console.log('🚀 [Modal] Apertura modal - caricamento iniziale')
-      await Promise.all([
-        fetchUsers(),
-        fetchExistingShifts()
-      ])
-      setLoading(false)
-      console.log('✅ [Modal] Caricamento iniziale completato')
+  // ⭐ Funzione unificata per il caricamento dati
+  const loadData = async (day: number, shiftType: string) => {
+    // Annulla eventuali richieste precedenti
+    if (fetchControllerRef.current) {
+      fetchControllerRef.current.abort()
     }
-    loadInitialData()
-  }, []) // Array vuoto = solo al mount
+    fetchControllerRef.current = new AbortController()
+    const { signal } = fetchControllerRef.current
 
-  // ⭐ Ricarica quando cambiano giorno, turno o settimana
-  useEffect(() => {
-    const reloadData = async () => {
-      console.log('🔄 [Modal] Cambio parametri - ricaricamento dati')
-      await Promise.all([
-        fetchExistingShifts(),
-        fetchUsers()
+    try {
+      console.log(`🚀 [Modal] Caricamento dati per Giorno ${day}, Turno ${shiftType}`)
+      
+      const weekStartStr = weekStart.toISOString()
+      const timestamp = new Date().getTime()
+
+      // Carica contemporaneamente utenti e turni esistenti
+      const [usersRes, scheduleRes] = await Promise.all([
+        fetch(`/api/admin/users/available?weekStart=${weekStartStr}&_t=${timestamp}`, { signal }),
+        fetch(`/api/admin/schedule/${weekStartStr}?_t=${timestamp}`, { signal })
       ])
-      console.log('✅ [Modal] Ricaricamento completato')
+
+      if (usersRes.ok) {
+        const usersData = await usersRes.json()
+        setUsers(usersData)
+      }
+
+      if (scheduleRes.ok) {
+        const scheduleData = await scheduleRes.json()
+        if (scheduleData.shifts) {
+          // ⭐ FILTRO CRITICO: Solo i turni che corrispondono ESATTAMENTE a giorno e turno selezionati
+          const filtered = scheduleData.shifts
+            .filter((s: any) => 
+              s.dayOfWeek === day && 
+              s.shiftType === shiftType
+            )
+            .map((s: any) => ({
+              userId: s.userId,
+              role: s.role
+            }))
+          
+          setExistingShifts(filtered)
+          console.log(`✅ [Modal] Trovati ${filtered.length} collaboratori già in turno per questo slot`)
+        } else {
+          setExistingShifts([])
+        }
+      } else if (scheduleRes.status === 404) {
+        setExistingShifts([])
+      }
+
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Error loading modal data:', error)
+      }
+    } finally {
+      setLoading(false)
     }
-    reloadData()
+  }
+
+  // ⭐ Effetto principale: carica i dati al variare di qualsiasi parametro
+  useEffect(() => {
+    loadData(selectedDay, selectedShiftType)
+    
+    return () => {
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort()
+      }
+    }
   }, [selectedDay, selectedShiftType, weekStart])
 
   useEffect(() => {
@@ -161,86 +205,15 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
     setSelectedStartTime('')
   }, [selectedRole])
 
-  const fetchUsers = async () => {
-    try {
-      // ⭐ PASSA weekStart per ottenere disponibilità della settimana specifica!
-      const weekStartStr = weekStart.toISOString()
-      // ⚠️ Aggiungi timestamp per forzare bypass cache browser
-      const timestamp = new Date().getTime()
-      const response = await fetch(
-        `/api/admin/users/available?weekStart=${weekStartStr}&_t=${timestamp}`,
-        {
-          cache: 'no-store', // ⚠️ Disabilita cache browser
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        }
-      )
-      if (response.ok) {
-        const data = await response.json()
-        console.log(`✅ [Modal] Utenti caricati: ${data.length}`)
-        setUsers(data)
-      } else {
-        showToast('Errore nel caricamento utenti', 'error')
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error)
-      showToast('Errore nel caricamento utenti', 'error')
-    }
-  }
-
-  const fetchExistingShifts = async () => {
-    try {
-      const weekStartStr = weekStart.toISOString()
-      // ⚠️ Aggiungi timestamp per forzare bypass cache browser
-      const timestamp = new Date().getTime()
-      const response = await fetch(
-        `/api/admin/schedule/${weekStartStr}?_t=${timestamp}`,
-        {
-          cache: 'no-store', // ⚠️ Disabilita cache browser
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        }
-      )
-      if (response.ok) {
-        const data = await response.json()
-        // L'API restituisce direttamente l'oggetto schedule con shifts
-        if (data.shifts) {
-          // Filtra i turni per il giorno e turno selezionati
-          const filtered = data.shifts
-            .filter((shift: any) => 
-              shift.dayOfWeek === selectedDay && 
-              shift.shiftType === selectedShiftType
-            )
-            .map((shift: any) => ({
-              userId: shift.userId,
-              role: shift.role
-            }))
-          setExistingShifts(filtered)
-          console.log(`🔍 [Modal] Turni esistenti caricati per giorno ${selectedDay}, turno ${selectedShiftType}:`, filtered.length)
-        } else {
-          setExistingShifts([])
-        }
-      } else if (response.status === 404) {
-        // Nessun piano ancora generato per questa settimana
-        setExistingShifts([])
-        console.log('📅 [Modal] Nessun piano ancora generato per questa settimana')
-      }
-    } catch (error) {
-      console.error('Error fetching existing shifts:', error)
-      setExistingShifts([])
-    }
-  }
-
   const selectedUser = users.find(u => u.id === selectedUserId)
   const availableRoles = selectedUser?.availableRoles || []
 
   // Helper per controllare se un utente è disponibile
   const isUserAvailable = (user: User): boolean => {
-    const availability = user.availabilities?.find(
+    // Se non ci sono disponibilità caricate, assumiamo non disponibile per sicurezza
+    if (!user.availabilities || user.availabilities.length === 0) return false
+    
+    const availability = user.availabilities.find(
       a => a.dayOfWeek === selectedDay && a.shiftType === selectedShiftType
     )
     return availability?.isAvailable || false
