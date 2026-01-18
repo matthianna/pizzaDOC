@@ -2,6 +2,17 @@ import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import bcrypt from 'bcryptjs'
 
+export const PRIORITY_USERS = [
+  'valentino.dipietro',
+  'mario.dipietro',
+  'alessio.tshimanga',
+  'giulia'
+]
+
+export function isPriorityUser(username: string): boolean {
+  return PRIORITY_USERS.includes(username.toLowerCase())
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }

@@ -38,5 +38,13 @@ export function useHaptics() {
     }
   }
 
-  return { lightClick, mediumClick, heavyClick, successClick, errorClick }
+  return { 
+    lightClick, 
+    mediumClick, 
+    heavyClick, 
+    success: successClick, 
+    error: errorClick,
+    successClick, 
+    errorClick 
+  }
 }

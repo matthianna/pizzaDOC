@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import { Role, ShiftType, TransportType } from '@prisma/client'
+import { isPriorityUser } from './utils'
 
 interface UserProfile {
   id: string
@@ -372,7 +373,12 @@ export class EnhancedScheduleAlgorithm {
     })
 
     return users
-      .filter(user => !user.user_roles.some(ur => ur.role === 'ADMIN'))
+      .filter(user => {
+        // Se è un utente prioritario (VIP), includilo SEMPRE (anche se è ADMIN)
+        if (isPriorityUser(user.username)) return true
+        // Altrimenti, includilo solo se NON ha il ruolo ADMIN tra i suoi ruoli
+        return !user.user_roles.some(ur => ur.role === 'ADMIN')
+      })
       .map(user => {
         // Filtra disponibilità escludendo giorni in assenza
         const filteredAvailabilities = user.availabilities

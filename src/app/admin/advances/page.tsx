@@ -5,6 +5,8 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { Plus, Edit, Trash2, DollarSign, Calendar, User, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { getRoleName, cn } from '@/lib/utils'
+import { TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -236,154 +238,147 @@ export default function AdvancesPage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-              <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-orange-600" />
-              Acconti Dipendenti
-            </h1>
-            <p className="text-sm sm:text-base text-gray-800 mt-1">
-              Gestisci gli acconti erogati ai dipendenti
-            </p>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Moderno */}
+        <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="p-4 bg-orange-600 rounded-2xl shadow-lg shadow-orange-200">
+                <DollarSign className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+                  Acconti Dipendenti
+                </h1>
+                <p className="text-gray-500 font-medium mt-1">
+                  Gestione e monitoraggio degli acconti erogati alla squadra.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={openCreateForm}
+              className="bg-orange-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-700 shadow-lg shadow-orange-200 transition-all flex items-center justify-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Nuovo Acconto
+            </button>
           </div>
-          <button
-            onClick={openCreateForm}
-            className="bg-orange-600 text-white px-3 py-2 text-sm sm:px-4 sm:py-2 rounded-md hover:bg-orange-700 flex items-center justify-center"
-          >
-            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
-            Nuovo Acconto
-          </button>
         </div>
 
-        {/* Filter & Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white shadow rounded-lg p-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+        {/* Filter & Global Stats Moderni */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 bg-white rounded-3xl shadow-soft border border-gray-100 p-6">
+            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">
               Filtra per dipendente
             </label>
-            <Select
-              options={[
-                { value: '', label: 'Tutti i dipendenti' },
-                ...users.map(u => ({ value: u.id, label: u.username }))
-              ]}
-              value={filterUserId}
-              onChange={(value) => setFilterUserId(value as string)}
-            />
-          </div>
-
-          <div className="bg-white shadow rounded-lg p-4">
-            <div className="text-sm text-gray-600">Totale acconti {filterUserId && '(filtrato)'}</div>
-            <div className="text-2xl font-bold text-orange-600">
-              CHF {totalAdvances.toFixed(2)}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {filteredAdvances.length} {filteredAdvances.length === 1 ? 'acconto' : 'acconti'}
-            </div>
-          </div>
-        </div>
-
-        {/* Advances List */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Dipendente
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Data
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Importo
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Note
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Azioni
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredAdvances.map((advance) => (
-                  <tr key={advance.id} className="hover:bg-gray-50">
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 text-gray-400 mr-2" />
-                        <div className="text-sm font-medium text-gray-900">
-                          {advance.user.username}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-800">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                        {format(new Date(advance.date), 'dd MMM yyyy', { locale: it })}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-orange-600">
-                        CHF {advance.amount.toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4">
-                      <div className="text-sm text-gray-800 max-w-xs truncate">
-                        {advance.notes || '-'}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-1 sm:space-x-2">
-                        <button
-                          onClick={() => openEditForm(advance)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="Modifica"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => openDeleteConfirm(advance)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Elimina"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <select
+                value={filterUserId}
+                onChange={(e) => setFilterUserId(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-gray-50 border-gray-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all appearance-none"
+              >
+                <option value="">Tutti i dipendenti</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.username}</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </div>
           </div>
 
-          {filteredAdvances.length === 0 && (
-            <div className="text-center py-12">
-              <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-700">Nessun acconto trovato</p>
+          <div className="lg:col-span-2 bg-gradient-to-br from-orange-600 to-orange-500 rounded-3xl shadow-lg shadow-orange-200 p-6 flex items-center justify-between relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-10">
+              <TrendingUp className="h-24 w-24 text-white" />
             </div>
-          )}
+            <div className="relative z-10">
+              <p className="text-xs font-black text-orange-100 uppercase tracking-widest mb-1">
+                Totale Erogato {filterUserId && '(Filtrato)'}
+              </p>
+              <p className="text-4xl font-black text-white tracking-tight">
+                CHF {totalAdvances.toFixed(2)}
+              </p>
+            </div>
+            <div className="bg-white/20 backdrop-blur-md rounded-2xl px-4 py-3 text-right relative z-10 border border-white/20">
+              <p className="text-[10px] font-black text-orange-50 uppercase tracking-widest">Operazioni</p>
+              <p className="text-xl font-black text-white">{filteredAdvances.length}</p>
+            </div>
+          </div>
         </div>
 
-        {/* Totali per utente */}
+        {/* Totali per utente Moderni */}
         {!filterUserId && advances.length > 0 && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Totale acconti per dipendente</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-8">
+            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6">Riepilogo per dipendente</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {getTotalByUser().map(({ username, total }) => (
-                <div key={username} className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-gray-900">{username}</div>
-                    <div className="text-lg font-bold text-orange-600">
-                      CHF {total.toFixed(2)}
-                    </div>
-                  </div>
+                <div key={username} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 hover:shadow-md transition-all">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 truncate">{username}</p>
+                  <p className="text-lg font-black text-gray-900 tracking-tight">CHF {total.toFixed(0)}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Advances List Moderna */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredAdvances.length === 0 ? (
+            <div className="col-span-full bg-white rounded-3xl shadow-soft border border-dashed border-gray-300 p-20 text-center">
+              <div className="p-4 bg-gray-50 rounded-full w-fit mx-auto mb-4">
+                <DollarSign className="h-10 w-10 text-gray-300" />
+              </div>
+              <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Nessun acconto trovato</p>
+            </div>
+          ) : (
+            filteredAdvances.map((advance) => (
+              <div key={advance.id} className="bg-white rounded-3xl shadow-soft border border-gray-100 p-6 hover:shadow-xl transition-all group">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center font-black text-orange-600 text-sm border-2 border-white shadow-sm">
+                      {advance.user.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-gray-900">{advance.user.username}</p>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase">{getRoleName(advance.user.primaryRole)}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-black text-orange-600 tracking-tight">CHF {advance.amount.toFixed(2)}</p>
+                    <div className="flex items-center justify-end gap-1 text-[10px] font-bold text-gray-400 uppercase">
+                      <Calendar className="h-3 w-3" />
+                      {format(new Date(advance.date), 'd MMM yyyy', { locale: it })}
+                    </div>
+                  </div>
+                </div>
+
+                {advance.notes && (
+                  <div className="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100 relative">
+                    <p className="text-xs text-gray-600 font-medium leading-relaxed italic">
+                      &quot;{advance.notes}&quot;
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-4 border-t border-gray-50">
+                  <button
+                    onClick={() => openEditForm(advance)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-50 transition-all"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                    Modifica
+                  </button>
+                  <button
+                    onClick={() => openDeleteConfirm(advance)}
+                    className="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all"
+                    title="Elimina"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Create/Edit Form Modal */}

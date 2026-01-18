@@ -9,6 +9,7 @@ import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { isPriorityUser } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
     try {
@@ -67,14 +68,17 @@ export async function POST(request: NextRequest) {
         const uniqueUserIds = [...new Set(schedule.shifts.map(s => s.userId))]
         console.log(`[NOTIFY] Found ${uniqueUserIds.length} unique users to notify`)
 
-        // ⭐ Filtra per escludere gli ADMIN
-        const usersToNotify = await prisma.user.findMany({
+        // ⭐ Filtra per escludere gli ADMIN (eccetto i VIP come Valentino/Mario)
+        const usersToFilter = await prisma.user.findMany({
             where: {
-                id: { in: uniqueUserIds },
-                primaryRole: { not: 'ADMIN' }
+                id: { in: uniqueUserIds }
             },
-            select: { id: true }
+            select: { id: true, username: true, primaryRole: true }
         })
+
+        const usersToNotify = usersToFilter.filter(u => 
+            u.primaryRole !== 'ADMIN' || isPriorityUser(u.username)
+        )
 
         const finalUserIds = usersToNotify.map(u => u.id)
         console.log(`[NOTIFY] After filtering admins, ${finalUserIds.length} users remain to notify`)

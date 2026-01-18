@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/select'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 
 interface Holiday {
   id: string
@@ -102,117 +103,120 @@ export default function HolidaysPage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-              <Calendar className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-orange-600" />
-              Giorni Festivi
-            </h1>
-            <p className="text-sm sm:text-base text-gray-800 mt-1">
-              Gestisci i giorni di chiusura dell'azienda
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Select
-              label=""
-              options={years.map(year => ({
-                value: year.toString(),
-                label: year.toString()
-              }))}
-              value={filterYear}
-              onChange={(value) => setFilterYear(value)}
-            />
-            <button
-              onClick={() => {
-                setEditingHoliday(null)
-                setShowModal(true)
-              }}
-              className="bg-orange-600 text-white px-3 py-2 text-sm sm:px-4 sm:py-2 rounded-md hover:bg-orange-700 flex items-center justify-center whitespace-nowrap"
-            >
-              <Plus className="h-4 w-4 mr-1 sm:mr-2" />
-              Nuovo Festivo
-            </button>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Moderno */}
+        <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="p-4 bg-orange-600 rounded-2xl shadow-lg shadow-orange-200">
+                <Calendar className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+                  Giorni Festivi
+                </h1>
+                <p className="text-gray-500 font-medium mt-1">
+                  Gestisci i giorni di chiusura dell&apos;azienda e i periodi di festa.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="bg-gray-100 p-1 rounded-xl flex items-center">
+                {years.map(year => (
+                  <button
+                    key={year}
+                    onClick={() => setFilterYear(year.toString())}
+                    className={cn(
+                      "px-4 py-2 rounded-lg text-xs font-black transition-all",
+                      filterYear === year.toString()
+                        ? "bg-white text-orange-600 shadow-sm"
+                        : "text-gray-400 hover:text-gray-600"
+                    )}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  setEditingHoliday(null)
+                  setShowModal(true)
+                }}
+                className="bg-orange-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-700 shadow-lg shadow-orange-200 transition-all flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Nuovo Festivo
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Holidays Table */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Data
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tipo Chiusura
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Descrizione
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Azioni
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {holidays.map((holiday) => (
-                  <tr key={holiday.id} className="hover:bg-gray-50">
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className="text-xs sm:text-sm font-medium text-gray-900">
-                        {format(new Date(holiday.date), 'EEEE d MMMM yyyy', { locale: it })}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        holiday.closureType === 'FULL_DAY' 
-                          ? 'bg-red-100 text-red-800'
-                          : holiday.closureType === 'PRANZO_ONLY'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {getClosureTypeName(holiday.closureType)}
-                      </span>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4">
-                      <div className="text-xs sm:text-sm text-gray-700">
-                        {holiday.description || '-'}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-1 sm:space-x-2">
-                        <button
-                          onClick={() => {
-                            setEditingHoliday(holiday)
-                            setShowModal(true)
-                          }}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="Modifica"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => openDeleteConfirm(holiday)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Elimina"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {holidays.length === 0 && (
-            <div className="text-center py-12">
-              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-700">Nessun giorno festivo per il {filterYear}</p>
+        {/* Holidays Content */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {holidays.length === 0 ? (
+            <div className="col-span-full bg-white rounded-3xl shadow-soft border border-dashed border-gray-300 p-20 text-center">
+              <div className="p-4 bg-gray-50 rounded-full w-fit mx-auto mb-4">
+                <Calendar className="h-10 w-10 text-gray-300" />
+              </div>
+              <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Nessun giorno festivo per il {filterYear}</p>
             </div>
+          ) : (
+            holidays.map((holiday) => (
+              <div key={holiday.id} className="bg-white rounded-3xl shadow-soft border border-gray-100 p-6 hover:shadow-xl transition-all group relative overflow-hidden">
+                <div className={cn(
+                  "absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 transition-transform group-hover:scale-110",
+                  holiday.closureType === 'FULL_DAY' ? "bg-red-500" :
+                  holiday.closureType === 'PRANZO_ONLY' ? "bg-yellow-500" : "bg-blue-500"
+                )} />
+                
+                <div className="flex justify-between items-start mb-6">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Data Festività</p>
+                    <h3 className="text-lg font-black text-gray-900 leading-tight">
+                      {format(new Date(holiday.date), 'EEEE', { locale: it })}
+                      <br />
+                      <span className="text-orange-600">{format(new Date(holiday.date), 'd MMMM yyyy', { locale: it })}</span>
+                    </h3>
+                  </div>
+                  <span className={cn(
+                    "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm",
+                    holiday.closureType === 'FULL_DAY' ? "bg-red-50 text-red-700 border border-red-100" :
+                    holiday.closureType === 'PRANZO_ONLY' ? "bg-yellow-50 text-yellow-700 border border-yellow-100" :
+                    "bg-blue-50 text-blue-700 border border-blue-100"
+                  )}>
+                    {getClosureTypeName(holiday.closureType)}
+                  </span>
+                </div>
+
+                {holiday.description && (
+                  <div className="mb-6">
+                    <p className="text-xs font-medium text-gray-600 leading-relaxed italic bg-gray-50 p-3 rounded-xl border border-gray-100">
+                      &quot;{holiday.description}&quot;
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-4 border-t border-gray-50">
+                  <button
+                    onClick={() => {
+                      setEditingHoliday(holiday)
+                      setShowModal(true)
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-50 transition-all"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                    Modifica
+                  </button>
+                  <button
+                    onClick={() => openDeleteConfirm(holiday)}
+                    className="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all"
+                    title="Elimina"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>

@@ -10,6 +10,7 @@ import { getDayName, getShiftTypeName } from '@/lib/utils'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { useHaptics } from '@/hooks/use-haptics'
+import { isPriorityUser } from '@/lib/utils'
 import type { Role } from '@prisma/client'
 
 interface Availability {
@@ -36,7 +37,8 @@ export default function AvailabilityPage() {
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const { lightClick, success } = useHaptics()
 
-  const isAdmin = session?.user.roles.includes('ADMIN')
+  const isUserPriority = session?.user.username ? isPriorityUser(session.user.username) : false
+  const isAdmin = session?.user.roles.includes('ADMIN') && !isUserPriority
 
   // Check if the week has already started (can't edit availability)
   const hasWeekStarted = () => {

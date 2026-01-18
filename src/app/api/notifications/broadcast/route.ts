@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { createNotification, sendPushToUsers } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
 import { getNextWeekStart } from '@/lib/date-utils'
+import { isPriorityUser } from '@/lib/utils'
 
 // POST /api/notifications/broadcast - Send notification to all users
 export async function POST(request: Request) {
@@ -36,12 +37,13 @@ export async function POST(request: Request) {
             const targetUsers = await prisma.user.findMany({
                 where: {
                     isActive: true,
-                    primaryRole: { not: 'ADMIN' }, // ⭐ Escludi ADMIN
                     id: { notIn: userIdsWithAvail }
                 },
-                select: { id: true }
+                select: { id: true, username: true, primaryRole: true }
             })
-            userIds = targetUsers.map(u => u.id)
+            userIds = targetUsers
+                .filter(u => u.primaryRole !== 'ADMIN' || isPriorityUser(u.username))
+                .map(u => u.id)
         } else if (filter === 'missing_hours') {
             // Trova turni negli ultimi 30 giorni che non hanno ore inserite
             const now = new Date()
@@ -54,14 +56,14 @@ export async function POST(request: Request) {
                             gte: thirtyDaysAgo,
                             lte: now
                         }
-                    },
-                    user: {
-                        primaryRole: { not: 'ADMIN' } // ⭐ Escludi ADMIN
                     }
                 },
                 include: {
                     worked_hours: true,
-                    schedules: true
+                    schedules: true,
+                    user: {
+                        select: { id: true, username: true, primaryRole: true }
+                    }
                 }
             })
 
@@ -71,20 +73,24 @@ export async function POST(request: Request) {
                 shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
 
                 if (shiftDate < now && (!shift.worked_hours || shift.worked_hours.status === 'REJECTED')) {
-                    targetUserIds.add(shift.userId)
+                    // Solo se non è admin o se è un VIP
+                    if (shift.user.primaryRole !== 'ADMIN' || isPriorityUser(shift.user.username)) {
+                        targetUserIds.add(shift.userId)
+                    }
                 }
             })
             userIds = Array.from(targetUserIds)
         } else {
-            // Get all active non-admin users
+            // Get all active users
             const users = await prisma.user.findMany({
                 where: { 
-                    isActive: true,
-                    primaryRole: { not: 'ADMIN' } // ⭐ Escludi ADMIN
+                    isActive: true
                 },
-                select: { id: true }
+                select: { id: true, username: true, primaryRole: true }
             })
-            userIds = users.map(u => u.id)
+            userIds = users
+                .filter(u => u.primaryRole !== 'ADMIN' || isPriorityUser(u.username))
+                .map(u => u.id)
         }
 
         // Create notifications in database

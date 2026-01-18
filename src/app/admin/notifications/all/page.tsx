@@ -52,13 +52,12 @@ export default function AdminNotificationBoard() {
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
     const [unreadOnly, setUnreadOnly] = useState(false)
+    const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
     const fetchNotifications = async () => {
         if (!session?.user?.id) return
         setLoading(true)
         try {
-            // Fetch notifications (for admin, they usually want to see their own alerts + broadcast history)
-            // But here we focus on the admin's inbox which contains the critical system alerts
             const response = await fetch('/api/notifications?limit=100')
             if (response.ok) {
                 const data = await response.json()
@@ -68,6 +67,45 @@ export default function AdminNotificationBoard() {
             console.error('Error fetching notifications:', error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const markAsRead = async (notificationId: string) => {
+        try {
+            const response = await fetch(`/api/notifications/${notificationId}/read`, { method: 'POST' })
+            if (response.ok) {
+                setNotifications(prev =>
+                    prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
+                )
+            }
+        } catch (error) {
+            console.error('Error marking notification as read:', error)
+        }
+    }
+
+    const deleteNotification = async (notificationId: string) => {
+        if (!confirm('Sei sicuro di voler eliminare questa notifica?')) return
+        
+        setIsDeleting(notificationId)
+        try {
+            const response = await fetch(`/api/notifications/${notificationId}`, { method: 'DELETE' })
+            if (response.ok) {
+                setNotifications(prev => prev.filter(n => n.id !== notificationId))
+                if (selectedNotification?.id === notificationId) {
+                    setSelectedNotification(null)
+                }
+            }
+        } catch (error) {
+            console.error('Error deleting notification:', error)
+        } finally {
+            setIsDeleting(null)
+        }
+    }
+
+    const handleSelectNotification = (n: Notification) => {
+        setSelectedNotification(n)
+        if (!n.isRead) {
+            markAsRead(n.id)
         }
     }
 
@@ -202,7 +240,7 @@ export default function AdminNotificationBoard() {
                             filteredNotifications.map(n => (
                                 <div
                                     key={n.id}
-                                    onClick={() => setSelectedNotification(n)}
+                                    onClick={() => handleSelectNotification(n)}
                                     className={cn(
                                         "group p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden",
                                         selectedNotification?.id === n.id
@@ -294,11 +332,18 @@ export default function AdminNotificationBoard() {
                                                 <ChevronRight className="h-5 w-5" />
                                             </a>
                                             <button
-                                                className="px-8 py-5 border border-gray-200 text-gray-700 rounded-2xl font-black hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
-                                                onClick={() => setSelectedNotification(null)}
+                                                className="px-8 py-5 border border-red-200 text-red-700 rounded-2xl font-black hover:bg-red-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                                onClick={() => deleteNotification(selectedNotification.id)}
+                                                disabled={isDeleting === selectedNotification.id}
                                             >
-                                                Archivia
-                                                <Trash2 className="h-5 w-5" />
+                                                {isDeleting === selectedNotification.id ? (
+                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        Elimina
+                                                        <Trash2 className="h-5 w-5" />
+                                                    </>
+                                                )}
                                             </button>
                                         </div>
                                     )}

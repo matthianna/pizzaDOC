@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
+import { isPriorityUser } from '@/lib/utils'
 
 // Normalizza una data a mezzanotte UTC
 function normalizeDate(dateInput: string | Date): Date {
@@ -54,14 +55,14 @@ export async function GET(request: NextRequest) {
     console.log(`📅 Checking availability for week: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`)
 
     // Trova tutti gli utenti attivi con disponibilità e assenze
-    const activeUsers = await prisma.user.findMany({
+    const allActiveUsers = await prisma.user.findMany({
       where: {
-        isActive: true,
-        primaryRole: { not: 'ADMIN' } // ⭐ Escludi ADMIN dai promemoria
+        isActive: true
       },
       select: {
         id: true,
         username: true,
+        primaryRole: true,
         phoneNumber: true,
         whatsappNotificationsEnabled: true,
         pushNotificationsEnabled: true,
@@ -102,6 +103,11 @@ export async function GET(request: NextRequest) {
         }
       }
     })
+
+    // ⭐ Escludi ADMIN dai promemoria (eccetto i VIP come Valentino/Mario)
+    const activeUsers = allActiveUsers.filter(u => 
+      u.primaryRole !== 'ADMIN' || isPriorityUser(u.username)
+    )
 
     // Filtra utenti senza disponibilità per la settimana prossima
     // Escludi l'utente "admin" dalla lista

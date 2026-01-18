@@ -233,43 +233,44 @@ export default function UsersPage() {
       </div>
 
       <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <div className="flex flex-col items-center gap-1">
-            <p className="text-[8px] font-black text-gray-400 uppercase">WA</p>
-            <button
-              onClick={() => toggleWhatsAppNotifications(user.id, user.whatsappNotificationsEnabled)}
-              className={cn(
-                "w-8 h-4 rounded-full relative transition-colors",
-                user.whatsappNotificationsEnabled ? "bg-green-500" : "bg-gray-200"
-              )}
-            >
-              <div className={cn(
-                "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
-                user.whatsappNotificationsEnabled ? "left-4.5" : "left-0.5"
-              )} />
-            </button>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-[8px] font-black text-gray-400 uppercase">PUSH</p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
-                className={cn(
-                  "w-8 h-4 rounded-full relative transition-colors",
-                  user.pushNotificationsEnabled ? "bg-orange-500" : "bg-gray-200"
+            <p className="text-[8px] font-black text-gray-400 uppercase">Notifiche</p>
+            <div className="flex items-center gap-3">
+              {/* WhatsApp Indicator */}
+              <div className="relative">
+                <div className={cn(
+                  "p-1 rounded-md transition-colors",
+                  user.whatsappNotificationsEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
+                )}>
+                  <Smartphone className="w-3.5 h-3.5" />
+                </div>
+                {user.whatsappNotificationsEnabled && (
+                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white" />
                 )}
-              >
-                <div className={cn(
-                  "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
-                  user.pushNotificationsEnabled ? "left-4.5" : "left-0.5"
-                )} />
-              </button>
-              {user.pushNotificationsEnabled && (
-                <div className={cn(
-                  "w-1.5 h-1.5 rounded-full",
-                  user.push_subscriptions?.length > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"
-                )} />
-              )}
+              </div>
+
+              {/* Push Toggle + Indicator */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
+                  className={cn(
+                    "w-8 h-4 rounded-full relative transition-colors",
+                    user.pushNotificationsEnabled ? "bg-orange-500" : "bg-gray-200"
+                  )}
+                >
+                  <div className={cn(
+                    "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
+                    user.pushNotificationsEnabled ? "left-4.5" : "left-0.5"
+                  )} />
+                </button>
+                {user.pushNotificationsEnabled && (
+                  <div className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    user.push_subscriptions?.length > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"
+                  )} title={user.push_subscriptions?.length > 0 ? "Dispositivo collegato" : "App non ancora aperta/configurata"} />
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -321,37 +322,44 @@ export default function UsersPage() {
         </div>
       </td>
       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-        <button
-          onClick={() => toggleWhatsAppNotifications(user.id, user.whatsappNotificationsEnabled)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${user.whatsappNotificationsEnabled ? 'bg-green-600' : 'bg-gray-300'
-            }`}
-          title={user.whatsappNotificationsEnabled ? 'WhatsApp Abilitato' : 'WhatsApp Disabilitato'}
-        >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.whatsappNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-          />
-        </button>
-      </td>
-      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${user.pushNotificationsEnabled ? 'bg-orange-600' : 'bg-gray-300'
-              }`}
-            title={user.pushNotificationsEnabled ? 'Push Abilitato' : 'Push Disabilitato'}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.pushNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-            />
-          </button>
-          {user.pushNotificationsEnabled && (
-            <span
-              className={`w-2 h-2 rounded-full ${user.push_subscriptions?.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}
-              title={user.push_subscriptions?.length > 0 ? 'Dispositivo collegato' : 'Nessun dispositivo collegato'}
-            />
-          )}
+        <div className="flex items-center gap-4">
+          {/* WhatsApp Status (No toggle anymore, just icon indicator) */}
+          <div className="flex items-center gap-1.5" title={user.whatsappNotificationsEnabled ? 'WhatsApp Abilitato' : 'WhatsApp Disabilitato'}>
+            <div className={cn(
+              "p-1.5 rounded-lg",
+              user.whatsappNotificationsEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
+            )}>
+              <Smartphone className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Push Notifications with Device Check */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
+              className={cn(
+                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2",
+                user.pushNotificationsEnabled ? "bg-orange-600" : "bg-gray-300"
+              )}
+              title={user.pushNotificationsEnabled ? 'Push Abilitate' : 'Push Disabilitate'}
+            >
+              <span
+                className={cn(
+                  "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                  user.pushNotificationsEnabled ? "translate-x-6" : "translate-x-1"
+                )}
+              />
+            </button>
+            {user.pushNotificationsEnabled && (
+              <span
+                className={cn(
+                  "w-2.5 h-2.5 rounded-full",
+                  user.push_subscriptions?.length > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"
+                )}
+                title={user.push_subscriptions?.length > 0 ? 'Configurato correttamente (Dispositivo collegato)' : 'ATTENZIONE: App non ancora aperta sul telefono'}
+              />
+            )}
+          </div>
         </div>
       </td>
       <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
@@ -477,10 +485,7 @@ export default function UsersPage() {
                     Trasporti
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    WhatsApp
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Push
+                    Notifiche
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Stato
@@ -533,10 +538,7 @@ export default function UsersPage() {
                       Trasporti
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      WhatsApp
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Push
+                      Notifiche
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Stato
@@ -623,6 +625,7 @@ function UserFormModal({
     primaryTransport: user?.primaryTransport || '',
     isActive: user?.isActive ?? true,
     trackHours: user?.trackHours ?? true,
+    whatsappNotificationsEnabled: user?.whatsappNotificationsEnabled ?? true,
     pushNotificationsEnabled: user?.pushNotificationsEnabled ?? true
   })
   const [loading, setLoading] = useState(false)
@@ -811,6 +814,16 @@ function UserFormModal({
                     className="mr-3 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
                   />
                   <span className="text-sm font-medium text-gray-900">Notifiche Push</span>
+                </label>
+
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={formData.whatsappNotificationsEnabled}
+                    onChange={(e) => setFormData({ ...formData, whatsappNotificationsEnabled: e.target.checked })}
+                    className="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-900">Notifiche WhatsApp</span>
                 </label>
               </div>
             )}

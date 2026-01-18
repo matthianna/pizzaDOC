@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import { Role, ShiftType, TransportType } from '@prisma/client'
+import { isPriorityUser } from './utils'
 
 interface UserProfile {
   id: string
@@ -63,14 +64,7 @@ interface CandidateScore {
 
 export class MaxCoverageAlgorithm {
   
-  // ⭐ CONFIGURAZIONE UTENTI SPECIALI
-  private readonly PRIORITY_USERS = [
-    'valentino.dipietro',
-    'mario.dipietro', 
-    'alessio.tshimanga',
-    'giulia' // ⭐ Giulia ha precedenza: quando disponibile, deve lavorare
-  ]
-
+  // Orari personalizzati per utenti speciali
   private readonly CUSTOM_START_TIMES: Record<string, { pranzo: string; cena: string }> = {
     'mario.dipietro': { pranzo: '11:00', cena: '17:00' },
     'valentino.dipietro': { pranzo: '11:00', cena: '17:00' }
@@ -105,7 +99,7 @@ export class MaxCoverageAlgorithm {
    * Verifica se un utente è prioritario
    */
   private isPriorityUser(username: string): boolean {
-    return this.PRIORITY_USERS.includes(username)
+    return isPriorityUser(username)
   }
   
   /**
@@ -1320,7 +1314,12 @@ export class MaxCoverageAlgorithm {
     })
 
     return users
-      .filter(user => !user.user_roles.some(ur => ur.role === 'ADMIN'))
+      .filter(user => {
+        // Se è un utente prioritario (VIP), includilo SEMPRE (anche se è ADMIN)
+        if (this.isPriorityUser(user.username)) return true
+        // Altrimenti, includilo solo se NON ha il ruolo ADMIN tra i suoi ruoli
+        return !user.user_roles.some(ur => ur.role === 'ADMIN')
+      })
       .filter(user => user.primaryRole !== null) // Exclude users without primary role
       .map(user => {
         // Filtra disponibilità escludendo giorni in assenza

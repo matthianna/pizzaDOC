@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { whatsappService } from '@/lib/whatsapp-service'
+import { isPriorityUser } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     today.setHours(0, 0, 0, 0)
 
     // Query 1: Turni senza ORE (nessuna riga in worked_hours)
-    const shiftsWithoutHours = await prisma.shifts.findMany({
+    const initialShiftsWithoutHours = await prisma.shifts.findMany({
       where: {
         schedules: {
           weekStart: {
@@ -56,7 +57,6 @@ export async function GET(request: NextRequest) {
         user: {
           isActive: true,
           trackHours: true,
-          primaryRole: { not: 'ADMIN' }, // ⭐ Escludi ADMIN
           whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
         }
       },
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Query 2: Turni con ore RIFIUTATE
-    const shiftsWithRejectedHours = await prisma.shifts.findMany({
+    const initialShiftsWithRejectedHours = await prisma.shifts.findMany({
       where: {
         schedules: {
           weekStart: {
@@ -92,7 +92,6 @@ export async function GET(request: NextRequest) {
         user: {
           isActive: true,
           trackHours: true,
-          primaryRole: { not: 'ADMIN' }, // ⭐ Escludi ADMIN
           whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
         }
       },
@@ -111,6 +110,14 @@ export async function GET(request: NextRequest) {
         }
       }
     })
+
+    // ⭐ Filtra per escludere gli ADMIN (eccetto i VIP come Valentino/Mario)
+    const shiftsWithoutHours = initialShiftsWithoutHours.filter(s => 
+      s.user.primaryRole !== 'ADMIN' || isPriorityUser(s.user.username)
+    )
+    const shiftsWithRejectedHours = initialShiftsWithRejectedHours.filter(s => 
+      s.user.primaryRole !== 'ADMIN' || isPriorityUser(s.user.username)
+    )
 
     // Combina i risultati
     const allShifts = [...shiftsWithoutHours, ...shiftsWithRejectedHours]
