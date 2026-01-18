@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Plus, Edit, Trash2, Calendar, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Calendar, X, ChevronRight, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
+import { Modal } from '@/components/ui/modal'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -316,75 +317,98 @@ function HolidayFormModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-lg w-full">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {holiday ? 'Modifica Giorno Festivo' : 'Nuovo Giorno Festivo'}
-            </h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Data"
-              type="date"
-              required
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            />
-
-            <Select
-              label="Tipo di chiusura"
-              options={[
-                { value: 'FULL_DAY', label: 'Giorno intero' },
-                { value: 'PRANZO_ONLY', label: 'Solo pranzo' },
-                { value: 'CENA_ONLY', label: 'Solo cena' }
-              ]}
-              value={formData.closureType}
-              onChange={(value) => setFormData({ ...formData, closureType: value as any })}
-            />
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descrizione (opzionale)
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Es: Natale, Capodanno, Inventario..."
-              />
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-              >
-                Annulla
-              </Button>
-              <Button
-                type="submit"
-                isLoading={loading}
-              >
-                Salva
-              </Button>
-            </div>
-          </form>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={holiday ? 'Modifica Festivo' : 'Nuova Festività'}
+      subtitle={holiday ? 'Aggiorna i dettagli della chiusura' : 'Imposta una nuova data di chiusura'}
+      headerIcon={<Calendar className="h-6 w-6" />}
+      maxWidth="md"
+    >
+      <form onSubmit={handleSubmit} className="space-y-8 pt-4">
+        {/* Data section */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Data Chiusura</label>
+          <input
+            type="date"
+            required
+            value={formData.date}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            className="w-full bg-gray-50 border-gray-100 border-2 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+          />
         </div>
-      </div>
-    </div>
+
+        {/* Closure Type section */}
+        <div className="space-y-4">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Modalità Chiusura</label>
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              { id: 'FULL_DAY', label: 'Giorno Intero', desc: 'Chiuso sia a pranzo che a cena' },
+              { id: 'PRANZO_ONLY', label: 'Solo Pranzo', desc: 'Aperto regolarmente a cena' },
+              { id: 'CENA_ONLY', label: 'Solo Cena', desc: 'Aperto regolarmente a pranzo' }
+            ].map((type) => (
+              <label 
+                key={type.id} 
+                className={cn(
+                  "flex items-center justify-between p-4 border-2 rounded-2xl cursor-pointer transition-all",
+                  formData.closureType === type.id
+                    ? "bg-orange-50 border-orange-500 shadow-sm"
+                    : "bg-white border-gray-100 hover:border-gray-200"
+                )}
+              >
+                <div>
+                  <p className="text-sm font-black text-gray-900">{type.label}</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{type.desc}</p>
+                </div>
+                <div className={cn(
+                  "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                  formData.closureType === type.id ? "bg-orange-500 border-orange-500" : "border-gray-200"
+                )}>
+                  {formData.closureType === type.id && <Check className="h-3 w-3 text-white stroke-[4]" />}
+                </div>
+                <input
+                  type="radio"
+                  name="closureType"
+                  className="hidden"
+                  checked={formData.closureType === type.id}
+                  onChange={() => setFormData({ ...formData, closureType: type.id as any })}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Description section */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Motivazione (Opzionale)</label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            rows={3}
+            placeholder="Es: Vacanze estive, Manutenzione straordinaria..."
+            className="w-full bg-gray-50 border-gray-100 border-2 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all placeholder-gray-300 resize-none"
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 rounded-2xl transition-all"
+          >
+            Annulla
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-[2] py-4 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {loading ? 'Salvataggio...' : 'Salva Festività'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 

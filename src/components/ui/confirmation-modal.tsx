@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, X } from 'lucide-react'
+import { AlertTriangle, X, RefreshCw } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ConfirmationModalProps {
   isOpen: boolean
@@ -56,137 +57,95 @@ export function ConfirmationModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 max-w-lg w-full transform transition-all">
-        {/* Header */}
-        <div className={`px-6 py-4 border-b rounded-t-xl ${
-          isDangerous 
-            ? 'bg-gradient-to-r from-red-50 to-orange-50 border-red-100'
-            : 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-100'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                isDangerous ? 'bg-red-100' : 'bg-blue-100'
-              }`}>
-                <AlertTriangle className={`h-5 w-5 ${
-                  isDangerous ? 'text-red-600' : 'text-blue-600'
-                }`} />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-                <p className={`text-sm ${
-                  isDangerous ? 'text-red-600' : 'text-blue-600'
-                }`}>
-                  Richiesta conferma
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleClose}
-              disabled={isLoading}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                isDangerous
-                  ? 'bg-red-100 hover:bg-red-200'
-                  : 'bg-blue-100 hover:bg-blue-200'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <X className={`h-4 w-4 ${
-                isDangerous ? 'text-red-600' : 'text-blue-600'
-              }`} />
-            </button>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-300">
+        {/* Header Visual */}
+        <div className={cn(
+          "h-32 flex items-center justify-center relative overflow-hidden",
+          isDangerous ? "bg-red-600" : "bg-orange-600"
+        )}>
+          {/* Decorative patterns */}
+          <div className="absolute inset-0 opacity-10">
+            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
+            </svg>
           </div>
+          <div className="relative bg-white p-5 rounded-[2rem] shadow-xl">
+            <AlertTriangle className={cn("h-10 w-10", isDangerous ? "text-red-600" : "text-orange-600")} />
+          </div>
+          
+          <button
+            onClick={handleClose}
+            disabled={isLoading}
+            className="absolute top-6 right-6 p-2 bg-black/10 hover:bg-black/20 text-white rounded-full transition-all active:scale-90"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5">
-          {/* Description */}
-          <div className={`border rounded-lg p-4 ${
-            isDangerous
-              ? 'bg-red-50 border-red-200'
-              : 'bg-blue-50 border-blue-200'
-          }`}>
-            <p className={`text-sm ${
-              isDangerous ? 'text-red-800' : 'text-blue-800'
-            }`}>
-              {description}
-            </p>
-          </div>
+        <div className="p-10 text-center">
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-2">{title}</h2>
+          <p className="text-gray-500 font-medium leading-relaxed mb-8">
+            {description}
+          </p>
 
-          {/* Metadata */}
           {metadata && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="mb-8 bg-gray-50 rounded-2xl p-5 border border-gray-100 text-left">
               {metadata}
             </div>
           )}
 
-          {/* Confirmation Input */}
-          <div className="space-y-3">
-            <label className="block text-sm font-semibold text-gray-800">
-              Per confermare, digita: <span className="font-mono text-red-600">{confirmPhrase}</span>
-            </label>
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              disabled={isLoading}
-              placeholder={`Digita "${confirmPhrase}" per confermare`}
-              className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              autoComplete="off"
-              autoFocus
-            />
-            {inputValue && inputValue !== confirmPhrase && (
-              <p className="text-xs text-red-600">
-                ⚠️ Il testo non corrisponde. Controlla le maiuscole.
-              </p>
+          {/* Confirmation Input Section */}
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                Digita <span className={cn("text-sm", isDangerous ? "text-red-600" : "text-orange-600")}>{confirmPhrase}</span> per confermare
+              </label>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                disabled={isLoading}
+                placeholder="Conferma qui..."
+                className="w-full bg-gray-50 border-gray-200 border-2 rounded-2xl px-6 py-4 text-center text-sm font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all placeholder-gray-300"
+                autoComplete="off"
+                autoFocus
+              />
+            </div>
+
+            {isDangerous && (
+              <div className="flex items-center justify-center gap-2 text-red-500">
+                <AlertTriangle className="h-3 w-3" />
+                <span className="text-[9px] font-black uppercase tracking-wider italic">Azione irreversibile</span>
+              </div>
             )}
           </div>
-
-          {/* Warning */}
-          {isDangerous && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm">
-                  <p className="font-medium text-amber-800">Attenzione!</p>
-                  <p className="text-amber-700">
-                    Questa azione non può essere annullata. Assicurati di voler procedere.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-xl">
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={handleClose}
-              disabled={isLoading}
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Annulla
-            </button>
-            <button
-              onClick={handleConfirm}
-              disabled={!isConfirmEnabled}
-              className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 ${
-                isDangerous
-                  ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800'
-                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-              }`}
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>In corso...</span>
-                </>
-              ) : (
-                <span>{confirmButtonText}</span>
-              )}
-            </button>
-          </div>
+        {/* Actions */}
+        <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={handleClose}
+            disabled={isLoading}
+            className="flex-1 px-8 py-4 text-sm font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 rounded-2xl transition-all"
+          >
+            Annulla
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!isConfirmEnabled}
+            className={cn(
+              "flex-[2] px-8 py-4 text-sm font-black uppercase tracking-widest text-white rounded-2xl shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2",
+              isDangerous ? "bg-red-600 shadow-red-200" : "bg-orange-600 shadow-orange-200"
+            )}
+          >
+            {isLoading ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              confirmButtonText
+            )}
+          </button>
         </div>
       </div>
     </div>

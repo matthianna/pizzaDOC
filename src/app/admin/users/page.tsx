@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Smartphone } from 'lucide-react'
+import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Smartphone, Check, Clock, ChevronRight } from 'lucide-react'
 import { cn, getRoleName, getTransportName } from '@/lib/utils'
 import { Role, TransportType } from '@prisma/client'
 import { Select } from '@/components/ui/select'
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
+import { Modal } from '@/components/ui/modal'
 
 interface User {
   id: string
@@ -661,191 +662,209 @@ function UserFormModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {user ? 'Modifica Utente' : 'Nuovo Utente'}
-            </h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!user && (
-              <Input
-                label="Nome utente"
-                type="text"
-                required
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                placeholder="Inserisci il nome utente"
-              />
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Ruoli
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {['ADMIN', 'PIZZAIOLO', 'FATTORINO', 'CUCINA', 'SALA'].map((role) => (
-                  <label key={role} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={formData.roles.includes(role as Role)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFormData({
-                            ...formData,
-                            roles: [...formData.roles, role as Role]
-                          })
-                        } else {
-                          setFormData({
-                            ...formData,
-                            roles: formData.roles.filter(r => r !== role)
-                          })
-                        }
-                      }}
-                      className="mr-3 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                    />
-                    <span className="text-sm font-medium text-gray-900">{getRoleName(role)}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <Select
-              label="Ruolo principale"
-              options={[
-                { value: '', label: 'Seleziona ruolo' },
-                ...formData.roles.map(role => ({
-                  value: role,
-                  label: getRoleName(role)
-                }))
-              ]}
-              value={formData.primaryRole}
-              onChange={(value) => setFormData({ ...formData, primaryRole: value as Role })}
-            />
-
-            {formData.roles.includes('FATTORINO') && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Mezzi di trasporto
-                  </label>
-                  <div className="flex gap-4">
-                    {['AUTO', 'SCOOTER'].map((transport) => (
-                      <label key={transport} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors flex-1">
-                        <input
-                          type="checkbox"
-                          checked={formData.transports.includes(transport as TransportType)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData({
-                                ...formData,
-                                transports: [...formData.transports, transport as TransportType]
-                              })
-                            } else {
-                              setFormData({
-                                ...formData,
-                                transports: formData.transports.filter(t => t !== transport)
-                              })
-                            }
-                          }}
-                          className="mr-3 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                        />
-                        <span className="text-sm font-medium text-gray-900">{getTransportName(transport)}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {formData.transports.length > 1 && (
-                  <Select
-                    label="Mezzo principale"
-                    options={[
-                      { value: '', label: 'Seleziona mezzo' },
-                      ...formData.transports.map(transport => ({
-                        value: transport,
-                        label: getTransportName(transport)
-                      }))
-                    ]}
-                    value={formData.primaryTransport}
-                    onChange={(value) => setFormData({ ...formData, primaryTransport: value as TransportType })}
-                  />
-                )}
-              </>
-            )}
-
-            {user && (
-              <div className="pt-2 space-y-3">
-                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="mr-3 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                  />
-                  <span className="text-sm font-medium text-gray-900">Utente attivo</span>
-                </label>
-
-                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.trackHours}
-                    onChange={(e) => setFormData({ ...formData, trackHours: e.target.checked })}
-                    className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="text-sm font-medium text-gray-900">Contare ore lavorate</span>
-                </label>
-
-                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.pushNotificationsEnabled}
-                    onChange={(e) => setFormData({ ...formData, pushNotificationsEnabled: e.target.checked })}
-                    className="mr-3 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                  />
-                  <span className="text-sm font-medium text-gray-900">Notifiche Push</span>
-                </label>
-
-                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.whatsappNotificationsEnabled}
-                    onChange={(e) => setFormData({ ...formData, whatsappNotificationsEnabled: e.target.checked })}
-                    className="mr-3 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                  />
-                  <span className="text-sm font-medium text-gray-900">Notifiche WhatsApp</span>
-                </label>
-              </div>
-            )}
-
-            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-              >
-                Annulla
-              </Button>
-              <Button
-                type="submit"
-                isLoading={loading}
-              >
-                Salva
-              </Button>
-            </div>
-          </form>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={user ? 'Modifica Profilo' : 'Nuovo Collaboratore'}
+      subtitle={user ? 'Aggiorna i dettagli dell\'account' : 'Crea un nuovo profilo squadra'}
+      headerIcon={user ? <Edit className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+      maxWidth="lg"
+    >
+      <form onSubmit={handleSubmit} className="space-y-8 pt-4">
+        {/* Username section */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Nome Utente</label>
+          <input
+            type="text"
+            required
+            disabled={!!user}
+            value={formData.username}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            placeholder="Es: mario.rossi"
+            className="w-full bg-gray-50 border-gray-100 border-2 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all disabled:opacity-50"
+          />
         </div>
-      </div>
-    </div>
+
+        {/* Roles section */}
+        <div className="space-y-4">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Abilitazioni & Ruoli</label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {['ADMIN', 'PIZZAIOLO', 'FATTORINO', 'CUCINA', 'SALA'].map((role) => (
+              <label 
+                key={role} 
+                className={cn(
+                  "flex items-center gap-3 p-4 border-2 rounded-2xl cursor-pointer transition-all",
+                  formData.roles.includes(role as Role)
+                    ? "bg-orange-50 border-orange-500 shadow-sm"
+                    : "bg-white border-gray-100 hover:border-gray-200"
+                )}
+              >
+                <div className={cn(
+                  "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                  formData.roles.includes(role as Role) ? "bg-orange-500 border-orange-500" : "border-gray-200"
+                )}>
+                  {formData.roles.includes(role as Role) && <Check className="h-3 w-3 text-white stroke-[4]" />}
+                </div>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={formData.roles.includes(role as Role)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData({ ...formData, roles: [...formData.roles, role as Role] })
+                    } else {
+                      setFormData({ ...formData, roles: formData.roles.filter(r => r !== role) })
+                    }
+                  }}
+                />
+                <span className="text-xs font-black text-gray-900 leading-none">{getRoleName(role)}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Primary Role select */}
+        {formData.roles.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Ruolo Principale</label>
+            <div className="relative">
+              <select
+                required
+                value={formData.primaryRole}
+                onChange={(e) => setFormData({ ...formData, primaryRole: e.target.value as Role })}
+                className="w-full pl-5 pr-12 py-3 bg-gray-50 border-gray-200 border-2 rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-orange-500 appearance-none transition-all"
+              >
+                <option value="">Seleziona il ruolo principale...</option>
+                {formData.roles.map(role => (
+                  <option key={role} value={role}>{getRoleName(role)}</option>
+                ))}
+              </select>
+              <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+            </div>
+          </div>
+        )}
+
+        {/* Transport section for drivers */}
+        {formData.roles.includes('FATTORINO') && (
+          <div className="space-y-4 pt-2 animate-in slide-in-from-top-4 duration-300">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Mezzi di Trasporto</label>
+            <div className="flex gap-4">
+              {['AUTO', 'SCOOTER'].map((transport) => (
+                <label 
+                  key={transport} 
+                  className={cn(
+                    "flex-1 flex items-center gap-3 p-4 border-2 rounded-2xl cursor-pointer transition-all",
+                    formData.transports.includes(transport as TransportType)
+                      ? "bg-blue-50 border-blue-500 shadow-sm"
+                      : "bg-white border-gray-100 hover:border-gray-200"
+                  )}
+                >
+                  <div className={cn(
+                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                    formData.transports.includes(transport as TransportType) ? "bg-blue-500 border-blue-500" : "border-gray-200"
+                  )}>
+                    {formData.transports.includes(transport as TransportType) && <Check className="h-3 w-3 text-white stroke-[4]" />}
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={formData.transports.includes(transport as TransportType)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData({ ...formData, transports: [...formData.transports, transport as TransportType] })
+                      } else {
+                        setFormData({ ...formData, transports: formData.transports.filter(t => t !== transport) })
+                      }
+                    }}
+                  />
+                  <span className="text-xs font-black text-gray-900 leading-none">{getTransportName(transport)}</span>
+                </label>
+              ))}
+            </div>
+            
+            {formData.transports.length > 1 && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Mezzo Preferito</label>
+                <div className="relative">
+                  <select
+                    required
+                    value={formData.primaryTransport}
+                    onChange={(e) => setFormData({ ...formData, primaryTransport: e.target.value as TransportType })}
+                    className="w-full pl-5 pr-12 py-3 bg-gray-50 border-gray-200 border-2 rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-orange-500 appearance-none transition-all"
+                  >
+                    <option value="">Seleziona il mezzo principale...</option>
+                    {formData.transports.map(transport => (
+                      <option key={transport} value={transport}>{getTransportName(transport)}</option>
+                    ))}
+                  </select>
+                  <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Configuration Flags */}
+        <div className="space-y-4 pt-4 border-t border-gray-100">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Impostazioni Account</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { id: 'isActive', label: 'Account Attivo', icon: Users, color: 'green' },
+              { id: 'trackHours', label: 'Gestione Ore', icon: Clock, color: 'blue' },
+              { id: 'whatsappNotificationsEnabled', label: 'Notifiche WA', icon: Smartphone, color: 'green' },
+              { id: 'pushNotificationsEnabled', label: 'Notifiche PWA', icon: Bell, color: 'orange' }
+            ].map((flag) => (
+              <label 
+                key={flag.id} 
+                className={cn(
+                  "flex items-center justify-between p-4 bg-gray-50 rounded-2xl cursor-pointer hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100 transition-all",
+                  (formData as any)[flag.id] && "ring-1 ring-gray-200"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-xl", (formData as any)[flag.id] ? `bg-${flag.color}-100 text-${flag.color}-600` : "bg-gray-200 text-gray-400")}>
+                    <flag.icon className="h-4 w-4" />
+                  </div>
+                  <span className="text-xs font-bold text-gray-700">{flag.label}</span>
+                </div>
+                <div className={cn(
+                  "w-10 h-5 rounded-full relative transition-all",
+                  (formData as any)[flag.id] ? "bg-orange-500" : "bg-gray-300"
+                )}>
+                  <div className={cn(
+                    "absolute top-1 w-3 h-3 bg-white rounded-full transition-all",
+                    (formData as any)[flag.id] ? "right-1" : "left-1"
+                  )} />
+                </div>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={(formData as any)[flag.id]}
+                  onChange={(e) => setFormData({ ...formData, [flag.id]: e.target.checked })}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 rounded-2xl transition-all"
+          >
+            Annulla
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-[2] py-4 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {loading ? 'Salvataggio...' : 'Conferma e Salva'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
