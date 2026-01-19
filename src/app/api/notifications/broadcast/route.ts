@@ -45,17 +45,20 @@ export async function POST(request: Request) {
                 .filter(u => u.primaryRole !== 'ADMIN' || isPriorityUser(u.username))
                 .map(u => u.id)
         } else if (filter === 'missing_hours') {
-            // Trova turni negli ultimi 30 giorni che non hanno ore inserite
-            const now = new Date()
-            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+            // Trova tutti i turni passati che non hanno ore inserite (o rifiutate)
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
 
             const pastShifts = await prisma.shifts.findMany({
                 where: {
                     schedules: {
                         weekStart: {
-                            gte: thirtyDaysAgo,
-                            lte: now
+                            lt: today
                         }
+                    },
+                    user: {
+                        isActive: true,
+                        trackHours: true
                     }
                 },
                 include: {
@@ -72,7 +75,8 @@ export async function POST(request: Request) {
                 const shiftDate = new Date(shift.schedules.weekStart)
                 shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
 
-                if (shiftDate < now && (!shift.worked_hours || shift.worked_hours.status === 'REJECTED')) {
+                // Verifica che il turno sia effettivamente nel passato e manchino le ore
+                if (shiftDate < today && (!shift.worked_hours || shift.worked_hours.status === 'REJECTED')) {
                     // Solo se non è admin o se è un VIP
                     if (shift.user.primaryRole !== 'ADMIN' || isPriorityUser(shift.user.username)) {
                         targetUserIds.add(shift.userId)
@@ -156,31 +160,42 @@ export async function GET(request: Request) {
 
         const activeUsers = await prisma.user.findMany({
             where: { isActive: true },
-            select: { id: true, username: true }
+            select: { id: true, username: true, primaryRole: true }
         })
+
+        const filteredActiveUsers = activeUsers.filter(u => u.primaryRole !== 'ADMIN' || isPriorityUser(u.username))
+        const filteredActiveIds = filteredActiveUsers.map(u => u.id)
 
         stats.availability = {
             weekStart: nextWeek,
-            submitted: submittedAvailNames.sort(),
-            missing: activeUsers
+            submitted: filteredActiveUsers
+                .filter(u => submittedAvailIds.includes(u.id))
+                .map(u => u.username)
+                .sort(),
+            missing: filteredActiveUsers
                 .filter(u => !submittedAvailIds.includes(u.id))
                 .map(u => u.username)
                 .sort()
         }
 
         // --- Hours Stats ---
-        const now = new Date()
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        
         const pastShifts = await prisma.shifts.findMany({
             where: {
                 schedules: {
-                    weekStart: { gte: thirtyDaysAgo, lte: now }
+                    weekStart: { lt: today }
+                },
+                user: {
+                    isActive: true,
+                    trackHours: true
                 }
             },
             include: {
                 worked_hours: true,
                 schedules: true,
-                user: { select: { username: true } }
+                user: { select: { username: true, primaryRole: true } }
             }
         })
 
@@ -190,11 +205,15 @@ export async function GET(request: Request) {
         pastShifts.forEach(shift => {
             const shiftDate = new Date(shift.schedules.weekStart)
             shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
-            if (shiftDate < now) {
-                if (!shift.worked_hours || shift.worked_hours.status === 'REJECTED') {
-                    missingHoursUsers.add(shift.user.username)
-                } else {
-                    submittedHoursUsers.add(shift.user.username)
+            
+            if (shiftDate < today) {
+                // Solo se non è admin o se è un VIP
+                if (shift.user.primaryRole !== 'ADMIN' || isPriorityUser(shift.user.username)) {
+                    if (!shift.worked_hours || shift.worked_hours.status === 'REJECTED') {
+                        missingHoursUsers.add(shift.user.username)
+                    } else {
+                        submittedHoursUsers.add(shift.user.username)
+                    }
                 }
             }
         })

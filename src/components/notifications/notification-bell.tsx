@@ -156,12 +156,12 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
                 <>
                     {/* Backdrop */}
                     <div
-                        className="fixed inset-0 z-40"
+                        className="fixed inset-0 z-[90]"
                         onClick={() => setIsOpen(false)}
                     />
 
-                    {/* Panel */}
-                    <div className="absolute right-0 top-12 w-80 sm:w-96 max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
+                        {/* Panel */}
+                        <div className="absolute left-0 top-12 w-80 sm:w-96 max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
                         {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
                             <h3 className="font-semibold flex items-center gap-2">

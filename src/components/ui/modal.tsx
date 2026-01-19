@@ -40,15 +40,15 @@ export function Modal({
   if (!isOpen) return null
 
   const maxWidthClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    '2xl': 'max-w-2xl',
+    sm: 'max-w-md',
+    md: 'max-w-2xl',
+    lg: 'max-w-4xl',
+    xl: 'max-w-6xl',
+    '2xl': 'max-w-[90vw]',
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-center items-center p-4 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex justify-center items-center p-4 sm:p-12 overflow-hidden">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-300"
@@ -57,36 +57,36 @@ export function Modal({
 
       {/* Modal Content */}
       <div className={cn(
-        "relative bg-white w-full rounded-[2.5rem] shadow-2xl border border-white/50 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 my-auto",
+        "relative bg-white w-full rounded-[3rem] shadow-2xl border border-white/50 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 my-auto flex flex-col",
         maxWidthClasses[maxWidth],
         className
       )}>
         {/* Header Visual Layer */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-gray-50 to-white rounded-t-[2.5rem] -z-10" />
+        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-br from-gray-50 to-white rounded-t-[3rem] -z-10" />
         
         {/* Modal Header */}
-        <div className="px-8 pt-8 pb-4 flex items-start justify-between">
-          <div className="flex items-center gap-4">
+        <div className="px-12 pt-12 pb-8 flex items-start justify-between relative z-10">
+          <div className="flex items-center gap-6">
             {headerIcon && (
-              <div className="p-3 bg-orange-600 rounded-2xl shadow-lg shadow-orange-100 text-white">
+              <div className="p-4 bg-orange-600 rounded-[1.5rem] shadow-xl shadow-orange-100 text-white">
                 {headerIcon}
               </div>
             )}
             <div>
-              <h2 className="text-2xl font-black text-gray-900 tracking-tight">{title}</h2>
-              {subtitle && <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">{subtitle}</p>}
+              <h2 className="text-3xl font-black text-gray-900 tracking-tight">{title}</h2>
+              {subtitle && <p className="text-gray-500 text-sm font-bold uppercase tracking-widest mt-1.5 opacity-70">{subtitle}</p>}
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-xl transition-all active:scale-90"
+            className="p-3 bg-gray-100/80 hover:bg-gray-200 text-gray-500 rounded-2xl transition-all active:scale-90 backdrop-blur-sm"
           >
-            <X className="h-5 w-5" />
+            <X className="h-6 w-6" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="px-8 pb-8 overflow-y-auto max-h-[calc(85vh-120px)] scrollbar-thin scrollbar-thumb-gray-200">
+        <div className="px-12 pb-12 overflow-y-auto max-h-[calc(95vh-180px)] scrollbar-thin scrollbar-thumb-gray-200 custom-scrollbar">
           {children}
         </div>
       </div>

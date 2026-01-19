@@ -21,7 +21,8 @@ import {
   ShieldCheckIcon,
   UserCircleIcon,
   BanknotesIcon,
-  BellIcon
+  BellIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
@@ -307,7 +308,7 @@ export function Sidebar() {
                   <XMarkIcon className="h-7 w-7" aria-hidden="true" />
                 </button>
               </div>
-              <div className="flex-1 flex flex-col h-0 pt-safe overflow-y-auto pb-safe">
+              <div className="flex-1 flex flex-col h-0 pt-safe pb-safe">
                 <SidebarContent
                   regularItems={regularItems}
                   adminItems={adminItems}
@@ -325,7 +326,7 @@ export function Sidebar() {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 z-30">
-        <div className="flex flex-col flex-grow bg-white overflow-y-auto border-r border-gray-200">
+        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
           <SidebarContent
             regularItems={regularItems}
             adminItems={adminItems}
@@ -357,6 +358,34 @@ function SidebarContent({
   isMobile: boolean
   onItemClick?: () => void
 }) {
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  const renderSectionHeader = (title: string, sectionKey: string) => {
+    const isCollapsed = collapsedSections[sectionKey]
+    return (
+      <button
+        onClick={() => toggleSection(sectionKey)}
+        className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] group/header"
+      >
+        <div className="flex items-center">
+          <span className={cn("w-1.5 h-1.5 rounded-full mr-2 transition-all duration-300", isCollapsed ? "bg-gray-300" : "bg-orange-500")} />
+          {title}
+        </div>
+        <ChevronDownIcon className={cn(
+          "h-3 w-3 transition-transform duration-300",
+          isCollapsed ? "-rotate-90 text-gray-300" : "rotate-0 text-gray-400"
+        )} />
+      </button>
+    )
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
@@ -408,7 +437,7 @@ function SidebarContent({
       </div>
 
       {/* Navigation */}
-      <nav className="mt-8 flex-1 px-4 space-y-8 pb-8">
+      <nav className="mt-8 flex-1 px-4 space-y-8 pb-8 overflow-y-auto custom-scrollbar">
         {/* Regular navigation items - grouped by section */}
         {!isUserAdmin && regularItems.length > 0 && (
           <>
@@ -440,95 +469,92 @@ function SidebarContent({
 
             {/* Il Mio Lavoro */}
             <div className="space-y-3">
-              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
-                Il Mio Lavoro
-              </h3>
-              <div className="space-y-1">
-                {regularItems.filter(item => item.section === 'lavoro').map((item) => {
-                  const isActive = pathname === item.href
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={onItemClick}
-                      className={cn(
-                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                        isActive
-                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                      )}
-                    >
-                      <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
-                        {item.emoji}
-                      </span>
-                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                    </Link>
-                  )
-                })}
-              </div>
+              {renderSectionHeader("Il Mio Lavoro", "lavoro")}
+              {!collapsedSections["lavoro"] && (
+                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {regularItems.filter(item => item.section === 'lavoro').map((item) => {
+                    const isActive = pathname === item.href
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={onItemClick}
+                        className={cn(
+                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                          isActive
+                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                        )}
+                      >
+                        <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
+                          {item.emoji}
+                        </span>
+                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Ore & Assenze */}
             <div className="space-y-3">
-              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
-                Ore & Assenze
-              </h3>
-              <div className="space-y-1">
-                {regularItems.filter(item => item.section === 'ore').map((item) => {
-                  const isActive = pathname === item.href
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={onItemClick}
-                      className={cn(
-                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                        isActive
-                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                      )}
-                    >
-                      <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
-                        {item.emoji}
-                      </span>
-                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                    </Link>
-                  )
-                })}
-              </div>
+              {renderSectionHeader("Ore & Assenze", "ore")}
+              {!collapsedSections["ore"] && (
+                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {regularItems.filter(item => item.section === 'ore').map((item) => {
+                    const isActive = pathname === item.href
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={onItemClick}
+                        className={cn(
+                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                          isActive
+                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                        )}
+                      >
+                        <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
+                          {item.emoji}
+                        </span>
+                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Sostituzioni */}
             <div className="space-y-3">
-              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
-                Sostituzioni
-              </h3>
-              <div className="space-y-1">
-                {regularItems.filter(item => item.section === 'sostituzioni').map((item) => {
-                  const isActive = pathname === item.href
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={onItemClick}
-                      className={cn(
-                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                        isActive
-                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                      )}
-                    >
-                      <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
-                        {item.emoji}
-                      </span>
-                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                    </Link>
-                  )
-                })}
-              </div>
+              {renderSectionHeader("Sostituzioni", "sostituzioni")}
+              {!collapsedSections["sostituzioni"] && (
+                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {regularItems.filter(item => item.section === 'sostituzioni').map((item) => {
+                    const isActive = pathname === item.href
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={onItemClick}
+                        className={cn(
+                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                          isActive
+                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                        )}
+                      >
+                        <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
+                          {item.emoji}
+                        </span>
+                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </>
         )}
@@ -558,122 +584,118 @@ function SidebarContent({
 
             {/* Gestione Personale */}
             <div className="space-y-3">
-              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
-                Gestione Personale
-              </h3>
-              <div className="space-y-1">
-                {adminItems.filter(item => item.section === 'personale').map((item) => {
-                  const isActive = pathname === item.href
-                  const Icon = isActive ? item.iconSolid : item.icon
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={onItemClick}
-                      className={cn(
-                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                        isActive
-                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                      )}
-                    >
-                      <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
-                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                    </Link>
-                  )
-                })}
-              </div>
+              {renderSectionHeader("Gestione Personale", "personale")}
+              {!collapsedSections["personale"] && (
+                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {adminItems.filter(item => item.section === 'personale').map((item) => {
+                    const isActive = pathname === item.href
+                    const Icon = isActive ? item.iconSolid : item.icon
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={onItemClick}
+                        className={cn(
+                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                          isActive
+                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                        )}
+                      >
+                        <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
+                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Pianificazione */}
             <div className="space-y-3">
-              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
-                Pianificazione
-              </h3>
-              <div className="space-y-1">
-                {adminItems.filter(item => item.section === 'pianificazione').map((item) => {
-                  const isActive = pathname === item.href
-                  const Icon = isActive ? item.iconSolid : item.icon
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={onItemClick}
-                      className={cn(
-                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                        isActive
-                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                      )}
-                    >
-                      <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
-                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                    </Link>
-                  )
-                })}
-              </div>
+              {renderSectionHeader("Pianificazione", "pianificazione")}
+              {!collapsedSections["pianificazione"] && (
+                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {adminItems.filter(item => item.section === 'pianificazione').map((item) => {
+                    const isActive = pathname === item.href
+                    const Icon = isActive ? item.iconSolid : item.icon
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={onItemClick}
+                        className={cn(
+                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                          isActive
+                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                        )}
+                      >
+                        <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
+                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Ore Lavorate */}
             <div className="space-y-3">
-              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
-                Ore Lavorate
-              </h3>
-              <div className="space-y-1">
-                {adminItems.filter(item => item.section === 'ore').map((item) => {
-                  const isActive = pathname === item.href
-                  const Icon = isActive ? item.iconSolid : item.icon
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={onItemClick}
-                      className={cn(
-                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                        isActive
-                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                      )}
-                    >
-                      <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
-                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                    </Link>
-                  )
-                })}
-              </div>
+              {renderSectionHeader("Ore Lavorate", "admin-ore")}
+              {!collapsedSections["admin-ore"] && (
+                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {adminItems.filter(item => item.section === 'ore').map((item) => {
+                    const isActive = pathname === item.href
+                    const Icon = isActive ? item.iconSolid : item.icon
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={onItemClick}
+                        className={cn(
+                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                          isActive
+                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                        )}
+                      >
+                        <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
+                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Sistema */}
             <div className="space-y-3">
-              <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
-                Sistema
-              </h3>
-              <div className="space-y-1">
-                {adminItems.filter(item => item.section === 'sistema').map((item) => {
-                  const isActive = pathname === item.href
-                  const Icon = isActive ? item.iconSolid : item.icon
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={onItemClick}
-                      className={cn(
-                        'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                        isActive
-                          ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                      )}
-                    >
-                      <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
-                      <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                    </Link>
-                  )
-                })}
-              </div>
+              {renderSectionHeader("Sistema", "sistema")}
+              {!collapsedSections["sistema"] && (
+                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {adminItems.filter(item => item.section === 'sistema').map((item) => {
+                    const isActive = pathname === item.href
+                    const Icon = isActive ? item.iconSolid : item.icon
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={onItemClick}
+                        className={cn(
+                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
+                          isActive
+                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                        )}
+                      >
+                        <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
+                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </>
         )}

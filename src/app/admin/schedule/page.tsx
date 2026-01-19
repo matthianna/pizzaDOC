@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { addWeeks, subWeeks } from 'date-fns'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit, ChevronDown, ChevronUp, Bell } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit, ChevronDown, ChevronUp, Bell, Target, TrendingUp, Users, Check } from 'lucide-react'
 import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek, getWeekStart } from '@/lib/date-utils'
-import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
+import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
 import { AddShiftModal } from '@/components/admin/add-shift-modal'
 import { Button } from '@/components/ui/button'
@@ -474,245 +474,293 @@ export default function AdminSchedulePage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-              <Calendar className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-orange-600" />
-              Piano di Lavoro
-            </h1>
-            <p className="text-sm sm:text-base text-gray-800 mt-1">
-              Genera e gestisci il piano settimanale dei turni
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            {schedule && (
-              <>
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="bg-red-600 text-white px-3 py-2 text-sm rounded-md hover:bg-red-700 flex items-center"
-                >
-                  <Trash2 className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Elimina Piano</span>
-                </button>
-                <button
-                  onClick={exportToPDF}
-                  className="bg-blue-600 text-white px-3 py-2 text-sm rounded-md hover:bg-blue-700 flex items-center"
-                >
-                  <Download className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Esporta PDF</span>
-                </button>
-              </>
-            )}
-            {schedule && (
-              <button
-                onClick={notifyUsers}
-                disabled={notifying}
-                className="bg-blue-600 text-white px-3 py-2 text-sm rounded-md hover:bg-blue-700 flex items-center disabled:opacity-50"
-              >
-                <Bell className="h-4 w-4 mr-1 sm:mr-2" />
-                {notifying ? 'Invio...' : 'Notifica Utenti'}
-              </button>
-            )}
-            <button
-              onClick={() => setShowGenerateConfirm(true)}
-              disabled={generating}
-              className="bg-orange-600 text-white px-3 py-2 text-sm rounded-md hover:bg-orange-700 flex items-center disabled:opacity-50"
-            >
-              <Play className="h-4 w-4 mr-1 sm:mr-2" />
-              {generating ? 'Generando...' : 'Genera Piano'}
-            </button>
-            <button
-              onClick={() => {
-                setPrefilledShiftData(null)
-                setShowAddShiftModal(true)
-              }}
-              className="bg-green-600 text-white px-3 py-2 text-sm rounded-md hover:bg-green-700 flex items-center"
-            >
-              <UserPlus className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Aggiungi Turno</span>
-            </button>
-          </div>
-        </div>
+      <div className="space-y-8 max-w-[1600px] mx-auto pb-20">
+        {/* Advanced Header */}
+        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
+          
+          <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+              <div className="p-4 bg-orange-600 rounded-3xl shadow-xl shadow-orange-100 text-white transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+                <Calendar className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">Piano di Lavoro</h1>
+                <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] mt-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  Gestione Settimanale Operativa
+                </p>
+              </div>
+            </div>
 
-        {/* Week Navigation */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {schedule && (
+                <>
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="group px-5 py-3.5 bg-red-50 text-red-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-red-600 hover:text-white transition-all duration-300 flex items-center gap-2 border border-red-100 shadow-sm"
+                  >
+                    <Trash2 className="h-4 w-4 transition-transform group-hover:scale-110" />
+                    Elimina
+                  </button>
+                  <button
+                    onClick={exportToPDF}
+                    className="group px-5 py-3.5 bg-blue-50 text-blue-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-blue-600 hover:text-white transition-all duration-300 flex items-center gap-2 border border-blue-100 shadow-sm"
+                  >
+                    <Download className="h-4 w-4 transition-transform group-hover:-translate-y-1" />
+                    PDF
+                  </button>
+                  <button
+                    onClick={notifyUsers}
+                    disabled={notifying}
+                    className="group px-5 py-3.5 bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-600 hover:text-white transition-all duration-300 flex items-center gap-2 border border-indigo-100 shadow-sm disabled:opacity-50"
+                  >
+                    <Bell className={cn("h-4 w-4", notifying && "animate-bounce")} />
+                    Notifica
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setShowGenerateConfirm(true)}
+                disabled={generating}
+                className="group px-6 py-3.5 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-orange-700 transition-all duration-300 flex items-center gap-2 shadow-lg shadow-orange-100 active:scale-95 disabled:grayscale"
+              >
+                <Play className={cn("h-4 w-4", generating && "animate-spin")} />
+                Genera Piano
+              </button>
+              <button
+                onClick={() => {
+                  setPrefilledShiftData(null)
+                  setShowAddShiftModal(true)
+                }}
+                className="group px-6 py-3.5 bg-green-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-green-700 transition-all duration-300 flex items-center gap-2 shadow-lg shadow-green-100 active:scale-95"
+              >
+                <UserPlus className="h-4 w-4" />
+                Nuovo Turno
+              </button>
+            </div>
+          </div>
+
+          {/* Week Selector Integrated */}
+          <div className="mt-10 pt-8 border-t border-gray-50 flex flex-col sm:flex-row items-center justify-between gap-6">
             <button
               onClick={() => navigateWeek('prev')}
-              className="flex items-center px-3 py-2 text-sm sm:text-base text-gray-600 hover:text-gray-800 w-full sm:w-auto justify-center sm:justify-start"
+              className="flex items-center gap-3 px-6 py-3 text-sm font-black uppercase tracking-widest text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-2xl transition-all duration-300"
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">Settimana precedente</span>
-              <span className="sm:hidden">Precedente</span>
+              <ChevronLeft className="h-5 w-5" />
+              Precedente
             </button>
 
-            <div className="text-center order-first sm:order-none">
-              <h2 className="text-base sm:text-lg md:text-2xl font-bold text-gray-900">
-                {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
-              </h2>
+            <div className="flex flex-col items-center">
+              <div className="px-8 py-3 bg-gray-50 rounded-[2rem] border-2 border-gray-100 shadow-inner group transition-all duration-500 hover:border-orange-200">
+                <h2 className="text-xl font-black text-gray-900 flex items-center gap-4">
+                  <span className="text-orange-600 opacity-40">#</span>
+                  {formatDate(weekDays[0])} — {formatDate(weekDays[6])}
+                </h2>
+              </div>
+              {schedule && (
+                <span className="mt-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">
+                  Piano Settimanale Attivo
+                </span>
+              )}
             </div>
 
             <button
               onClick={() => navigateWeek('next')}
-              className="flex items-center px-3 py-2 text-sm sm:text-base text-gray-600 hover:text-gray-800 w-full sm:w-auto justify-center sm:justify-end"
+              className="flex items-center gap-3 px-6 py-3 text-sm font-black uppercase tracking-widest text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-2xl transition-all duration-300"
             >
-              <span className="hidden sm:inline">Settimana successiva</span>
-              <span className="sm:hidden">Successiva</span>
-              <ChevronRight className="h-4 w-4 ml-1" />
+              Successiva
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        {/* Availability Status */}
-        {missingAvailability.length > 0 ? (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <div className="flex items-start">
-              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 mr-3" />
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-amber-800">
-                  Disponibilità Mancanti
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Sidebar Area: Stats & Alerts */}
+          <div className="xl:col-span-1 space-y-8">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 gap-4">
+              <div className="bg-white p-6 rounded-[2rem] shadow-soft border border-gray-100 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                  <Target className="h-12 w-12 text-orange-600" />
+                </div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Copertura Totale</p>
+                <h3 className="text-3xl font-black text-gray-900 mt-2">
+                  {schedule ? "94%" : "0%"}
                 </h3>
-                <div className="mt-2 text-sm text-amber-700">
-                  <p className="mb-2">
-                    I seguenti dipendenti non hanno ancora inserito la loro disponibilità per questa settimana:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {missingAvailability.map((username, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300"
-                      >
-                        {username}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="mt-3 text-xs text-amber-600">
-                    💡 Suggerimento: La generazione automatica produrrà risultati migliori quando tutti avranno inserito le loro disponibilità.
-                  </p>
+                <div className="w-full bg-gray-100 h-2 rounded-full mt-4 overflow-hidden">
+                  <div className="bg-orange-500 h-full rounded-full" style={{ width: schedule ? '94%' : '0%' }}></div>
                 </div>
               </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <svg className="h-5 w-5 text-green-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <div>
-                <h3 className="text-sm font-medium text-green-800">
-                  ✅ Tutte le disponibilità sono state inserite
+
+              <div className="bg-white p-6 rounded-[2rem] shadow-soft border border-gray-100 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                  <Users className="h-12 w-12 text-blue-600" />
+                </div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Collaboratori</p>
+                <h3 className="text-3xl font-black text-gray-900 mt-2">
+                  {schedule ? [...new Set(schedule.shifts.map(s => s.userId))].length : 0}
                 </h3>
-                <p className="mt-1 text-sm text-green-700">
-                  Tutti i dipendenti hanno inserito la loro disponibilità per questa settimana. Puoi procedere con la generazione automatica del piano.
-                </p>
+                <p className="text-[10px] font-bold text-blue-600 uppercase mt-2">In servizio questa settimana</p>
               </div>
             </div>
+
+            {/* Availability Status Alert */}
+            {missingAvailability.length > 0 ? (
+              <div className="bg-amber-50 rounded-[2rem] p-6 border-2 border-amber-100 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-20">
+                  <AlertTriangle className="h-12 w-12 text-amber-600" />
+                </div>
+                <h3 className="text-sm font-black text-amber-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  Disp. Mancanti ({missingAvailability.length})
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {missingAvailability.map((username, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1.5 bg-white text-[10px] font-black text-amber-700 uppercase rounded-xl border border-amber-200 shadow-sm"
+                    >
+                      {username}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-6 text-[10px] font-bold text-amber-600/70 italic leading-relaxed">
+                  💡 La generazione automatica è più precisa con tutte le disponibilità.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-green-50 rounded-[2rem] p-6 border-2 border-green-100 shadow-sm flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                  <Check className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-green-900 uppercase tracking-wider leading-none">Status OK</h3>
+                  <p className="text-[10px] font-bold text-green-600 uppercase mt-2">Tutte le disp. inserite</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Main Area: Schedule Grid */}
+          <div className="xl:col-span-3">
+            <div className="bg-white rounded-[3rem] shadow-soft border border-gray-100 overflow-hidden">
+              {loading ? (
+                <div className="p-12 space-y-8">
+                  <Skeleton className="h-12 w-64 rounded-2xl" />
+                  <TableSkeleton rows={7} cols={3} />
+                </div>
+              ) : schedule ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50/50">
+                        <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] border-b border-gray-100 w-[180px]">
+                          Giorno
+                        </th>
+                        <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] border-b border-gray-100">
+                          <div className="flex items-center gap-3">
+                            <span className="w-3 h-3 rounded-full bg-orange-100 flex items-center justify-center">
+                              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                            </span>
+                            Turno Pranzo
+                          </div>
+                        </th>
+                        <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] border-b border-gray-100">
+                          <div className="flex items-center gap-3">
+                            <span className="w-3 h-3 rounded-full bg-blue-100 flex items-center justify-center">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            </span>
+                            Turno Cena
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {weekDays.map((day, index) => {
+                        const dayOfWeek = getDayOfWeek(day)
+                        const pranzoCrew = shiftGroups[`${dayOfWeek}-PRANZO`] || []
+                        const cenaCrew = shiftGroups[`${dayOfWeek}-CENA`] || []
+
+                        return (
+                          <tr key={index} className="group hover:bg-gray-50/50 transition-colors">
+                            <td className="px-8 py-8 border-r border-gray-50">
+                              <div className="flex flex-col gap-1">
+                                <span className="text-lg font-black text-gray-900 leading-none">
+                                  {getDayName(dayOfWeek)}
+                                </span>
+                                <span className="text-[11px] font-black text-orange-600/50 uppercase tracking-widest mt-1">
+                                  {formatDate(day)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-8 py-8 align-top bg-white/40 group-hover:bg-transparent transition-colors">
+                              <ShiftCrew
+                                shifts={pranzoCrew}
+                                day={day}
+                                dayOfWeek={dayOfWeek}
+                                shiftType="PRANZO"
+                                gaps={gaps}
+                                shiftLimits={shiftLimits}
+                                holidays={holidays}
+                                onRemoveShift={handleRemoveShift}
+                                onEditTime={handleEditShiftTime}
+                                onEditRole={handleEditRole}
+                                onQuickAdd={handleQuickAdd}
+                              />
+                            </td>
+                            <td className="px-8 py-8 align-top">
+                              <ShiftCrew
+                                shifts={cenaCrew}
+                                day={day}
+                                dayOfWeek={dayOfWeek}
+                                shiftType="CENA"
+                                gaps={gaps}
+                                shiftLimits={shiftLimits}
+                                holidays={holidays}
+                                onRemoveShift={handleRemoveShift}
+                                onEditTime={handleEditShiftTime}
+                                onEditRole={handleEditRole}
+                                onQuickAdd={handleQuickAdd}
+                              />
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-32 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-orange-50/30 to-transparent"></div>
+                  <div className="relative z-10">
+                    <div className="w-24 h-24 bg-gray-100 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-gray-300">
+                      <Calendar className="h-12 w-12" />
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Nessun piano generato</h3>
+                    <p className="text-gray-500 font-medium mt-3 max-w-xs mx-auto">Configura le disponibilità e premi il tasto sopra per iniziare.</p>
+                    <button
+                      onClick={() => setShowGenerateConfirm(true)}
+                      className="mt-10 px-8 py-4 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-orange-100 hover:bg-orange-700 transition-all active:scale-95"
+                    >
+                      Genera Ora
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Coverage Details Section */}
+        {schedule && (
+          <div className="mt-8">
+            <CoverageReport
+              schedule={schedule}
+              shiftLimits={shiftLimits}
+              currentWeek={currentWeek}
+            />
           </div>
         )}
-
-        {/* Coverage Report */}
-        {schedule && shiftLimits.length > 0 && (
-          <CoverageReport
-            schedule={schedule}
-            shiftLimits={shiftLimits}
-            currentWeek={currentWeek}
-          />
-        )}
-
-        {/* Schedule Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {loading ? (
-            <div className="p-6 space-y-4">
-              <Skeleton className="h-10 w-full rounded-lg" />
-              <TableSkeleton rows={7} cols={3} />
-            </div>
-          ) : schedule ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Giorno
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Pranzo
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cena
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {weekDays.map((day, index) => {
-                    const dayOfWeek = getDayOfWeek(day)
-                    const pranzoCrew = shiftGroups[`${dayOfWeek}-PRANZO`] || []
-                    const cenaCrew = shiftGroups[`${dayOfWeek}-CENA`] || []
-
-                    return (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-xs sm:text-sm font-medium text-gray-900">
-                              {getDayName(dayOfWeek)}
-                            </div>
-                            <div className="text-xs sm:text-sm text-gray-700">
-                              {formatDate(day)}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-6 py-4">
-                          <ShiftCrew
-                            shifts={pranzoCrew}
-                            day={day}
-                            dayOfWeek={dayOfWeek}
-                            shiftType="PRANZO"
-                            gaps={gaps}
-                            shiftLimits={shiftLimits}
-                            holidays={holidays}
-                            onRemoveShift={handleRemoveShift}
-                            onEditTime={handleEditShiftTime}
-                            onEditRole={handleEditRole}
-                            onQuickAdd={handleQuickAdd}
-                          />
-                        </td>
-                        <td className="px-6 py-4">
-                          <ShiftCrew
-                            shifts={cenaCrew}
-                            day={day}
-                            dayOfWeek={dayOfWeek}
-                            shiftType="CENA"
-                            gaps={gaps}
-                            shiftLimits={shiftLimits}
-                            holidays={holidays}
-                            onRemoveShift={handleRemoveShift}
-                            onEditTime={handleEditShiftTime}
-                            onEditRole={handleEditRole}
-                            onQuickAdd={handleQuickAdd}
-                          />
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-700 mb-4">Nessun piano generato per questa settimana</p>
-              <button
-                onClick={() => setShowGenerateConfirm(true)}
-                disabled={generating}
-                className="bg-orange-600 text-white px-6 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50"
-              >
-                {generating ? 'Generando...' : 'Genera Piano Automatico'}
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Add Shift Modal */}

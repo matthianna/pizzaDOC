@@ -1,13 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { format } from 'date-fns'
+import { it } from 'date-fns/locale'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, ChevronRight, User } from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { formatDate } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Select as ReactSelect } from '@/components/ui/react-select'
-import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
+import { Skeleton, TableSkeleton, CardSkeleton } from '@/components/ui/skeleton'
+import { Modal } from '@/components/ui/modal'
+import { cn } from '@/lib/utils'
+import { useHaptics } from '@/hooks/use-haptics'
 
 interface Shift {
   id: string
@@ -52,6 +57,10 @@ export default function AdminHoursPage() {
   const [editEndTime, setEditEndTime] = useState('')
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set())
 
+  const { lightClick, success: successClick } = useHaptics()
+
+  const isAdminUser = true // This is an admin page
+
   useEffect(() => {
     fetchWorkedHours()
   }, [filterStatus, selectedMonth, selectedYear])
@@ -83,6 +92,7 @@ export default function AdminHoursPage() {
       })
 
       if (response.ok) {
+        successClick()
         fetchWorkedHours()
       } else {
         console.error('Errore durante l\'approvazione')
@@ -105,6 +115,7 @@ export default function AdminHoursPage() {
       if (response.ok) {
         setRejectingId(null)
         setRejectReason('')
+        successClick()
         fetchWorkedHours()
       } else {
         console.error('Errore durante il rifiuto')
@@ -115,6 +126,7 @@ export default function AdminHoursPage() {
   }
 
   const openEditModal = (hours: WorkedHours) => {
+    lightClick()
     setEditingHours(hours)
     setEditStartTime(hours.startTime)
     setEditEndTime(hours.endTime)
@@ -143,6 +155,7 @@ export default function AdminHoursPage() {
 
       if (response.ok) {
         closeEditModal()
+        successClick()
         fetchWorkedHours()
       } else {
         const error = await response.json()
@@ -262,473 +275,402 @@ export default function AdminHoursPage() {
 
   return (
     <MainLayout adminOnly>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-              <Clock className="h-6 w-6 sm:h-8 sm:w-8 mr-3 text-orange-600" />
-              Gestione Ore Lavorate
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Approva o rifiuta le ore lavorate inserite dai dipendenti
-            </p>
-          </div>
-        </div>
-
-        {/* Filters and Stats */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-40">
-                <ReactSelect
-                  label="Stato"
-                  options={[
-                    { value: 'ALL', label: 'Tutti' },
-                    { value: 'PENDING', label: 'In attesa' },
-                    { value: 'APPROVED', label: 'Approvate' },
-                    { value: 'REJECTED', label: 'Rifiutate' }
-                  ]}
-                  value={{ value: filterStatus, label: filterStatus === 'ALL' ? 'Tutti' : filterStatus === 'PENDING' ? 'In attesa' : filterStatus === 'APPROVED' ? 'Approvate' : 'Rifiutate' }}
-                  onChange={(option) => setFilterStatus(option?.value as HoursStatus | 'ALL' || 'ALL')}
-                />
+      <div className="max-w-6xl mx-auto space-y-8 pb-20">
+        {/* Header con stile Premium */}
+        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
+          
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-orange-100 transform -rotate-3">
+                <Clock className="h-8 w-8 text-white" />
               </div>
-              <div className="w-32">
-                <ReactSelect
-                  label="Mese"
-                  options={Array.from({ length: 12 }, (_, i) => ({
-                    value: i + 1,
-                    label: new Date(2024, i).toLocaleDateString('it-IT', { month: 'long' })
-                  }))}
-                  value={{ value: selectedMonth, label: new Date(2024, selectedMonth - 1).toLocaleDateString('it-IT', { month: 'long' }) }}
-                  onChange={(option) => setSelectedMonth(option?.value as number || 1)}
-                />
-              </div>
-              <div className="w-24">
-                <ReactSelect
-                  label="Anno"
-                  options={[2024, 2025, 2026].map(year => ({
-                    value: year,
-                    label: year.toString()
-                  }))}
-                  value={{ value: selectedYear, label: selectedYear.toString() }}
-                  onChange={(option) => setSelectedYear(option?.value as number || 2024)}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-6">
-              <div className="text-center">
-                <div className="text-sm text-gray-500">In attesa</div>
-                <div className="text-xl font-bold text-yellow-600">{pendingCount}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-sm text-gray-500">Ore totali</div>
-                <div className="text-xl font-bold text-gray-900">{totalHours.toFixed(1)}h</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Worked Hours - Grouped by User */}
-        {loading ? (
-          <div className="space-y-4">
-            <CardSkeleton />
-            <CardSkeleton />
-            <CardSkeleton />
-          </div>
-        ) : workedHours.length > 0 ? (
-          <div className="space-y-4">
-            {userGroups.map((group) => {
-              const isExpanded = expandedUsers.has(group.user.id)
-              const pendingHours = group.hours.filter(h => h.status === 'PENDING').length
-              
-              return (
-                <div key={group.user.id} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                  {/* User Header - Collapsible */}
-                  <button
-                    onClick={() => toggleUser(group.user.id)}
-                    className="w-full px-6 py-5 bg-gradient-to-r from-gray-50 via-white to-gray-50 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 transition-all duration-200"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        {/* Icon Box */}
-                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-                          <User className="h-6 w-6 text-white" />
-                        </div>
-                        
-                        {/* User Info */}
-                        <div className="text-left">
-                          <h3 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
-                            <span>{group.user.username}</span>
-                            {pendingHours > 0 && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                                {pendingHours} in attesa
-                              </span>
-                            )}
-                          </h3>
-                          <p className="text-sm text-gray-600 font-medium">{getRoleName(group.user.primaryRole)}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-6">
-                        {/* Stats */}
-                        <div className="flex items-center space-x-6 mr-2">
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500 font-medium">Turni</p>
-                            <p className="text-xl font-bold text-gray-900">{group.hours.length}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500 font-medium">Ore Totali</p>
-                            <p className="text-xl font-bold text-orange-600">{group.totalHours.toFixed(1)}h</p>
-                          </div>
-                        </div>
-
-                        {/* Expand Icon */}
-                        <div className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-                          <ChevronDown className="h-6 w-6 text-gray-400" />
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Shifts List - Expandable */}
-                  {isExpanded && (
-                    <div className="border-t border-gray-200">
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Data e Turno
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Orario Lavorato
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Ore
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Stato
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Azioni
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {group.hours.map((hours) => {
-                              const shiftDate = getShiftDate(hours.shift)
-                              return (
-                                <tr key={hours.id} className="hover:bg-gray-50 transition-colors">
-                                  <td className="px-6 py-4">
-                                    <div>
-                                      <div className="text-sm font-semibold text-gray-900">
-                                        {getDayName(hours.shift.dayOfWeek)} {formatDate(shiftDate)}
-                                      </div>
-                                      <div className="text-sm text-gray-600">
-                                        {getShiftTypeName(hours.shift.shiftType)} - {getRoleName(hours.shift.role)}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <span className="text-sm font-medium text-gray-900">
-                                      {hours.startTime} - {hours.endTime}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <span className="text-sm font-bold text-gray-900">
-                                      {hours.totalHours.toFixed(1)}h
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusColor(hours.status)}`}>
-                                      {getStatusText(hours.status)}
-                                    </span>
-                                    {hours.status === 'REJECTED' && hours.rejectionReason && (
-                                      <div className="mt-2 text-xs text-red-600 flex items-start space-x-1 max-w-xs">
-                                        <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                        <span>{hours.rejectionReason}</span>
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <div className="flex items-center space-x-3">
-                                      <button
-                                        onClick={() => openEditModal(hours)}
-                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                        title="Modifica ore"
-                                      >
-                                        <Edit2 className="h-4 w-4" />
-                                      </button>
-                                      {hours.status === 'PENDING' && (
-                                        <>
-                                          <button
-                                            onClick={() => approveHours(hours.id)}
-                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                            title="Approva"
-                                          >
-                                            <Check className="h-4 w-4" />
-                                          </button>
-                                          <button
-                                            onClick={() => setRejectingId(hours.id)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Rifiuta"
-                                          >
-                                            <X className="h-4 w-4" />
-                                          </button>
-                                        </>
-                                      )}
-                                    </div>
-                                    {hours.status !== 'PENDING' && hours.reviewedAt && (
-                                      <div className="text-xs text-gray-500 mt-1">
-                                        {new Date(hours.reviewedAt).toLocaleDateString('it-IT')}
-                                      </div>
-                                    )}
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow p-12">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="h-8 w-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Nessuna ora trovata</h3>
-              <p className="text-gray-500">Non ci sono ore lavorate per i filtri selezionati</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Edit Hours Modal - Modern Design */}
-      {editingHours && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 max-w-2xl w-full transform transition-all">
-            {/* Header con stile moderno */}
-            <div className="bg-gradient-to-br from-orange-50 via-white to-orange-50/30 px-6 py-5 rounded-t-2xl border-b border-orange-100/50">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Edit2 className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                      Modifica Ore Lavorate
-                    </h2>
-                    <p className="text-sm text-orange-600 font-medium mt-0.5">
-                      {editingHours.user.username} - {getDayName(editingHours.shift.dayOfWeek)} {getShiftTypeName(editingHours.shift.shiftType)}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={closeEditModal}
-                  className="w-9 h-9 rounded-xl bg-orange-100 hover:bg-orange-200 flex items-center justify-center transition-all hover:scale-105"
-                >
-                  <X className="h-5 w-5 text-orange-700" />
-                </button>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-6">
-              {/* Info turno - Card minimalist */}
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-5 border border-gray-200/50">
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Orario Turno</p>
-                    <p className="text-lg font-bold text-gray-900">{editingHours.shift.startTime} - {editingHours.shift.endTime}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ruolo</p>
-                    <p className="text-lg font-bold text-gray-900">{getRoleName(editingHours.shift.role)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Selezione Orari - Modern Dropdowns */}
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-bold text-gray-700">
-                    Ora Inizio * <span className="text-xs font-normal text-gray-500">(formato 24h)</span>
-                  </label>
-                  <ReactSelect
-                    options={generateTimeOptions(editingHours.shift.startTime)}
-                    value={editStartTime ? { value: editStartTime, label: editStartTime } : null}
-                    onChange={(option) => setEditStartTime(option?.value?.toString() || '')}
-                    placeholder="Seleziona orario di inizio"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-bold text-gray-700">
-                    Ora Fine * <span className="text-xs font-normal text-gray-500">(formato 24h)</span>
-                  </label>
-                  <ReactSelect
-                    options={generateTimeOptions(editingHours.shift.endTime)}
-                    value={editEndTime ? { value: editEndTime, label: editEndTime } : null}
-                    onChange={(option) => setEditEndTime(option?.value?.toString() || '')}
-                    placeholder="Seleziona orario di fine"
-                  />
-                </div>
-              </div>
-
-              {/* Ore Calcolate - Card dinamica */}
-              {editStartTime && editEndTime && (
-                <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl p-6 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="text-white">
-                      <p className="text-sm font-semibold mb-1 opacity-90">Ore Totali Calcolate</p>
-                      <p className="text-xs opacity-75">
-                        {editStartTime} - {editEndTime}
-                      </p>
-                    </div>
-                    <div className="text-5xl font-black text-white drop-shadow-lg">
-                      {calculateTotalHours(editStartTime, editEndTime).toFixed(1)}h
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Alert minimalist */}
-              <div className="bg-gradient-to-br from-amber-50 to-yellow-50/50 rounded-xl p-4 border border-amber-200/50">
-                <div className="flex items-start space-x-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-bold text-amber-800">Attenzione</p>
-                    <p className="text-amber-700 mt-1">
-                      La modifica delle ore verrà salvata immediatamente. Le ore totali saranno ricalcolate automaticamente.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer moderno */}
-            <div className="bg-gray-50/50 px-6 py-5 border-t border-gray-200/50 rounded-b-2xl">
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={closeEditModal}
-                  className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm hover:shadow"
-                >
-                  Annulla
-                </button>
-                <button
-                  onClick={saveEditedHours}
-                  disabled={!editStartTime || !editEndTime}
-                  className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center space-x-2"
-                >
-                  <Check className="h-4 w-4" />
-                  <span>Salva Modifiche</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reject Modal */}
-      {rejectingId && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-lg w-full transform transition-all">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-red-50 to-orange-50 px-6 py-4 border-b border-red-100 rounded-t-xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <X className="h-5 w-5 text-red-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      Rifiuta Ore Lavorate
-                    </h2>
-                    <p className="text-sm text-red-600">
-                      Specifica il motivo del rifiuto
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setRejectingId(null)
-                    setRejectReason('')
-                  }}
-                  className="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors"
-                >
-                  <X className="h-4 w-4 text-red-600" />
-                </button>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-5">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-medium text-amber-800">Attenzione</p>
-                    <p className="text-amber-700">
-                      Il rifiuto comporterà la restituzione delle ore al dipendente per la correzione.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <label className="block text-sm font-semibold text-gray-800">
-                  Motivo del rifiuto *
-                </label>
-                <div className="relative">
-                  <textarea
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                    rows={4}
-                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none"
-                    placeholder="Esempio: Orario di fine non corretto, mancano informazioni sulla pausa, ecc..."
-                  />
-                  <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-                    {rejectReason.length}/500
-                  </div>
-                </div>
-                <p className="text-xs text-gray-600">
-                  Fornisci dettagli specifici per aiutare il dipendente a correggere l&apos;errore.
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
+                  Gestione Ore Lavorate
+                </h1>
+                <p className="text-gray-500 mt-2 text-sm font-medium">
+                  Controlla e approva le ore inviate dal tuo team.
                 </p>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-xl">
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => {
-                    setRejectingId(null)
-                    setRejectReason('')
-                  }}
-                  className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm"
-                >
-                  Annulla
-                </button>
-                <button
-                  onClick={() => rejectHours(rejectingId, rejectReason)}
-                  disabled={!rejectReason.trim()}
-                  className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-red-600 to-red-700 rounded-lg hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center space-x-2"
-                >
-                  <X className="h-4 w-4" />
-                  <span>Rifiuta Ore</span>
-                </button>
+            {/* Quick Stats Summary */}
+            <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-gray-100 pt-6 md:pt-0 md:pl-8">
+              <div className="text-center">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">In Attesa</p>
+                <p className="text-3xl font-black text-orange-600 leading-none">{pendingCount}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ore Totali</p>
+                <p className="text-3xl font-black text-gray-900 leading-none">{totalHours.toFixed(1)}h</p>
               </div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Filters Section */}
+        <div className="bg-white rounded-[2rem] shadow-soft border border-gray-100 p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <ReactSelect
+              label="Stato Approvazione"
+              options={[
+                { value: 'ALL', label: 'Tutti gli stati' },
+                { value: 'PENDING', label: '⏳ In attesa' },
+                { value: 'APPROVED', label: '✅ Approvate' },
+                { value: 'REJECTED', label: '❌ Rifiutate' }
+              ]}
+              value={{ value: filterStatus, label: filterStatus === 'ALL' ? 'Tutti gli stati' : filterStatus === 'PENDING' ? '⏳ In attesa' : filterStatus === 'APPROVED' ? '✅ Approvate' : '❌ Rifiutate' }}
+              onChange={(option) => {
+                lightClick()
+                setFilterStatus(option?.value as HoursStatus | 'ALL' || 'ALL')
+              }}
+            />
+            
+            <ReactSelect
+              label="Mese"
+              options={Array.from({ length: 12 }, (_, i) => ({
+                value: i + 1,
+                label: new Date(2024, i).toLocaleDateString('it-IT', { month: 'long' })
+              }))}
+              value={{ value: selectedMonth, label: new Date(2024, selectedMonth - 1).toLocaleDateString('it-IT', { month: 'long' }) }}
+              onChange={(option) => {
+                lightClick()
+                setSelectedMonth(option?.value as number || 1)
+              }}
+            />
+
+            <ReactSelect
+              label="Anno"
+              options={[2024, 2025, 2026].map(year => ({
+                value: year,
+                label: year.toString()
+              }))}
+              value={{ value: selectedYear, label: selectedYear.toString() }}
+              onChange={(option) => {
+                lightClick()
+                setSelectedYear(option?.value as number || 2024)
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Worked Hours List */}
+        <div className="space-y-6">
+          {loading ? (
+            <div className="space-y-4">
+              <TableSkeleton cols={5} rows={3} />
+              <TableSkeleton cols={5} rows={3} />
+            </div>
+          ) : userGroups.length > 0 ? (
+            userGroups.map((group) => {
+              const isExpanded = expandedUsers.has(group.user.id)
+              const groupPendingCount = group.hours.filter(h => h.status === 'PENDING').length
+              
+              return (
+                <div key={group.user.id} className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 overflow-hidden group/user transition-all duration-300">
+                  {/* User Group Header */}
+                  <button
+                    onClick={() => {
+                      lightClick()
+                      toggleUser(group.user.id)
+                    }}
+                    className={cn(
+                      "w-full px-8 py-6 flex items-center justify-between transition-all duration-300 text-left",
+                      isExpanded ? "bg-orange-50/50 border-b border-orange-100" : "bg-white hover:bg-gray-50"
+                    )}
+                  >
+                    <div className="flex items-center gap-6">
+                      <div className={cn(
+                        "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300",
+                        isExpanded ? "bg-orange-600 text-white shadow-lg shadow-orange-100" : "bg-gray-100 text-gray-400 group-hover/user:bg-orange-100 group-hover/user:text-orange-600"
+                      )}>
+                        <User className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-black text-gray-900 leading-none">{group.user.username}</h3>
+                          {groupPendingCount > 0 && (
+                            <span className="px-2 py-1 bg-orange-600 text-white text-[10px] font-black uppercase rounded-full animate-pulse">
+                              {groupPendingCount} PENDING
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-2">{getRoleName(group.user.primaryRole)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-8">
+                      <div className="hidden sm:flex items-center gap-8">
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Turni</p>
+                          <p className="text-xl font-black text-gray-900 leading-none">{group.hours.length}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Totali</p>
+                          <p className="text-xl font-black text-orange-600 leading-none">{group.totalHours.toFixed(1)}h</p>
+                        </div>
+                      </div>
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 transition-all duration-300",
+                        isExpanded && "bg-orange-100 text-orange-600 rotate-180"
+                      )}>
+                        <ChevronDown className="h-5 w-5" />
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Expanded Content: Shifts Table */}
+                  {isExpanded && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-white">
+                          <tr>
+                            <th className="px-8 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Giorno e Turno</th>
+                            <th className="px-8 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Orario Lavorato</th>
+                            <th className="px-8 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Ore</th>
+                            <th className="px-8 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Stato</th>
+                            <th className="px-8 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Azioni</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {group.hours.map((hours) => {
+                            const shiftDate = getShiftDate(hours.shift)
+                            return (
+                              <tr key={hours.id} className="hover:bg-gray-50/50 transition-colors group/row">
+                                <td className="px-8 py-5">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex flex-col items-center justify-center font-black text-gray-400 border border-gray-100">
+                                      <span className="text-[8px] uppercase leading-none">{getDayName(hours.shift.dayOfWeek).substring(0, 3)}</span>
+                                      <span className="text-sm leading-none mt-1">{format(shiftDate, 'd')}</span>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-black text-gray-900 leading-tight">
+                                        {getShiftTypeName(hours.shift.shiftType)}
+                                      </p>
+                                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                                        {getRoleName(hours.shift.role)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-gray-900">{hours.startTime}</span>
+                                    <span className="text-gray-300 text-xs">→</span>
+                                    <span className="text-sm font-bold text-gray-900">{hours.endTime}</span>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-5 text-center">
+                                  <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-900 text-xs font-black rounded-lg">
+                                    {hours.totalHours.toFixed(1)}h
+                                  </span>
+                                </td>
+                                <td className="px-8 py-5 text-center">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <span className={cn(
+                                      "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                                      hours.status === 'PENDING' ? "bg-yellow-100 text-yellow-700" :
+                                      hours.status === 'APPROVED' ? "bg-green-100 text-green-700" :
+                                      "bg-red-100 text-red-700"
+                                    )}>
+                                      {getStatusText(hours.status)}
+                                    </span>
+                                    {hours.status === 'REJECTED' && hours.rejectionReason && (
+                                      <p className="text-[9px] text-red-500 font-bold max-w-[120px] truncate" title={hours.rejectionReason}>
+                                        {hours.rejectionReason}
+                                      </p>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-8 py-5 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => openEditModal(hours)}
+                                      className="p-2 bg-gray-100 text-gray-400 hover:bg-blue-600 hover:text-white rounded-xl transition-all active:scale-90"
+                                      title="Modifica"
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </button>
+                                    {hours.status === 'PENDING' && (
+                                      <>
+                                        <button
+                                          onClick={() => approveHours(hours.id)}
+                                          className="p-2 bg-gray-100 text-gray-400 hover:bg-green-600 hover:text-white rounded-xl transition-all active:scale-90"
+                                          title="Approva"
+                                        >
+                                          <Check className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            lightClick()
+                                            setRejectingId(hours.id)
+                                          }}
+                                          className="p-2 bg-gray-100 text-gray-400 hover:bg-red-600 hover:text-white rounded-xl transition-all active:scale-90"
+                                          title="Rifiuta"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          ) : (
+            <div className="bg-white rounded-[3rem] border-2 border-dashed border-gray-100 py-20 text-center">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Clock className="h-10 w-10 text-gray-200" />
+              </div>
+              <h3 className="text-gray-400 font-black uppercase tracking-[0.2em] text-sm">Nessuna ora trovata per questi filtri</h3>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Edit Hours Modal - Using Common Modal Component */}
+      <Modal
+        isOpen={!!editingHours}
+        onClose={closeEditModal}
+        title="Modifica Ore"
+        subtitle={editingHours ? `${editingHours.user.username} • ${getDayName(editingHours.shift.dayOfWeek)} ${getShiftTypeName(editingHours.shift.shiftType)}` : ''}
+        headerIcon={<Edit2 className="h-6 w-6" />}
+        maxWidth="lg"
+      >
+        {editingHours && (
+          <div className="space-y-8 pt-4">
+            {/* Shift Info Header */}
+            <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-[2rem] p-6">
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Orario Turno Originale</p>
+                <p className="text-xl font-black text-gray-900">{editingHours.shift.startTime} - {editingHours.shift.endTime}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ruolo Assegnato</p>
+                <p className="text-xl font-black text-gray-900">{getRoleName(editingHours.shift.role)}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ora Inizio</label>
+                <ReactSelect
+                  options={generateTimeOptions(editingHours.shift.startTime)}
+                  value={editStartTime ? { value: editStartTime, label: editStartTime } : null}
+                  onChange={(option) => {
+                    lightClick()
+                    setEditStartTime(option?.value?.toString() || '')
+                  }}
+                  placeholder="Seleziona..."
+                />
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ora Fine</label>
+                <ReactSelect
+                  options={generateTimeOptions(editingHours.shift.endTime)}
+                  value={editEndTime ? { value: editEndTime, label: editEndTime } : null}
+                  onChange={(option) => {
+                    lightClick()
+                    setEditEndTime(option?.value?.toString() || '')
+                  }}
+                  placeholder="Seleziona..."
+                />
+              </div>
+            </div>
+
+            {/* Live Result Display */}
+            {editStartTime && editEndTime && (
+              <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-[2rem] p-8 shadow-xl shadow-orange-100 flex items-center justify-between text-white">
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Ricalcolo Ore Totali</h4>
+                  <p className="text-lg font-bold mt-1">{editStartTime} – {editEndTime}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-4xl font-black">{calculateTotalHours(editStartTime, editEndTime).toFixed(1)}h</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4 pt-4">
+              <button
+                onClick={closeEditModal}
+                className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-all active:scale-95"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={saveEditedHours}
+                disabled={!editStartTime || !editEndTime}
+                className="flex-[2] py-4 bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-100 hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Check className="h-4 w-4" />
+                Salva Modifiche
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Reject Modal */}
+      <Modal
+        isOpen={!!rejectingId}
+        onClose={() => {
+          setRejectingId(null)
+          setRejectReason('')
+        }}
+        title="Rifiuta Ore"
+        headerIcon={<X className="h-6 w-6" />}
+      >
+        <div className="space-y-6 pt-4">
+          <div className="bg-red-50 rounded-[1.5rem] p-5 border border-red-100">
+            <div className="flex gap-4">
+              <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
+              <p className="text-sm font-bold text-red-800 leading-tight">
+                Le ore verranno rimandate al dipendente per essere corrette. Specifica il motivo qui sotto.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Motivo del rifiuto</label>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={4}
+              className="w-full bg-gray-50 border-2 border-gray-100 rounded-[2rem] px-6 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:border-orange-500 transition-all resize-none"
+              placeholder="Esempio: L'orario di fine non corrisponde alla chiusura effettiva..."
+            />
+          </div>
+
+          <div className="flex gap-4 pt-2">
+            <button
+              onClick={() => {
+                setRejectingId(null)
+                setRejectReason('')
+              }}
+              className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-all active:scale-95"
+            >
+              Annulla
+            </button>
+            <button
+              onClick={() => rejectHours(rejectingId!, rejectReason)}
+              disabled={!rejectReason.trim()}
+              className="flex-[2] py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-red-100 hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <X className="h-4 w-4" />
+              Rifiuta Ore
+            </button>
+          </div>
+        </div>
+      </Modal>
     </MainLayout>
   )
 }

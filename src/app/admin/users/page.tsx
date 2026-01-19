@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Smartphone, Check, Clock, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Smartphone, Check, Clock, ChevronRight, ShieldCheck, Mail, Star, UserPlus, Trash, RotateCw, ShieldAlert, SmartphoneIcon } from 'lucide-react'
 import { cn, getRoleName, getTransportName } from '@/lib/utils'
 import { Role, TransportType } from '@prisma/client'
 import { Select } from '@/components/ui/select'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { Modal } from '@/components/ui/modal'
+import { useHaptics } from '@/hooks/use-haptics'
 
 interface User {
   id: string
@@ -34,6 +35,7 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletingUser, setDeletingUser] = useState<User | null>(null)
+  const { lightClick, success: successClick, error: errorClick } = useHaptics()
 
   useEffect(() => {
     fetchUsers()
@@ -54,6 +56,7 @@ export default function UsersPage() {
   }
 
   const openDeleteConfirm = (user: User) => {
+    lightClick()
     setDeletingUser(user)
     setShowDeleteConfirm(true)
   }
@@ -68,19 +71,23 @@ export default function UsersPage() {
       })
 
       if (response.ok) {
+        successClick()
         setUsers(users.filter(u => u.id !== userId))
         setShowDeleteConfirm(false)
         setDeletingUser(null)
       } else {
+        errorClick()
         alert('Errore durante l\'eliminazione')
       }
     } catch (error) {
+      errorClick()
       console.error('Error deleting user:', error)
       alert('Errore durante l\'eliminazione')
     }
   }
 
   const handleResetPassword = async (userId: string) => {
+    lightClick()
     if (!confirm('Sei sicuro di voler resettare la password di questo utente?')) return
 
     try {
@@ -89,44 +96,21 @@ export default function UsersPage() {
       })
 
       if (response.ok) {
+        successClick()
         alert('Password resettata con successo. La nuova password è il nome utente.')
       } else {
+        errorClick()
         alert('Errore durante il reset della password')
       }
     } catch (error) {
+      errorClick()
       console.error('Error resetting password:', error)
       alert('Errore durante il reset della password')
     }
   }
 
-  const toggleWhatsAppNotifications = async (userId: string, currentValue: boolean) => {
-    try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          whatsappNotificationsEnabled: !currentValue
-        })
-      })
-
-      if (response.ok) {
-        setUsers(users.map(u =>
-          u.id === userId
-            ? { ...u, whatsappNotificationsEnabled: !currentValue }
-            : u
-        ))
-      } else {
-        alert('Errore durante l\'aggiornamento delle notifiche WhatsApp')
-      }
-    } catch (error) {
-      console.error('Error toggling WhatsApp notifications:', error)
-      alert('Errore durante l\'aggiornamento delle notifiche WhatsApp')
-    }
-  }
-
   const togglePushNotifications = async (userId: string, currentValue: boolean) => {
+    lightClick()
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'PUT',
@@ -139,15 +123,18 @@ export default function UsersPage() {
       })
 
       if (response.ok) {
+        successClick()
         setUsers(users.map(u =>
           u.id === userId
             ? { ...u, pushNotificationsEnabled: !currentValue }
             : u
         ))
       } else {
+        errorClick()
         alert('Errore durante l\'aggiornamento delle notifiche Push')
       }
     } catch (error) {
+      errorClick()
       console.error('Error toggling Push notifications:', error)
       alert('Errore durante l\'aggiornamento delle notifiche Push')
     }
@@ -156,18 +143,12 @@ export default function UsersPage() {
   if (loading) {
     return (
       <MainLayout adminOnly>
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-4 w-64" />
-            </div>
-            <Skeleton className="h-10 w-32" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
+        <div className="max-w-7xl mx-auto space-y-8">
+          <Skeleton className="h-40 rounded-[2.5rem]" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Skeleton className="h-28 rounded-[2rem]" />
+            <Skeleton className="h-28 rounded-[2rem]" />
+            <Skeleton className="h-28 rounded-[2rem]" />
           </div>
           <TableSkeleton rows={8} cols={6} />
         </div>
@@ -175,390 +156,164 @@ export default function UsersPage() {
     )
   }
 
-  // ✅ Separa gli utenti attivi da quelli disattivati
   const activeUsers = users.filter(user => user.isActive)
   const inactiveUsers = users.filter(user => !user.isActive)
 
   const pushEnabledCount = activeUsers.filter(u => u.pushNotificationsEnabled).length
   const pushSubscribedCount = activeUsers.filter(u => u.push_subscriptions?.length > 0).length
 
-  const renderUserCard = (user: User) => (
-    <div key={user.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-4">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-sm font-bold text-gray-900">{user.username}</h3>
-          <p className="text-xs text-gray-500 mt-0.5">{getRoleName(user.primaryRole)}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setEditingUser(user)}
-            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-          >
-            <Edit className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => handleResetPassword(user.id)}
-            className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => openDeleteConfirm(user)}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ruoli</p>
-          <div className="flex flex-wrap gap-1">
-            {user.user_roles.map((ur, i) => (
-              <span key={i} className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md font-bold">
-                {getRoleName(ur.role).substring(0, 3)}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-1 text-right">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Stato</p>
-          <span className={cn(
-            "text-[10px] px-2 py-0.5 rounded-full font-black uppercase",
-            user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-          )}>
-            {user.isActive ? 'ATTIVO' : 'OFF'}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-        <div className="flex items-center gap-6">
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-[8px] font-black text-gray-400 uppercase">Notifiche</p>
-            <div className="flex items-center gap-3">
-              {/* WhatsApp Indicator */}
-              <div className="relative">
-                <div className={cn(
-                  "p-1 rounded-md transition-colors",
-                  user.whatsappNotificationsEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
-                )}>
-                  <Smartphone className="w-3.5 h-3.5" />
-                </div>
-                {user.whatsappNotificationsEnabled && (
-                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white" />
-                )}
-              </div>
-
-              {/* Push Toggle + Indicator */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
-                  className={cn(
-                    "w-8 h-4 rounded-full relative transition-colors",
-                    user.pushNotificationsEnabled ? "bg-orange-500" : "bg-gray-200"
-                  )}
-                >
-                  <div className={cn(
-                    "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all",
-                    user.pushNotificationsEnabled ? "left-4.5" : "left-0.5"
-                  )} />
-                </button>
-                {user.pushNotificationsEnabled && (
-                  <div className={cn(
-                    "w-1.5 h-1.5 rounded-full",
-                    user.push_subscriptions?.length > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"
-                  )} title={user.push_subscriptions?.length > 0 ? "Dispositivo collegato" : "App non ancora aperta/configurata"} />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
-  const renderUserRow = (user: User) => (
-    <tr key={user.id} className="hover:bg-gray-50">
-      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-        <div className="text-xs sm:text-sm font-medium text-gray-900">
-          {user.username}
-        </div>
-      </td>
-      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-        <div className="flex flex-wrap gap-1">
-          {user.user_roles.map((userRole, index) => (
-            <span
-              key={index}
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${userRole.role === user.primaryRole
-                ? 'bg-orange-100 text-orange-800 border border-orange-300'
-                : 'bg-blue-100 text-blue-800'
-                }`}
-            >
-              {getRoleName(userRole.role)}
-              {userRole.role === user.primaryRole && (
-                <span className="ml-1 text-orange-600">★</span>
-              )}
-            </span>
-          ))}
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex flex-wrap gap-1">
-          {user.user_transports.map((userTransport, index) => (
-            <span
-              key={index}
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${userTransport.transport === user.primaryTransport
-                ? 'bg-orange-100 text-orange-800 border border-orange-300'
-                : 'bg-green-100 text-green-800'
-                }`}
-            >
-              {getTransportName(userTransport.transport)}
-              {userTransport.transport === user.primaryTransport && (
-                <span className="ml-1 text-orange-600">★</span>
-              )}
-            </span>
-          ))}
-        </div>
-      </td>
-      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center gap-4">
-          {/* WhatsApp Status (No toggle anymore, just icon indicator) */}
-          <div className="flex items-center gap-1.5" title={user.whatsappNotificationsEnabled ? 'WhatsApp Abilitato' : 'WhatsApp Disabilitato'}>
-            <div className={cn(
-              "p-1.5 rounded-lg",
-              user.whatsappNotificationsEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
-            )}>
-              <Smartphone className="w-4 h-4" />
-            </div>
-          </div>
-
-          {/* Push Notifications with Device Check */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
-              className={cn(
-                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2",
-                user.pushNotificationsEnabled ? "bg-orange-600" : "bg-gray-300"
-              )}
-              title={user.pushNotificationsEnabled ? 'Push Abilitate' : 'Push Disabilitate'}
-            >
-              <span
-                className={cn(
-                  "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                  user.pushNotificationsEnabled ? "translate-x-6" : "translate-x-1"
-                )}
-              />
-            </button>
-            {user.pushNotificationsEnabled && (
-              <span
-                className={cn(
-                  "w-2.5 h-2.5 rounded-full",
-                  user.push_subscriptions?.length > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"
-                )}
-                title={user.push_subscriptions?.length > 0 ? 'Configurato correttamente (Dispositivo collegato)' : 'ATTENZIONE: App non ancora aperta sul telefono'}
-              />
-            )}
-          </div>
-        </div>
-      </td>
-      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.isActive
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
-            }`}
-        >
-          {user.isActive ? 'Attivo' : 'Disattivato'}
-        </span>
-      </td>
-      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-        <div className="flex space-x-1 sm:space-x-2">
-          <button
-            onClick={() => setEditingUser(user)}
-            className="text-indigo-600 hover:text-indigo-900"
-            title="Modifica"
-          >
-            <Edit className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => handleResetPassword(user.id)}
-            className="text-yellow-600 hover:text-yellow-900"
-            title="Reset Password"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => openDeleteConfirm(user)}
-            className="text-red-600 hover:text-red-900"
-            title="Elimina"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      </td>
-    </tr>
-  )
-
   return (
     <MainLayout adminOnly>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-              <Users className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-orange-600" />
-              Gestione Utenti
-            </h1>
-            <p className="text-sm sm:text-base text-gray-800 mt-1">
-              Gestisci utenti, ruoli e permessi del sistema
-            </p>
+      <div className="max-w-7xl mx-auto space-y-8 pb-20">
+        {/* Premium Header */}
+        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
+          
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-orange-100 transform -rotate-3">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
+                  Gestione Squadra
+                </h1>
+                <p className="text-gray-500 mt-2 text-sm font-medium">
+                  Controlla i profili, i ruoli e i permessi di tutti i collaboratori.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                lightClick()
+                setShowCreateForm(true)
+              }}
+              className="px-8 py-4 bg-gradient-primary text-white rounded-[1.5rem] text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all active:scale-95 flex items-center gap-3"
+            >
+              <UserPlus className="h-5 w-5" />
+              Nuovo Collaboratore
+            </button>
           </div>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="bg-orange-600 text-white px-3 py-2 text-sm sm:px-4 sm:py-2 rounded-md hover:bg-orange-700 flex items-center justify-center"
-          >
-            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
-            Nuovo Utente
-          </button>
         </div>
 
-        {/* 🔔 Notification Stats Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="bg-white p-4 rounded-xl shadow-soft border border-gray-100 flex items-center gap-4">
-            <div className="p-3 bg-orange-50 rounded-lg">
-              <Bell className="h-5 w-5 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Push Abilitate</p>
-              <p className="text-xl font-black text-gray-900">{pushEnabledCount} / {activeUsers.length}</p>
-            </div>
-          </div>
-          
-          <div className="bg-white p-4 rounded-xl shadow-soft border border-gray-100 flex items-center gap-4">
-            <div className="p-3 bg-green-50 rounded-lg">
-              <Smartphone className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Dispositivi Collegati</p>
-              <p className="text-xl font-black text-gray-900">{pushSubscribedCount}</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-xl shadow-soft border border-gray-100 flex items-center gap-4">
-            <div className="p-3 bg-red-50 rounded-lg">
-              <BellOff className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Push Disabilitate</p>
-              <p className="text-xl font-black text-gray-900">{activeUsers.length - pushEnabledCount}</p>
-            </div>
-          </div>
+        {/* Notification Stats Summary */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <StatCard 
+            label="Push Abilitate" 
+            value={`${pushEnabledCount} / ${activeUsers.length}`}
+            icon={Bell} 
+            color="orange" 
+          />
+          <StatCard 
+            label="Dispositivi Collegati" 
+            value={pushSubscribedCount}
+            icon={Smartphone} 
+            color="green" 
+          />
+          <StatCard 
+            label="Push Disabilitate" 
+            value={activeUsers.length - pushEnabledCount}
+            icon={BellOff} 
+            color="red" 
+          />
         </div>
 
         {/* Active Users Table */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-4 py-3 bg-green-50 border-b border-green-100">
-            <h2 className="text-sm font-semibold text-green-900 flex items-center">
-              <span className="inline-block w-2 h-2 bg-green-600 rounded-full mr-2"></span>
-              Utenti Attivi ({activeUsers.length})
-            </h2>
-          </div>
+        <div className="space-y-6">
+          <SectionHeader title="Collaboratori Attivi" count={activeUsers.length} color="green" />
           
-          {/* Mobile Card View */}
-          <div className="grid grid-cols-1 gap-3 p-4 sm:hidden">
-            {activeUsers.map(renderUserCard)}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Utente
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ruoli
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trasporti
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Notifiche
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Stato
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Azioni
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {activeUsers.map(renderUserRow)}
-              </tbody>
-            </table>
-          </div>
-
-          {activeUsers.length === 0 && (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-700">Nessun utente attivo trovato</p>
+          <div className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 overflow-hidden">
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Utente</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Abilitazioni</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Trasporti</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Notifiche</th>
+                    <th className="px-8 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {activeUsers.map(user => (
+                    <UserRow 
+                      key={user.id} 
+                      user={user} 
+                      onEdit={() => setEditingUser(user)}
+                      onDelete={() => openDeleteConfirm(user)}
+                      onResetPassword={() => handleResetPassword(user.id)}
+                      onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
+                    />
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-4 p-6 sm:hidden">
+              {activeUsers.map(user => (
+                <UserMobileCard 
+                  key={user.id} 
+                  user={user} 
+                  onEdit={() => setEditingUser(user)}
+                  onDelete={() => openDeleteConfirm(user)}
+                  onResetPassword={() => handleResetPassword(user.id)}
+                  onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
+                />
+              ))}
+            </div>
+
+            {activeUsers.length === 0 && (
+              <div className="py-20 text-center">
+                <Users className="h-16 w-16 text-gray-100 mx-auto mb-4" />
+                <p className="text-gray-400 font-black uppercase tracking-widest text-sm">Nessun collaboratore attivo</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Inactive Users Table */}
         {inactiveUsers.length > 0 && (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="px-4 py-3 bg-red-50 border-b border-red-100">
-              <h2 className="text-sm font-semibold text-red-900 flex items-center">
-                <span className="inline-block w-2 h-2 bg-red-600 rounded-full mr-2"></span>
-                Utenti Disattivati ({inactiveUsers.length})
-              </h2>
-            </div>
+          <div className="space-y-6">
+            <SectionHeader title="Account Disattivati" count={inactiveUsers.length} color="red" />
             
-            {/* Mobile Card View */}
-            <div className="grid grid-cols-1 gap-3 p-4 sm:hidden">
-              {inactiveUsers.map(renderUserCard)}
-            </div>
-
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Utente
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ruoli
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Trasporti
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Notifiche
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Stato
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Azioni
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {inactiveUsers.map(renderUserRow)}
-                </tbody>
-              </table>
+            <div className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 overflow-hidden opacity-70">
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full">
+                  <tbody className="divide-y divide-gray-50">
+                    {inactiveUsers.map(user => (
+                      <UserRow 
+                        key={user.id} 
+                        user={user} 
+                        onEdit={() => setEditingUser(user)}
+                        onDelete={() => openDeleteConfirm(user)}
+                        onResetPassword={() => handleResetPassword(user.id)}
+                        onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="grid grid-cols-1 gap-4 p-6 sm:hidden">
+                {inactiveUsers.map(user => (
+                  <UserMobileCard 
+                    key={user.id} 
+                    user={user} 
+                    onEdit={() => setEditingUser(user)}
+                    onDelete={() => openDeleteConfirm(user)}
+                    onResetPassword={() => handleResetPassword(user.id)}
+                    onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Create/Edit User Modals would go here */}
+      {/* Modals */}
       {showCreateForm && (
         <UserFormModal
           onClose={() => setShowCreateForm(false)}
@@ -580,7 +335,6 @@ export default function UsersPage() {
         />
       )}
 
-      {/* Delete User Confirmation Modal */}
       <ConfirmationModal
         isOpen={showDeleteConfirm}
         onClose={() => {
@@ -595,11 +349,9 @@ export default function UsersPage() {
         isDangerous={true}
         metadata={
           deletingUser && (
-            <div className="text-sm space-y-1">
-              <p><strong>Username:</strong> {deletingUser.username}</p>
-              <p><strong>Ruolo:</strong> {getRoleName(deletingUser.primaryRole)}</p>
-              <p><strong>Ruoli:</strong> {deletingUser.user_roles.map(r => getRoleName(r.role)).join(', ')}</p>
-              <p><strong>Stato:</strong> {deletingUser.isActive ? 'Attivo' : 'Disattivato'}</p>
+            <div className="text-sm font-bold text-gray-600 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+              <div className="flex justify-between mb-1"><span>Username:</span> <span className="text-gray-900">{deletingUser.username}</span></div>
+              <div className="flex justify-between"><span>Ruolo:</span> <span className="text-gray-900">{getRoleName(deletingUser.primaryRole)}</span></div>
             </div>
           )
         }
@@ -608,7 +360,189 @@ export default function UsersPage() {
   )
 }
 
-// User Form Modal Component
+function SectionHeader({ title, count, color }: any) {
+  const colors: any = {
+    green: 'bg-green-500',
+    red: 'bg-red-500'
+  }
+  return (
+    <div className="flex items-center gap-3 px-4">
+      <div className={cn("w-2 h-2 rounded-full", colors[color])}></div>
+      <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{title} ({count})</h2>
+    </div>
+  )
+}
+
+function StatCard({ label, value, icon: Icon, color }: any) {
+  const colors: any = {
+    orange: 'bg-orange-50 text-orange-600',
+    green: 'bg-green-50 text-green-600',
+    red: 'bg-red-50 text-red-600'
+  }
+  return (
+    <div className="bg-white p-6 rounded-[2rem] shadow-soft border border-gray-100 flex items-center gap-5">
+      <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", colors[color])}>
+        <Icon className="h-7 w-7" />
+      </div>
+      <div>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+        <p className="text-2xl font-black text-gray-900">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
+  return (
+    <tr className="group hover:bg-orange-50/30 transition-colors">
+      <td className="px-8 py-5 whitespace-nowrap">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center font-black text-gray-400 border border-gray-100 group-hover:border-orange-200 group-hover:text-orange-500 transition-all">
+            {user.username.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-sm font-black text-gray-900">{user.username}</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{getRoleName(user.primaryRole)}</p>
+          </div>
+        </div>
+      </td>
+      <td className="px-8 py-5">
+        <div className="flex flex-wrap gap-1.5">
+          {user.user_roles.map((ur: any, i: number) => (
+            <span key={i} className={cn(
+              "px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest",
+              ur.role === user.primaryRole ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-500"
+            )}>
+              {getRoleName(ur.role)}
+              {ur.role === user.primaryRole && <span className="ml-1">★</span>}
+            </span>
+          ))}
+        </div>
+      </td>
+      <td className="px-8 py-5">
+        <div className="flex flex-wrap gap-1.5">
+          {user.user_transports.length > 0 ? user.user_transports.map((ut: any, i: number) => (
+            <span key={i} className={cn(
+              "px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest",
+              ut.transport === user.primaryTransport ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
+            )}>
+              {getTransportName(ut.transport)}
+              {ut.transport === user.primaryTransport && <span className="ml-1">★</span>}
+            </span>
+          )) : <span className="text-[10px] font-bold text-gray-300 uppercase italic">Nessuno</span>}
+        </div>
+      </td>
+      <td className="px-8 py-5">
+        <div className="flex items-center gap-4">
+          <div className={cn(
+            "p-2 rounded-xl transition-all",
+            user.whatsappNotificationsEnabled ? "bg-green-50 text-green-600 shadow-sm" : "bg-gray-50 text-gray-300"
+          )} title="WhatsApp">
+            <Smartphone className="w-4 h-4" />
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onTogglePush}
+              className={cn(
+                "w-10 h-5 rounded-full relative transition-all shadow-inner",
+                user.pushNotificationsEnabled ? "bg-orange-500" : "bg-gray-200"
+              )}
+            >
+              <div className={cn(
+                "absolute top-1 w-3 h-3 bg-white rounded-full transition-all shadow-sm",
+                user.pushNotificationsEnabled ? "right-1" : "left-1"
+              )} />
+            </button>
+            {user.pushNotificationsEnabled && (
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                user.push_subscriptions?.length > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"
+              )} />
+            )}
+          </div>
+        </div>
+      </td>
+      <td className="px-8 py-5 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <ActionBtn icon={Edit} color="blue" onClick={onEdit} />
+          <ActionBtn icon={RotateCw} color="orange" onClick={onResetPassword} />
+          <ActionBtn icon={Trash} color="red" onClick={onDelete} />
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+function UserMobileCard({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
+  return (
+    <div className="bg-white rounded-[2rem] p-6 shadow-soft border border-gray-100 space-y-6">
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center font-black text-gray-400">
+            {user.username.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-base font-black text-gray-900 leading-none">{user.username}</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1.5">{getRoleName(user.primaryRole)}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <ActionBtn icon={Edit} color="blue" onClick={onEdit} size="lg" />
+          <ActionBtn icon={Trash} color="red" onClick={onDelete} size="lg" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 pt-2">
+        <div className="space-y-2">
+          <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Ruoli</p>
+          <div className="flex flex-wrap gap-1.5">
+            {user.user_roles.map((ur: any, i: number) => (
+              <span key={i} className="px-2 py-0.5 bg-gray-50 text-gray-500 text-[9px] font-black rounded-lg uppercase">{getRoleName(ur.role).substring(0,3)}</span>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Notifiche</p>
+          <div className="flex items-center gap-3">
+            <SmartphoneIcon className={cn("w-4 h-4", user.whatsappNotificationsEnabled ? "text-green-500" : "text-gray-200")} />
+            <div className={cn("w-2 h-2 rounded-full", user.push_subscriptions?.length > 0 ? "bg-green-500" : "bg-yellow-500")} />
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-gray-50">
+        <button 
+          onClick={onResetPassword}
+          className="w-full py-3 bg-gray-50 hover:bg-orange-50 text-gray-400 hover:text-orange-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+        >
+          <RotateCw className="h-3 w-3" />
+          Reset Password
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ActionBtn({ icon: Icon, color, onClick, size = 'md' }: any) {
+  const colors: any = {
+    blue: 'text-blue-500 bg-blue-50 hover:bg-blue-100',
+    orange: 'text-orange-500 bg-orange-50 hover:bg-orange-100',
+    red: 'text-red-500 bg-red-50 hover:bg-red-100'
+  }
+  const sizes: any = {
+    md: 'p-2',
+    lg: 'p-3'
+  }
+  return (
+    <button
+      onClick={onClick}
+      className={cn("rounded-xl transition-all active:scale-90", colors[color], sizes[size])}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  )
+}
+
 function UserFormModal({
   user,
   onClose,
@@ -630,10 +564,12 @@ function UserFormModal({
     pushNotificationsEnabled: user?.pushNotificationsEnabled ?? true
   })
   const [loading, setLoading] = useState(false)
+  const { lightClick, success: successClick, error: errorClick } = useHaptics()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    lightClick()
 
     try {
       const url = user ? `/api/admin/users/${user.id}` : '/api/admin/users'
@@ -648,12 +584,15 @@ function UserFormModal({
       })
 
       if (response.ok) {
+        successClick()
         onSave()
       } else {
+        errorClick()
         const error = await response.json()
         alert(error.error || 'Errore durante il salvataggio')
       }
     } catch (error) {
+      errorClick()
       console.error('Error saving user:', error)
       alert('Errore durante il salvataggio')
     } finally {
@@ -667,13 +606,13 @@ function UserFormModal({
       onClose={onClose}
       title={user ? 'Modifica Profilo' : 'Nuovo Collaboratore'}
       subtitle={user ? 'Aggiorna i dettagli dell\'account' : 'Crea un nuovo profilo squadra'}
-      headerIcon={user ? <Edit className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+      headerIcon={user ? <Edit className="h-6 w-6" /> : <UserPlus className="h-6 w-6" />}
       maxWidth="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-8 pt-4">
         {/* Username section */}
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Nome Utente</label>
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Nome Utente</label>
           <input
             type="text"
             required
@@ -681,29 +620,30 @@ function UserFormModal({
             value={formData.username}
             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
             placeholder="Es: mario.rossi"
-            className="w-full bg-gray-50 border-gray-100 border-2 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all disabled:opacity-50"
+            className="w-full bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] px-6 py-4 text-sm font-black text-gray-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all disabled:opacity-50"
           />
         </div>
 
         {/* Roles section */}
         <div className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Abilitazioni & Ruoli</label>
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Abilitazioni & Ruoli</label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {['ADMIN', 'PIZZAIOLO', 'FATTORINO', 'CUCINA', 'SALA'].map((role) => (
               <label 
                 key={role} 
                 className={cn(
-                  "flex items-center gap-3 p-4 border-2 rounded-2xl cursor-pointer transition-all",
+                  "flex items-center gap-3 p-5 border-2 rounded-[1.5rem] cursor-pointer transition-all",
                   formData.roles.includes(role as Role)
                     ? "bg-orange-50 border-orange-500 shadow-sm"
-                    : "bg-white border-gray-100 hover:border-gray-200"
+                    : "bg-white border-gray-50 hover:border-gray-200"
                 )}
+                onClick={() => lightClick()}
               >
                 <div className={cn(
-                  "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
                   formData.roles.includes(role as Role) ? "bg-orange-500 border-orange-500" : "border-gray-200"
                 )}>
-                  {formData.roles.includes(role as Role) && <Check className="h-3 w-3 text-white stroke-[4]" />}
+                  {formData.roles.includes(role as Role) && <Check className="h-3.5 w-3.5 text-white stroke-[4]" />}
                 </div>
                 <input
                   type="checkbox"
@@ -725,21 +665,21 @@ function UserFormModal({
 
         {/* Primary Role select */}
         {formData.roles.length > 0 && (
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Ruolo Principale</label>
-            <div className="relative">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Ruolo Principale</label>
+            <div className="relative group">
               <select
                 required
                 value={formData.primaryRole}
                 onChange={(e) => setFormData({ ...formData, primaryRole: e.target.value as Role })}
-                className="w-full pl-5 pr-12 py-3 bg-gray-50 border-gray-200 border-2 rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-orange-500 appearance-none transition-all"
+                className="w-full appearance-none bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] px-6 py-4 text-sm font-black text-gray-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all cursor-pointer"
               >
                 <option value="">Seleziona il ruolo principale...</option>
                 {formData.roles.map(role => (
                   <option key={role} value={role}>{getRoleName(role)}</option>
                 ))}
               </select>
-              <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+              <ChevronRight className="absolute right-6 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90 pointer-events-none group-focus-within:rotate-180 transition-transform" />
             </div>
           </div>
         )}
@@ -747,23 +687,24 @@ function UserFormModal({
         {/* Transport section for drivers */}
         {formData.roles.includes('FATTORINO') && (
           <div className="space-y-4 pt-2 animate-in slide-in-from-top-4 duration-300">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Mezzi di Trasporto</label>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Mezzi di Trasporto</label>
             <div className="flex gap-4">
               {['AUTO', 'SCOOTER'].map((transport) => (
                 <label 
                   key={transport} 
                   className={cn(
-                    "flex-1 flex items-center gap-3 p-4 border-2 rounded-2xl cursor-pointer transition-all",
+                    "flex-1 flex items-center gap-3 p-5 border-2 rounded-[1.5rem] cursor-pointer transition-all",
                     formData.transports.includes(transport as TransportType)
                       ? "bg-blue-50 border-blue-500 shadow-sm"
-                      : "bg-white border-gray-100 hover:border-gray-200"
+                      : "bg-white border-gray-50 hover:border-gray-200"
                   )}
+                  onClick={() => lightClick()}
                 >
                   <div className={cn(
-                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                    "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
                     formData.transports.includes(transport as TransportType) ? "bg-blue-500 border-blue-500" : "border-gray-200"
                   )}>
-                    {formData.transports.includes(transport as TransportType) && <Check className="h-3 w-3 text-white stroke-[4]" />}
+                    {formData.transports.includes(transport as TransportType) && <Check className="h-3.5 w-3.5 text-white stroke-[4]" />}
                   </div>
                   <input
                     type="checkbox"
@@ -783,21 +724,21 @@ function UserFormModal({
             </div>
             
             {formData.transports.length > 1 && (
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Mezzo Preferito</label>
-                <div className="relative">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Mezzo Preferito</label>
+                <div className="relative group">
                   <select
                     required
                     value={formData.primaryTransport}
                     onChange={(e) => setFormData({ ...formData, primaryTransport: e.target.value as TransportType })}
-                    className="w-full pl-5 pr-12 py-3 bg-gray-50 border-gray-200 border-2 rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-orange-500 appearance-none transition-all"
+                    className="w-full appearance-none bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] px-6 py-4 text-sm font-black text-gray-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all cursor-pointer"
                   >
                     <option value="">Seleziona il mezzo principale...</option>
                     {formData.transports.map(transport => (
                       <option key={transport} value={transport}>{getTransportName(transport)}</option>
                     ))}
                   </select>
-                  <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+                  <ChevronRight className="absolute right-6 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90 pointer-events-none group-focus-within:rotate-180 transition-transform" />
                 </div>
               </div>
             )}
@@ -805,34 +746,35 @@ function UserFormModal({
         )}
 
         {/* Configuration Flags */}
-        <div className="space-y-4 pt-4 border-t border-gray-100">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Impostazioni Account</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-4 pt-8 border-t border-gray-100">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Configurazione Account</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { id: 'isActive', label: 'Account Attivo', icon: Users, color: 'green' },
-              { id: 'trackHours', label: 'Gestione Ore', icon: Clock, color: 'blue' },
-              { id: 'whatsappNotificationsEnabled', label: 'Notifiche WA', icon: Smartphone, color: 'green' },
+              { id: 'isActive', label: 'Collaboratore Attivo', icon: Users, color: 'green' },
+              { id: 'trackHours', label: 'Tracciamento Ore', icon: Clock, color: 'blue' },
+              { id: 'whatsappNotificationsEnabled', label: 'Notifiche WhatsApp', icon: Smartphone, color: 'green' },
               { id: 'pushNotificationsEnabled', label: 'Notifiche PWA', icon: Bell, color: 'orange' }
             ].map((flag) => (
               <label 
                 key={flag.id} 
                 className={cn(
-                  "flex items-center justify-between p-4 bg-gray-50 rounded-2xl cursor-pointer hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100 transition-all",
-                  (formData as any)[flag.id] && "ring-1 ring-gray-200"
+                  "flex items-center justify-between p-5 bg-gray-50 rounded-[1.5rem] cursor-pointer hover:bg-white hover:shadow-sm border-2 border-transparent hover:border-gray-100 transition-all",
+                  (formData as any)[flag.id] && "bg-white border-gray-50"
                 )}
+                onClick={() => lightClick()}
               >
-                <div className="flex items-center gap-3">
-                  <div className={cn("p-2 rounded-xl", (formData as any)[flag.id] ? `bg-${flag.color}-100 text-${flag.color}-600` : "bg-gray-200 text-gray-400")}>
-                    <flag.icon className="h-4 w-4" />
+                <div className="flex items-center gap-4">
+                  <div className={cn("p-2.5 rounded-xl transition-colors", (formData as any)[flag.id] ? `bg-${flag.color}-50 text-${flag.color}-600` : "bg-gray-200 text-gray-400")}>
+                    <flag.icon className="h-5 w-5" />
                   </div>
-                  <span className="text-xs font-bold text-gray-700">{flag.label}</span>
+                  <span className="text-xs font-black text-gray-700 uppercase tracking-tight">{flag.label}</span>
                 </div>
                 <div className={cn(
-                  "w-10 h-5 rounded-full relative transition-all",
+                  "w-12 h-6 rounded-full relative transition-all shadow-inner",
                   (formData as any)[flag.id] ? "bg-orange-500" : "bg-gray-300"
                 )}>
                   <div className={cn(
-                    "absolute top-1 w-3 h-3 bg-white rounded-full transition-all",
+                    "absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm",
                     (formData as any)[flag.id] ? "right-1" : "left-1"
                   )} />
                 </div>
@@ -848,20 +790,27 @@ function UserFormModal({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-6">
+        <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-gray-50">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 rounded-2xl transition-all"
+            className="flex-1 py-5 text-xs font-black uppercase tracking-[0.2em] text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-[1.5rem] transition-all"
           >
             Annulla
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="flex-[2] py-4 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 transition-all active:scale-95 disabled:opacity-50"
+            className="flex-[2] py-5 bg-gradient-primary text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all active:scale-95 disabled:opacity-50"
           >
-            {loading ? 'Salvataggio...' : 'Conferma e Salva'}
+            {loading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Salvataggio...</span>
+              </div>
+            ) : (
+              'Conferma e Salva'
+            )}
           </button>
         </div>
       </form>

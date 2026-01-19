@@ -5,12 +5,12 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { useSession } from 'next-auth/react'
 import {
   Users, Calendar, Clock, BarChart3, UserCheck, TrendingUp, CalendarDays,
-  AlertCircle, Settings, Shield, CheckIcon, Bike, Car, UtensilsCrossed,
-  ChefHat, Pizza, Plus, ArrowRight
+  AlertCircle, Settings, Shield, CheckIcon, Bike, UtensilsCrossed,
+  ChefHat, Pizza, ArrowRight, UserPlus
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { getRoleName, getDayName } from '@/lib/utils'
+import { getRoleName, getDayName, cn } from '@/lib/utils'
 import type { Role } from '@prisma/client'
 import { useHaptics } from '@/hooks/use-haptics'
 import { PWAInstallPrompt } from '@/components/pwa/install-prompt'
@@ -260,186 +260,284 @@ export default function DashboardPage() {
       {/* PWA Install Guide */}
       <PWAInstallPrompt />
       
-      <div className="space-y-4 sm:space-y-6">
-        {/* Welcome Section */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg p-5 sm:p-8 text-white">
-          <div className="relative z-10">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-              Ciao, {session?.user.username}! 👋
-            </h1>
-            <p className="text-orange-100 mt-1 text-sm sm:text-base font-medium">
-              Speriamo tu stia passando una splendida giornata.
-            </p>
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider">
-              <Shield className="h-3 w-3" />
-              {session?.user.primaryRole === 'ADMIN' ? 'Amministratore' :
-                session?.user.primaryRole === 'FATTORINO' ? 'Fattorino' :
-                  session?.user.primaryRole === 'CUCINA' ? 'Cucina' : 'Sala'}
-            </div>
-          </div>
-          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-24 h-24 bg-orange-400/20 rounded-full blur-xl"></div>
-        </div>
-
-        {/* Missing Hours Alert */}
-        {!isAdminUser && missingHours && missingHours.count > 0 && (
-          <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 rounded-xl shadow-md overflow-hidden">
-            <div className="p-4 sm:p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-bold text-red-900">⚠️ Ore Mancanti</h3>
-                  <p className="text-sm text-red-800 mb-3">Hai {missingHours.count} turni senza ore inserite.</p>
-                  <a href="/hours" onClick={() => lightClick()} className="inline-flex items-center px-4 py-2 bg-red-600 text-white font-semibold rounded-lg text-sm shadow-sm active:scale-95 transition-transform">
-                    Inserisci Ore <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
-                </div>
+      <div className="space-y-8 max-w-6xl mx-auto pb-20 px-2 sm:px-4">
+        {/* Welcome Section - More compact and premium */}
+        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-soft border border-gray-100 group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60 group-hover:scale-110 transition-transform duration-700"></div>
+          
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-[2rem] flex items-center justify-center shadow-xl shadow-orange-100 transform -rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                <span className="text-white font-black text-2xl sm:text-3xl">
+                  {session?.user.username.charAt(0).toUpperCase()}
+                </span>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Pending Approval Alert */}
-        {isAdminUser && pendingHours && pendingHours.totalShifts > 0 && (
-          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl shadow-md overflow-hidden">
-            <div className="p-4 sm:p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Clock className="h-5 w-5 text-orange-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-bold text-orange-900">⏰ Approvazioni Ore</h3>
-                  <p className="text-sm text-orange-800 mb-3">{pendingHours.totalShifts} turni da confermare.</p>
-                  <a href="/admin/hours" onClick={() => lightClick()} className="inline-flex items-center px-4 py-2 bg-orange-600 text-white font-semibold rounded-lg text-sm shadow-sm active:scale-95 transition-transform">
-                    Approva Ora <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Quick Actions Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {isAdminUser ? (
-            <>
-              <QuickActionCard href="/admin/schedule" title="Gestisci Piano" icon={CalendarDays} color="blue" onClick={lightClick} />
-              <QuickActionCard href="/admin/hours" title="Approva Ore" icon={CheckIcon} color="orange" badge={pendingHours?.totalShifts} onClick={lightClick} />
-              <QuickActionCard href="/admin/users" title="Utenti" icon={Users} color="green" onClick={lightClick} />
-              <QuickActionCard href="/admin/system" title="Sistema" icon={Settings} color="gray" onClick={lightClick} />
-            </>
-          ) : (
-            <>
-              <QuickActionCard href="/hours" title="Segna Ore" icon={Clock} color="orange" badge={missingHours?.count} onClick={lightClick} />
-              <QuickActionCard href="/schedule" title="Mio Piano" icon={CalendarDays} color="blue" onClick={lightClick} />
-              <QuickActionCard href="/substitution-requests" title="Sostituzioni" icon={UserCheck} color="purple" onClick={lightClick} />
-              <QuickActionCard href="/availability" title="Disponibilità" icon={Calendar} color="green" onClick={lightClick} />
-            </>
-          )}
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {isAdminUser ? (
-            <>
-              <StatCard title="Utenti" value={stats.totalUsers || 0} icon={Users} color="blue" subtitle={`${stats.activeUsers || 0} attivi`} />
-              <StatCard title="Turni" value={stats.totalShiftsThisWeek || 0} icon={Calendar} color="green" subtitle="Settimana" />
-              <StatCard title="Ore Attesa" value={stats.pendingHours || 0} icon={Clock} color="yellow" subtitle="Da approvare" />
-              <StatCard title="Sostituzioni" value={stats.pendingSubstitutions || 0} icon={UserCheck} color="purple" subtitle="In attesa" />
-            </>
-          ) : (
-            <>
-              <StatCard title="Ore Mese" value={`${(stats.myApprovedHours || 0).toFixed(1)}h`} icon={Clock} color="green" subtitle="Approvate" />
-              <StatCard title="Ore Totali" value={`${(stats.myHoursThisMonth || 0).toFixed(1)}h`} icon={TrendingUp} color="orange" subtitle="Inserite" />
-              <StatCard title="Turni" value={stats.myShiftsThisWeek || 0} icon={Calendar} color="blue" subtitle="Questa sett." />
-              <StatCard title="Sostituzioni" value={stats.myPendingSubstitutions || 0} icon={UserCheck} color="purple" subtitle="In attesa" />
-            </>
-          )}
-        </div>
-
-        {/* Bottom Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Chi lavora oggi */}
-          <div className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <Users className="h-5 w-5 text-orange-600" /> Chi lavora oggi
-                </h2>
-                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">{format(new Date(), 'EEEE d MMMM', { locale: it })}</p>
+                <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none">
+                  Ciao, {session?.user.username}!
+                </h1>
+                <div className="flex items-center gap-2 mt-3">
+                  <span className="px-3 py-1 bg-orange-50 text-orange-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-orange-100">
+                    {isAdminUser ? 'Amministratore' : getRoleName(session?.user.primaryRole || 'USER')}
+                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                  <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">
+                    {format(new Date(), 'EEEE d MMMM', { locale: it })}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="p-4 flex-1">
-              {todayShifts && todayShifts.totalWorkers > 0 ? (
-                <div className="space-y-6">
-                  {Object.entries(todayShifts.shifts)
-                    .sort(([a], [b]) => (a === 'PRANZO' ? -1 : 1))
-                    .map(([type, shifts]) => (
-                      <div key={type}>
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className={`${type === 'PRANZO' ? 'bg-yellow-100 text-yellow-800' : 'bg-indigo-100 text-indigo-800'} px-2 py-0.5 rounded text-[10px] font-black uppercase`}>
-                            {type}
-                          </span>
-                          <div className="h-px bg-gray-100 flex-1"></div>
-                        </div>
-                        <div className="grid grid-cols-1 gap-2">
-                          {shifts.map((s) => (
-                            <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                              <div className="min-w-0">
-                                <p className="text-sm font-bold text-gray-900 truncate">{s.user.username}</p>
-                                <p className="text-[10px] text-gray-500 font-bold uppercase">{getRoleName(s.role as Role)}</p>
-                              </div>
-                              <span className="text-xs font-medium text-gray-600 bg-white px-2 py-1 rounded-lg border border-gray-100">{s.startTime}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+
+            {/* Quick Summary Circle Stats */}
+            <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-gray-50 pt-6 md:pt-0 md:pl-8">
+              {isAdminUser ? (
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">In Sospeso</p>
+                    <p className="text-2xl font-black text-orange-600">{pendingHours?.totalShifts || 0}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Attivi</p>
+                    <p className="text-2xl font-black text-green-600">{stats.activeUsers || 0}</p>
+                  </div>
                 </div>
               ) : (
-                <div className="text-center py-10">
-                  <Pizza className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-                  <p className="text-gray-400 font-bold">Nessun turno oggi</p>
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ore Mese</p>
+                    <p className="text-2xl font-black text-blue-600">{(stats.myApprovedHours || 0).toFixed(1)}h</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Turni</p>
+                    <p className="text-2xl font-black text-orange-600">{stats.myShiftsThisWeek || 0}</p>
+                  </div>
                 </div>
               )}
             </div>
           </div>
+        </div>
 
-          {/* User's Next Shifts or Admin Action */}
-          <div className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-              <h2 className="text-lg font-bold text-gray-900">{isAdminUser ? 'Admin Task' : 'I Miei Turni'}</h2>
-            </div>
-            <div className="p-4">
-              {!isAdminUser && myShifts && myShifts.total > 0 ? (
-                <div className="space-y-3">
-                  {myShifts.shifts.map((s) => (
-                    <div key={s.id} className={`flex items-center justify-between p-3 rounded-2xl border ${s.isToday ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}>
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center font-bold ${s.isToday ? 'bg-orange-500 text-white shadow-glow-orange' : 'bg-gray-100 text-gray-500'}`}>
-                          <span className="text-[10px] uppercase leading-none">{s.dayName.substring(0, 3)}</span>
-                          <span className="text-sm leading-none mt-0.5">{format(new Date(s.date), 'd')}</span>
+        {/* 🚀 LIVE: Chi lavora oggi - High Priority Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              Chi lavora oggi • {format(new Date(), 'dd/MM')}
+            </h2>
+            {isAdminUser && (
+              <a href="/admin/schedule" className="text-[10px] font-black text-orange-600 uppercase tracking-widest hover:underline">
+                Vedi Piano Completo →
+              </a>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {todayShifts && (todayShifts.shifts['PRANZO']?.length > 0 || todayShifts.shifts['CENA']?.length > 0) ? (
+              <>
+                {['PRANZO', 'CENA'].map((type) => {
+                  const shifts = todayShifts.shifts[type] || []
+                  if (shifts.length === 0) return null
+                  
+                  return (
+                    <div key={type} className="bg-white rounded-[2rem] shadow-soft border border-gray-100 overflow-hidden">
+                      <div className={cn(
+                        "px-6 py-4 border-b border-gray-50 flex items-center justify-between",
+                        type === 'PRANZO' ? "bg-orange-50/30" : "bg-indigo-50/30"
+                      )}>
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-8 h-8 rounded-xl flex items-center justify-center shadow-sm",
+                            type === 'PRANZO' ? "bg-orange-100 text-orange-600" : "bg-indigo-100 text-indigo-600"
+                          )}>
+                            {type === 'PRANZO' ? <Pizza className="h-4 w-4" /> : <UtensilsCrossed className="h-4 w-4" />}
+                          </div>
+                          <span className={cn(
+                            "text-xs font-black uppercase tracking-[0.2em]",
+                            type === 'PRANZO' ? "text-orange-700" : "text-indigo-700"
+                          )}>
+                            Turno {type}
+                          </span>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-900">{s.shiftType} - {getRoleName(s.role as Role)}</p>
-                          <p className="text-xs text-gray-500">{s.startTime} - {s.endTime}</p>
-                        </div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                          {shifts.length} {shifts.length === 1 ? 'Persona' : 'Persone'}
+                        </span>
                       </div>
-                      {s.isToday && <span className="text-[10px] font-black text-white bg-orange-600 px-2 py-0.5 rounded-full">OGGI</span>}
+                      <div className="p-4 grid grid-cols-1 gap-2">
+                        {shifts.map((s) => (
+                          <div key={s.id} className="group flex items-center justify-between p-3 bg-white border border-gray-100 rounded-2xl hover:border-orange-200 hover:shadow-md transition-all duration-300">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
+                                {s.role === 'FATTORINO' ? <Bike className="h-5 w-5" /> : 
+                                 s.role === 'CUCINA' ? <ChefHat className="h-5 w-5" /> : 
+                                 <UserCheck className="h-5 w-5" />}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-black text-gray-900 truncate leading-none">
+                                  {s.user.username}
+                                </p>
+                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                                  {getRoleName(s.role as Role)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end">
+                              <span className="text-[10px] font-black text-gray-900 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                                {s.startTime}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
+                  )
+                })}
+              </>
+            ) : (
+              <div className="col-span-full bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 py-12 text-center">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <Calendar className="h-8 w-8 text-gray-200" />
                 </div>
-              ) : isAdminUser ? (
-                <div className="space-y-3">
-                  <AdminTaskItem href="/admin/substitutions" title="Approvazione Sostituzioni" count={stats.pendingSubstitutions} color="purple" onClick={lightClick} />
-                  <AdminTaskItem href="/admin/hours" title="Conferma Ore Lavorate" count={stats.pendingHours} color="orange" onClick={lightClick} />
+                <p className="text-gray-400 font-black uppercase tracking-widest text-xs">Nessun turno programmato per oggi</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Alerts & Critical Tasks */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Notifications / Alerts - Col span 2 */}
+          <div className="lg:col-span-2 space-y-4">
+            <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] px-2 flex items-center gap-3">
+              Azioni Richieste
+            </h2>
+            
+            <div className="grid grid-cols-1 gap-4">
+              {/* Admin: Approvals */}
+              {isAdminUser && pendingHours && pendingHours.totalShifts > 0 && (
+                <div className="relative overflow-hidden bg-gradient-to-r from-orange-500 to-orange-600 rounded-[2rem] p-6 shadow-lg shadow-orange-100 group">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                    <Clock className="h-20 w-20 text-white" />
+                  </div>
+                  <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div>
+                      <h3 className="text-white text-xl font-black tracking-tight">Approvazione Ore</h3>
+                      <p className="text-orange-100 text-sm font-medium mt-1">
+                        Ci sono {pendingHours.totalShifts} turni in attesa di essere confermati.
+                      </p>
+                    </div>
+                    <a href="/admin/hours" onClick={() => lightClick()} className="bg-white text-orange-600 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all text-center">
+                      Approva Ora
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* User: Missing Hours */}
+              {!isAdminUser && missingHours && missingHours.count > 0 && (
+                <div className="relative overflow-hidden bg-gradient-to-r from-red-500 to-red-600 rounded-[2rem] p-6 shadow-lg shadow-red-100 group">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                    <AlertCircle className="h-20 w-20 text-white" />
+                  </div>
+                  <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div>
+                      <h3 className="text-white text-xl font-black tracking-tight">Ore Mancanti</h3>
+                      <p className="text-red-100 text-sm font-medium mt-1">
+                        Hai {missingHours.count} turni senza ore inserite. Completali subito!
+                      </p>
+                    </div>
+                    <a href="/hours" onClick={() => lightClick()} className="bg-white text-red-600 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all text-center">
+                      Inserisci Ore
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Admin Task: Substitutions */}
+              {isAdminUser && stats.pendingSubstitutions && stats.pendingSubstitutions > 0 && (
+                <div className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-6 group hover:border-purple-200 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600">
+                      <UserPlus className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-gray-900 font-black tracking-tight uppercase text-sm">Sostituzioni</h3>
+                      <p className="text-gray-400 text-xs font-medium mt-0.5">{stats.pendingSubstitutions} richieste da approvare</p>
+                    </div>
+                  </div>
+                  <a href="/admin/substitutions" className="px-6 py-3 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-100 active:scale-95 transition-all text-center">
+                    Gestisci
+                  </a>
+                </div>
+              )}
+
+              {/* Quick Actions for everyone else */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {isAdminUser ? (
+                  <>
+                    <QuickActionItem href="/admin/users" title="Utenti" icon={Users} color="blue" />
+                    <QuickActionItem href="/admin/holidays" title="Festivi" icon={CalendarDays} color="red" />
+                    <QuickActionItem href="/admin/hours-summary" title="Riepilogo" icon={BarChart3} color="green" />
+                    <QuickActionItem href="/admin/system" title="Sistema" icon={Settings} color="gray" />
+                  </>
+                ) : (
+                  <>
+                    <QuickActionItem href="/hours" title="Le Mie Ore" icon={Clock} color="orange" />
+                    <QuickActionItem href="/schedule" title="Mio Piano" icon={CalendarDays} color="blue" />
+                    <QuickActionItem href="/substitution-requests" title="Cambio Turno" icon={UserPlus} color="purple" />
+                    <QuickActionItem href="/availability" title="Disponibilità" icon={Calendar} color="green" />
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Secondary Section - Personal Info */}
+          <div className="space-y-4">
+            <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] px-2 flex items-center gap-3">
+              {isAdminUser ? 'Info Settimanali' : 'I Miei Prossimi Turni'}
+            </h2>
+            
+            <div className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 p-6 flex-1 min-h-[300px]">
+              {isAdminUser ? (
+                <div className="space-y-6">
+                  <DashboardStatItem label="Utenti Attivi" value={stats.activeUsers || 0} icon={Users} color="green" />
+                  <DashboardStatItem label="Turni della Settimana" value={stats.totalShiftsThisWeek || 0} icon={CalendarDays} color="blue" />
+                  <DashboardStatItem label="Disponibilità Inserite" value={stats.availabilitiesThisWeek || 0} icon={UserCheck} color="orange" />
+                  <DashboardStatItem label="Sostituzioni Approvate" value={stats.approvedSubstitutions || 0} icon={CheckIcon} color="purple" />
                 </div>
               ) : (
-                <div className="text-center py-10">
-                  <Calendar className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-                  <p className="text-gray-400 font-bold">Nessun turno assegnato</p>
+                <div className="space-y-4">
+                  {myShifts && myShifts.shifts.length > 0 ? (
+                    myShifts.shifts.slice(0, 5).map((s) => (
+                      <div key={s.id} className={cn(
+                        "flex items-center justify-between p-4 rounded-2xl border transition-all duration-300",
+                        s.isToday ? "bg-orange-50 border-orange-200 shadow-sm" : "bg-white border-gray-50 hover:border-orange-100"
+                      )}>
+                        <div className="flex items-center gap-4">
+                          <div className={cn(
+                            "w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black",
+                            s.isToday ? "bg-orange-600 text-white shadow-lg shadow-orange-100" : "bg-gray-50 text-gray-400"
+                          )}>
+                            <span className="text-[9px] uppercase leading-none">{s.dayName.substring(0, 3)}</span>
+                            <span className="text-lg leading-none mt-1">{format(new Date(s.date), 'd')}</span>
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-gray-900 uppercase tracking-tight">{s.shiftType}</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{getRoleName(s.role as Role)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-gray-900">{s.startTime}</p>
+                          {s.isToday && <span className="inline-block mt-1 w-1.5 h-1.5 rounded-full bg-orange-500" />}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <Calendar className="h-12 w-12 text-gray-100 mb-4" />
+                      <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Nessun turno assegnato</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -450,56 +548,44 @@ export default function DashboardPage() {
   )
 }
 
-function QuickActionCard({ href, title, icon: Icon, color, onClick, badge }: any) {
-  const colorClasses: any = {
-    blue: 'bg-blue-100 text-blue-600',
-    orange: 'bg-orange-100 text-orange-600',
-    green: 'bg-green-100 text-green-600',
-    purple: 'bg-purple-100 text-purple-600',
-    gray: 'bg-gray-100 text-gray-600'
-  }
-  return (
-    <a href={href} onClick={onClick} className="relative flex flex-col items-center justify-center p-4 sm:p-6 bg-white rounded-2xl shadow-soft border border-gray-100 active:scale-95 transition-all touch-active group">
-      {badge > 0 && <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white animate-pulse">{badge}</span>}
-      <div className={`p-3 rounded-xl mb-3 ${colorClasses[color]} group-hover:scale-110 transition-transform`}>
-        <Icon className="h-6 w-6" />
-      </div>
-      <span className="text-xs font-bold text-gray-900 text-center">{title}</span>
-    </a>
-  )
-}
-
-function StatCard({ title, value, icon: Icon, color, subtitle }: any) {
+function QuickActionItem({ href, title, icon: Icon, color }: any) {
   const colors: any = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    yellow: 'bg-yellow-50 text-yellow-600',
-    purple: 'bg-purple-50 text-purple-600',
-    orange: 'bg-orange-50 text-orange-600'
+    blue: 'bg-blue-50 text-blue-600 border-blue-100',
+    orange: 'bg-orange-50 text-orange-600 border-orange-100',
+    green: 'bg-green-50 text-green-600 border-green-100',
+    purple: 'bg-purple-50 text-purple-600 border-purple-100',
+    red: 'bg-red-50 text-red-600 border-red-100',
+    gray: 'bg-gray-50 text-gray-600 border-gray-100'
   }
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-soft border border-gray-50 relative overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{title}</h3>
-        <div className={`p-1.5 rounded-lg ${colors[color]}`}><Icon className="h-3.5 w-3.5" /></div>
+    <a href={href} className="flex flex-col items-center gap-3 group">
+      <div className={cn(
+        "w-full aspect-square rounded-3xl flex items-center justify-center border-2 transition-all duration-300 group-active:scale-90 group-hover:shadow-lg shadow-gray-100",
+        colors[color] || colors.gray
+      )}>
+        <Icon className="h-6 w-6 sm:h-7 sm:w-7 group-hover:scale-110 transition-transform" />
       </div>
-      <p className="text-xl font-black text-gray-900 leading-tight">{value}</p>
-      {subtitle && <p className="mt-1 text-[10px] font-bold text-gray-500">{subtitle}</p>}
-      <div className={`absolute -bottom-4 -right-4 w-12 h-12 rounded-full opacity-5 ${colors[color].split(' ')[0]}`}></div>
-    </div>
+      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">{title}</span>
+    </a>
   )
 }
 
-function AdminTaskItem({ href, title, count, color, onClick }: any) {
-  if (!count || count === 0) return null
-  const c: any = {
-    purple: 'bg-purple-50 border-purple-100 text-purple-700',
-    orange: 'bg-orange-50 border-orange-100 text-orange-700'
+function DashboardStatItem({ label, value, icon: Icon, color }: any) {
+  const colors: any = {
+    green: 'bg-green-50 text-green-600',
+    blue: 'bg-blue-50 text-blue-600',
+    orange: 'bg-orange-50 text-orange-600',
+    purple: 'bg-purple-50 text-purple-600'
   }
   return (
-    <a href={href} onClick={onClick} className={`flex items-center justify-between p-3 rounded-2xl border transition-colors hover:brightness-95 active:scale-[0.98] ${c[color]}`}>
-      <span className="text-sm font-bold">{title}</span>
-      <span className="text-xs font-black bg-white/50 px-2 py-0.5 rounded-full">{count}</span>
-    </a>
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", colors[color])}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</span>
+      </div>
+      <span className="text-xl font-black text-gray-900">{value}</span>
+    </div>
   )
 }
