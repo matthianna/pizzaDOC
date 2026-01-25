@@ -7,7 +7,7 @@ import {
   AlertCircle, Clock, User, Filter, RefreshCw,
   HardDrive, Calendar, TrendingUp, Bell
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, formatDistanceToNow } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Select as ReactSelect } from '@/components/ui/react-select'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
@@ -517,12 +517,14 @@ export default function SystemAdminPage() {
           {/* TASKS TAB */}
           {activeTab === 'tasks' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-               {/* Contenuto già migliorato precedentemente, manteniamo la struttura pulita */}
                <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>
-                  <h3 className="text-xl font-black text-gray-900 tracking-tight">Centro Operativo Promemoria</h3>
+                  <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                    <Bell className="h-6 w-6 text-orange-600" />
+                    Notifiche Automatiche
+                  </h3>
                   <p className="text-sm text-gray-500 font-medium mt-1">
-                    Gestione manuale dei flussi di notifica e solleciti per la squadra.
+                    Visualizza e gestisci le notifiche automatiche programmate per la squadra.
                   </p>
                 </div>
                 <button
@@ -545,7 +547,7 @@ export default function SystemAdminPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {tasks.map((task) => (
+                  {tasks.map((task: any) => (
                     <div key={task.id} className="bg-white rounded-3xl p-8 border border-gray-100 shadow-soft hover:shadow-xl transition-all group">
                       <div className="flex items-start justify-between gap-4">
                         <div className={cn(
@@ -559,31 +561,56 @@ export default function SystemAdminPage() {
                           )}
                         </div>
                         <div className="text-right">
-                          <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[9px] font-black uppercase tracking-widest rounded-lg border border-gray-200">
-                            Esecuzione Manuale
+                          <span className={cn(
+                            "px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border",
+                            task.readable 
+                              ? "bg-green-50 text-green-600 border-green-200"
+                              : "bg-gray-100 text-gray-500 border-gray-200"
+                          )}>
+                            {task.readable ? 'Programmato' : 'Manuale'}
                           </span>
                         </div>
                       </div>
                       
                       <div className="mt-8">
                         <h4 className="text-xl font-black text-gray-900 tracking-tight">{task.name}</h4>
-                        <p className="text-sm text-gray-500 font-medium mt-2 leading-relaxed h-10 line-clamp-2">{task.description}</p>
+                        <p className="text-sm text-gray-500 font-medium mt-2 leading-relaxed">{task.description}</p>
                       </div>
 
-                      <div className="mt-8 pt-6 border-t border-gray-50 flex items-center justify-between">
-                        <code className="text-[10px] font-mono text-gray-400 bg-gray-50 px-2 py-1 rounded-md">{task.path}</code>
+                      {task.readable && (
+                        <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
+                          <div className="flex items-center gap-3">
+                            <Clock className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Orario Programmato</p>
+                              <p className="text-sm font-black text-blue-900">{task.readable}</p>
+                              {task.nextRun && (
+                                <p className="text-xs text-blue-600 font-medium mt-1">
+                                  Prossima esecuzione: {format(new Date(task.nextRun), 'dd MMMM yyyy', { locale: it })} alle {format(new Date(task.nextRun), 'HH:mm', { locale: it })}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-8 pt-6 border-t border-gray-50 flex items-center justify-between gap-4">
+                        <code className="text-[10px] font-mono text-gray-400 bg-gray-50 px-2 py-1 rounded-md flex-1 truncate">{task.path}</code>
                         <button
                           onClick={() => runTask(task.id)}
                           disabled={triggeringTask === task.id}
                           className={cn(
-                            "px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg transition-all disabled:opacity-50 flex items-center gap-2",
+                            "px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap",
                             task.id.includes('reminder')
                               ? "bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700"
                               : "bg-orange-600 text-white shadow-orange-200 hover:bg-orange-700"
                           )}
                         >
                           {triggeringTask === task.id ? (
-                            <RefreshCw className="h-3 w-3 animate-spin" />
+                            <>
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                              <span>Esecuzione...</span>
+                            </>
                           ) : (
                             <span>Esegui Ora</span>
                           )}

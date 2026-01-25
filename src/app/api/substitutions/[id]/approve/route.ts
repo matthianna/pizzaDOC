@@ -47,9 +47,25 @@ export async function POST(
       )
     }
 
-    if (substitution.status !== 'PENDING') {
+    // Check if substitution is already processed
+    if (substitution.status !== 'APPLIED' && substitution.status !== 'PENDING') {
       return NextResponse.json(
         { error: 'Substitution already processed' },
+        { status: 400 }
+      )
+    }
+
+    // Check if substitution has a substitute (must be in APPLIED status to approve)
+    if (substitution.status !== 'APPLIED') {
+      return NextResponse.json(
+        { error: 'Substitution must have an applicant before approval' },
+        { status: 400 }
+      )
+    }
+
+    if (!substitution.substituteId) {
+      return NextResponse.json(
+        { error: 'Substitution must have a substitute assigned' },
         { status: 400 }
       )
     }
@@ -64,34 +80,44 @@ export async function POST(
     // Update substitution and shift
     await prisma.$transaction(async (tx) => {
       // Update substitution
-      await tx.substitution.update({
+      await tx.substitutions.update({
         where: { id: id },
         data: {
           status: 'APPROVED',
           approverId: session.user.id,
-          responseNote: responseNote || null
+          responseNote: responseNote || null,
+          updatedAt: new Date()
         }
       })
 
-      // Update shift assignment
-      await tx.shift.update({
+      // Update shift assignment to the substitute
+      await tx.shifts.update({
         where: { id: substitution.shiftId },
         data: {
-          userId: substitution.requesterId,
-          status: 'SUBSTITUTED'
+          userId: substitution.substituteId,
+          updatedAt: new Date()
         }
       })
 
-      // Reject other pending substitutions for this shift
-      await tx.substitution.updateMany({
+      // Cancel any existing worked hours for the original user for this shift
+      await tx.worked_hours.deleteMany({
         where: {
           shiftId: substitution.shiftId,
-          status: 'PENDING',
+          userId: substitution.requesterId
+        }
+      })
+
+      // Reject other pending/applied substitutions for this shift
+      await tx.substitutions.updateMany({
+        where: {
+          shiftId: substitution.shiftId,
+          status: { in: ['PENDING', 'APPLIED'] },
           id: { not: id }
         },
         data: {
           status: 'REJECTED',
-          responseNote: 'Another substitution was approved'
+          responseNote: 'Another substitution was approved',
+          updatedAt: new Date()
         }
       })
     })

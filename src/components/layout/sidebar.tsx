@@ -198,14 +198,6 @@ export function Sidebar() {
       adminOnly: true,
       section: 'pianificazione'
     },
-    {
-      name: 'Giorni Festivi',
-      href: '/admin/holidays',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
-      adminOnly: true,
-      section: 'pianificazione'
-    },
     // ⏰ ORE LAVORATE
     {
       name: 'Gestione Ore',
@@ -387,7 +379,7 @@ function SidebarContent({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden">
       {/* Logo */}
       <div className={cn("flex items-center flex-shrink-0 px-4", isMobile ? "pt-4" : "pt-6")}>
         <div className="flex items-center space-x-3 bg-gradient-to-r from-orange-600 to-red-600 p-4 rounded-[2rem] shadow-xl w-full border border-white/20">
@@ -437,7 +429,7 @@ function SidebarContent({
       </div>
 
       {/* Navigation */}
-      <nav className="mt-8 flex-1 px-4 space-y-8 pb-8 overflow-y-auto custom-scrollbar">
+      <nav className="mt-8 flex-1 px-4 space-y-8 pb-8 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-0">
         {/* Regular navigation items - grouped by section */}
         {!isUserAdmin && regularItems.length > 0 && (
           <>

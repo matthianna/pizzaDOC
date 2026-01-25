@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AlertTriangle, X, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +29,30 @@ export function ConfirmationModal({
 }: ConfirmationModalProps) {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const scrollYRef = useRef(0)
+
+  // Lock scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      // Save current scroll position
+      scrollYRef.current = window.scrollY
+      
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollYRef.current}px`
+      document.body.style.width = '100%'
+      
+      return () => {
+        // Restore scroll position when modal closes
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.top = ''
+        document.body.style.width = ''
+        window.scrollTo(0, scrollYRef.current)
+      }
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -57,98 +81,128 @@ export function ConfirmationModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-300">
-        {/* Header Visual */}
-        <div className={cn(
-          "h-32 flex items-center justify-center relative overflow-hidden",
-          isDangerous ? "bg-red-600" : "bg-orange-600"
-        )}>
-          {/* Decorative patterns */}
-          <div className="absolute inset-0 opacity-10">
-            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
-            </svg>
-          </div>
-          <div className="relative bg-white p-5 rounded-[2rem] shadow-xl">
-            <AlertTriangle className={cn("h-10 w-10", isDangerous ? "text-red-600" : "text-orange-600")} />
-          </div>
-          
-          <button
-            onClick={handleClose}
-            disabled={isLoading}
-            className="absolute top-6 right-6 p-2 bg-black/10 hover:bg-black/20 text-white rounded-full transition-all active:scale-90"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <>
+      {/* Backdrop - Fixed, covers entire viewport */}
+      <div 
+        className="fixed inset-0 bg-black/40 backdrop-blur-md z-[9999]"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh'
+        }}
+        onClick={handleClose}
+      />
 
-        {/* Content */}
-        <div className="p-10 text-center">
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-2">{title}</h2>
-          <p className="text-gray-500 font-medium leading-relaxed mb-8">
-            {description}
-          </p>
-
-          {metadata && (
-            <div className="mb-8 bg-gray-50 rounded-2xl p-5 border border-gray-100 text-left">
-              {metadata}
+      {/* Modal Container - Fixed, centered using transform */}
+      <div
+        className="fixed z-[10000]"
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 'calc(100vw - 2rem)',
+          maxWidth: '32rem',
+          maxHeight: '90vh'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 w-full overflow-hidden animate-in zoom-in-95 duration-300">
+          {/* Header Visual */}
+          <div className={cn(
+            "h-32 flex items-center justify-center relative overflow-hidden",
+            isDangerous ? "bg-red-600" : "bg-orange-600"
+          )}>
+            {/* Decorative patterns */}
+            <div className="absolute inset-0 opacity-10">
+              <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
+              </svg>
             </div>
-          )}
-
-          {/* Confirmation Input Section */}
-          <div className="space-y-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                Digita <span className={cn("text-sm", isDangerous ? "text-red-600" : "text-orange-600")}>{confirmPhrase}</span> per confermare
-              </label>
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                disabled={isLoading}
-                placeholder="Conferma qui..."
-                className="w-full bg-gray-50 border-gray-200 border-2 rounded-2xl px-6 py-4 text-center text-sm font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all placeholder-gray-300"
-                autoComplete="off"
-                autoFocus
-              />
+            <div className="relative bg-white p-5 rounded-[2rem] shadow-xl">
+              <AlertTriangle className={cn("h-10 w-10", isDangerous ? "text-red-600" : "text-orange-600")} />
             </div>
+            
+            <button
+              onClick={handleClose}
+              disabled={isLoading}
+              className="absolute top-6 right-6 p-2 bg-black/10 hover:bg-black/20 text-white rounded-full transition-all active:scale-90"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-            {isDangerous && (
-              <div className="flex items-center justify-center gap-2 text-red-500">
-                <AlertTriangle className="h-3 w-3" />
-                <span className="text-[9px] font-black uppercase tracking-wider italic">Azione irreversibile</span>
+          {/* Content - Scrollable if needed */}
+          <div className="p-10 text-center max-h-[calc(90vh-16rem)] overflow-y-auto">
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-2">{title}</h2>
+            <p className="text-gray-500 font-medium leading-relaxed mb-8">
+              {description}
+            </p>
+
+            {metadata && (
+              <div className="mb-8 bg-gray-50 rounded-2xl p-5 border border-gray-100 text-left">
+                {metadata}
               </div>
             )}
+
+            {/* Confirmation Input Section */}
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                  Digita <span className={cn("text-sm", isDangerous ? "text-red-600" : "text-orange-600")}>{confirmPhrase}</span> per confermare
+                </label>
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Conferma qui..."
+                  className="w-full bg-gray-50 border-gray-200 border-2 rounded-2xl px-6 py-4 text-center text-sm font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all placeholder-gray-300"
+                  autoComplete="off"
+                  autoFocus
+                />
+              </div>
+
+              {isDangerous && (
+                <div className="flex items-center justify-center gap-2 text-red-500">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span className="text-[9px] font-black uppercase tracking-wider italic">Azione irreversibile</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={handleClose}
+              disabled={isLoading}
+              className="flex-1 px-8 py-4 text-sm font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 rounded-2xl transition-all"
+            >
+              Annulla
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={!isConfirmEnabled}
+              className={cn(
+                "flex-[2] px-8 py-4 text-sm font-black uppercase tracking-widest text-white rounded-2xl shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2",
+                isDangerous ? "bg-red-600 shadow-red-200" : "bg-orange-600 shadow-orange-200"
+              )}
+            >
+              {isLoading ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                confirmButtonText
+              )}
+            </button>
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={handleClose}
-            disabled={isLoading}
-            className="flex-1 px-8 py-4 text-sm font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 rounded-2xl transition-all"
-          >
-            Annulla
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={!isConfirmEnabled}
-            className={cn(
-              "flex-[2] px-8 py-4 text-sm font-black uppercase tracking-widest text-white rounded-2xl shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2",
-              isDangerous ? "bg-red-600 shadow-red-200" : "bg-orange-600 shadow-orange-200"
-            )}
-          >
-            {isLoading ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              confirmButtonText
-            )}
-          </button>
-        </div>
       </div>
-    </div>
+    </>
   )
 }
 

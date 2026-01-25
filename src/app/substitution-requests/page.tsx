@@ -51,6 +51,7 @@ export default function SubstitutionRequestsPage() {
   const [loading, setLoading] = useState(true)
   const [applying, setApplying] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState<string | null>(null)
+  const [approving, setApproving] = useState<string | null>(null)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [selectedSubstitutionToCancel, setSelectedSubstitutionToCancel] = useState<Substitution | null>(null)
   const { showToast, ToastContainer } = useToast()
@@ -111,6 +112,34 @@ export default function SubstitutionRequestsPage() {
   const closeCancelModal = () => {
     setShowCancelModal(false)
     setSelectedSubstitutionToCancel(null)
+  }
+
+  const approveSubstitution = async (substitutionId: string) => {
+    lightClick()
+    setApproving(substitutionId)
+    try {
+      const response = await fetch(`/api/substitutions/${substitutionId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ responseNote: null }),
+      })
+
+      if (response.ok) {
+        success()
+        showToast('Sostituzione approvata con successo!', 'success')
+        fetchSubstitutions() // Refresh data
+      } else {
+        const error = await response.json()
+        showToast(error.error || 'Errore nell\'approvazione', 'error')
+      }
+    } catch (error) {
+      console.error('Error approving substitution:', error)
+      showToast('Errore di connessione', 'error')
+    } finally {
+      setApproving(null)
+    }
   }
 
   const confirmCancelSubstitution = async () => {
@@ -329,11 +358,35 @@ export default function SubstitutionRequestsPage() {
                               <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Candidato</span>
                               <span className="text-sm font-black text-blue-900">{substitution.substitute.username}</span>
                             </div>
-                            {substitution.status === 'APPLIED' && <p className="text-xs text-blue-600 font-bold">⚠️ In attesa di approvazione admin</p>}
+                            {substitution.status === 'APPLIED' && (
+                              <div className="mt-3 space-y-2">
+                                <button
+                                  onClick={() => approveSubstitution(substitution.id)}
+                                  disabled={approving === substitution.id}
+                                  className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-green-500/20 disabled:opacity-50"
+                                >
+                                  {approving === substitution.id ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                      Approvazione...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="h-4 w-4" /> Approva Candidatura
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
-                        {['PENDING', 'APPLIED'].includes(substitution.status) && (
+                        {['PENDING', 'APPLIED'].includes(substitution.status) && !substitution.substitute && (
                           <button onClick={() => openCancelModal(substitution)} className="w-full flex items-center justify-center gap-2 py-4 text-red-600 bg-red-50 hover:bg-red-100 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                            <Trash2 className="h-4 w-4" /> Annulla Richiesta
+                          </button>
+                        )}
+                        {substitution.status === 'PENDING' && substitution.substitute && (
+                          <button onClick={() => openCancelModal(substitution)} className="w-full flex items-center justify-center gap-2 py-4 text-red-600 bg-red-50 hover:bg-red-100 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all mt-2">
                             <Trash2 className="h-4 w-4" /> Annulla Richiesta
                           </button>
                         )}

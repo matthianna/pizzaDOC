@@ -174,17 +174,17 @@ export default function UsersPage() {
               <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-orange-100 transform -rotate-3">
                 <Users className="h-8 w-8 text-white" />
               </div>
-              <div>
+          <div>
                 <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
                   Gestione Squadra
-                </h1>
+            </h1>
                 <p className="text-gray-500 mt-2 text-sm font-medium">
                   Controlla i profili, i ruoli e i permessi di tutti i collaboratori.
-                </p>
-              </div>
+            </p>
+          </div>
             </div>
 
-            <button
+          <button
               onClick={() => {
                 lightClick()
                 setShowCreateForm(true)
@@ -193,7 +193,7 @@ export default function UsersPage() {
             >
               <UserPlus className="h-5 w-5" />
               Nuovo Collaboratore
-            </button>
+          </button>
           </div>
         </div>
 
@@ -234,8 +234,8 @@ export default function UsersPage() {
                     <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Trasporti</th>
                     <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Notifiche</th>
                     <th className="px-8 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Azioni</th>
-                  </tr>
-                </thead>
+                </tr>
+              </thead>
                 <tbody className="divide-y divide-gray-50">
                   {activeUsers.map(user => (
                     <UserRow 
@@ -246,10 +246,10 @@ export default function UsersPage() {
                       onResetPassword={() => handleResetPassword(user.id)}
                       onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
                     />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              ))}
+            </tbody>
+          </table>
+          </div>
 
             {/* Mobile Card View */}
             <div className="grid grid-cols-1 gap-4 p-6 sm:hidden">
@@ -269,8 +269,8 @@ export default function UsersPage() {
               <div className="py-20 text-center">
                 <Users className="h-16 w-16 text-gray-100 mx-auto mb-4" />
                 <p className="text-gray-400 font-black uppercase tracking-widest text-sm">Nessun collaboratore attivo</p>
-              </div>
-            )}
+            </div>
+          )}
           </div>
         </div>
 
@@ -543,14 +543,14 @@ function ActionBtn({ icon: Icon, color, onClick, size = 'md' }: any) {
   )
 }
 
-function UserFormModal({
-  user,
-  onClose,
-  onSave
-}: {
+function UserFormModal({ 
+  user, 
+  onClose, 
+  onSave 
+}: { 
   user?: User | null
   onClose: () => void
-  onSave: () => void
+  onSave: () => void 
 }) {
   const [formData, setFormData] = useState({
     username: user?.username || '',
@@ -614,11 +614,11 @@ function UserFormModal({
         <div className="space-y-3">
           <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Nome Utente</label>
           <input
-            type="text"
-            required
+                type="text"
+                required
             disabled={!!user}
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
             placeholder="Es: mario.rossi"
             className="w-full bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] px-6 py-4 text-sm font-black text-gray-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all disabled:opacity-50"
           />
@@ -645,23 +645,23 @@ function UserFormModal({
                 )}>
                   {formData.roles.includes(role as Role) && <Check className="h-3.5 w-3.5 text-white stroke-[4]" />}
                 </div>
-                <input
-                  type="checkbox"
+                    <input
+                      type="checkbox"
                   className="hidden"
-                  checked={formData.roles.includes(role as Role)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
+                      checked={formData.roles.includes(role as Role)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
                       setFormData({ ...formData, roles: [...formData.roles, role as Role] })
-                    } else {
+                        } else {
                       setFormData({ ...formData, roles: formData.roles.filter(r => r !== role) })
-                    }
-                  }}
-                />
+                        }
+                      }}
+                    />
                 <span className="text-xs font-black text-gray-900 leading-none">{getRoleName(role)}</span>
-              </label>
-            ))}
-          </div>
-        </div>
+                  </label>
+                ))}
+              </div>
+            </div>
 
         {/* Primary Role select */}
         {formData.roles.length > 0 && (
@@ -670,7 +670,7 @@ function UserFormModal({
             <div className="relative group">
               <select
                 required
-                value={formData.primaryRole}
+              value={formData.primaryRole}
                 onChange={(e) => setFormData({ ...formData, primaryRole: e.target.value as Role })}
                 className="w-full appearance-none bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] px-6 py-4 text-sm font-black text-gray-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all cursor-pointer"
               >
@@ -685,11 +685,11 @@ function UserFormModal({
         )}
 
         {/* Transport section for drivers */}
-        {formData.roles.includes('FATTORINO') && (
+            {formData.roles.includes('FATTORINO') && (
           <div className="space-y-4 pt-2 animate-in slide-in-from-top-4 duration-300">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Mezzi di Trasporto</label>
-            <div className="flex gap-4">
-              {['AUTO', 'SCOOTER'].map((transport) => (
+                  <div className="flex gap-4">
+                    {['AUTO', 'SCOOTER'].map((transport) => (
                 <label 
                   key={transport} 
                   className={cn(
@@ -706,24 +706,24 @@ function UserFormModal({
                   )}>
                     {formData.transports.includes(transport as TransportType) && <Check className="h-3.5 w-3.5 text-white stroke-[4]" />}
                   </div>
-                  <input
-                    type="checkbox"
+                        <input
+                          type="checkbox"
                     className="hidden"
-                    checked={formData.transports.includes(transport as TransportType)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
+                          checked={formData.transports.includes(transport as TransportType)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
                         setFormData({ ...formData, transports: [...formData.transports, transport as TransportType] })
-                      } else {
+                            } else {
                         setFormData({ ...formData, transports: formData.transports.filter(t => t !== transport) })
-                      }
-                    }}
-                  />
+                            }
+                          }}
+                        />
                   <span className="text-xs font-black text-gray-900 leading-none">{getTransportName(transport)}</span>
-                </label>
-              ))}
-            </div>
-            
-            {formData.transports.length > 1 && (
+                      </label>
+                    ))}
+                </div>
+
+                {formData.transports.length > 1 && (
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Mezzo Preferito</label>
                 <div className="relative group">
@@ -778,28 +778,28 @@ function UserFormModal({
                     (formData as any)[flag.id] ? "right-1" : "left-1"
                   )} />
                 </div>
-                <input
-                  type="checkbox"
+                  <input
+                    type="checkbox"
                   className="hidden"
                   checked={(formData as any)[flag.id]}
                   onChange={(e) => setFormData({ ...formData, [flag.id]: e.target.checked })}
                 />
-              </label>
+                </label>
             ))}
           </div>
-        </div>
+              </div>
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-gray-50">
           <button
-            type="button"
-            onClick={onClose}
+                type="button"
+                onClick={onClose}
             className="flex-1 py-5 text-xs font-black uppercase tracking-[0.2em] text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-[1.5rem] transition-all"
-          >
-            Annulla
+              >
+                Annulla
           </button>
           <button
-            type="submit"
+                type="submit"
             disabled={loading}
             className="flex-[2] py-5 bg-gradient-primary text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all active:scale-95 disabled:opacity-50"
           >
@@ -807,7 +807,7 @@ function UserFormModal({
               <div className="flex items-center justify-center gap-2">
                 <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 <span>Salvataggio...</span>
-              </div>
+            </div>
             ) : (
               'Conferma e Salva'
             )}

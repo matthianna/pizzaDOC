@@ -304,16 +304,24 @@ export default function AdminSchedulePage() {
     try {
       const response = await fetch(`/api/admin/schedule/${currentWeek.toISOString()}/export-pdf`)
       if (response.ok) {
-        const html = await response.text()
-        
-        // Crea un blob dall'HTML
-        const blob = new Blob([html], { type: 'text/html' })
+        // Ottieni il PDF come blob
+        const blob = await response.blob()
         const url = URL.createObjectURL(blob)
+        
+        // Estrai il nome del file dall'header Content-Disposition o usa un default
+        const contentDisposition = response.headers.get('Content-Disposition')
+        let fileName = `Piano-Lavoro-${currentWeek.toISOString().split('T')[0]}.pdf`
+        if (contentDisposition) {
+          const fileNameMatch = contentDisposition.match(/filename="(.+)"/)
+          if (fileNameMatch) {
+            fileName = fileNameMatch[1]
+          }
+        }
         
         // Crea un link temporaneo per il download automatico
         const link = document.createElement('a')
         link.href = url
-        link.download = `Piano-Lavoro-${currentWeek.toISOString().split('T')[0]}.html`
+        link.download = fileName
         link.style.display = 'none'
         document.body.appendChild(link)
         link.click()
@@ -325,7 +333,7 @@ export default function AdminSchedulePage() {
         }, 100)
       } else {
         const error = await response.json().catch(() => ({ error: 'Errore sconosciuto' }))
-        alert(`❌ Errore durante l'esportazione PDF: ${error.error || 'Errore sconosciuto'}`)
+        alert(`❌ Errore durante l'esportazione PDF: ${error.error || error.details || 'Errore sconosciuto'}`)
       }
     } catch (error: any) {
       console.error('Error exporting PDF:', error)

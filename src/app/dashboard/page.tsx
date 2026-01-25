@@ -13,7 +13,6 @@ import { it } from 'date-fns/locale'
 import { getRoleName, getDayName, cn } from '@/lib/utils'
 import type { Role } from '@prisma/client'
 import { useHaptics } from '@/hooks/use-haptics'
-import { PWAInstallPrompt } from '@/components/pwa/install-prompt'
 import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
 
 interface DashboardStats {
@@ -257,9 +256,6 @@ export default function DashboardPage() {
 
   return (
     <MainLayout>
-      {/* PWA Install Guide */}
-      <PWAInstallPrompt />
-      
       <div className="space-y-8 max-w-6xl mx-auto pb-20 px-2 sm:px-4">
         {/* Welcome Section - More compact and premium */}
         <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-soft border border-gray-100 group">
@@ -453,7 +449,7 @@ export default function DashboardPage() {
               )}
 
               {/* Admin Task: Substitutions */}
-              {isAdminUser && stats.pendingSubstitutions && stats.pendingSubstitutions > 0 && (
+              {isAdminUser && typeof stats.pendingSubstitutions === 'number' && stats.pendingSubstitutions > 0 && (
                 <div className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-6 group hover:border-purple-200 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600">

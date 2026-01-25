@@ -17,6 +17,7 @@ export function PWAInstallPrompt() {
   const [isIOS, setIsIOS] = useState(false)
   const [isAndroid, setIsAndroid] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
+  const [hasPushNotifications, setHasPushNotifications] = useState<boolean | null>(null)
 
   useEffect(() => {
     // Check if already installed
@@ -28,6 +29,8 @@ export function PWAInstallPrompt() {
     // Check if user already dismissed
     const dismissed = localStorage.getItem('pwa-install-guide-dismissed')
     if (dismissed) return
+
+    if (!session?.user?.id) return
 
     // Detect platform
     const userAgent = window.navigator.userAgent.toLowerCase()
@@ -45,18 +48,47 @@ export function PWAInstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handler)
 
-    // Show guide after 3 seconds (only if logged in)
-    if (session) {
-      const timer = setTimeout(() => {
-        setShowGuide(true)
-      }, 3000)
-      return () => {
-        clearTimeout(timer)
-        window.removeEventListener('beforeinstallprompt', handler)
+    // Check push notifications status and show guide if needed
+    let timer: NodeJS.Timeout | null = null
+    
+    const checkPushNotifications = async () => {
+      try {
+        // Check with server if user has push notifications enabled
+        const response = await fetch('/api/user/push-status')
+        if (response.ok) {
+          const data = await response.json()
+          const hasPush = data.enabled && data.hasSubscription
+          setHasPushNotifications(hasPush)
+          
+          // Only show guide if user doesn't have push notifications enabled
+          if (!hasPush) {
+            timer = setTimeout(() => {
+              setShowGuide(true)
+            }, 3000)
+          }
+        } else {
+          setHasPushNotifications(false)
+          // Show guide if check fails (assume no push notifications)
+          timer = setTimeout(() => {
+            setShowGuide(true)
+          }, 3000)
+        }
+      } catch (err) {
+        console.error('Error checking push notifications:', err)
+        setHasPushNotifications(false)
+        // Show guide if check fails (assume no push notifications)
+        timer = setTimeout(() => {
+          setShowGuide(true)
+        }, 3000)
       }
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+    checkPushNotifications()
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler)
+      if (timer) clearTimeout(timer)
+    }
   }, [session])
 
   const handleInstallClick = async () => {
@@ -93,7 +125,12 @@ export function PWAInstallPrompt() {
     }
   }
 
-  if (isInstalled || !showGuide || !session) return null
+  // Don't show if:
+  // - Already installed
+  // - Guide not shown
+  // - No session
+  // - User has push notifications enabled
+  if (isInstalled || !showGuide || !session || hasPushNotifications === true) return null
 
   const iosSteps = [
     {
