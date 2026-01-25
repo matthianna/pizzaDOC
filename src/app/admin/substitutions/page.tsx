@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Users, Check, X, Clock, AlertCircle, CheckCircle, XCircle, User } from 'lucide-react'
+import { Users, Check, X, Clock, AlertCircle, CheckCircle, XCircle, User, RefreshCw } from 'lucide-react'
 import { format, parseISO, addDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
@@ -47,7 +47,7 @@ interface Substitution {
 
 export default function AdminSubstitutionsPage() {
   const [substitutions, setSubstitutions] = useState<Substitution[]>([])
-  const [filterStatus, setFilterStatus] = useState<SubstitutionStatus | 'ALL'>('APPLIED')
+  const [filterStatus, setFilterStatus] = useState<SubstitutionStatus | 'ALL'>('ALL')
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [showRejectModal, setShowRejectModal] = useState(false)

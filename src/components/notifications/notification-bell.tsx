@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useSession } from 'next-auth/react'
 import {
     Bell,
@@ -133,12 +134,155 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
         }
     }
 
+    const buttonRef = useRef<HTMLButtonElement>(null)
+    const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 })
+
+    // Update panel position when opening
+    useEffect(() => {
+        if (isOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect()
+            setPanelPosition({
+                top: rect.bottom + 8,
+                left: Math.max(16, Math.min(rect.left, window.innerWidth - 400))
+            })
+        }
+    }, [isOpen])
+
     if (!session?.user?.id) return null
+
+    const notificationPanel = isOpen && typeof window !== 'undefined' ? createPortal(
+        <>
+            {/* Backdrop */}
+            <div
+                className="fixed inset-0 z-[9998]"
+                onClick={() => setIsOpen(false)}
+            />
+
+            {/* Panel */}
+            <div 
+                className="fixed w-[calc(100vw-2rem)] sm:w-96 max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-gray-200 z-[9999] overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200"
+                style={{
+                    top: panelPosition.top,
+                    left: panelPosition.left,
+                    maxWidth: 'calc(100vw - 2rem)'
+                }}
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                    <h3 className="font-semibold flex items-center gap-2">
+                        <Bell className="h-5 w-5" />
+                        Notifiche
+                    </h3>
+                    <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                            <button
+                                onClick={markAllAsRead}
+                                className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded-full transition-colors"
+                            >
+                                <CheckCheck className="h-4 w-4" />
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Notifications List */}
+                <div className="max-h-[60vh] overflow-y-auto">
+                    {notifications.length === 0 && !loading ? (
+                        <div className="py-12 text-center">
+                            <BellOff className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                            <p className="text-gray-500 text-sm">Nessuna notifica</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-gray-100">
+                            {notifications.map(notification => (
+                                <button
+                                    key={notification.id}
+                                    onClick={() => handleNotificationClick(notification)}
+                                    className={cn(
+                                        'w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3',
+                                        !notification.isRead && 'bg-orange-50/50'
+                                    )}
+                                >
+                                    <div className="flex-shrink-0 mt-0.5">
+                                        {getNotificationIcon(notification.type)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <p className={cn(
+                                                'text-sm line-clamp-1',
+                                                notification.isRead ? 'text-gray-700' : 'text-gray-900 font-semibold'
+                                            )}>
+                                                {notification.title}
+                                            </p>
+                                            {!notification.isRead && (
+                                                <span className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0 mt-1" />
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-gray-600 line-clamp-2 mt-0.5">
+                                            {notification.body}
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            {(() => {
+                                                try {
+                                                    const date = new Date(notification.sentAt)
+                                                    if (isNaN(date.getTime())) return ''
+                                                    return formatDistanceToNow(date, {
+                                                        addSuffix: true,
+                                                        locale: it
+                                                    })
+                                                } catch {
+                                                    return ''
+                                                }
+                                            })()}
+                                        </p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Load More */}
+                    {hasMore && notifications.length > 0 && (
+                        <button
+                            onClick={() => fetchNotifications()}
+                            disabled={loading}
+                            className="w-full py-3 text-sm text-orange-600 hover:bg-orange-50 transition-colors disabled:opacity-50"
+                        >
+                            {loading ? (
+                                <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                            ) : (
+                                'Carica altre'
+                            )}
+                        </button>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="border-t border-gray-100 px-4 py-2">
+                    <a
+                        href="/notifications"
+                        className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                        onClick={() => setIsOpen(false)}
+                    >
+                        Vedi tutte le notifiche →
+                    </a>
+                </div>
+            </div>
+        </>,
+        document.body
+    ) : null
 
     return (
         <div className="relative">
             {/* Bell Button */}
             <button
+                ref={buttonRef}
                 onClick={() => setIsOpen(!isOpen)}
                 className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
                 aria-label="Notifiche"
@@ -151,125 +295,7 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
                 )}
             </button>
 
-            {/* Notification Panel */}
-            {isOpen && (
-                <>
-                    {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 z-[90]"
-                        onClick={() => setIsOpen(false)}
-                    />
-
-                        {/* Panel */}
-                        <div className="absolute left-0 top-12 w-80 sm:w-96 max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
-                        {/* Header */}
-                        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-                            <h3 className="font-semibold flex items-center gap-2">
-                                <Bell className="h-5 w-5" />
-                                Notifiche
-                            </h3>
-                            <div className="flex items-center gap-2">
-                                {unreadCount > 0 && (
-                                    <button
-                                        onClick={markAllAsRead}
-                                        className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded-full transition-colors"
-                                    >
-                                        <CheckCheck className="h-4 w-4" />
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="p-1 hover:bg-white/20 rounded-full transition-colors"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Notifications List */}
-                        <div className="max-h-[60vh] overflow-y-auto">
-                            {notifications.length === 0 && !loading ? (
-                                <div className="py-12 text-center">
-                                    <BellOff className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                                    <p className="text-gray-500 text-sm">Nessuna notifica</p>
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-gray-100">
-                                    {notifications.map(notification => (
-                                        <button
-                                            key={notification.id}
-                                            onClick={() => handleNotificationClick(notification)}
-                                            className={cn(
-                                                'w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3',
-                                                !notification.isRead && 'bg-orange-50/50'
-                                            )}
-                                        >
-                                            <div className="flex-shrink-0 mt-0.5">
-                                                {getNotificationIcon(notification.type)}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <p className={cn(
-                                                        'text-sm line-clamp-1',
-                                                        notification.isRead ? 'text-gray-700' : 'text-gray-900 font-semibold'
-                                                    )}>
-                                                        {notification.title}
-                                                    </p>
-                                                    {!notification.isRead && (
-                                                        <span className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0 mt-1" />
-                                                    )}
-                                                </div>
-                                                <p className="text-sm text-gray-600 line-clamp-2 mt-0.5">
-                                                    {notification.body}
-                                                </p>
-                                                <p className="text-xs text-gray-400 mt-1">
-                                                    {(() => {
-                                                        try {
-                                                            const date = new Date(notification.sentAt)
-                                                            if (isNaN(date.getTime())) return ''
-                                                            return formatDistanceToNow(date, {
-                                                                addSuffix: true,
-                                                                locale: it
-                                                            })
-                                                        } catch {
-                                                            return ''
-                                                        }
-                                                    })()}
-                                                </p>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Load More */}
-                            {hasMore && notifications.length > 0 && (
-                                <button
-                                    onClick={() => fetchNotifications()}
-                                    disabled={loading}
-                                    className="w-full py-3 text-sm text-orange-600 hover:bg-orange-50 transition-colors disabled:opacity-50"
-                                >
-                                    {loading ? (
-                                        <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                                    ) : (
-                                        'Carica altre'
-                                    )}
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="border-t border-gray-100 px-4 py-2">
-                            <a
-                                href="/notifications"
-                                className="text-sm text-orange-600 hover:text-orange-700 font-medium"
-                            >
-                                Vedi tutte le notifiche →
-                            </a>
-                        </div>
-                    </div>
-                </>
-            )}
+            {notificationPanel}
         </div>
     )
 }

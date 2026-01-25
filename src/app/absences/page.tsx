@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Calendar, Plus, Edit2, Trash2, X, AlertCircle } from 'lucide-react'
+import { Modal } from '@/components/ui/modal'
+import { Calendar, Plus, Edit2, Trash2, Info, Clock, CheckCircle, CalendarDays } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 
 interface Absence {
   id: string
@@ -151,174 +152,68 @@ export default function AbsencesPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Header Moderno */}
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center tracking-tight">
-              <div className="w-12 h-12 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-lg mr-4 animate-float">
-                <Calendar className="h-6 w-6 text-white" />
-              </div>
-              Assenze e Vacanze
-            </h1>
-            <p className="text-gray-500 mt-2 font-medium">
-              Gestisci i tuoi periodi di riposo e comunica le tue assenze
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-orange-600 rounded-2xl shadow-lg shadow-orange-200">
+              <Calendar className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight">Assenze e Vacanze</h1>
+              <p className="text-gray-500 font-medium text-sm mt-0.5">Gestisci i tuoi periodi di riposo</p>
+            </div>
           </div>
           <Button
             onClick={() => setShowForm(true)}
-            className="bg-gradient-primary hover:brightness-110 text-white rounded-2xl shadow-lg shadow-orange-500/20 py-6 px-8 font-bold transition-all transform active:scale-95"
+            className="bg-orange-600 hover:bg-orange-700 text-white rounded-2xl shadow-lg shadow-orange-200 py-6 px-6 font-black uppercase text-xs tracking-widest transition-all active:scale-95"
           >
             <Plus className="h-5 w-5 mr-2" />
             Nuova Assenza
           </Button>
         </div>
 
-        {/* Modal Nuova/Modifica Assenza */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 max-w-2xl w-full">
-              {/* Header Modal */}
-              <div className="bg-gradient-to-br from-orange-50 via-white to-orange-50/30 px-6 py-5 rounded-t-2xl border-b border-orange-100/50">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                      {editingAbsence ? (
-                        <Edit2 className="h-6 w-6 text-white" />
-                      ) : (
-                        <Plus className="h-6 w-6 text-white" />
-                      )}
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-900">
-                        {editingAbsence ? 'Modifica Assenza' : 'Nuova Assenza'}
-                      </h2>
-                      <p className="text-sm text-orange-600 font-medium mt-0.5">
-                        {editingAbsence ? 'Aggiorna i dettagli della tua assenza' : 'Comunica il tuo periodo di assenza'}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={resetForm}
-                    className="w-9 h-9 rounded-xl bg-orange-100 hover:bg-orange-200 flex items-center justify-center transition-all hover:scale-105"
-                  >
-                    <X className="h-5 w-5 text-orange-700" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Form Content */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-bold text-gray-700">
-                      Data Inizio *
-                    </label>
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      min={format(new Date(), 'yyyy-MM-dd')}
-                      required
-                      className="rounded-xl border-2"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-bold text-gray-700">
-                      Data Fine *
-                    </label>
-                    <Input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      min={startDate || format(new Date(), 'yyyy-MM-dd')}
-                      required
-                      className="rounded-xl border-2"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-bold text-gray-700">
-                    Motivo <span className="text-xs font-normal text-gray-500">(opzionale)</span>
-                  </label>
-                  <select
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
-                  >
-                    <option value="">Seleziona motivo (opzionale)</option>
-                    <option value="Vacanza">🏖️ Vacanza</option>
-                    <option value="Malattia">🤒 Malattia</option>
-                    <option value="Personale">👤 Personale</option>
-                    <option value="Altro">📝 Altro</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-bold text-gray-700">
-                    Note <span className="text-xs font-normal text-gray-500">(opzionale)</span>
-                  </label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
-                    placeholder="Note aggiuntive (opzionale)"
-                  />
-                </div>
-
-                {/* Footer Modal */}
-                <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  <Button
-                    type="button"
-                    onClick={resetForm}
-                    variant="outline"
-                    className="flex-1 rounded-xl border-2"
-                  >
-                    Annulla
-                  </Button>
-                  <Button
-                    type="submit"
-                    isLoading={submitting}
-                    className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105"
-                  >
-                    {editingAbsence ? 'Salva Modifiche' : 'Crea Assenza'}
-                  </Button>
-                </div>
-              </form>
-            </div>
+        {/* Info Banner */}
+        <div className="bg-blue-50 rounded-2xl p-5 border border-blue-100 flex items-start gap-4">
+          <div className="p-2 bg-blue-100 rounded-xl flex-shrink-0">
+            <Info className="h-5 w-5 text-blue-600" />
           </div>
-        )}
-
-        <div className="glass rounded-2xl p-5 border-0 shadow-soft">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm">
-              <AlertCircle className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="text-sm text-gray-600 leading-relaxed">
-              <p className="font-bold text-gray-900 mb-1">Informazioni importanti</p>
-              <p>Le assenze già iniziate o nel passato sono bloccate. Durante i periodi di assenza, il sistema disabiliterà automaticamente la possibilità di inserire disponibilità per quei giorni.</p>
-            </div>
+          <div>
+            <p className="font-bold text-blue-900 text-sm">Informazioni importanti</p>
+            <p className="text-blue-700 text-sm mt-1">
+              Le assenze già iniziate o nel passato sono bloccate. Durante i periodi di assenza, il sistema disabiliterà automaticamente la possibilità di inserire disponibilità per quei giorni.
+            </p>
           </div>
         </div>
 
+        {/* Content */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-orange-600"></div>
+          <div className="flex justify-center py-16">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-600"></div>
+          </div>
+        ) : absences.length === 0 ? (
+          <div className="bg-white rounded-[2rem] p-16 text-center shadow-soft border border-gray-100">
+            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <CalendarDays className="h-10 w-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-black text-gray-900 mb-2">Nessuna assenza programmata</h3>
+            <p className="text-gray-500 font-medium">Clicca su &quot;Nuova Assenza&quot; per aggiungerne una</p>
           </div>
         ) : (
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-6">
+            {/* Active Absences */}
             {activeAbsences.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">🟢 Assenze Attive</h2>
-                <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-3">
+                <h2 className="text-xs font-black text-green-600 uppercase tracking-widest px-1 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  In Corso
+                </h2>
+                <div className="space-y-3">
                   {activeAbsences.map(absence => (
                     <AbsenceCard
                       key={absence.id}
                       absence={absence}
-                      isPast={false}
-                      isActive={true}
+                      status="active"
                       onEdit={handleEdit}
                       onDelete={handleDelete}
                     />
@@ -327,16 +222,19 @@ export default function AbsencesPage() {
               </div>
             )}
 
+            {/* Future Absences */}
             {futureAbsences.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">📅 Assenze Future</h2>
-                <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-3">
+                <h2 className="text-xs font-black text-blue-600 uppercase tracking-widest px-1 flex items-center gap-2">
+                  <Clock className="h-3 w-3" />
+                  Programmate
+                </h2>
+                <div className="space-y-3">
                   {futureAbsences.map(absence => (
                     <AbsenceCard
                       key={absence.id}
                       absence={absence}
-                      isPast={false}
-                      isActive={false}
+                      status="future"
                       onEdit={handleEdit}
                       onDelete={handleDelete}
                     />
@@ -345,16 +243,19 @@ export default function AbsencesPage() {
               </div>
             )}
 
+            {/* Past Absences */}
             {pastAbsences.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">📋 Storico Assenze</h2>
-                <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-3">
+                <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                  <CalendarDays className="h-3 w-3" />
+                  Storico Assenze
+                </h2>
+                <div className="space-y-3">
                   {pastAbsences.map(absence => (
                     <AbsenceCard
                       key={absence.id}
                       absence={absence}
-                      isPast={true}
-                      isActive={false}
+                      status="past"
                       onEdit={handleEdit}
                       onDelete={handleDelete}
                     />
@@ -362,17 +263,101 @@ export default function AbsencesPage() {
                 </div>
               </div>
             )}
-
-            {absences.length === 0 && (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600">Nessuna assenza programmata</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Clicca su &quot;Nuova Assenza&quot; per aggiungerne una
-                </p>
-              </div>
-            )}
           </div>
+        )}
+
+        {/* Form Modal */}
+        {showForm && (
+          <Modal
+            isOpen={true}
+            onClose={resetForm}
+            title={editingAbsence ? 'Modifica Assenza' : 'Nuova Assenza'}
+            subtitle={editingAbsence ? 'Aggiorna i dettagli' : 'Comunica il tuo periodo di assenza'}
+            headerIcon={editingAbsence ? <Edit2 className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+            maxWidth="md"
+          >
+            <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                    Data Inizio
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    min={format(new Date(), 'yyyy-MM-dd')}
+                    required
+                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                    Data Fine
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate || format(new Date(), 'yyyy-MM-dd')}
+                    required
+                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                  Motivo <span className="text-gray-300">(opzionale)</span>
+                </label>
+                <select
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all appearance-none"
+                >
+                  <option value="">Seleziona motivo...</option>
+                  <option value="Vacanza">🏖️ Vacanza</option>
+                  <option value="Malattia">🤒 Malattia</option>
+                  <option value="Personale">👤 Personale</option>
+                  <option value="Altro">📝 Altro</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                  Note <span className="text-gray-300">(opzionale)</span>
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all resize-none placeholder-gray-400"
+                  placeholder="Note aggiuntive..."
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 rounded-2xl transition-all"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-[2] py-4 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {submitting ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    editingAbsence ? 'Salva Modifiche' : 'Crea Assenza'
+                  )}
+                </button>
+              </div>
+            </form>
+          </Modal>
         )}
       </div>
     </MainLayout>
@@ -381,14 +366,12 @@ export default function AbsencesPage() {
 
 function AbsenceCard({
   absence,
-  isPast,
-  isActive,
+  status,
   onEdit,
   onDelete
 }: {
   absence: Absence
-  isPast: boolean
-  isActive: boolean
+  status: 'active' | 'future' | 'past'
   onEdit: (absence: Absence) => void
   onDelete: (id: string) => void
 }) {
@@ -396,68 +379,83 @@ function AbsenceCard({
   const endDate = new Date(absence.endDate)
   const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
+  const statusConfig = {
+    active: {
+      bg: 'bg-green-50',
+      border: 'border-green-200',
+      accentBg: 'bg-green-500',
+      text: 'text-green-600',
+      badge: 'bg-green-500 text-white'
+    },
+    future: {
+      bg: 'bg-blue-50',
+      border: 'border-blue-200',
+      accentBg: 'bg-blue-500',
+      text: 'text-blue-600',
+      badge: 'bg-blue-500 text-white'
+    },
+    past: {
+      bg: 'bg-gray-50',
+      border: 'border-gray-200',
+      accentBg: 'bg-gray-400',
+      text: 'text-gray-500',
+      badge: 'bg-gray-400 text-white'
+    }
+  }
+
+  const config = statusConfig[status]
+
   return (
-    <div className={`glass rounded-2xl border-0 shadow-soft transition-all card-hover overflow-hidden ${isActive
-      ? 'ring-2 ring-green-400/50'
-      : isPast
-        ? 'opacity-60 grayscale-[0.5]'
-        : 'ring-2 ring-blue-400/30'
-      }`}>
-      <div className={`h-1.5 w-full ${isActive ? 'bg-gradient-success' : isPast ? 'bg-gray-300' : 'bg-gradient-secondary'}`} />
-      <div className="p-4">
+    <div className={cn(
+      "bg-white rounded-2xl border shadow-soft overflow-hidden transition-all",
+      config.border,
+      status === 'past' && 'opacity-60'
+    )}>
+      <div className={cn("h-1", config.accentBg)} />
+      <div className="p-5">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-3">
-              <div className={`p-2 rounded-lg ${isActive ? 'bg-green-100 text-green-600' : isPast ? 'bg-gray-200 text-gray-500' : 'bg-blue-100 text-blue-600'
-                }`}>
-                <Calendar className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-sm sm:text-base">
+          <div className="flex items-start gap-4">
+            <div className={cn("p-3 rounded-xl flex-shrink-0", config.bg)}>
+              <Calendar className={cn("h-5 w-5", config.text)} />
+            </div>
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="font-black text-gray-900">
                   {format(startDate, 'dd/MM/yyyy', { locale: it })} - {format(endDate, 'dd/MM/yyyy', { locale: it })}
                 </h3>
-                <p className={`text-xs font-medium ${isActive ? 'text-green-600' : isPast ? 'text-gray-500' : 'text-blue-600'
-                  }`}>
-                  {daysDiff} {daysDiff === 1 ? 'giorno' : 'giorni'} • {isActive ? 'In corso' : isPast ? 'Passata' : 'Programmata'}
-                </p>
+                <span className={cn("px-2 py-0.5 rounded-lg text-[10px] font-black uppercase", config.badge)}>
+                  {daysDiff} {daysDiff === 1 ? 'giorno' : 'giorni'}
+                </span>
               </div>
-            </div>
-
-            <div className="space-y-1.5 pl-1">
+              
               {absence.reason && (
-                <div className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="font-semibold min-w-[60px]">Motivo:</span>
-                  <span>{absence.reason}</span>
-                </div>
+                <p className="text-sm text-gray-600">
+                  <span className="font-bold">Motivo:</span> {absence.reason}
+                </p>
               )}
-
+              
               {absence.notes && (
-                <div className="flex items-start gap-2 text-sm text-gray-600">
-                  <span className="font-semibold min-w-[60px]">Note:</span>
-                  <span className="italic">{absence.notes}</span>
-                </div>
+                <p className="text-sm text-gray-500 italic mt-1">
+                  {absence.notes}
+                </p>
               )}
             </div>
           </div>
 
-          {!isPast && (
-            <div className="flex flex-col gap-2">
-              <Button
-                size="sm"
-                variant="outline"
+          {status !== 'past' && (
+            <div className="flex gap-2">
+              <button
                 onClick={() => onEdit(absence)}
-                className="h-8 w-8 p-0 rounded-lg border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                className="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-all"
               >
                 <Edit2 className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
+              </button>
+              <button
                 onClick={() => onDelete(absence.id)}
-                className="h-8 w-8 p-0 rounded-lg border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-all"
               >
                 <Trash2 className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
           )}
         </div>
@@ -465,4 +463,3 @@ function AbsenceCard({
     </div>
   )
 }
-
