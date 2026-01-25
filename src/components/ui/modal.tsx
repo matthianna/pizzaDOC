@@ -28,12 +28,27 @@ export function Modal({
   // Lock scroll when modal is open
   useEffect(() => {
     if (isOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY
+      
+      // Prevent body scroll
       document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.left = '0'
+      document.body.style.right = '0'
+      document.body.style.width = '100%'
+      
+      return () => {
+        // Restore scroll position when modal closes
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.top = ''
+        document.body.style.left = ''
+        document.body.style.right = ''
+        document.body.style.width = ''
+        window.scrollTo(0, scrollY)
+      }
     }
   }, [isOpen])
 
@@ -48,24 +63,53 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-center items-center p-4 sm:p-12 overflow-hidden">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        overflow: 'auto'
+      }}
+    >
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-300"
         onClick={onClose}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh'
+        }}
       />
 
-      {/* Modal Content */}
-      <div className={cn(
-        "relative bg-white w-full rounded-[3rem] shadow-2xl border border-white/50 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 my-auto flex flex-col",
-        maxWidthClasses[maxWidth],
-        className
-      )}>
+      {/* Modal Content - Centered using flexbox */}
+      <div 
+        className={cn(
+          "relative bg-white rounded-[3rem] shadow-2xl border border-white/50 animate-in zoom-in-95 duration-500 flex flex-col max-h-[90vh] w-full",
+          maxWidthClasses[maxWidth],
+          className
+        )}
+        style={{
+          position: 'relative',
+          zIndex: 101,
+          margin: 'auto'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header Visual Layer */}
         <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-br from-gray-50 to-white rounded-t-[3rem] -z-10" />
         
         {/* Modal Header */}
-        <div className="px-12 pt-12 pb-8 flex items-start justify-between relative z-10">
+        <div className="px-12 pt-12 pb-8 flex items-start justify-between relative z-10 flex-shrink-0">
           <div className="flex items-center gap-6">
             {headerIcon && (
               <div className="p-4 bg-orange-600 rounded-[1.5rem] shadow-xl shadow-orange-100 text-white">
@@ -74,19 +118,23 @@ export function Modal({
             )}
             <div>
               <h2 className="text-3xl font-black text-gray-900 tracking-tight">{title}</h2>
-              {subtitle && <p className="text-gray-500 text-sm font-bold uppercase tracking-widest mt-1.5 opacity-70">{subtitle}</p>}
+              {subtitle && (
+                <p className="text-gray-500 text-sm font-bold uppercase tracking-widest mt-1.5 opacity-70">
+                  {subtitle}
+                </p>
+              )}
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-3 bg-gray-100/80 hover:bg-gray-200 text-gray-500 rounded-2xl transition-all active:scale-90 backdrop-blur-sm"
+            className="p-3 bg-gray-100/80 hover:bg-gray-200 text-gray-500 rounded-2xl transition-all active:scale-90 backdrop-blur-sm flex-shrink-0"
           >
             <X className="h-6 w-6" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="px-12 pb-12 overflow-y-auto max-h-[calc(95vh-180px)] scrollbar-thin scrollbar-thumb-gray-200 custom-scrollbar">
+        <div className="px-12 pb-12 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-200 custom-scrollbar min-h-0">
           {children}
         </div>
       </div>

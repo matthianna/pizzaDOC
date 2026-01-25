@@ -86,24 +86,37 @@ export async function POST(request: NextRequest) {
         const formattedDate = format(weekStartDate, 'dd/MM/yyyy', { locale: it })
 
         // Invia notifiche
-        const results = await Promise.allSettled(finalUserIds.map(userId =>
-            createNotification({
-                userId,
-                type: NotificationType.SCHEDULE_PUBLISHED,
-                title: 'Nuovo Orario Pubblicato',
-                body: `È stato pubblicato l'orario per la settimana del ${formattedDate}.`,
-                data: {
-                    url: '/schedule',
-                    weekStart: weekStartDate.toISOString()
-                }
-            })
-        ))
+        console.log(`[NOTIFY] Sending notifications to ${finalUserIds.length} users`)
+        const results = await Promise.allSettled(finalUserIds.map(async (userId) => {
+            try {
+                const result = await createNotification({
+                    userId,
+                    type: NotificationType.SCHEDULE_PUBLISHED,
+                    title: 'Nuovo Orario Pubblicato',
+                    body: `È stato pubblicato l'orario per la settimana del ${formattedDate}.`,
+                    data: {
+                        url: '/schedule',
+                        weekStart: weekStartDate.toISOString()
+                    },
+                    sendPush: true
+                })
+                console.log(`[NOTIFY] ✅ Notification sent to user ${userId}`)
+                return result
+            } catch (error: any) {
+                console.error(`[NOTIFY] ❌ Failed to send notification to user ${userId}:`, error)
+                throw error
+            }
+        }))
 
         const successful = results.filter(r => r.status === 'fulfilled').length
         const failed = results.filter(r => r.status === 'rejected')
 
         if (failed.length > 0) {
-            console.error(`[NOTIFY] ${failed.length} notifications failed. First error:`, (failed[0] as any).reason)
+            console.error(`[NOTIFY] ${failed.length} notifications failed out of ${finalUserIds.length}`)
+            failed.forEach((f, index) => {
+                const reason = (f as any).reason
+                console.error(`[NOTIFY] Failed notification ${index + 1}:`, reason?.message || reason)
+            })
         }
 
         // Get usernames for feedback

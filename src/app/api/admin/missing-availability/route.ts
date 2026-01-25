@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
       23, 59, 59, 999
     ))
 
+    console.log(`🔍 [Missing Availability API] Checking for weekStart: ${weekStart.toISOString()}`)
+
     // Get all non-admin active users (exclude disabled users)
     const allUsers = await prisma.user.findMany({
       where: {
@@ -81,36 +83,54 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Get users who have submitted TRUE availability for this week
-    const usersWithAvailability = await prisma.availabilities.findMany({
+    // Get users who have submitted ANY availability for this week (regardless of isAvailable value)
+    // This means they have filled out the availability form, even if they marked themselves as unavailable
+    const allAvailabilityRecords = await prisma.availabilities.findMany({
       where: {
-        weekStart: weekStart,
-        isAvailable: true // Only count users who are actually available
+        weekStart: weekStart
+        // ⭐ RIMOSSO: isAvailable: true - consideriamo TUTTI gli utenti che hanno inserito disponibilità
       },
       select: {
         userId: true,
+        isAbsentWeek: true,
         user: {
           select: {
             username: true
           }
         }
-      },
-      distinct: ['userId']
+      }
     })
 
-    // Create set of user IDs who have TRUE availability
-    const usersWithAvailabilityIds = new Set(
-      usersWithAvailability.map(a => a.userId)
-    )
+    // Get unique user IDs who have submitted availability (any value)
+    const usersWithAvailabilityIds = new Set<string>()
+    const usersAbsentForWeek = new Set<string>()
+    
+    allAvailabilityRecords.forEach(record => {
+      usersWithAvailabilityIds.add(record.userId)
+      if (record.isAbsentWeek) {
+        usersAbsentForWeek.add(record.userId)
+      }
+    })
+
+    console.log(`✅ [Missing Availability API] Total users with availability: ${usersWithAvailabilityIds.size}`)
+    console.log(`✅ [Missing Availability API] Users absent for week: ${usersAbsentForWeek.size}`)
 
     // Filter users who haven't submitted availability AND are not absent for the entire week
     const missingUsers = allUsers
       .filter(user => {
-        // Skip if user has availability
-        if (usersWithAvailabilityIds.has(user.id)) return false
+        // ⭐ Skip if user has submitted availability (any value)
+        if (usersWithAvailabilityIds.has(user.id)) {
+          // Even if they marked themselves as absent for the week, they've submitted availability
+          return false
+        }
 
-        // Check if user is absent for the entire week (all 7 days)
-        if (user.absences.length === 0) return true // No absence, include them
+        // ⭐ Skip if user explicitly marked themselves as absent for the entire week via availability form
+        if (usersAbsentForWeek.has(user.id)) {
+          return false
+        }
+
+        // Check if user is absent for the entire week (all 7 days) via absences table
+        if (user.absences.length === 0) return true // No absence, include them in missing list
 
         // Calculate how many days of the week are covered by absences
         const weekStartTime = weekStart.getTime()
@@ -148,8 +168,13 @@ export async function GET(request: NextRequest) {
 
     // Calculate completion percentage
     const totalUsers = allUsers.length
-    const usersWithData = usersWithAvailability.length
+    const usersWithData = usersWithAvailabilityIds.size
     const completionPercentage = totalUsers > 0 ? Math.round((usersWithData / totalUsers) * 100) : 0
+
+    console.log(`📊 [Missing Availability API] Total active users: ${totalUsers}`)
+    console.log(`📊 [Missing Availability API] Users with availability: ${usersWithData}`)
+    console.log(`📊 [Missing Availability API] Missing users: ${missingUsers.length}`)
+    console.log(`📊 [Missing Availability API] Completion: ${completionPercentage}%`)
 
     return NextResponse.json({
       missingUsers,

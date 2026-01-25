@@ -259,7 +259,10 @@ export default function AdminSchedulePage() {
   }
 
   const notifyUsers = async () => {
-    if (!schedule) return
+    if (!schedule) {
+      alert('Nessun piano disponibile per questa settimana')
+      return
+    }
 
     setNotifying(true)
     try {
@@ -273,21 +276,25 @@ export default function AdminSchedulePage() {
         })
       })
 
+      const data = await response.json()
+
       if (response.ok) {
-        const data = await response.json()
-        alert(data.message || 'Notifiche inviate con successo!')
-      } else {
-        const error = await response.json()
-        const errorMessage = error.error || 'Errore durante l\'invio delle notifiche'
-        let details = error.message ? `\n\n${error.message}` : ''
-        if (error.debug) {
-          details += `\n\nDebug:\nCercato: ${error.debug.searched}\nEsistenti: ${error.debug.existing.join(', ')}`
+        if (data.success) {
+          alert(`✅ ${data.message || `Notifiche inviate con successo a ${data.successful || 0} utenti!`}`)
+        } else {
+          alert(`⚠️ ${data.error || 'Errore durante l\'invio delle notifiche'}`)
         }
-        alert(`${errorMessage}${details}`)
+      } else {
+        const errorMessage = data.error || 'Errore durante l\'invio delle notifiche'
+        let details = data.message ? `\n\n${data.message}` : ''
+        if (data.debug) {
+          details += `\n\nDebug:\nCercato: ${data.debug.searched}\nEsistenti: ${data.debug.existing.join(', ')}`
+        }
+        alert(`❌ ${errorMessage}${details}`)
       }
     } catch (error: any) {
       console.error('Error sending notifications:', error)
-      alert(`Errore durante l'invio delle notifiche: ${error.message}`)
+      alert(`❌ Errore durante l'invio delle notifiche: ${error.message || 'Errore di connessione'}`)
     } finally {
       setNotifying(false)
     }
@@ -295,26 +302,34 @@ export default function AdminSchedulePage() {
 
   const exportToPDF = async () => {
     try {
-      // Apri l'HTML in una nuova finestra
       const response = await fetch(`/api/admin/schedule/${currentWeek.toISOString()}/export-pdf`)
       if (response.ok) {
         const html = await response.text()
-        const newWindow = window.open('', '_blank')
-        if (newWindow) {
-          newWindow.document.write(html)
-          newWindow.document.close()
-
-          // Aspetta che il contenuto sia caricato e poi stampa
-          setTimeout(() => {
-            newWindow.print()
-          }, 1000)
-        }
+        
+        // Crea un blob dall'HTML
+        const blob = new Blob([html], { type: 'text/html' })
+        const url = URL.createObjectURL(blob)
+        
+        // Crea un link temporaneo per il download automatico
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `Piano-Lavoro-${currentWeek.toISOString().split('T')[0]}.html`
+        link.style.display = 'none'
+        document.body.appendChild(link)
+        link.click()
+        
+        // Pulisci dopo il download
+        setTimeout(() => {
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+        }, 100)
       } else {
-        alert('Errore durante l\'esportazione PDF')
+        const error = await response.json().catch(() => ({ error: 'Errore sconosciuto' }))
+        alert(`❌ Errore durante l'esportazione PDF: ${error.error || 'Errore sconosciuto'}`)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error exporting PDF:', error)
-      alert('Errore durante l\'esportazione PDF')
+      alert(`❌ Errore durante l'esportazione PDF: ${error.message || 'Errore di connessione'}`)
     }
   }
 
