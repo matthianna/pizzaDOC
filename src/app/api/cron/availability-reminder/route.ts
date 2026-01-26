@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { addDays, startOfWeek } from 'date-fns'
-import { whatsappService } from '@/lib/whatsapp-service'
 import { prisma } from '@/lib/prisma'
-
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
 import { isPriorityUser } from '@/lib/utils'
@@ -20,16 +18,11 @@ function normalizeDate(dateInput: string | Date): Date {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verifica autenticazione:
-    // 1. Vercel Cron invia automaticamente un header speciale
-    // 2. Oppure si può usare un CRON_SECRET per chiamate manuali
+    // Verifica autenticazione
     const authHeader = request.headers.get('authorization')
-    const vercelCronHeader = request.headers.get('x-vercel-cron') // Header speciale di Vercel
+    const vercelCronHeader = request.headers.get('x-vercel-cron')
     const cronSecret = process.env.CRON_SECRET
 
-    // Accetta se:
-    // - È una chiamata da Vercel Cron (header x-vercel-cron presente)
-    // - Oppure ha il CRON_SECRET corretto
     const isVercelCron = vercelCronHeader !== null
     const hasValidSecret = cronSecret && authHeader === `Bearer ${cronSecret}`
 
@@ -48,8 +41,6 @@ export async function GET(request: NextRequest) {
     const today = new Date()
     const nextMonday = startOfWeek(addDays(today, 7), { weekStartsOn: 1 })
     const weekStart = normalizeDate(nextMonday)
-
-    // Calcola l'ultimo giorno della settimana prossima (domenica)
     const weekEnd = normalizeDate(addDays(weekStart, 6))
 
     console.log(`📅 Checking availability for week: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`)
@@ -63,8 +54,6 @@ export async function GET(request: NextRequest) {
         id: true,
         username: true,
         primaryRole: true,
-        phoneNumber: true,
-        whatsappNotificationsEnabled: true,
         pushNotificationsEnabled: true,
         availabilities: {
           where: { weekStart },
@@ -104,16 +93,13 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // ⭐ Escludi ADMIN dai promemoria (eccetto i VIP come Valentino/Mario)
+    // Escludi ADMIN dai promemoria (eccetto i VIP)
     const activeUsers = allActiveUsers.filter(u => 
       u.primaryRole !== 'ADMIN' || isPriorityUser(u.username)
     )
 
     // Filtra utenti senza disponibilità per la settimana prossima
-    // Escludi l'utente "admin" dalla lista
-    // Escludi utenti che hanno assenze per TUTTI i 7 giorni della settimana
     const usersWithoutAvailability = activeUsers.filter(user => {
-      // Controlla se ha VERA disponibilità (isAvailable: true)
       const hasNoAvailability = !user.availabilities.some(a => a.isAvailable === true)
       const isNotAdmin = user.username.toLowerCase() !== 'admin'
 
@@ -122,14 +108,12 @@ export async function GET(request: NextRequest) {
       const weekEndTime = weekEnd.getTime()
       const oneDayMs = 24 * 60 * 60 * 1000
 
-      // Crea set di tutti i giorni della settimana (7 giorni)
       const weekDays = new Set<string>()
       for (let i = 0; i < 7; i++) {
         const dayDate = new Date(weekStartTime + i * oneDayMs)
         weekDays.add(dayDate.toISOString().split('T')[0])
       }
 
-      // Conta giorni coperti da assenze
       const coveredDays = new Set<string>()
       for (const absence of user.absences) {
         const absenceStart = Math.max(absence.startDate.getTime(), weekStartTime)
@@ -143,11 +127,9 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Se tutti i 7 giorni sono coperti da assenze, escludi l'utente
       const allDaysCovered = weekDays.size === coveredDays.size &&
         Array.from(weekDays).every(day => coveredDays.has(day))
 
-      // Log per debug
       if (hasNoAvailability && isNotAdmin && allDaysCovered) {
         console.log(`⏭️ Skipping ${user.username}: has ${coveredDays.size}/7 days covered by absences (full week off)`)
       }
@@ -155,102 +137,13 @@ export async function GET(request: NextRequest) {
       return hasNoAvailability && isNotAdmin && !allDaysCovered
     })
 
-    console.log(`📊 Found ${usersWithoutAvailability.length} users without availability (after filtering full-week absences)`)
-
-    // Recupera impostazioni WhatsApp
-    const [groupChatIdSetting, notificationsEnabledSetting] = await Promise.all([
-      prisma.systemSettings.findUnique({ where: { key: 'whatsapp_group_chat_id' } }),
-      prisma.systemSettings.findUnique({ where: { key: 'whatsapp_notifications_enabled' } })
-    ])
-
-    const groupChatId = groupChatIdSetting?.value
-    const notificationsEnabled = notificationsEnabledSetting?.value === 'true'
+    console.log(`📊 Found ${usersWithoutAvailability.length} users without availability`)
 
     const results = {
       total: activeUsers.length,
       withoutAvailability: usersWithoutAvailability.length,
       notificationsSent: 0,
       notificationsFailed: 0
-    }
-
-    // Invia notifiche WhatsApp
-    if (notificationsEnabled && groupChatId && usersWithoutAvailability.length > 0) {
-      // Lista nomi per messaggio gruppo
-      const usernames = usersWithoutAvailability.map(u => u.username).join(', ')
-
-      // Messaggio al gruppo
-      const groupMessage = `
-⏰ *PROMEMORIA DISPONIBILITÀ*
-
-📅 Ricordatevi di inserire le vostre disponibilità per la prossima settimana.
-
-👥 *Utenti che non hanno ancora inserito le disponibilità:*
-${usersWithoutAvailability.map(u => `• ${u.username}`).join('\n')}
-
-🔗 Inserisci le tue disponibilità: https://pizzadoc.vercel.app/availability
-
-      `.trim()
-
-      try {
-        const groupResult = await whatsappService.sendMessage({
-          phoneNumber: groupChatId,
-          message: groupMessage
-        })
-
-        if (groupResult.success) {
-          console.log('✅ Group reminder sent successfully')
-          results.notificationsSent++
-        } else {
-          console.error('❌ Failed to send group reminder:', groupResult.error)
-          results.notificationsFailed++
-        }
-      } catch (error) {
-        console.error('📱 Error sending group reminder:', error)
-        results.notificationsFailed++
-      }
-
-      // Messaggi individuali (opzionale)
-      for (const user of usersWithoutAvailability) {
-        if (user.phoneNumber && user.whatsappNotificationsEnabled) {
-          const personalMessage = `
-⏰ *PROMEMORIA PERSONALE*
-
-Ciao ${user.username}!
-
-📅 Non hai ancora inserito le tue disponibilità per la prossima settimana.
-
-🔗 Inseriscile qui: ${process.env.NEXTAUTH_URL}/availability
-
-⚠️ *Scadenza:* Domenica 23:59
-
----
-🍕 PizzaDoc
-          `.trim()
-
-          try {
-            const personalResult = await whatsappService.sendMessage({
-              phoneNumber: user.phoneNumber,
-              message: personalMessage
-            })
-
-            if (personalResult.success) {
-              console.log(`✅ Personal reminder sent to ${user.username}`)
-              results.notificationsSent++
-            } else {
-              console.error(`❌ Failed to send reminder to ${user.username}:`, personalResult.error)
-              results.notificationsFailed++
-            }
-
-            // Delay per evitare rate limiting (500ms tra messaggi)
-            await new Promise(resolve => setTimeout(resolve, 500))
-          } catch (error) {
-            console.error(`📱 Error sending reminder to ${user.username}:`, error)
-            results.notificationsFailed++
-          }
-        }
-      }
-    } else {
-      console.log('📱 WhatsApp notifications disabled or no users without availability')
     }
 
     // 🔔 Send Push Notifications
@@ -260,8 +153,6 @@ Ciao ${user.username}!
       const pushResults = await Promise.allSettled(
         usersWithoutAvailability.map(async (user) => {
           try {
-            // createNotification will check if user.pushNotificationsEnabled is true
-            // before calling sendPushNotification
             await createNotification({
               userId: user.id,
               type: NotificationType.AVAILABILITY_REMINDER,
@@ -270,17 +161,19 @@ Ciao ${user.username}!
               data: {
                 url: '/availability'
               },
-              sendPush: user.pushNotificationsEnabled // Explicitly pass user preference
+              sendPush: user.pushNotificationsEnabled
             })
+            results.notificationsSent++
             return { success: true, userId: user.id }
           } catch (error) {
             console.error(`❌ Failed to send notification to ${user.username}:`, error)
+            results.notificationsFailed++
             return { success: false, userId: user.id, error }
           }
         })
       )
 
-      const successfulPush = pushResults.filter(r => r.status === 'fulfilled' && r.value.success).length
+      const successfulPush = pushResults.filter(r => r.status === 'fulfilled' && (r.value as any).success).length
       console.log(`✅ Push notifications sent: ${successfulPush}/${usersWithoutAvailability.length}`)
     }
 
@@ -303,4 +196,3 @@ Ciao ${user.username}!
     )
   }
 }
-

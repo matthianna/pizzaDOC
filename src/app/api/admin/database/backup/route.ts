@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { scheduleBackup, listBackups, cleanOldBackups } from '@/lib/database-backup'
+import { scheduleBackup, listBackups, createDatabaseBackup } from '@/lib/database-backup'
+import { format } from 'date-fns'
 
-// GET - Lista tutti i backup disponibili
+// GET - Lista tutti i backup disponibili o scarica backup
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -12,6 +13,52 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const download = searchParams.get('download') === 'true'
+
+    // Se richiesto download, crea e restituisci il backup
+    if (download) {
+      console.log(`[BACKUP] Download requested by ${session.user.username}`)
+      
+      const result = await createDatabaseBackup()
+      
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || 'Backup failed' },
+          { status: 500 }
+        )
+      }
+
+      // Log the action
+      try {
+        const { logAuditAction } = await import('@/lib/audit-logger')
+        await logAuditAction({
+          userId: session.user.id,
+          userUsername: session.user.username,
+          action: 'DATABASE_BACKUP',
+          description: `Backup database scaricato: ${result.timestamp}`,
+          metadata: {
+            timestamp: result.timestamp,
+            tables: result.tables
+          }
+        })
+      } catch (e) {
+        console.error('[BACKUP] Failed to log audit:', e)
+      }
+
+      const fileName = `pizzadoc_backup_${format(new Date(), 'yyyyMMdd_HHmmss')}.json`
+      const jsonString = JSON.stringify(result.data, null, 2)
+
+      return new NextResponse(jsonString, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Disposition': `attachment; filename="${fileName}"`,
+          'Content-Length': Buffer.byteLength(jsonString).toString()
+        }
+      })
+    }
+
+    // Altrimenti lista i backup precedenti
     const backups = await listBackups()
 
     return NextResponse.json({
@@ -19,7 +66,7 @@ export async function GET(request: NextRequest) {
       total: backups.length
     })
   } catch (error: any) {
-    console.error('Error listing backups:', error)
+    console.error('Error in backup route:', error)
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
@@ -27,7 +74,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Crea un nuovo backup manuale
+// POST - Crea un nuovo backup (registra solo nel log, restituisce conferma)
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -50,9 +97,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Backup creato con successo',
-      filePath: result.filePath,
-      size: result.size,
-      sizeReadable: result.size ? `${(result.size / 1024 / 1024).toFixed(2)} MB` : 'unknown'
+      timestamp: result.timestamp,
+      tables: result.tables,
+      downloadUrl: '/api/admin/database/backup?download=true'
     })
   } catch (error: any) {
     console.error('Error creating backup:', error)
@@ -63,7 +110,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE - Elimina backup vecchi (mantieni solo ultimi 30 giorni)
+// DELETE - Non più necessario ma manteniamo per compatibilità
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -72,22 +119,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const daysToKeep = parseInt(searchParams.get('days') || '30')
-
-    const result = await cleanOldBackups(daysToKeep)
-
     return NextResponse.json({
       success: true,
-      message: `Eliminati ${result.deletedCount} backup vecchi`,
-      deletedCount: result.deletedCount
+      message: 'I backup sono ora in-memory, nessun file da eliminare',
+      deletedCount: 0
     })
   } catch (error: any) {
-    console.error('Error cleaning backups:', error)
+    console.error('Error in delete:', error)
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
     )
   }
 }
-

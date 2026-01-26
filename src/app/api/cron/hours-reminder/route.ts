@@ -1,30 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { whatsappService } from '@/lib/whatsapp-service'
 import { isPriorityUser } from '@/lib/utils'
+import { createDatabaseBackup } from '@/lib/database-backup'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 /**
- * CRON JOB: Promemoria ore lavorate mancanti
+ * CRON JOB: Promemoria ore lavorate mancanti + Backup Database
  * Eseguito ogni giovedì alle 15:00 CEST (13:00 UTC)
  * 
- * Invia un messaggio WhatsApp al gruppo con la lista dei dipendenti
- * che non hanno ancora inserito le ore per i turni completati
+ * 1. Crea un backup automatico del database
+ * 2. Invia notifiche push agli utenti con ore mancanti
  */
 export async function GET(request: NextRequest) {
   try {
-    // 🔒 Verifica autenticazione:
-    // 1. Vercel Cron invia automaticamente un header speciale
-    // 2. Oppure si può usare un CRON_SECRET per chiamate manuali
+    // 🔒 Verifica autenticazione
     const authHeader = request.headers.get('authorization')
-    const vercelCronHeader = request.headers.get('x-vercel-cron') // Header speciale di Vercel
+    const vercelCronHeader = request.headers.get('x-vercel-cron')
     const cronSecret = process.env.CRON_SECRET
 
-    // Accetta se:
-    // - È una chiamata da Vercel Cron (header x-vercel-cron presente)
-    // - Oppure ha il CRON_SECRET corretto (se configurato)
     const isVercelCron = vercelCronHeader !== null
     const hasValidSecret = cronSecret && authHeader === `Bearer ${cronSecret}`
 
@@ -40,6 +35,43 @@ export async function GET(request: NextRequest) {
       triggeredBy: isVercelCron ? 'Vercel Cron' : 'Manual call'
     })
 
+    // 📦 STEP 1: Backup automatico del database
+    let backupResult = null
+    try {
+      console.log('💾 [CRON hours-reminder] Creating automatic database backup...')
+      backupResult = await createDatabaseBackup()
+      
+      if (backupResult.success) {
+        console.log(`✅ [CRON hours-reminder] Backup completed: ${backupResult.timestamp}`)
+        console.log(`📊 [CRON hours-reminder] Backed up tables:`, backupResult.tables)
+        
+        // Log the backup in audit log
+        try {
+          await prisma.audit_logs.create({
+            data: {
+              id: crypto.randomUUID(),
+              userId: 'system',
+              userUsername: 'CRON',
+              action: 'DATABASE_BACKUP',
+              description: `Backup automatico eseguito durante hours-reminder cron`,
+              metadata: {
+                timestamp: backupResult.timestamp,
+                tables: backupResult.tables,
+                triggeredBy: 'hours-reminder-cron'
+              }
+            }
+          })
+        } catch (logError) {
+          console.error('⚠️ [CRON] Failed to log backup to audit:', logError)
+        }
+      } else {
+        console.error('❌ [CRON hours-reminder] Backup failed:', backupResult.error)
+      }
+    } catch (backupError) {
+      console.error('❌ [CRON hours-reminder] Backup error:', backupError)
+    }
+
+    // 📋 STEP 2: Check for missing hours
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -56,8 +88,7 @@ export async function GET(request: NextRequest) {
         },
         user: {
           isActive: true,
-          trackHours: true,
-          whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
+          trackHours: true
         }
       },
       include: {
@@ -91,8 +122,7 @@ export async function GET(request: NextRequest) {
         },
         user: {
           isActive: true,
-          trackHours: true,
-          whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
+          trackHours: true
         }
       },
       include: {
@@ -111,7 +141,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // ⭐ Filtra per escludere gli ADMIN (eccetto i VIP come Valentino/Mario)
+    // Filtra per escludere gli ADMIN (eccetto i VIP)
     const shiftsWithoutHours = initialShiftsWithoutHours.filter(s => 
       s.user.primaryRole !== 'ADMIN' || isPriorityUser(s.user.username)
     )
@@ -149,73 +179,30 @@ export async function GET(request: NextRequest) {
     }, {} as Record<string, { username: string; count: number }>)
 
     const result = Object.values(groupedByUser).sort((a, b) =>
-      b.count - a.count // Ordina per numero di turni mancanti (decrescente)
+      b.count - a.count
     )
 
     console.log(`📊 [CRON hours-reminder] Turni senza ore: ${shiftsWithoutHours.length}`)
     console.log(`📊 [CRON hours-reminder] Turni con ore rifiutate: ${shiftsWithRejectedHours.length}`)
     console.log(`📊 [CRON hours-reminder] Utenti con ore mancanti: ${result.length}`)
 
-    // Se non ci sono ore mancanti, non inviare messaggio
+    // Se non ci sono ore mancanti
     if (result.length === 0) {
-      console.log('✅ [CRON hours-reminder] Nessuna ora mancante. Nessun messaggio da inviare.')
+      console.log('✅ [CRON hours-reminder] Nessuna ora mancante.')
       return NextResponse.json({
         success: true,
         message: 'No missing hours to report',
-        usersWithMissingHours: 0
+        usersWithMissingHours: 0,
+        backup: backupResult ? {
+          success: backupResult.success,
+          timestamp: backupResult.timestamp,
+          tables: backupResult.tables
+        } : null
       })
-    }
-
-    // 📱 Invia messaggio WhatsApp al gruppo
-    try {
-      const [groupChatIdSetting, notificationsEnabledSetting] = await Promise.all([
-        prisma.systemSettings.findUnique({ where: { key: 'whatsapp_group_chat_id' } }),
-        prisma.systemSettings.findUnique({ where: { key: 'whatsapp_notifications_enabled' } })
-      ])
-
-      const groupChatId = groupChatIdSetting?.value
-      const notificationsEnabled = notificationsEnabledSetting?.value === 'true'
-
-      if (!notificationsEnabled || !groupChatId) {
-        console.log('⚠️ [CRON hours-reminder] WhatsApp notifications are disabled or group not configured')
-        return NextResponse.json({
-          success: true,
-          message: 'Missing hours found but WhatsApp disabled',
-          usersWithMissingHours: result.length
-        })
-      }
-
-      // Costruisci il messaggio
-      let message = '⏰ *PROMEMORIA ORE LAVORATE*\n\n'
-      message += `📋 Questi dipendenti devono ancora inserire le ore:\n\n`
-
-      result.forEach(user => {
-        const turnoLabel = user.count === 1 ? 'turno' : 'turni'
-        message += `• *${user.username}* - ${user.count} ${turnoLabel}\n`
-      })
-
-      message += `\n📝 Inserisci le ore su:\nhttps://pizzadoc.vercel.app/hours`
-
-      // Invia messaggio
-      await whatsappService.sendMessage({ phoneNumber: groupChatId, message })
-
-      console.log(`✅ [CRON hours-reminder] Messaggio inviato con successo al gruppo`)
-      console.log(`📊 [CRON hours-reminder] ${result.length} ${result.length === 1 ? 'dipendente' : 'dipendenti'} nella lista`)
-
-      return NextResponse.json({
-        success: true,
-        message: 'Hours reminder sent successfully',
-        usersWithMissingHours: result.length,
-        users: result.map(u => ({ username: u.username, missingCount: u.count }))
-      })
-
-    } catch (whatsappError) {
-      console.error('❌ [CRON hours-reminder] Error sending WhatsApp message:', whatsappError)
-      // Proseguiamo comunque con le notifiche push
     }
 
     // 🔔 Send Push Notifications
-    if (result.length > 0) {
+    try {
       const { createNotification } = await import('@/lib/notifications')
       const { NotificationType } = await import('@prisma/client')
 
@@ -241,15 +228,22 @@ export async function GET(request: NextRequest) {
         })
       )
 
-      const successfulPush = pushResults.filter(r => r.status === 'fulfilled' && r.value.success).length
+      const successfulPush = pushResults.filter(r => r.status === 'fulfilled' && (r.value as any).success).length
       console.log(`✅ Push notifications sent: ${successfulPush}/${result.length}`)
+    } catch (notifError) {
+      console.error('❌ [CRON] Error sending notifications:', notifError)
     }
 
     return NextResponse.json({
       success: true,
       message: 'Hours reminder completed',
       usersWithMissingHours: result.length,
-      users: result.map(u => ({ username: u.username, missingCount: u.count }))
+      users: result.map(u => ({ username: u.username, missingCount: u.count })),
+      backup: backupResult ? {
+        success: backupResult.success,
+        timestamp: backupResult.timestamp,
+        tables: backupResult.tables
+      } : null
     })
   } catch (error) {
     console.error('❌ [CRON hours-reminder] Error in cron job:', error)
@@ -263,6 +257,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-
-
-

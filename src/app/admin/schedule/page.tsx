@@ -11,6 +11,7 @@ import { AddShiftModal } from '@/components/admin/add-shift-modal'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
+import { Modal } from '@/components/ui/modal'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 
 interface ScheduleShift {
@@ -804,229 +805,256 @@ export default function AdminSchedulePage() {
       )}
 
       {/* Remove Shift Modal */}
-      {showRemoveModal && selectedShift && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Rimuovi dal Turno
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowRemoveModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                {/* User Info */}
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-red-900 text-sm mb-2">
-                    Stai per rimuovere {selectedShift.user.username} dal turno:
-                  </h4>
-                  <div className="space-y-1 text-sm text-red-800">
-                    <p><strong>Giorno:</strong> {getDayName(selectedShift.dayOfWeek)}</p>
-                    <p><strong>Turno:</strong> {getShiftTypeName(selectedShift.shiftType)}</p>
-                    <p><strong>Ruolo:</strong> {getRoleName(selectedShift.role)}</p>
-                    <p><strong>Orario:</strong> {selectedShift.startTime} - {selectedShift.endTime}</p>
-                  </div>
+      <Modal
+        isOpen={showRemoveModal && !!selectedShift}
+        onClose={() => setShowRemoveModal(false)}
+        title="Rimuovi dal Turno"
+      >
+        {selectedShift && (
+          <div className="space-y-6">
+            {/* User Info */}
+            <div className="bg-gradient-to-br from-red-50 to-red-100/50 p-5 rounded-2xl border border-red-200">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-red-500 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-red-200">
+                  {selectedShift.user.username.charAt(0).toUpperCase()}
                 </div>
-
-                {/* Reason */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Motivo (opzionale)
-                  </label>
-                  <textarea
-                    value={removeReason}
-                    onChange={(e) => setRemoveReason(e.target.value)}
-                    rows={3}
-                    className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-gray-900 placeholder-gray-500 bg-white shadow-sm hover:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-none"
-                    placeholder="Motivo della rimozione..."
-                  />
+                  <h4 className="font-black text-red-900 text-sm uppercase tracking-wider">
+                    {selectedShift.user.username}
+                  </h4>
+                  <p className="text-xs text-red-600 font-medium">Sarà rimosso dal turno</p>
                 </div>
-
-                {/* Submit Buttons */}
-                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowRemoveModal(false)}
-                  >
-                    Annulla
-                  </Button>
-                  <Button
-                    onClick={confirmRemoveShift}
-                    disabled={removing}
-                    isLoading={removing}
-                    className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
-                  >
-                    Conferma Rimozione
-                  </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Giorno</p>
+                  <p className="font-black text-red-900">{getDayName(selectedShift.dayOfWeek)}</p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Turno</p>
+                  <p className="font-black text-red-900">{getShiftTypeName(selectedShift.shiftType)}</p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Ruolo</p>
+                  <p className="font-black text-red-900">{getRoleName(selectedShift.role)}</p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Orario</p>
+                  <p className="font-black text-red-900">{selectedShift.startTime} - {selectedShift.endTime}</p>
                 </div>
               </div>
             </div>
+
+            {/* Reason */}
+            <div>
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                Motivo (opzionale)
+              </label>
+              <textarea
+                value={removeReason}
+                onChange={(e) => setRemoveReason(e.target.value)}
+                rows={3}
+                className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 placeholder-gray-400 bg-gray-50 font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:bg-white transition-all resize-none"
+                placeholder="Motivo della rimozione..."
+              />
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowRemoveModal(false)}
+                className="px-6 py-3 text-xs font-black text-gray-600 uppercase tracking-widest hover:bg-gray-100 rounded-xl transition-all"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={confirmRemoveShift}
+                disabled={removing}
+                className="px-8 py-3 bg-red-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {removing && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                Conferma Rimozione
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Modal Modifica Orari */}
-      {showTimeEditModal && editingShift && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Modifica Orari Turno
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowTimeEditModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                {/* User Info */}
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-900 text-sm mb-2">
-                    Modificando gli orari per {editingShift.user.username}:
-                  </h4>
-                  <div className="space-y-1 text-sm text-blue-800">
-                    <p><strong>Giorno:</strong> {getDayName(editingShift.dayOfWeek)}</p>
-                    <p><strong>Turno:</strong> {getShiftTypeName(editingShift.shiftType)}</p>
-                    <p><strong>Ruolo:</strong> {getRoleName(editingShift.role)}</p>
-                  </div>
+      <Modal
+        isOpen={showTimeEditModal && !!editingShift}
+        onClose={() => setShowTimeEditModal(false)}
+        title="Modifica Orario"
+      >
+        {editingShift && (
+          <div className="space-y-6">
+            {/* User Info */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 rounded-2xl border border-blue-200">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-200">
+                  <Clock className="h-6 w-6" />
                 </div>
-
-                {/* Start Time Selection */}
-                <Select
-                  label="Orario Inizio"
-                  options={[
-                    { value: '', label: 'Seleziona orario' },
-                    ...(editingShift?.shiftType === 'PRANZO' ? [
-                      { value: '11:00', label: '11:00' },
-                      { value: '11:30', label: '11:30' },
-                      { value: '12:00', label: '12:00' }
-                    ] : [
-                      { value: '17:00', label: '17:00' },
-                      { value: '17:30', label: '17:30' },
-                      { value: '18:00', label: '18:00' },
-                      { value: '18:30', label: '18:30' },
-                      { value: '19:00', label: '19:00' }
-                    ])
-                  ]}
-                  value={newStartTime}
-                  onChange={(value) => setNewStartTime(value as string)}
-                />
-
-                <p className="text-sm text-gray-600">
-                  💡 Gli orari di fine sono fissi per tutti i turni
-                </p>
-
-                {/* Submit Buttons */}
-                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowTimeEditModal(false)}
-                  >
-                    Annulla
-                  </Button>
-                  <Button
-                    onClick={confirmTimeUpdate}
-                    disabled={!newStartTime || updatingTime}
-                    isLoading={updatingTime}
-                  >
-                    Aggiorna Orari
-                  </Button>
+                <div>
+                  <h4 className="font-black text-blue-900 text-sm uppercase tracking-wider">
+                    {editingShift.user.username}
+                  </h4>
+                  <p className="text-xs text-blue-600 font-medium">Modifica orario di inizio</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Giorno</p>
+                  <p className="font-black text-blue-900">{getDayName(editingShift.dayOfWeek)}</p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Turno</p>
+                  <p className="font-black text-blue-900">{getShiftTypeName(editingShift.shiftType)}</p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Ruolo</p>
+                  <p className="font-black text-blue-900">{getRoleName(editingShift.role)}</p>
                 </div>
               </div>
             </div>
+
+            {/* Start Time Selection */}
+            <div>
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                Orario Inizio
+              </label>
+              <select
+                value={newStartTime}
+                onChange={(e) => setNewStartTime(e.target.value)}
+                className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 bg-gray-50 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
+              >
+                <option value="">Seleziona orario</option>
+                {(editingShift.shiftType === 'PRANZO' ? [
+                  { value: '11:00', label: '11:00' },
+                  { value: '11:30', label: '11:30' },
+                  { value: '12:00', label: '12:00' }
+                ] : [
+                  { value: '17:00', label: '17:00' },
+                  { value: '17:30', label: '17:30' },
+                  { value: '18:00', label: '18:00' },
+                  { value: '18:30', label: '18:30' },
+                  { value: '19:00', label: '19:00' }
+                ]).map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <p className="text-xs text-gray-500 font-medium bg-gray-50 px-4 py-3 rounded-xl">
+              💡 Gli orari di fine sono fissi per tutti i turni
+            </p>
+
+            {/* Submit Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowTimeEditModal(false)}
+                className="px-6 py-3 text-xs font-black text-gray-600 uppercase tracking-widest hover:bg-gray-100 rounded-xl transition-all"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={confirmTimeUpdate}
+                disabled={!newStartTime || updatingTime}
+                className="px-8 py-3 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {updatingTime && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                Aggiorna Orario
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Modal Modifica Ruolo */}
-      {showRoleEditModal && editingRoleShift && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Modifica Ruolo Turno
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowRoleEditModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                {/* User Info */}
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-purple-900 text-sm mb-2">
-                    Modificando il ruolo per {editingRoleShift.user.username}:
-                  </h4>
-                  <div className="space-y-1 text-sm text-purple-800">
-                    <p><strong>Giorno:</strong> {getDayName(editingRoleShift.dayOfWeek)}</p>
-                    <p><strong>Turno:</strong> {getShiftTypeName(editingRoleShift.shiftType)}</p>
-                    <p><strong>Ruolo attuale:</strong> {getRoleName(editingRoleShift.role)}</p>
-                    <p><strong>Ruolo principale:</strong> {getRoleName(editingRoleShift.user.primaryRole)}</p>
-                  </div>
+      <Modal
+        isOpen={showRoleEditModal && !!editingRoleShift}
+        onClose={() => setShowRoleEditModal(false)}
+        title="Modifica Ruolo"
+      >
+        {editingRoleShift && (
+          <div className="space-y-6">
+            {/* User Info */}
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl border border-purple-200">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-purple-500 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-purple-200">
+                  <Edit className="h-6 w-6" />
                 </div>
-
-                {/* Role Selection */}
-                <Select
-                  label="Nuovo Ruolo"
-                  options={[
-                    { value: '', label: 'Seleziona ruolo' },
-                    { value: 'FATTORINO', label: getRoleName('FATTORINO') },
-                    { value: 'CUCINA', label: getRoleName('CUCINA') },
-                    { value: 'SALA', label: getRoleName('SALA') },
-                    { value: 'PIZZAIOLO', label: getRoleName('PIZZAIOLO') }
-                  ]}
-                  value={newRole}
-                  onChange={(value) => setNewRole(value as Role)}
-                />
-
-                <p className="text-sm text-gray-600">
-                  💡 Verifica che l'utente possa svolgere questo ruolo
-                </p>
-
-                {/* Submit Buttons */}
-                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowRoleEditModal(false)}
-                  >
-                    Annulla
-                  </Button>
-                  <Button
-                    onClick={confirmRoleUpdate}
-                    disabled={!newRole || updatingRole}
-                    isLoading={updatingRole}
-                  >
-                    Aggiorna Ruolo
-                  </Button>
+                <div>
+                  <h4 className="font-black text-purple-900 text-sm uppercase tracking-wider">
+                    {editingRoleShift.user.username}
+                  </h4>
+                  <p className="text-xs text-purple-600 font-medium">Cambia ruolo per questo turno</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Giorno</p>
+                  <p className="font-black text-purple-900">{getDayName(editingRoleShift.dayOfWeek)}</p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Turno</p>
+                  <p className="font-black text-purple-900">{getShiftTypeName(editingRoleShift.shiftType)}</p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Ruolo Attuale</p>
+                  <p className="font-black text-purple-900">{getRoleName(editingRoleShift.role)}</p>
+                </div>
+                <div className="bg-white/60 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Ruolo Principale</p>
+                  <p className="font-black text-purple-900">{getRoleName(editingRoleShift.user.primaryRole)}</p>
                 </div>
               </div>
             </div>
+
+            {/* Role Selection */}
+            <div>
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                Nuovo Ruolo
+              </label>
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value as Role)}
+                className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 bg-gray-50 font-bold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white transition-all appearance-none cursor-pointer"
+              >
+                <option value="">Seleziona ruolo</option>
+                <option value="FATTORINO">{getRoleName('FATTORINO')}</option>
+                <option value="CUCINA">{getRoleName('CUCINA')}</option>
+                <option value="SALA">{getRoleName('SALA')}</option>
+                <option value="PIZZAIOLO">{getRoleName('PIZZAIOLO')}</option>
+              </select>
+            </div>
+
+            <p className="text-xs text-gray-500 font-medium bg-gray-50 px-4 py-3 rounded-xl">
+              💡 Verifica che l'utente possa svolgere questo ruolo
+            </p>
+
+            {/* Submit Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowRoleEditModal(false)}
+                className="px-6 py-3 text-xs font-black text-gray-600 uppercase tracking-widest hover:bg-gray-100 rounded-xl transition-all"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={confirmRoleUpdate}
+                disabled={!newRole || updatingRole}
+                className="px-8 py-3 bg-purple-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {updatingRole && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                Aggiorna Ruolo
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Generate Schedule Confirmation Modal */}
       <ConfirmationModal

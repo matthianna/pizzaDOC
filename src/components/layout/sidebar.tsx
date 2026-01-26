@@ -449,9 +449,9 @@ function SidebarContent({
                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                     )}
                   >
-                    <span className={cn("text-xl mr-3 transition-transform duration-300 group-hover:scale-110", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
-                      {item.emoji}
-                    </span>
+                        <span className="text-xl mr-3 transition-transform duration-300 group-hover:scale-110">
+                                      {item.emoji}
+                                    </span>
                     <span className="uppercase tracking-widest text-[11px]">{item.name}</span>
                     {isActive && <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/20" />}
                   </Link>
@@ -478,9 +478,9 @@ function SidebarContent({
                             : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                         )}
                       >
-                        <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
-                          {item.emoji}
-                        </span>
+                        <span className="text-lg mr-3 transition-transform duration-300 group-hover:rotate-12">
+                                          {item.emoji}
+                                        </span>
                         <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
                       </Link>
                     )
@@ -508,9 +508,9 @@ function SidebarContent({
                             : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                         )}
                       >
-                        <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
-                          {item.emoji}
-                        </span>
+                        <span className="text-lg mr-3 transition-transform duration-300 group-hover:rotate-12">
+                                          {item.emoji}
+                                        </span>
                         <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
                       </Link>
                     )
@@ -538,9 +538,9 @@ function SidebarContent({
                             : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                         )}
                       >
-                        <span className={cn("text-lg mr-3 transition-transform duration-300 group-hover:rotate-12", isActive ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
-                          {item.emoji}
-                        </span>
+                        <span className="text-lg mr-3 transition-transform duration-300 group-hover:rotate-12">
+                                          {item.emoji}
+                                        </span>
                         <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
                       </Link>
                     )
@@ -566,7 +566,7 @@ function SidebarContent({
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                 )}
               >
-                <span className={cn("text-xl mr-3 transition-transform duration-300 group-hover:scale-110", pathname === '/dashboard' ? "" : "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100")}>
+                <span className="text-xl mr-3 transition-transform duration-300 group-hover:scale-110">
                   🏠
                 </span>
                 <span className="uppercase tracking-widest text-[11px]">Dashboard</span>

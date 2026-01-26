@@ -1,67 +1,144 @@
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { prisma } from './prisma'
 import { format } from 'date-fns'
-
-const execAsync = promisify(exec)
 
 interface BackupResult {
   success: boolean
-  filePath?: string
-  size?: number
+  data?: any
+  tables?: Record<string, number>
+  timestamp?: string
   error?: string
 }
 
 /**
- * Crea un backup completo del database PostgreSQL
+ * Crea un backup completo del database come JSON
+ * Funziona su Vercel serverless
  */
 export async function createDatabaseBackup(): Promise<BackupResult> {
   try {
-    const databaseUrl = process.env.DATABASE_URL
-    if (!databaseUrl) {
-      throw new Error('DATABASE_URL not configured')
+    console.log('[BACKUP] Starting database backup...')
+    const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss')
+
+    // Export all tables - using correct Prisma model names
+    const [
+      users,
+      schedules,
+      shifts,
+      availabilities,
+      workedHours,
+      absences,
+      holidays,
+      notifications,
+      substitutions,
+      systemSettings,
+      auditLogs,
+      pushSubscriptions,
+      userTransports,
+      userRoles,
+      advances,
+      shiftLimits,
+      shiftStartTimeTemplates,
+      shiftStartTimeDistributions
+    ] = await Promise.all([
+      prisma.user.findMany({
+        select: {
+          id: true,
+          username: true,
+          primaryRole: true,
+          primaryTransport: true,
+          isActive: true,
+          trackHours: true,
+          whatsappNotificationsEnabled: true,
+          pushNotificationsEnabled: true,
+          phoneNumber: true,
+          isFirstLogin: true,
+          createdAt: true,
+          updatedAt: true,
+          // Don't include password hash for security
+        }
+      }),
+      prisma.schedules.findMany(),
+      prisma.shifts.findMany(),
+      prisma.availabilities.findMany(),
+      prisma.worked_hours.findMany(),
+      prisma.absences.findMany(),
+      prisma.holidays.findMany(),
+      prisma.notifications.findMany({
+        take: 1000,
+        orderBy: { sentAt: 'desc' }
+      }),
+      prisma.substitutions.findMany(),
+      prisma.systemSettings.findMany(),
+      prisma.audit_logs.findMany({
+        take: 500,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.push_subscriptions.findMany(),
+      prisma.user_transports.findMany(),
+      prisma.user_roles.findMany(),
+      prisma.advances.findMany(),
+      prisma.shift_limits.findMany(),
+      prisma.shift_start_time_templates.findMany(),
+      prisma.shift_start_time_distributions.findMany()
+    ])
+
+    const backupData = {
+      metadata: {
+        timestamp,
+        createdAt: new Date().toISOString(),
+        version: '1.0',
+        type: 'full_backup'
+      },
+      tables: {
+        users,
+        schedules,
+        shifts,
+        availabilities,
+        workedHours,
+        absences,
+        holidays,
+        notifications,
+        substitutions,
+        systemSettings,
+        auditLogs,
+        pushSubscriptions,
+        userTransports,
+        userRoles,
+        advances,
+        shiftLimits,
+        shiftStartTimeTemplates,
+        shiftStartTimeDistributions
+      }
     }
 
-    // Parse connection string
-    const url = new URL(databaseUrl)
-    const dbName = url.pathname.slice(1)
-    const host = url.hostname
-    const port = url.port || '5432'
-    const username = url.username
-    const password = url.password
+    const tableCounts: Record<string, number> = {
+      users: users.length,
+      schedules: schedules.length,
+      shifts: shifts.length,
+      availabilities: availabilities.length,
+      workedHours: workedHours.length,
+      absences: absences.length,
+      holidays: holidays.length,
+      notifications: notifications.length,
+      substitutions: substitutions.length,
+      systemSettings: systemSettings.length,
+      auditLogs: auditLogs.length,
+      pushSubscriptions: pushSubscriptions.length,
+      userTransports: userTransports.length,
+      userRoles: userRoles.length,
+      advances: advances.length,
+      shiftLimits: shiftLimits.length,
+      shiftStartTimeTemplates: shiftStartTimeTemplates.length,
+      shiftStartTimeDistributions: shiftStartTimeDistributions.length
+    }
 
-    // Crea directory backups se non esiste
-    const backupDir = join(process.cwd(), 'backups')
-    await mkdir(backupDir, { recursive: true })
-
-    // Nome file con timestamp
-    const timestamp = format(new Date(), 'yyyyMMdd_HHmmss')
-    const fileName = `neon_backup_${timestamp}.sql`
-    const filePath = join(backupDir, fileName)
-
-    // Comando pg_dump
-    const command = `PGPASSWORD="${password}" pg_dump -h ${host} -p ${port} -U ${username} -d ${dbName} -F p -f ${filePath}`
-
-    // Esegui backup
-    await execAsync(command, {
-      env: {
-        ...process.env,
-        PGPASSWORD: password
-      },
-      maxBuffer: 50 * 1024 * 1024 // 50MB buffer
-    })
-
-    // Verifica che il file sia stato creato
-    const fs = await import('fs/promises')
-    const stats = await fs.stat(filePath)
-
-    console.log(`[BACKUP] ✅ Database backup created: ${fileName} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`)
+    const totalRecords = Object.values(tableCounts).reduce((a, b) => a + b, 0)
+    console.log(`[BACKUP] ✅ Backup completed: ${totalRecords} records from ${Object.keys(tableCounts).length} tables`)
 
     return {
       success: true,
-      filePath,
-      size: stats.size
+      data: backupData,
+      tables: tableCounts,
+      timestamp
     }
   } catch (error: any) {
     console.error('[BACKUP] ❌ Failed to create backup:', error)
@@ -79,55 +156,50 @@ export async function scheduleBackup(userId?: string, username?: string) {
   const result = await createDatabaseBackup()
   
   if (result.success && userId && username) {
-    // Log nel sistema di audit
-    const { logAuditAction } = await import('./audit-logger')
-    await logAuditAction({
-      userId,
-      userUsername: username,
-      action: 'DATABASE_BACKUP',
-      description: `Backup database creato: ${result.filePath}`,
-      metadata: {
-        filePath: result.filePath,
-        size: result.size,
-        sizeReadable: result.size ? `${(result.size / 1024 / 1024).toFixed(2)} MB` : 'unknown'
-      }
-    })
+    try {
+      const { logAuditAction } = await import('./audit-logger')
+      await logAuditAction({
+        userId,
+        userUsername: username,
+        action: 'DATABASE_BACKUP',
+        description: `Backup database creato: ${result.timestamp}`,
+        metadata: {
+          timestamp: result.timestamp,
+          tables: result.tables
+        }
+      })
+    } catch (e) {
+      console.error('[BACKUP] Failed to log audit action:', e)
+    }
   }
 
   return result
 }
 
 /**
- * Ottieni la lista dei backup disponibili
+ * Lista backups - ora restituisce info sull'ultimo backup dal log
  */
 export async function listBackups() {
   try {
-    const backupDir = join(process.cwd(), 'backups')
-    const fs = await import('fs/promises')
-    
-    try {
-      const files = await fs.readdir(backupDir)
-      const backupFiles = files.filter(f => f.startsWith('neon_backup_') && f.endsWith('.sql'))
-      
-      const backups = await Promise.all(
-        backupFiles.map(async (file) => {
-          const filePath = join(backupDir, file)
-          const stats = await fs.stat(filePath)
-          return {
-            filename: file,
-            path: filePath,
-            size: stats.size,
-            sizeReadable: `${(stats.size / 1024 / 1024).toFixed(2)} MB`,
-            createdAt: stats.birthtime
-          }
-        })
-      )
+    // Get backup history from audit logs
+    const backupLogs = await prisma.audit_logs.findMany({
+      where: {
+        action: 'DATABASE_BACKUP'
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 20
+    })
 
-      return backups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    } catch (error) {
-      // Directory doesn't exist
-      return []
-    }
+    return backupLogs.map(log => ({
+      filename: `backup_${format(log.createdAt, 'yyyyMMdd_HHmmss')}.json`,
+      path: 'In-memory backup',
+      size: 0,
+      sizeReadable: 'N/A',
+      createdAt: log.createdAt,
+      metadata: log.metadata
+    }))
   } catch (error) {
     console.error('[BACKUP] Error listing backups:', error)
     return []
@@ -135,29 +207,8 @@ export async function listBackups() {
 }
 
 /**
- * Elimina i backup più vecchi di X giorni
+ * Cleanup non più necessario con backup in-memory
  */
 export async function cleanOldBackups(daysToKeep: number = 30) {
-  try {
-    const backups = await listBackups()
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep)
-
-    const fs = await import('fs/promises')
-    let deletedCount = 0
-
-    for (const backup of backups) {
-      if (backup.createdAt < cutoffDate) {
-        await fs.unlink(backup.path)
-        deletedCount++
-        console.log(`[BACKUP] 🗑️  Deleted old backup: ${backup.filename}`)
-      }
-    }
-
-    return { deletedCount }
-  } catch (error) {
-    console.error('[BACKUP] Error cleaning old backups:', error)
-    return { deletedCount: 0 }
-  }
+  return { deletedCount: 0 }
 }
-

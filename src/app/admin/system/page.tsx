@@ -175,7 +175,8 @@ export default function SystemAdminPage() {
       })
 
       if (response.ok) {
-        alert('✅ Backup creato con successo!')
+        const data = await response.json()
+        alert(`✅ Backup creato con successo!\n\nTimestamp: ${data.timestamp}\nTabelle: ${Object.keys(data.tables || {}).length}`)
         fetchBackups()
       } else {
         const error = await response.json()
@@ -187,6 +188,11 @@ export default function SystemAdminPage() {
     } finally {
       setCreatingBackup(false)
     }
+  }
+
+  const downloadBackup = () => {
+    // Trigger download
+    window.open('/api/admin/database/backup?download=true', '_blank')
   }
 
   const cleanupOldBackups = async () => {
@@ -406,17 +412,18 @@ export default function SystemAdminPage() {
                 </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setShowCleanupConfirm(true)}
-                    className="px-6 py-3 text-xs font-black uppercase tracking-widest text-red-600 bg-red-50 rounded-2xl hover:bg-red-100 transition-all"
+                    onClick={downloadBackup}
+                    className="px-6 py-3 text-xs font-black uppercase tracking-widest text-green-600 bg-green-50 rounded-2xl hover:bg-green-100 transition-all flex items-center gap-2"
                   >
-                    Pulizia Automatica
+                    <Download className="h-4 w-4" />
+                    Scarica Backup
                   </button>
                   <button
                     onClick={() => setShowBackupConfirm(true)}
                     disabled={creatingBackup}
                     className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black shadow-lg shadow-gray-200 transition-all flex items-center gap-2 disabled:opacity-50"
                   >
-                    {creatingBackup ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    {creatingBackup ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
                     Crea Snapshot Ora
                   </button>
                 </div>
@@ -631,33 +638,36 @@ export default function SystemAdminPage() {
         onClose={() => setShowBackupConfirm(false)}
         onConfirm={createBackup}
         title="Crea Backup Database"
-        description="Stai per creare un backup manuale del database. L'operazione potrebbe richiedere alcuni secondi."
+        description="Stai per creare un backup completo del database. Il backup includerà tutte le tabelle e i dati."
         confirmPhrase="CREA BACKUP"
         confirmButtonText="Crea Backup"
         isDangerous={false}
         metadata={
           <div className="text-sm space-y-1">
             <p><strong>Database:</strong> PostgreSQL (Neon)</p>
-            <p><strong>Formato:</strong> SQL dump completo</p>
-            <p><strong>Storage:</strong> /backups directory</p>
+            <p><strong>Formato:</strong> JSON esportato via Prisma</p>
+            <p><strong>Include:</strong> Utenti, turni, ore, assenze, ecc.</p>
           </div>
         }
       />
 
-      {/* Cleanup Confirmation Modal */}
+      {/* Cleanup Confirmation Modal - No longer needed but kept for compatibility */}
       <ConfirmationModal
         isOpen={showCleanupConfirm}
         onClose={() => setShowCleanupConfirm(false)}
-        onConfirm={cleanupOldBackups}
-        title="Pulisci Backup Vecchi"
-        description="Stai per eliminare tutti i backup più vecchi di 30 giorni. Questa azione è irreversibile."
-        confirmPhrase="ELIMINA VECCHI"
-        confirmButtonText="Elimina Backup Vecchi"
-        isDangerous={true}
+        onConfirm={() => {
+          alert('ℹ️ I backup sono ora in-memory e vengono scaricati direttamente. Non ci sono file da eliminare.')
+          setShowCleanupConfirm(false)
+        }}
+        title="Info Pulizia Backup"
+        description="I backup sono ora generati on-demand e scaricati direttamente. Non vengono più salvati file sul server."
+        confirmPhrase="OK"
+        confirmButtonText="Capito"
+        isDangerous={false}
         metadata={
           <div className="text-sm space-y-1">
-            <p><strong>Retention:</strong> 30 giorni</p>
-            <p><strong>Backup totali:</strong> {backups.length}</p>
+            <p><strong>Sistema:</strong> Backup on-demand</p>
+            <p><strong>Storico:</strong> Visibile nei log di audit</p>
           </div>
         }
       />

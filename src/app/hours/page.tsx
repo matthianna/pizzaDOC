@@ -504,13 +504,9 @@ function ShiftCard({
 
   useEffect(() => {
     if (!shift.workedHours) {
-      if (shift.shiftType === 'PRANZO') {
-        setStartTime('11:30')
-        setEndTime('14:30')
-      } else {
-        setStartTime('18:00')
-        setEndTime('22:00')
-      }
+      // Only set start time from the shift, user must select end time
+      setStartTime(shift.startTime || '')
+      setEndTime('') // User must select end time
     } else {
       setStartTime(shift.workedHours.startTime)
       setEndTime(shift.workedHours.endTime)

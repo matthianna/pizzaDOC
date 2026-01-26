@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Smartphone, Check, Clock, ChevronRight, ShieldCheck, Mail, Star, UserPlus, Trash, RotateCw, ShieldAlert, SmartphoneIcon } from 'lucide-react'
+import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Check, Clock, ChevronRight, ShieldCheck, Mail, Star, UserPlus, Trash, RotateCw, ShieldAlert, Smartphone } from 'lucide-react'
 import { cn, getRoleName, getTransportName } from '@/lib/utils'
 import { Role, TransportType } from '@prisma/client'
 import { Select } from '@/components/ui/select'
@@ -18,7 +18,6 @@ interface User {
   username: string
   isActive: boolean
   trackHours: boolean
-  whatsappNotificationsEnabled: boolean
   pushNotificationsEnabled: boolean
   primaryRole: Role
   primaryTransport: TransportType | null
@@ -433,33 +432,25 @@ function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any)
         </div>
       </td>
       <td className="px-8 py-5">
-        <div className="flex items-center gap-4">
-          <div className={cn(
-            "p-2 rounded-xl transition-all",
-            user.whatsappNotificationsEnabled ? "bg-green-50 text-green-600 shadow-sm" : "bg-gray-50 text-gray-300"
-          )} title="WhatsApp">
-            <Smartphone className="w-4 h-4" />
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onTogglePush}
-              className={cn(
-                "w-10 h-5 rounded-full relative transition-all shadow-inner",
-                user.pushNotificationsEnabled ? "bg-orange-500" : "bg-gray-200"
-              )}
-            >
-              <div className={cn(
-                "absolute top-1 w-3 h-3 bg-white rounded-full transition-all shadow-sm",
-                user.pushNotificationsEnabled ? "right-1" : "left-1"
-              )} />
-            </button>
-            {user.pushNotificationsEnabled && (
-              <div className={cn(
-                "w-2 h-2 rounded-full",
-                user.push_subscriptions?.length > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"
-              )} />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onTogglePush}
+            className={cn(
+              "w-10 h-5 rounded-full relative transition-all shadow-inner",
+              user.pushNotificationsEnabled ? "bg-orange-500" : "bg-gray-200"
             )}
-          </div>
+          >
+            <div className={cn(
+              "absolute top-1 w-3 h-3 bg-white rounded-full transition-all shadow-sm",
+              user.pushNotificationsEnabled ? "right-1" : "left-1"
+            )} />
+          </button>
+          {user.pushNotificationsEnabled && (
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              user.push_subscriptions?.length > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"
+            )} />
+          )}
         </div>
       </td>
       <td className="px-8 py-5 text-center">
@@ -502,9 +493,9 @@ function UserMobileCard({ user, onEdit, onDelete, onResetPassword, onTogglePush 
           </div>
         </div>
         <div className="space-y-2">
-          <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Notifiche</p>
+          <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Notifiche Push</p>
           <div className="flex items-center gap-3">
-            <SmartphoneIcon className={cn("w-4 h-4", user.whatsappNotificationsEnabled ? "text-green-500" : "text-gray-200")} />
+            <Bell className={cn("w-4 h-4", user.pushNotificationsEnabled ? "text-orange-500" : "text-gray-200")} />
             <div className={cn("w-2 h-2 rounded-full", user.push_subscriptions?.length > 0 ? "bg-green-500" : "bg-yellow-500")} />
           </div>
         </div>
@@ -560,7 +551,6 @@ function UserFormModal({
     primaryTransport: user?.primaryTransport || '',
     isActive: user?.isActive ?? true,
     trackHours: user?.trackHours ?? true,
-    whatsappNotificationsEnabled: user?.whatsappNotificationsEnabled ?? true,
     pushNotificationsEnabled: user?.pushNotificationsEnabled ?? true
   })
   const [loading, setLoading] = useState(false)
@@ -752,8 +742,7 @@ function UserFormModal({
             {[
               { id: 'isActive', label: 'Collaboratore Attivo', icon: Users, color: 'green' },
               { id: 'trackHours', label: 'Tracciamento Ore', icon: Clock, color: 'blue' },
-              { id: 'whatsappNotificationsEnabled', label: 'Notifiche WhatsApp', icon: Smartphone, color: 'green' },
-              { id: 'pushNotificationsEnabled', label: 'Notifiche PWA', icon: Bell, color: 'orange' }
+              { id: 'pushNotificationsEnabled', label: 'Notifiche Push', icon: Bell, color: 'orange' }
             ].map((flag) => (
               <label 
                 key={flag.id} 

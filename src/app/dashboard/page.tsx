@@ -14,6 +14,7 @@ import { getRoleName, getDayName, cn } from '@/lib/utils'
 import type { Role } from '@prisma/client'
 import { useHaptics } from '@/hooks/use-haptics'
 import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
+import { WeatherWidget } from '@/components/weather/weather-widget'
 
 interface DashboardStats {
   // Admin stats
@@ -231,19 +232,14 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="space-y-6">
-          <Skeleton className="h-32 w-full rounded-2xl" />
+        <div className="space-y-6 max-w-6xl mx-auto pb-20 px-2 sm:px-4">
+          <Skeleton className="h-32 w-full rounded-3xl" />
+          <Skeleton className="h-32 w-full rounded-3xl bg-gradient-to-br from-sky-200 to-blue-200" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Skeleton className="h-24 rounded-2xl" />
             <Skeleton className="h-24 rounded-2xl" />
             <Skeleton className="h-24 rounded-2xl" />
             <Skeleton className="h-24 rounded-2xl" />
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Skeleton className="h-20 rounded-2xl" />
-            <Skeleton className="h-20 rounded-2xl" />
-            <Skeleton className="h-20 rounded-2xl" />
-            <Skeleton className="h-20 rounded-2xl" />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <CardSkeleton />
@@ -313,6 +309,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Weather Widget */}
+        <WeatherWidget />
+
         {/* 🚀 LIVE: Chi lavora oggi - High Priority Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between px-2">
@@ -359,30 +358,61 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <div className="p-4 grid grid-cols-1 gap-2">
-                        {shifts.map((s) => (
-                          <div key={s.id} className="group flex items-center justify-between p-3 bg-white border border-gray-100 rounded-2xl hover:border-orange-200 hover:shadow-md transition-all duration-300">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
-                                {s.role === 'FATTORINO' ? <Bike className="h-5 w-5" /> : 
-                                 s.role === 'CUCINA' ? <ChefHat className="h-5 w-5" /> : 
-                                 <UserCheck className="h-5 w-5" />}
+                        {shifts.map((s) => {
+                          const isCurrentUser = s.user.id === session?.user.id
+                          return (
+                            <div key={s.id} className={cn(
+                              "group flex items-center justify-between p-3 rounded-2xl transition-all duration-300",
+                              isCurrentUser 
+                                ? "bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-300 shadow-lg shadow-orange-100 ring-2 ring-orange-200 ring-offset-2" 
+                                : "bg-white border border-gray-100 hover:border-orange-200 hover:shadow-md"
+                            )}>
+                              <div className="flex items-center gap-3">
+                                <div className={cn(
+                                  "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                  isCurrentUser 
+                                    ? "bg-orange-500 text-white shadow-lg shadow-orange-200" 
+                                    : "bg-gray-50 text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-600"
+                                )}>
+                                  {s.role === 'FATTORINO' ? <Bike className="h-5 w-5" /> : 
+                                   s.role === 'CUCINA' ? <ChefHat className="h-5 w-5" /> : 
+                                   <UserCheck className="h-5 w-5" />}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className={cn(
+                                      "text-sm font-black truncate leading-none",
+                                      isCurrentUser ? "text-orange-700" : "text-gray-900"
+                                    )}>
+                                      {s.user.username}
+                                    </p>
+                                    {isCurrentUser && (
+                                      <span className="px-2 py-0.5 bg-orange-500 text-white text-[8px] font-black uppercase tracking-wider rounded-full animate-pulse">
+                                        Tu
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className={cn(
+                                    "text-[9px] font-bold uppercase tracking-widest mt-1",
+                                    isCurrentUser ? "text-orange-500" : "text-gray-400"
+                                  )}>
+                                    {getRoleName(s.role as Role)}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-black text-gray-900 truncate leading-none">
-                                  {s.user.username}
-                                </p>
-                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-                                  {getRoleName(s.role as Role)}
-                                </p>
+                              <div className="flex flex-col items-end">
+                                <span className={cn(
+                                  "text-[10px] font-black px-2 py-1 rounded-lg border",
+                                  isCurrentUser 
+                                    ? "text-orange-700 bg-orange-100 border-orange-200" 
+                                    : "text-gray-900 bg-gray-50 border-gray-100"
+                                )}>
+                                  {s.startTime}
+                                </span>
                               </div>
                             </div>
-                            <div className="flex flex-col items-end">
-                              <span className="text-[10px] font-black text-gray-900 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                                {s.startTime}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   )

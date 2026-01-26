@@ -28,17 +28,28 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         try {
             const response = await fetch('/api/notifications?limit=1', {
-                signal: abortControllerRef.current.signal
+                signal: abortControllerRef.current.signal,
+                redirect: 'error' // Prevent following redirects
             })
             
             if (response.ok) {
-                const data = await response.json()
-                setUnreadCount(data.unreadCount || 0)
+                const text = await response.text()
+                if (text) {
+                    try {
+                        const data = JSON.parse(text)
+                        setUnreadCount(data.unreadCount || 0)
+                    } catch {
+                        // Invalid JSON, ignore
+                    }
+                }
             }
         } catch (error: any) {
-            // Ignore abort errors and failed to fetch (usually network issues)
-            if (error.name !== 'AbortError' && error.message !== 'Failed to fetch') {
-                console.error('Error fetching unread count:', error)
+            // Ignore abort errors, network issues, and redirect errors (user not authenticated)
+            const ignoredErrors = ['AbortError', 'TypeError']
+            const ignoredMessages = ['Failed to fetch', 'The string did not match the expected pattern']
+            
+            if (!ignoredErrors.includes(error.name) && !ignoredMessages.some(msg => error.message?.includes(msg))) {
+                // Silent fail - don't log notification polling errors
             }
         } finally {
             abortControllerRef.current = null

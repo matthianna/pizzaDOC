@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { format, addDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
-import puppeteer from 'puppeteer'
+import puppeteerCore from 'puppeteer-core'
+import chromium from '@sparticuz/chromium'
 
 export async function GET(
   request: NextRequest,
@@ -68,12 +69,14 @@ export async function GET(
     // Genera l'HTML per il PDF
     const html = generateScheduleHTML(schedule, weekStart, holidays)
 
-    // Genera PDF usando Puppeteer
+    // Genera PDF usando Puppeteer (serverless-compatible)
     let browser
     try {
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      browser = await puppeteerCore.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
       })
       
       const page = await browser.newPage()
@@ -486,18 +489,6 @@ function generateScheduleHTML(schedule: {
             </div>
           `
         }).join('')}
-
-        <div class="footer">
-            <div class="legend">
-                <div class="legend-item"><span class="legend-dot" style="background: #ea580c;"></span> Cucina</div>
-                <div class="legend-item"><span class="legend-dot" style="background: #dc2626;"></span> Pizzaiolo</div>
-                <div class="legend-item"><span class="legend-dot" style="background: #3b82f6;"></span> Fattorino</div>
-                <div class="legend-item"><span class="legend-dot" style="background: #22c55e;"></span> Sala</div>
-            </div>
-            <div class="stats">
-                <strong>${totalShifts}</strong> turni assegnati • <strong>${totalEmployees}</strong> dipendenti
-            </div>
-        </div>
     </div>
 </body>
 </html>
