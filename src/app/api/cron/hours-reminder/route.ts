@@ -45,22 +45,37 @@ export async function GET(request: NextRequest) {
         console.log(`✅ [CRON hours-reminder] Backup completed: ${backupResult.timestamp}`)
         console.log(`📊 [CRON hours-reminder] Backed up tables:`, backupResult.tables)
         
-        // Log the backup in audit log
+        // Log the backup in audit log - find an admin user for the log
         try {
-          await prisma.audit_logs.create({
-            data: {
-              id: crypto.randomUUID(),
-              userId: 'system',
-              userUsername: 'CRON',
-              action: 'DATABASE_BACKUP',
-              description: `Backup automatico eseguito durante hours-reminder cron`,
-              metadata: {
-                timestamp: backupResult.timestamp,
-                tables: backupResult.tables,
-                triggeredBy: 'hours-reminder-cron'
+          const adminUser = await prisma.user.findFirst({
+            where: {
+              user_roles: {
+                some: {
+                  role: 'ADMIN'
+                }
               }
-            }
+            },
+            select: { id: true, username: true }
           })
+          
+          if (adminUser) {
+            await prisma.audit_logs.create({
+              data: {
+                id: crypto.randomUUID(),
+                userId: adminUser.id,
+                userUsername: `SYSTEM (${adminUser.username})`,
+                action: 'DATABASE_BACKUP',
+                description: `Backup automatico eseguito durante hours-reminder cron`,
+                metadata: {
+                  timestamp: backupResult.timestamp,
+                  tables: backupResult.tables,
+                  triggeredBy: 'hours-reminder-cron',
+                  automatic: true
+                }
+              }
+            })
+            console.log('📝 [CRON] Backup logged to audit trail')
+          }
         } catch (logError) {
           console.error('⚠️ [CRON] Failed to log backup to audit:', logError)
         }
