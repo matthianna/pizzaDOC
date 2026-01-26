@@ -30,14 +30,6 @@ interface AuditLog {
   }
 }
 
-interface Backup {
-  filename: string
-  path: string
-  size: number
-  sizeReadable: string
-  createdAt: string
-}
-
 interface SystemStats {
   totalLogs: number
   logsToday: number
@@ -59,7 +51,7 @@ export default function SystemAdminPage() {
   const [filterUser, setFilterUser] = useState<string | null>(null)
 
   // Backups
-  const [backups, setBackups] = useState<Backup[]>([])
+  const [backups, setBackups] = useState<AuditLog[]>([])
   const [backupsLoading, setBackupsLoading] = useState(false)
   const [creatingBackup, setCreatingBackup] = useState(false)
 
@@ -100,10 +92,11 @@ export default function SystemAdminPage() {
   const fetchBackups = async () => {
     setBackupsLoading(true)
     try {
-      const response = await fetch('/api/admin/database/backup')
+      // Fetch backup history from audit logs
+      const response = await fetch('/api/admin/audit-logs?action=DATABASE_BACKUP&limit=50')
       if (response.ok) {
         const data = await response.json()
-        setBackups(data.backups)
+        setBackups(data.logs || [])
       }
     } catch (error) {
       console.error('Error fetching backups:', error)
@@ -405,9 +398,9 @@ export default function SystemAdminPage() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <h3 className="text-xl font-black text-gray-900 tracking-tight">Archivio Backup</h3>
+                  <h3 className="text-xl font-black text-gray-900 tracking-tight">Storico Backup</h3>
                   <p className="text-sm text-gray-500 font-medium mt-1">
-                    Sistema di disaster recovery attivo. Snapshot quotidiani alle 02:00.
+                    I backup vengono generati on-demand e scaricati direttamente. Cron automatico ogni giovedì alle 15:00.
                   </p>
                 </div>
                 <div className="flex gap-3">
@@ -438,31 +431,59 @@ export default function SystemAdminPage() {
                 ) : backups.length === 0 ? (
                   <div className="col-span-full bg-white rounded-3xl shadow-soft border border-dashed border-gray-300 p-20 text-center">
                     <Database className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Nessun backup in archivio</p>
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-sm mb-2">Nessun backup in archivio</p>
+                    <p className="text-xs text-gray-500">I backup vengono generati on-demand. Usa il pulsante sopra per crearne uno.</p>
                   </div>
                 ) : (
-                  backups.map((backup) => (
-                    <div key={backup.filename} className="bg-white rounded-3xl shadow-soft border border-gray-100 p-6 hover:shadow-xl transition-all group">
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="p-3 bg-orange-100 rounded-2xl text-orange-600 transition-transform group-hover:rotate-12">
-                          <HardDrive className="h-6 w-6" />
+                  backups.map((backup) => {
+                    const metadata = backup.metadata as any
+                    const timestamp = metadata?.timestamp || backup.createdAt
+                    const tables = metadata?.tables || {}
+                    const tableCount = Object.keys(tables).length
+                    const totalRecords = Object.values(tables).reduce((sum: number, count: any) => sum + (count || 0), 0)
+                    
+                    return (
+                      <div key={backup.id} className="bg-white rounded-3xl shadow-soft border border-gray-100 p-6 hover:shadow-xl transition-all group">
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="p-3 bg-orange-100 rounded-2xl text-orange-600 transition-transform group-hover:rotate-12">
+                            <HardDrive className="h-6 w-6" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-black text-gray-900 truncate">
+                              backup_{timestamp?.replace(/[-:]/g, '').replace('_', '_') || 'unknown'}
+                            </h4>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                              JSON Export • {tableCount} tabelle • {totalRecords.toLocaleString()} record
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="text-sm font-black text-gray-900 truncate">{backup.filename}</h4>
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">SQL Dump • {backup.sizeReadable}</p>
+                        <div className="space-y-3 pt-4 border-t border-gray-50">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3 w-3 text-gray-300" />
+                              <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">
+                                {format(new Date(backup.createdAt), 'dd MMM yyyy • HH:mm', { locale: it })}
+                              </span>
+                            </div>
+                            <span className="px-2 py-1 bg-green-50 text-green-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-green-100">
+                              Completato
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase">Creato da:</span>
+                            <span className="text-[10px] font-black text-gray-600">{backup.userUsername}</span>
+                          </div>
+                          <button
+                            onClick={() => window.open('/api/admin/database/backup?download=true', '_blank')}
+                            className="w-full mt-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-orange-200"
+                          >
+                            <Download className="h-3 w-3" />
+                            Scarica Backup
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-3 w-3 text-gray-300" />
-                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">
-                            {format(new Date(backup.createdAt), 'dd MMM yyyy', { locale: it })}
-                          </span>
-                        </div>
-                        <span className="px-2 py-1 bg-green-50 text-green-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-green-100">In Sicurezza</span>
-                      </div>
-                    </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
             </div>
