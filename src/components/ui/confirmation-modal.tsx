@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, X, RefreshCw } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface ConfirmationModalProps {
   isOpen: boolean
@@ -29,28 +29,14 @@ export function ConfirmationModal({
 }: ConfirmationModalProps) {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const scrollYRef = useRef(0)
 
-  // Lock scroll when modal is open
   useEffect(() => {
-    if (isOpen) {
-      // Save current scroll position
-      scrollYRef.current = window.scrollY
-      
-      // Prevent body scroll
-      document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.top = `-${scrollYRef.current}px`
-      document.body.style.width = '100%'
-      
-      return () => {
-        // Restore scroll position when modal closes
-        document.body.style.overflow = ''
-        document.body.style.position = ''
-        document.body.style.top = ''
-        document.body.style.width = ''
-        window.scrollTo(0, scrollYRef.current)
-      }
+    if (!isOpen) return
+    const scrollY = window.scrollY
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+      window.scrollTo(0, scrollY)
     }
   }, [isOpen])
 
@@ -60,7 +46,7 @@ export function ConfirmationModal({
 
   const handleConfirm = async () => {
     if (!isConfirmEnabled) return
-    
+
     setIsLoading(true)
     try {
       await onConfirm()
@@ -80,129 +66,176 @@ export function ConfirmationModal({
     }
   }
 
-  return (
-    <>
-      {/* Backdrop - Fixed, covers entire viewport */}
-      <div 
-        className="fixed inset-0 bg-black/40 backdrop-blur-md z-[9999]"
+  const modalContent = (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 99999,
+        padding: 16,
+        boxSizing: 'border-box'
+      }}
+    >
+      <div
+        onClick={handleClose}
         style={{
-          position: 'fixed',
+          position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          width: '100vw',
-          height: '100vh'
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)'
         }}
-        onClick={handleClose}
       />
 
-      {/* Modal Container - Fixed, centered using transform */}
       <div
-        className="fixed z-[10000]"
-        style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'calc(100vw - 2rem)',
-          maxWidth: '32rem',
-          maxHeight: '90vh'
-        }}
         onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'relative',
+          backgroundColor: '#ffffff',
+          borderRadius: 48,
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          width: '100%',
+          maxWidth: 672,
+          maxHeight: 'calc(100vh - 64px)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}
       >
-        <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 w-full overflow-hidden animate-in zoom-in-95 duration-300">
-          {/* Header Visual */}
-          <div className={cn(
-            "h-32 flex items-center justify-center relative overflow-hidden",
-            isDangerous ? "bg-red-600" : "bg-orange-600"
-          )}>
-            {/* Decorative patterns */}
-            <div className="absolute inset-0 opacity-10">
-              <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
-              </svg>
-            </div>
-            <div className="relative bg-white p-5 rounded-[2rem] shadow-xl">
-              <AlertTriangle className={cn("h-10 w-10", isDangerous ? "text-red-600" : "text-orange-600")} />
-            </div>
-            
-            <button
-              onClick={handleClose}
-              disabled={isLoading}
-              className="absolute top-6 right-6 p-2 bg-black/10 hover:bg-black/20 text-white rounded-full transition-all active:scale-90"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+        <div
+          style={{
+            padding: '32px 48px 24px 48px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            flexShrink: 0,
+            borderBottom: '1px solid #f3f4f6'
+          }}
+        >
+          <h2
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              color: '#111827',
+              margin: 0,
+              letterSpacing: '-0.025em',
+              paddingRight: 16
+            }}
+          >
+            {title}
+          </h2>
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={isLoading}
+            style={{
+              padding: 12,
+              backgroundColor: '#f3f4f6',
+              border: 'none',
+              borderRadius: 16,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              opacity: isLoading ? 0.6 : 1
+            }}
+          >
+            <X style={{ width: 24, height: 24, color: '#6b7280' }} />
+          </button>
+        </div>
 
-          {/* Content - Scrollable if needed */}
-          <div className="p-10 text-center max-h-[calc(90vh-16rem)] overflow-y-auto">
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-2">{title}</h2>
-            <p className="text-gray-500 font-medium leading-relaxed mb-8">
-              {description}
-            </p>
-
-            {metadata && (
-              <div className="mb-8 bg-gray-50 rounded-2xl p-5 border border-gray-100 text-left">
-                {metadata}
+        <div
+          style={{
+            padding: '24px 48px 32px 48px',
+            overflowY: 'auto',
+            flex: 1
+          }}
+        >
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl border border-purple-200">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-purple-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-200">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-purple-600 font-medium leading-snug">
+                    {description}
+                  </p>
+                </div>
               </div>
-            )}
 
-            {/* Confirmation Input Section */}
-            <div className="space-y-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                  Digita <span className={cn("text-sm", isDangerous ? "text-red-600" : "text-orange-600")}>{confirmPhrase}</span> per confermare
-                </label>
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  disabled={isLoading}
-                  placeholder="Conferma qui..."
-                  className="w-full bg-gray-50 border-gray-200 border-2 rounded-2xl px-6 py-4 text-center text-sm font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all placeholder-gray-300"
-                  autoComplete="off"
-                  autoFocus
-                />
-              </div>
-
-              {isDangerous && (
-                <div className="flex items-center justify-center gap-2 text-red-500">
-                  <AlertTriangle className="h-3 w-3" />
-                  <span className="text-[9px] font-black uppercase tracking-wider italic">Azione irreversibile</span>
+              {metadata && (
+                <div className="bg-white/60 rounded-xl p-4 border border-purple-100/80 text-left text-sm text-purple-900 space-y-1">
+                  {metadata}
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={handleClose}
-              disabled={isLoading}
-              className="flex-1 px-8 py-4 text-sm font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 rounded-2xl transition-all"
-            >
-              Annulla
-            </button>
-            <button
-              onClick={handleConfirm}
-              disabled={!isConfirmEnabled}
-              className={cn(
-                "flex-[2] px-8 py-4 text-sm font-black uppercase tracking-widest text-white rounded-2xl shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2",
-                isDangerous ? "bg-red-600 shadow-red-200" : "bg-orange-600 shadow-orange-200"
-              )}
-            >
-              {isLoading ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                confirmButtonText
-              )}
-            </button>
+            <div>
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+                Digita <span className="text-purple-600">{confirmPhrase}</span> per confermare
+              </label>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                disabled={isLoading}
+                placeholder="Conferma qui..."
+                className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 bg-gray-50 font-bold text-center focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white transition-all placeholder-gray-300"
+                autoComplete="off"
+                autoFocus
+              />
+            </div>
+
+            {isDangerous && (
+              <p className="text-xs text-red-600 font-medium bg-red-50 px-4 py-3 rounded-xl flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                Azione irreversibile: verifica i dati prima di procedere.
+              </p>
+            )}
           </div>
         </div>
-      </div>
-    </>
-  )
-}
 
+        <div
+          className="flex justify-end gap-3 pt-4 border-t border-gray-100 px-12 pb-8"
+          style={{ flexShrink: 0 }}
+        >
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={isLoading}
+            className="px-6 py-3 text-xs font-black text-gray-600 uppercase tracking-widest hover:bg-gray-100 rounded-xl transition-all disabled:opacity-50"
+          >
+            Annulla
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={!isConfirmEnabled}
+            className="px-8 py-3 bg-purple-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all disabled:opacity-50 flex items-center gap-2 min-w-[10rem] justify-center"
+          >
+            {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : confirmButtonText}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  if (typeof window !== 'undefined') {
+    return createPortal(modalContent, document.body)
+  }
+
+  return modalContent
+}
