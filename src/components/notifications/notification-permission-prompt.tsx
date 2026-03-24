@@ -12,8 +12,9 @@ function isDenied(): boolean {
 }
 
 /**
- * When the user has blocked browser notifications, remind them on each app open
- * (initial load, returning from background, BFCache restore) so they can re-enable in system settings.
+ * When the user has blocked browser notifications, remind them while on the dashboard:
+ * each visit remounts this component so the prompt can show again; also when returning
+ * from background (visibility / BFCache) if still on this page.
  */
 export function NotificationPermissionPrompt() {
   const { status } = useSession()
@@ -101,7 +102,7 @@ export function NotificationPermissionPrompt() {
           </li>
         </ul>
         <p className="text-sm text-gray-500">
-          Questo promemoria comparirà di nuovo all&apos;apertura dell&apos;app finché le notifiche restano
+          Questo promemoria comparirà di nuovo ogni volta che apri la dashboard finché le notifiche restano
           bloccate.
         </p>
       </div>

@@ -15,6 +15,7 @@ import type { Role } from '@prisma/client'
 import { useHaptics } from '@/hooks/use-haptics'
 import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
 import { WeatherWidget } from '@/components/weather/weather-widget'
+import { NotificationPermissionPrompt } from '@/components/notifications/notification-permission-prompt'
 
 interface DashboardStats {
   // Admin stats
@@ -570,6 +571,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      <NotificationPermissionPrompt />
     </MainLayout>
   )
 }
