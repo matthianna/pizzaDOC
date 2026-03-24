@@ -14,6 +14,8 @@ interface ModalProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
   className?: string
   headerIcon?: React.ReactNode
+  /** Portal root stacking; default keeps overlays above most in-app UI (e.g. bottom nav). */
+  zIndex?: number
 }
 
 export function Modal({
@@ -24,7 +26,8 @@ export function Modal({
   children,
   maxWidth = 'md',
   className,
-  headerIcon
+  headerIcon,
+  zIndex = 99999
 }: ModalProps) {
   // Lock scroll when modal is open
   useEffect(() => {
@@ -65,7 +68,7 @@ export function Modal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 99999,
+        zIndex,
         padding: 16,
         boxSizing: 'border-box'
       }}

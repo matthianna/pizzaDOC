@@ -18,6 +18,8 @@ function isPWAInstalled(): boolean {
   return false
 }
 
+const PWA_PANIC_STORAGE_KEY = 'pizzadoc-pwa-panic-bypass'
+
 /** Production: require install. Set NEXT_PUBLIC_SKIP_PWA_INSTALL_GATE=true to disable (emergencies). */
 function isInstallGateSkipped(): boolean {
   if (process.env.NEXT_PUBLIC_SKIP_PWA_INSTALL_GATE === 'true') return true
@@ -34,6 +36,7 @@ export function PWAInstallPrompt() {
   const [currentStep, setCurrentStep] = useState(0)
   const [isIOS, setIsIOS] = useState(false)
   const [isInstalled, setIsInstalled] = useState<boolean | null>(null)
+  const [panicBypass, setPanicBypass] = useState(false)
 
   const refreshInstalled = useCallback(() => {
     setIsInstalled(isPWAInstalled())
@@ -42,6 +45,25 @@ export function PWAInstallPrompt() {
   useLayoutEffect(() => {
     refreshInstalled()
   }, [refreshInstalled])
+
+  useLayoutEffect(() => {
+    try {
+      if (localStorage.getItem(PWA_PANIC_STORAGE_KEY) === '1') {
+        setPanicBypass(true)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  const activatePanicBypass = useCallback(() => {
+    try {
+      localStorage.setItem(PWA_PANIC_STORAGE_KEY, '1')
+    } catch {
+      /* private mode: still unlock this session */
+    }
+    setPanicBypass(true)
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -75,6 +97,7 @@ export function PWAInstallPrompt() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (isInstallGateSkipped()) return
+    if (panicBypass) return
     if (!session?.user?.id) return
     if (isInstalled !== false) return
 
@@ -87,14 +110,15 @@ export function PWAInstallPrompt() {
     }
     window.addEventListener('beforeinstallprompt', handler)
     return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [session?.user?.id, isInstalled])
+  }, [session?.user?.id, isInstalled, panicBypass])
 
   const skipGate = isInstallGateSkipped()
   const showGate =
     status === 'authenticated' &&
     !!session?.user?.id &&
     isInstalled === false &&
-    !skipGate
+    !skipGate &&
+    !panicBypass
 
   useEffect(() => {
     if (!showGate) return
@@ -295,6 +319,19 @@ export function PWAInstallPrompt() {
                 Ricontrolla
               </button>
             )}
+          </div>
+
+          <div className="border-t border-gray-200 bg-amber-50/90 px-4 py-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={activatePanicBypass}
+              className="w-full text-center text-xs font-black text-amber-900 uppercase tracking-wide py-2 rounded-xl border border-amber-200 bg-white/80 hover:bg-white active:scale-[0.99] transition-transform"
+            >
+              Panic — continua nel browser senza installare
+            </button>
+            <p className="text-[10px] text-amber-800/80 text-center mt-2 leading-snug">
+              Usa solo se non puoi installare l&apos;app. La scelta resta salvata su questo dispositivo.
+            </p>
           </div>
         </div>
       </div>
