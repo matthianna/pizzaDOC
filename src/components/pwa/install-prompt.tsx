@@ -3,6 +3,8 @@
 import { useState, useEffect, useLayoutEffect, useCallback, type ReactNode } from 'react'
 import { Download, Share2, Home, Smartphone, Chrome, CheckCircle } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { isAdmin } from '@/lib/auth-utils'
+import { getClientDisplayMode } from '@/lib/client-display-mode'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -11,11 +13,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 function isPWAInstalled(): boolean {
   if (typeof window === 'undefined') return false
-  if (window.matchMedia('(display-mode: standalone)').matches) return true
-  if (window.matchMedia('(display-mode: fullscreen)').matches) return true
-  const nav = window.navigator as Navigator & { standalone?: boolean }
-  if (nav.standalone === true) return true
-  return false
+  return getClientDisplayMode() !== 'browser'
 }
 
 const PWA_PANIC_STORAGE_KEY = 'pizzadoc-pwa-panic-bypass'
@@ -99,6 +97,7 @@ export function PWAInstallPrompt() {
     if (isInstallGateSkipped()) return
     if (panicBypass) return
     if (!session?.user?.id) return
+    if (isAdmin(session)) return
     if (isInstalled !== false) return
 
     const userAgent = window.navigator.userAgent.toLowerCase()
@@ -110,12 +109,13 @@ export function PWAInstallPrompt() {
     }
     window.addEventListener('beforeinstallprompt', handler)
     return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [session?.user?.id, isInstalled, panicBypass])
+  }, [session, isInstalled, panicBypass])
 
   const skipGate = isInstallGateSkipped()
   const showGate =
     status === 'authenticated' &&
     !!session?.user?.id &&
+    !isAdmin(session) &&
     isInstalled === false &&
     !skipGate &&
     !panicBypass

@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ComponentType, type FormEvent } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Check, Clock, ChevronRight, ShieldCheck, Mail, Star, UserPlus, Trash, RotateCw, ShieldAlert, Smartphone } from 'lucide-react'
+import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Check, Clock, ChevronRight, ShieldCheck, Mail, Star, UserPlus, Trash, RotateCw, ShieldAlert, Smartphone, AppWindow } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { it as localeIt } from 'date-fns/locale'
 import { cn, getRoleName, getTransportName } from '@/lib/utils'
 import { Role, TransportType } from '@prisma/client'
 import { Select } from '@/components/ui/select'
@@ -13,6 +15,8 @@ import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { Modal } from '@/components/ui/modal'
 import { useHaptics } from '@/hooks/use-haptics'
 
+const CLIENT_PRESENCE_STALE_MS = 25 * 60 * 1000
+
 interface User {
   id: string
   username: string
@@ -22,9 +26,63 @@ interface User {
   primaryRole: Role
   primaryTransport: TransportType | null
   createdAt: string
+  lastClientDisplayMode: string | null
+  lastClientDisplayModeAt: string | null
   user_roles: { role: Role }[]
   user_transports: { transport: TransportType }[]
   push_subscriptions: { id: string }[]
+}
+
+function getClientAppPresence(user: Pick<User, 'lastClientDisplayMode' | 'lastClientDisplayModeAt'>) {
+  if (!user.lastClientDisplayModeAt || !user.lastClientDisplayMode) {
+    return { variant: 'none' as const }
+  }
+  const at = new Date(user.lastClientDisplayModeAt).getTime()
+  const fresh = Date.now() - at <= CLIENT_PRESENCE_STALE_MS
+  const isPwa =
+    user.lastClientDisplayMode === 'standalone' || user.lastClientDisplayMode === 'fullscreen'
+  return {
+    variant: fresh ? (isPwa ? ('pwa' as const) : ('browser' as const)) : ('stale' as const),
+    at: user.lastClientDisplayModeAt,
+    lastMode: user.lastClientDisplayMode
+  }
+}
+
+function ClientAppCell({ user }: { user: User }) {
+  const p = getClientAppPresence(user)
+  if (p.variant === 'none') {
+    return <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider">—</span>
+  }
+  const rel = formatDistanceToNow(new Date(p.at), { addSuffix: true, locale: localeIt })
+  if (p.variant === 'pwa') {
+    return (
+      <div className="flex flex-col gap-0.5 max-w-[140px]">
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+          App PWA
+        </span>
+        <span className="text-[9px] text-gray-400 font-medium leading-tight">{rel}</span>
+      </div>
+    )
+  }
+  if (p.variant === 'browser') {
+    return (
+      <div className="flex flex-col gap-0.5 max-w-[140px]">
+        <span className="text-[10px] font-black uppercase tracking-wider text-sky-700">Browser</span>
+        <span className="text-[9px] text-gray-400 font-medium leading-tight">{rel}</span>
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-0.5 max-w-[160px]">
+      <span className="text-[10px] font-bold text-gray-500">
+        {p.lastMode === 'browser' ? 'Ultimo: browser' : 'Ultimo: app'}
+      </span>
+      <span className="text-[9px] text-gray-400 font-medium leading-tight" title="Oltre 25 min fa">
+        {rel}
+      </span>
+    </div>
+  )
 }
 
 export default function UsersPage() {
@@ -149,7 +207,7 @@ export default function UsersPage() {
             <Skeleton className="h-28 rounded-[2rem]" />
             <Skeleton className="h-28 rounded-[2rem]" />
           </div>
-          <TableSkeleton rows={8} cols={6} />
+          <TableSkeleton rows={8} cols={7} />
         </div>
       </MainLayout>
     )
@@ -160,6 +218,8 @@ export default function UsersPage() {
 
   const pushEnabledCount = activeUsers.filter(u => u.pushNotificationsEnabled).length
   const pushSubscribedCount = activeUsers.filter(u => u.push_subscriptions?.length > 0).length
+  const pwaLiveCount = activeUsers.filter(u => getClientAppPresence(u).variant === 'pwa').length
+  const browserLiveCount = activeUsers.filter(u => getClientAppPresence(u).variant === 'browser').length
 
   return (
     <MainLayout adminOnly>
@@ -197,7 +257,7 @@ export default function UsersPage() {
         </div>
 
         {/* Notification Stats Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard 
             label="Push Abilitate" 
             value={`${pushEnabledCount} / ${activeUsers.length}`}
@@ -211,12 +271,24 @@ export default function UsersPage() {
             color="green" 
           />
           <StatCard 
+            label="In app PWA (live)" 
+            value={`${pwaLiveCount} / ${activeUsers.length}`}
+            icon={AppWindow} 
+            color="green" 
+            hint="Ultimi 25 min"
+          />
+          <StatCard 
             label="Push Disabilitate" 
             value={activeUsers.length - pushEnabledCount}
             icon={BellOff} 
             color="red" 
           />
         </div>
+        {browserLiveCount > 0 && (
+          <p className="text-[10px] font-bold text-sky-700/80 uppercase tracking-widest px-1">
+            In browser (live): {browserLiveCount} — dati inviati dal client ogni pochi minuti
+          </p>
+        )}
 
         {/* Active Users Table */}
         <div className="space-y-6">
@@ -231,6 +303,7 @@ export default function UsersPage() {
                     <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Utente</th>
                     <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Abilitazioni</th>
                     <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Trasporti</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Client app</th>
                     <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Notifiche</th>
                     <th className="px-8 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Azioni</th>
                 </tr>
@@ -372,8 +445,8 @@ function SectionHeader({ title, count, color }: any) {
   )
 }
 
-function StatCard({ label, value, icon: Icon, color }: any) {
-  const colors: any = {
+function StatCard({ label, value, icon: Icon, color, hint }: { label: string; value: string | number; icon: ComponentType<{ className?: string }>; color: string; hint?: string }) {
+  const colors: Record<string, string> = {
     orange: 'bg-orange-50 text-orange-600',
     green: 'bg-green-50 text-green-600',
     red: 'bg-red-50 text-red-600'
@@ -386,6 +459,7 @@ function StatCard({ label, value, icon: Icon, color }: any) {
       <div>
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
         <p className="text-2xl font-black text-gray-900">{value}</p>
+        {hint && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-wide">{hint}</p>}
       </div>
     </div>
   )
@@ -430,6 +504,9 @@ function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any)
             </span>
           )) : <span className="text-[10px] font-bold text-gray-300 uppercase italic">Nessuno</span>}
         </div>
+      </td>
+      <td className="px-8 py-5">
+        <ClientAppCell user={user} />
       </td>
       <td className="px-8 py-5">
         <div className="flex items-center gap-3">
@@ -501,6 +578,11 @@ function UserMobileCard({ user, onEdit, onDelete, onResetPassword, onTogglePush 
         </div>
       </div>
 
+      <div className="space-y-2 pt-2 border-t border-gray-50">
+        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Client app (PWA)</p>
+        <ClientAppCell user={user} />
+      </div>
+
       <div className="pt-4 border-t border-gray-50">
         <button 
           onClick={onResetPassword}
@@ -556,7 +638,7 @@ function UserFormModal({
   const [loading, setLoading] = useState(false)
   const { lightClick, success: successClick, error: errorClick } = useHaptics()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
     lightClick()
