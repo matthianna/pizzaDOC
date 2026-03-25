@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { addWeeks, subWeeks } from 'date-fns'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit, ChevronDown, ChevronUp, Bell, Target, TrendingUp, Users, Check } from 'lucide-react'
@@ -74,6 +74,7 @@ export default function AdminSchedulePage() {
   const [selectedShift, setSelectedShift] = useState<ScheduleShift | null>(null)
   const [removeReason, setRemoveReason] = useState('')
   const [removing, setRemoving] = useState(false)
+  const removeShiftInFlight = useRef(false)
 
   // Stati per modifica orari
   const [showTimeEditModal, setShowTimeEditModal] = useState(false)
@@ -358,6 +359,8 @@ export default function AdminSchedulePage() {
 
   const confirmRemoveShift = async () => {
     if (!selectedShift) return
+    if (removeShiftInFlight.current) return
+    removeShiftInFlight.current = true
 
     setRemoving(true)
     try {
@@ -378,7 +381,11 @@ export default function AdminSchedulePage() {
         setShowRemoveModal(false)
         await fetchSchedule()
 
-        alert(`Turno di ${result.username} rimosso definitivamente.`)
+        if (result.alreadyRemoved) {
+          alert('Il turno era già stato rimosso. Il piano è aggiornato.')
+        } else {
+          alert(`Turno di ${result.username} rimosso definitivamente.`)
+        }
       } else {
         const error = await response.json()
         alert(error.error || 'Errore nella rimozione')
@@ -387,6 +394,7 @@ export default function AdminSchedulePage() {
       console.error('Error removing shift:', error)
       alert('Errore nella rimozione del turno')
     } finally {
+      removeShiftInFlight.current = false
       setRemoving(false)
     }
   }
@@ -869,6 +877,7 @@ export default function AdminSchedulePage() {
                 Annulla
               </button>
               <button
+                type="button"
                 onClick={confirmRemoveShift}
                 disabled={removing}
                 className="px-8 py-3 bg-red-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 transition-all disabled:opacity-50 flex items-center gap-2"

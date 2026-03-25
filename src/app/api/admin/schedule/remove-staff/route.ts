@@ -32,11 +32,12 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Idempotente: doppie richieste (es. rete/client) non devono sembrare un errore
     if (!shift) {
-      return NextResponse.json(
-        { error: 'Turno non trovato' },
-        { status: 404 }
-      )
+      return NextResponse.json({
+        success: true,
+        alreadyRemoved: true
+      })
     }
 
     // Delete the shift
