@@ -329,8 +329,11 @@ export class MaxCoverageAlgorithm {
       }
     }
     
-    // 2. Ordina requisiti per priorità
-    const sortedRequirements = this.prioritizeRequirements(requirements)
+    // 2. Ordina requisiti e intercala forno/cucina (P,C,P,C) per stesso giorno/turno
+    // Così non si riempiono mai 2 slot PIZZAIOLO prima del primo CUCINA (evita 2+0 con Mario+Valentino).
+    const sortedRequirements = this.interleavePizzaioloCucina(
+      this.prioritizeRequirements(requirements)
+    )
     
     console.log(`\n🎯 Requisiti ordinati per priorità:`)
     sortedRequirements.slice(0, 5).forEach(req => {
@@ -378,7 +381,9 @@ export class MaxCoverageAlgorithm {
         console.log(`\n\n🔴 === FASE 1.5: FOCUS SU RUOLI CRITICI (ruoli secondari) ===`)
         console.log(`   Ruoli critici da coprire: ${criticalGaps.map(g => g.role).join(', ')}`)
         
-        const criticalRequirements = this.gapsToRequirements(criticalGaps, requirements)
+        const criticalRequirements = this.interleavePizzaioloCucina(
+          this.gapsToRequirements(criticalGaps, requirements)
+        )
         schedule = await this.intelligentAssignment(
           users, 
           criticalRequirements, 
@@ -396,7 +401,9 @@ export class MaxCoverageAlgorithm {
       console.log(`\n\n🥈 === FASE 2: COMPLETAMENTO CON RUOLI SECONDARI ===`)
       console.log(`   Gap rimanenti da colmare: ${gaps.length}`)
       
-      const gapRequirements = this.gapsToRequirements(gaps, requirements)
+      const gapRequirements = this.interleavePizzaioloCucina(
+        this.gapsToRequirements(gaps, requirements)
+      )
       schedule = await this.intelligentAssignment(
         users, 
         gapRequirements, 
@@ -413,7 +420,9 @@ export class MaxCoverageAlgorithm {
       console.log(`\n\n🔥 === FASE 3: RILASSAMENTO VINCOLI RIPOSO ===`)
       console.log(`   Gap critici rimanenti: ${gaps.length}`)
       
-      const gapRequirements = this.gapsToRequirements(gaps, requirements)
+      const gapRequirements = this.interleavePizzaioloCucina(
+        this.gapsToRequirements(gaps, requirements)
+      )
       schedule = await this.intelligentAssignment(
         users, 
         gapRequirements, 
@@ -973,10 +982,10 @@ export class MaxCoverageAlgorithm {
       ADMIN: { required: 0, assigned: 0, gap: 0 }
     }
 
-    // Calcola required per ogni ruolo in questo turno
+    // Somma required per ruolo (supporta requisiti espansi P,C,P,C con requiredStaff 1)
     requirements.forEach(req => {
       if (req.dayOfWeek === dayOfWeek && req.shiftType === shiftType) {
-        gaps[req.role].required = req.requiredStaff
+        gaps[req.role].required += req.requiredStaff
       }
     })
 
@@ -1477,6 +1486,72 @@ export class MaxCoverageAlgorithm {
       priority: 0,
       score: 0
     }))
+  }
+
+  /**
+   * Per ogni (giorno, turno) espande PIZZAIOLO e CUCINA in sequenza alternata P,C,P,C,…
+   * (ogni voce con requiredStaff: 1). Gli altri ruoli restano invariati nell’ordine.
+   */
+  private interleavePizzaioloCucina(requirements: ShiftRequirement[]): ShiftRequirement[] {
+    const result: ShiftRequirement[] = []
+    const used = new Set<number>()
+
+    for (let i = 0; i < requirements.length; i++) {
+      if (used.has(i)) continue
+      const a = requirements[i]
+
+      if (a.role !== 'PIZZAIOLO' && a.role !== 'CUCINA') {
+        result.push(a)
+        continue
+      }
+
+      const partnerRole: Role = a.role === 'PIZZAIOLO' ? 'CUCINA' : 'PIZZAIOLO'
+      const j = requirements.findIndex(
+        (r, idx) =>
+          idx !== i &&
+          !used.has(idx) &&
+          r.dayOfWeek === a.dayOfWeek &&
+          r.shiftType === a.shiftType &&
+          r.role === partnerRole
+      )
+
+      if (j === -1) {
+        result.push(a)
+        continue
+      }
+
+      const b = requirements[j]
+      const pReq = a.role === 'PIZZAIOLO' ? a : b
+      const cReq = a.role === 'CUCINA' ? a : b
+      used.add(i)
+      used.add(j)
+
+      const rp = Math.max(0, pReq.requiredStaff)
+      const rc = Math.max(0, cReq.requiredStaff)
+      let np = 0
+      let nc = 0
+      let seq = 0
+      while (np < rp || nc < rc) {
+        if (np < rp) {
+          result.push({
+            ...pReq,
+            requiredStaff: 1,
+            priority: pReq.priority + seq++ * 0.001
+          })
+          np++
+        }
+        if (nc < rc) {
+          result.push({
+            ...cReq,
+            requiredStaff: 1,
+            priority: cReq.priority + seq++ * 0.001
+          })
+          nc++
+        }
+      }
+    }
+
+    return result
   }
 
   /**
