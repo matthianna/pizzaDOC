@@ -6,9 +6,14 @@ import {
     Calendar, Clock, Download, ChevronLeft, ChevronRight,
     Pizza, Users, MapPin, Loader2, Sparkles, Filter, Sun, Moon, User
 } from 'lucide-react'
-import { format, addWeeks, subWeeks, addDays, startOfWeek } from 'date-fns'
-import { it } from 'date-fns/locale'
-import { getWeekStart } from '@/lib/date-utils'
+import { addWeeks, subWeeks } from 'date-fns'
+import {
+  getWeekStart,
+  addWeekCalendarDays,
+  formatDayMonthIt,
+  formatDayMonthYearIt,
+  formatMonthYearIt,
+} from '@/lib/date-utils'
 import { getRoleName, cn } from '@/lib/utils'
 import { useHaptics } from '@/hooks/use-haptics'
 import { Button } from '@/components/ui/button'
@@ -76,16 +81,14 @@ export default function WeeklyPlanPage() {
     }
 
     const isToday = (dayIndex: number) => {
-        const today = new Date()
-        const checkDate = addDays(currentWeek, dayIndex)
-        return format(checkDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
+        const checkStr = addWeekCalendarDays(currentWeek, dayIndex).toISOString().slice(0, 10)
+        return checkStr === new Date().toISOString().slice(0, 10)
     }
 
     const getHolidayForDay = (dayIndex: number) => {
         if (!data?.holidays) return null
-        const checkDate = addDays(currentWeek, dayIndex)
-        const dateStr = format(checkDate, 'yyyy-MM-dd')
-        return data.holidays.find(h => format(new Date(h.date), 'yyyy-MM-dd') === dateStr)
+        const dateStr = addWeekCalendarDays(currentWeek, dayIndex).toISOString().slice(0, 10)
+        return data.holidays.find(h => new Date(h.date).toISOString().slice(0, 10) === dateStr)
     }
 
     const getRoleColor = (role: string) => {
@@ -154,11 +157,11 @@ export default function WeeklyPlanPage() {
                         <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest group-hover:text-orange-500 transition-colors">Settimana selezionata</span>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="text-lg font-black text-gray-900">
-                                {format(currentWeek, 'd MMMM', { locale: it })}
+                                {formatDayMonthIt(currentWeek)}
                             </span>
                             <span className="text-gray-300">—</span>
                             <span className="text-lg font-black text-gray-900">
-                                {format(addDays(currentWeek, 6), 'd MMMM yyyy', { locale: it })}
+                                {formatDayMonthYearIt(addWeekCalendarDays(currentWeek, 6))}
                             </span>
                         </div>
                     </div>
@@ -178,7 +181,7 @@ export default function WeeklyPlanPage() {
                     <div className="space-y-4">
                         {days.map((dayName, index) => {
                             const holiday = getHolidayForDay(index)
-                            const date = addDays(currentWeek, index)
+                            const date = addWeekCalendarDays(currentWeek, index)
                             const dayIsToday = isToday(index)
                             const pranzoShifts = shiftsByDay[index]?.['PRANZO'] || []
                             const cenaShifts = shiftsByDay[index]?.['CENA'] || []
@@ -203,12 +206,12 @@ export default function WeeklyPlanPage() {
                                                 dayIsToday ? "bg-orange-500 text-white shadow-lg shadow-orange-200" : "bg-white text-gray-600 shadow-sm border border-gray-100"
                                             )}>
                                                 <span className="text-[10px] uppercase leading-none">{shortDays[index]}</span>
-                                                <span className="text-lg leading-none mt-0.5">{format(date, 'd')}</span>
+                                                <span className="text-lg leading-none mt-0.5">{date.getUTCDate()}</span>
                                             </div>
                                             <div>
                                                 <h3 className="text-lg font-black text-gray-900 tracking-tight">{dayName}</h3>
                                                 <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">
-                                                    {format(date, 'MMMM yyyy', { locale: it })}
+                                                    {formatMonthYearIt(date)}
                                                 </p>
                                             </div>
                                         </div>
@@ -281,7 +284,7 @@ export default function WeeklyPlanPage() {
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Turno</span>
                             </div>
                             {days.map((day, idx) => {
-                                const date = addDays(currentWeek, idx)
+                                const date = addWeekCalendarDays(currentWeek, idx)
                                 const dayIsToday = isToday(idx)
                                 return (
                                     <div key={idx} className={cn(
@@ -295,7 +298,7 @@ export default function WeeklyPlanPage() {
                                         <p className={cn(
                                             "text-lg font-black mt-0.5",
                                             dayIsToday ? "text-orange-600" : "text-gray-900"
-                                        )}>{format(date, 'd')}</p>
+                                        )}>{date.getUTCDate()}</p>
                                     </div>
                                 )
                             })}

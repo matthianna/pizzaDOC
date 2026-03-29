@@ -4,10 +4,16 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Users, AlertCircle, FileText } from 'lucide-react'
-import { format, addDays, addWeeks, subWeeks, isPast, isToday } from 'date-fns'
-import { it } from 'date-fns/locale'
+import { addWeeks, subWeeks, isPast, isToday } from 'date-fns'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
-import { getWeekStart } from '@/lib/date-utils'
+import {
+  getWeekStart,
+  getWeekDays,
+  addWeekCalendarDays,
+  formatDate,
+  formatMonthYearIt,
+  shortWeekdayItFromDate,
+} from '@/lib/date-utils'
 import { Role, ShiftType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -147,8 +153,8 @@ export default function SchedulePage() {
     }
   }
 
-  const weekEnd = addDays(currentWeek, 6)
-  const days = Array.from({ length: 7 }, (_, i) => addDays(currentWeek, i))
+  const weekEnd = addWeekCalendarDays(currentWeek, 6)
+  const days = getWeekDays(currentWeek)
 
   // Raggruppa i turni per giorno
   // dayOfWeek è già nel formato corretto: 0=Lunedì, 6=Domenica (come definito in date-utils.ts)
@@ -166,7 +172,7 @@ export default function SchedulePage() {
   const isShiftEnded = (shift: Shift) => {
     const now = new Date()
     const currentTime = now.getHours()
-    const shiftDate = addDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
+    const shiftDate = addWeekCalendarDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
 
     // Se il turno non è oggi, controlla se è passato
     if (!isToday(shiftDate)) {
@@ -215,10 +221,10 @@ export default function SchedulePage() {
 
             <div className="text-center" onClick={goToCurrentWeek}>
               <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-1">
-                {format(currentWeek, 'MMMM yyyy', { locale: it })}
+                {formatMonthYearIt(currentWeek)}
               </p>
               <p className="text-xl font-black text-gray-900">
-                {format(currentWeek, 'd', { locale: it })} - {format(weekEnd, 'd', { locale: it })}
+                {currentWeek.getUTCDate()} - {weekEnd.getUTCDate()}
               </p>
             </div>
 
@@ -242,10 +248,10 @@ export default function SchedulePage() {
 
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-900">
-                {format(currentWeek, 'dd/MM/yyyy', { locale: it })} - {format(weekEnd, 'dd/MM/yyyy', { locale: it })}
+                {formatDate(currentWeek)} - {formatDate(weekEnd)}
               </h2>
               <p className="text-sm font-medium text-orange-600 mt-1 uppercase tracking-wide">
-                {format(currentWeek, 'MMMM yyyy', { locale: it })}
+                {formatMonthYearIt(currentWeek)}
               </p>
             </div>
 
@@ -289,17 +295,18 @@ export default function SchedulePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
           {days.map((day, dayIndex) => {
             const dayShifts = shiftsByDay[dayIndex] || []
-            const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+            const isToday =
+              day.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10)
 
             return (
               <div key={dayIndex} className={`glass rounded-xl shadow-sm border overflow-hidden flex flex-col transition-all duration-300 ${isToday ? 'ring-2 ring-orange-400 border-orange-300 shadow-glow-orange transform scale-[1.02]' : 'border-white/40 hover:border-orange-200'}`}>
                 {/* Day Header */}
                 <div className={`px-3 py-3 text-center border-b ${isToday ? 'bg-gradient-to-b from-orange-500 to-orange-600 text-white border-orange-500' : 'bg-gradient-to-b from-gray-50 to-gray-100 border-gray-100'}`}>
                   <div className={`text-sm font-black tracking-wider ${isToday ? 'text-white' : 'text-gray-500'}`}>
-                    {format(day, 'EEE', { locale: it }).toUpperCase()}
+                    {shortWeekdayItFromDate(day).toUpperCase()}
                   </div>
                   <div className={`text-lg font-bold ${isToday ? 'text-white' : 'text-gray-900'}`}>
-                    {format(day, 'dd', { locale: it })}
+                    {String(day.getUTCDate()).padStart(2, '0')}
                   </div>
                   {isToday && (
                     <div className="text-[10px] text-orange-600 font-bold bg-white rounded-full px-2 py-0.5 inline-block mt-1 shadow-sm uppercase tracking-widest">Oggi</div>
@@ -315,7 +322,7 @@ export default function SchedulePage() {
                   ) : dayShifts.length > 0 ? (
                     <div className="space-y-2">
                       {dayShifts.map((shift) => {
-                        const shiftDate = addDays(currentWeek, shift.dayOfWeek)
+                        const shiftDate = addWeekCalendarDays(currentWeek, shift.dayOfWeek)
                         const [startHour, startMinute] = shift.startTime.split(':').map(Number)
                         const shiftStartDateTime = new Date(shiftDate)
                         shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
@@ -496,7 +503,7 @@ export default function SchedulePage() {
                     {getDayName(selectedShift.dayOfWeek)} - {getShiftTypeName(selectedShift.shiftType)}
                   </div>
                   <div className="text-xs text-gray-600 mt-1">
-                    {format(addDays(currentWeek, selectedShift.dayOfWeek), 'dd/MM/yyyy', { locale: it })}
+                    {formatDate(addWeekCalendarDays(currentWeek, selectedShift.dayOfWeek))}
                   </div>
                   <div className="text-xs text-gray-600">
                     {selectedShift.startTime} • {getRoleName(selectedShift.role)}

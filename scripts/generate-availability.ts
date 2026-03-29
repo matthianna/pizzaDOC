@@ -14,8 +14,10 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import { startOfWeek, format, addDays } from 'date-fns'
+import { startOfWeek, format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { addWeekCalendarDays, formatDate } from '../src/lib/date-utils'
+import { normalizeDate } from '../src/lib/normalize-date'
 
 const prisma = new PrismaClient()
 
@@ -42,10 +44,11 @@ function getNextWeekStart(fromDate = new Date()): Date {
 
 function getWeekDays(weekStart: Date): Array<{ dayOfWeek: number; date: Date; name: string }> {
   const days = []
-  
+  const ws = normalizeDate(weekStart)
+
   for (let i = 0; i < 7; i++) {
-    const date = addDays(weekStart, i)
-    const jsDay = date.getDay() // JS: 0=Sunday, 1=Monday, etc.
+    const date = addWeekCalendarDays(ws, i)
+    const jsDay = date.getUTCDay()
     const dayOfWeek = jsDay === 0 ? 6 : jsDay - 1 // Our system: 0=Monday, 6=Sunday
     const name = format(date, 'EEEE', { locale: it })
     
@@ -182,12 +185,13 @@ function validateWeekStart(date: Date): boolean {
 }
 
 async function showWeekSummary(weekStart: Date) {
-  const weekEnd = addDays(weekStart, 6)
+  const ws = normalizeDate(weekStart)
+  const weekEnd = addWeekCalendarDays(ws, 6)
   const weekDays = getWeekDays(weekStart)
   
   console.log('📅 RIEPILOGO SETTIMANA TARGET')
   console.log('============================')
-  console.log(`🗓️  Periodo: ${format(weekStart, 'dd/MM/yyyy')} - ${format(weekEnd, 'dd/MM/yyyy')}`)
+  console.log(`🗓️  Periodo: ${formatDate(ws)} - ${formatDate(weekEnd)}`)
   console.log(`📍 Settimana: ${format(weekStart, 'wo', { locale: it })} del ${format(weekStart, 'yyyy')}`)
   console.log('')
   console.log('📋 Giorni della settimana:')
@@ -232,7 +236,7 @@ async function main() {
     console.log('🎉 GENERAZIONE COMPLETATA!')
     console.log('==========================')
     console.log(`✅ Disponibilità create: ${totalCreated}`)
-    console.log(`📊 Settimana: ${format(weekStart, 'dd/MM/yyyy')} - ${format(addDays(weekStart, 6), 'dd/MM/yyyy')}`)
+    console.log(`📊 Settimana: ${formatDate(normalizeDate(weekStart))} - ${formatDate(addWeekCalendarDays(normalizeDate(weekStart), 6))}`)
     console.log(`👥 Ogni utente attivo è disponibile per tutti i turni della settimana`)
     console.log('')
     console.log('💡 TIP: Ora puoi generare il piano turni da Admin > Gestione Piano!')

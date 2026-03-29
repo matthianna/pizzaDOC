@@ -1,4 +1,5 @@
 import type { ClosureType } from '@prisma/client'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 
 /** ISO date key YYYY-MM-DD from a Date stored as UTC calendar midnight. */
 export function utcCalendarKey(d: Date): string {
@@ -7,17 +8,7 @@ export function utcCalendarKey(d: Date): string {
 
 /** Calendar date (UTC midnight) for availability slot: week Monday + dayOfWeek (0=Mon … 6=Sun). */
 export function dateForAvailabilityDay(weekStart: Date, dayOfWeek: number): Date {
-  return new Date(
-    Date.UTC(
-      weekStart.getUTCFullYear(),
-      weekStart.getUTCMonth(),
-      weekStart.getUTCDate() + dayOfWeek,
-      0,
-      0,
-      0,
-      0
-    )
-  )
+  return addWeekCalendarDays(weekStart, dayOfWeek)
 }
 
 export function isShiftBlockedByHoliday(

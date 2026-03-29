@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { addWeeks, subWeeks } from 'date-fns'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit, ChevronDown, ChevronUp, Bell, Target, TrendingUp, Users, Check } from 'lucide-react'
-import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek, getWeekStart } from '@/lib/date-utils'
+import { Calendar, ChevronLeft, ChevronRight, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, X, BarChart3, Edit, ChevronDown, ChevronUp, Bell, Target, TrendingUp, Users, Check, Sparkles } from 'lucide-react'
+import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek, getWeekStart, addWeekCalendarDays } from '@/lib/date-utils'
 import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
 import { AddShiftModal } from '@/components/admin/add-shift-modal'
@@ -50,6 +50,22 @@ interface Holiday {
   date: string
   closureType: 'FULL_DAY' | 'PRANZO_ONLY' | 'CENA_ONLY'
   description: string | null
+}
+
+function holidaysOnCalendarDay(day: Date, holidays: Holiday[]): Holiday[] {
+  const key = day.toISOString().split('T')[0]
+  return holidays.filter((h) => new Date(h.date).toISOString().split('T')[0] === key)
+}
+
+function holidayLabelsForDay(onDay: Holiday[]): { full: boolean; badges: string[] } {
+  if (onDay.length === 0) return { full: false, badges: [] }
+  if (onDay.some((h) => h.closureType === 'FULL_DAY')) {
+    return { full: true, badges: ['Giorno intero'] }
+  }
+  const badges: string[] = []
+  if (onDay.some((h) => h.closureType === 'PRANZO_ONLY')) badges.push('Solo pranzo chiuso')
+  if (onDay.some((h) => h.closureType === 'CENA_ONLY')) badges.push('Solo cena chiusa')
+  return { full: false, badges }
 }
 
 export default function AdminSchedulePage() {
@@ -123,11 +139,11 @@ export default function AdminSchedulePage() {
 
   const fetchHolidays = async () => {
     try {
-      const weekStart = new Date(currentWeek)
-      const weekEnd = new Date(currentWeek)
-      weekEnd.setDate(weekEnd.getDate() + 6)
+      const weekDays = getWeekDays(currentWeek)
+      const startDate = weekDays[0].toISOString().split('T')[0]
+      const endDate = weekDays[6].toISOString().split('T')[0]
 
-      const response = await fetch(`/api/holidays?startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`)
+      const response = await fetch(`/api/holidays?startDate=${startDate}&endDate=${endDate}`)
       if (response.ok) {
         const data = await response.json()
         setHolidays(data)
@@ -712,17 +728,53 @@ export default function AdminSchedulePage() {
                         const dayOfWeek = getDayOfWeek(day)
                         const pranzoCrew = shiftGroups[`${dayOfWeek}-PRANZO`] || []
                         const cenaCrew = shiftGroups[`${dayOfWeek}-CENA`] || []
+                        const dayHolidays = holidaysOnCalendarDay(day, holidays)
+                        const { full: isFullClosureDay, badges: holidayBadges } = holidayLabelsForDay(dayHolidays)
+                        const holidayDescriptions = [
+                          ...new Set(
+                            dayHolidays.map((h) => h.description?.trim()).filter(Boolean) as string[]
+                          ),
+                        ]
 
                         return (
-                          <tr key={index} className="group hover:bg-gray-50/50 transition-colors">
+                          <tr
+                            key={index}
+                            className={cn(
+                              'group transition-colors',
+                              isFullClosureDay ? 'bg-orange-50/35 hover:bg-orange-50/50' : 'hover:bg-gray-50/50'
+                            )}
+                          >
                             <td className="px-8 py-8 border-r border-gray-50">
-                              <div className="flex flex-col gap-1">
+                              <div className="flex flex-col gap-1.5">
                                 <span className="text-lg font-black text-gray-900 leading-none">
                                   {getDayName(dayOfWeek)}
                                 </span>
-                                <span className="text-[11px] font-black text-orange-600/50 uppercase tracking-widest mt-1">
+                                <span className="text-[11px] font-black text-orange-600/50 uppercase tracking-widest">
                                   {formatDate(day)}
                                 </span>
+                                {holidayBadges.length > 0 && (
+                                  <div className="flex flex-col gap-1 mt-1">
+                                    {holidayBadges.map((label) => (
+                                      <span
+                                        key={label}
+                                        className={cn(
+                                          'inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-tight border',
+                                          isFullClosureDay
+                                            ? 'bg-orange-100 text-orange-800 border-orange-200'
+                                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                                        )}
+                                      >
+                                        <Sparkles className="h-3 w-3 shrink-0 opacity-80" />
+                                        {label}
+                                      </span>
+                                    ))}
+                                    {holidayDescriptions.length > 0 && (
+                                      <span className="text-[10px] font-bold text-gray-500 leading-snug max-w-[220px]">
+                                        {holidayDescriptions.join(' · ')}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </td>
                             <td className="px-8 py-8 align-top bg-white/40 group-hover:bg-transparent transition-colors">
@@ -1080,7 +1132,7 @@ export default function AdminSchedulePage() {
         isDangerous={true}
         metadata={
           <div className="text-sm space-y-1">
-            <p><strong>Settimana:</strong> {formatDate(currentWeek)} - {formatDate(new Date(currentWeek.getTime() + 6 * 24 * 60 * 60 * 1000))}</p>
+            <p><strong>Settimana:</strong> {formatDate(currentWeek)} - {formatDate(addWeekCalendarDays(currentWeek, 6))}</p>
             <p><strong>Modalità:</strong> Algoritmo massima copertura</p>
             {missingAvailability.length > 0 && (
               <p className="text-amber-600"><strong>⚠️ Attenzione:</strong> {missingAvailability.length} utenti senza disponibilità</p>
@@ -1104,7 +1156,7 @@ export default function AdminSchedulePage() {
         isDangerous={true}
         metadata={
           <div className="text-sm space-y-1">
-            <p><strong>Settimana:</strong> {formatDate(currentWeek)} - {formatDate(new Date(currentWeek.getTime() + 6 * 24 * 60 * 60 * 1000))}</p>
+            <p><strong>Settimana:</strong> {formatDate(currentWeek)} - {formatDate(addWeekCalendarDays(currentWeek, 6))}</p>
             {schedule && <p><strong>Turni da eliminare:</strong> {schedule.shifts.length}</p>}
           </div>
         }

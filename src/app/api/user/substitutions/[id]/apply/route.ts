@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { addDays, format } from 'date-fns'
+import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
 
@@ -66,7 +67,7 @@ export async function POST(
     // Check if shift has already started
     const weekStart = normalizeDate(substitution.shifts.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-    const shiftDate = addDays(weekStart, substitution.shifts.dayOfWeek)
+    const shiftDate = addWeekCalendarDays(weekStart, substitution.shifts.dayOfWeek)
 
     // Parse shift start time (format: "HH:MM")
     const [startHour, startMinute] = substitution.shifts.startTime.split(':').map(Number)

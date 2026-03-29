@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { addDays, startOfWeek, isBefore } from 'date-fns'
+import { startOfWeek, isBefore } from 'date-fns'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 
 /**
  * GET /api/dashboard/missing-hours
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       const weekStart = shift.schedules.weekStart instanceof Date 
         ? shift.schedules.weekStart 
         : new Date(shift.schedules.weekStart)
-      const shiftDate = addDays(weekStart, shift.dayOfWeek)
+      const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
       shiftDate.setHours(23, 59, 59, 999)
 
       // Il turno è passato?
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
       const weekStart = shift.schedules.weekStart instanceof Date 
         ? shift.schedules.weekStart 
         : new Date(shift.schedules.weekStart)
-      const shiftDate = addDays(weekStart, shift.dayOfWeek)
+      const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
 
       return {
         id: shift.id,

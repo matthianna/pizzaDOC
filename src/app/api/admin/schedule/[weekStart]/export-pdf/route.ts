@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format, addDays } from 'date-fns'
+import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 import puppeteerCore from 'puppeteer-core'
 import chromium from '@sparticuz/chromium'
 
@@ -53,7 +54,7 @@ export async function GET(
     }
 
     // Carica i giorni festivi per la settimana
-    const weekEnd = addDays(rawWeekStart, 6)
+    const weekEnd = addWeekCalendarDays(rawWeekStart, 6)
     const holidays = await prisma.holidays.findMany({
       where: {
         date: {
@@ -146,7 +147,7 @@ function generateScheduleHTML(schedule: {
   description: string | null;
 }>): string {
 
-  const weekEnd = addDays(weekStart, 6)
+  const weekEnd = addWeekCalendarDays(weekStart, 6)
   const daysFull = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
 
   // Group shifts by day, type, and role
@@ -426,7 +427,7 @@ function generateScheduleHTML(schedule: {
         </div>
 
         ${daysFull.map((dayName, dayIndex) => {
-          const dayDate = addDays(weekStart, dayIndex)
+          const dayDate = addWeekCalendarDays(weekStart, dayIndex)
           const dayDateStr = dayDate.toISOString().split('T')[0]
           
           const isPranzoHoliday = holidays.some(h => {

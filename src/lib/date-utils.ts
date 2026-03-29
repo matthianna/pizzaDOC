@@ -1,9 +1,50 @@
-import { startOfWeek, addDays, format, isAfter, isBefore } from 'date-fns'
+import { startOfWeek, isAfter, isBefore } from 'date-fns'
 import { TZDate } from '@date-fns/tz'
-import { it } from 'date-fns/locale'
+import { getDayName } from '@/lib/utils'
 
 /** Fuso operativo del locale (piano turni / disponibilità): stessa chiave settimana ovunque. */
 const APP_TIMEZONE = 'Europe/Rome'
+
+const MONTHS_IT = [
+  'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+  'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre',
+]
+
+const SHORT_DAYS_IT = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
+
+export function shortWeekdayItFromDate(date: Date): string {
+  return SHORT_DAYS_IT[getDayOfWeek(date)]
+}
+
+export function formatMonthYearIt(date: Date): string {
+  return `${MONTHS_IT[date.getUTCMonth()]} ${date.getUTCFullYear()}`
+}
+
+export function formatDayMonthIt(date: Date): string {
+  return `${date.getUTCDate()} ${MONTHS_IT[date.getUTCMonth()]}`
+}
+
+export function formatDayMonthYearIt(date: Date): string {
+  return `${date.getUTCDate()} ${MONTHS_IT[date.getUTCMonth()]} ${date.getUTCFullYear()}`
+}
+
+/**
+ * Aggiunge giorni al calendario UTC usato per `weekStart` (stessi numeri Y-M-D di getWeekStart / normalizeDate).
+ * Non usare date-fns `addDays` su queste date: nel browser usa il fuso locale e sfasa giorno vs getUTCDay().
+ */
+export function addWeekCalendarDays(weekStart: Date, days: number): Date {
+  return new Date(
+    Date.UTC(
+      weekStart.getUTCFullYear(),
+      weekStart.getUTCMonth(),
+      weekStart.getUTCDate() + days,
+      0,
+      0,
+      0,
+      0
+    )
+  )
+}
 
 /**
  * Lunedì della settimana in Europe/Rome, espresso come Date UTC a mezzanotte del giorno
@@ -21,7 +62,7 @@ export function getWeekStart(date: Date = new Date()): Date {
 export function getNextWeekStart(): Date {
   const today = new Date()
   const currentWeekStart = getWeekStart(today)
-  return addDays(currentWeekStart, 7)
+  return addWeekCalendarDays(currentWeekStart, 7)
 }
 
 export function canEditAvailability(weekStart: Date): boolean {
@@ -33,15 +74,23 @@ export function canEditAvailability(weekStart: Date): boolean {
 }
 
 export function getWeekDays(weekStart: Date): Date[] {
-  return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  return Array.from({ length: 7 }, (_, i) => addWeekCalendarDays(weekStart, i))
 }
 
+/** Data di calendario in UTC (allineata a weekStart DB), indipendente dal fuso del browser. */
 export function formatDate(date: Date): string {
-  return format(date, 'dd/MM/yyyy', { locale: it })
+  const dd = String(date.getUTCDate()).padStart(2, '0')
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const yyyy = date.getUTCFullYear()
+  return `${dd}/${mm}/${yyyy}`
 }
 
 export function formatDateLong(date: Date): string {
-  return format(date, 'EEEE dd MMMM yyyy', { locale: it })
+  const dw = getDayName(getDayOfWeek(date))
+  const d = date.getUTCDate()
+  const m = MONTHS_IT[date.getUTCMonth()]
+  const y = date.getUTCFullYear()
+  return `${dw} ${d} ${m} ${y}`
 }
 
 export function getDayOfWeek(date: Date): number {

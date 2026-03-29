@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Users, Clock, Calendar, CheckCircle, XCircle, AlertCircle, Send, User, Ban, Sparkles, ArrowRight, Trash2 } from 'lucide-react'
-import { format, parseISO, addDays, isPast } from 'date-fns'
+import { format, parseISO, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 import { Role, ShiftType, SubstitutionStatus } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
@@ -170,7 +171,7 @@ export default function SubstitutionRequestsPage() {
 
   const getShiftDate = (shift: Shift) => {
     const weekStart = new Date(shift.schedules.weekStart)
-    return addDays(weekStart, shift.dayOfWeek)
+    return addWeekCalendarDays(weekStart, shift.dayOfWeek)
   }
 
   const getStatusIcon = (status: SubstitutionStatus) => {

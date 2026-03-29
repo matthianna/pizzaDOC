@@ -3,10 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, ChevronLeft, ChevronRight, Users, Check, X, Sparkles } from 'lucide-react'
-import { format, addWeeks, subWeeks, addDays } from 'date-fns'
-import { it } from 'date-fns/locale'
+import { addWeeks, subWeeks } from 'date-fns'
 import { cn, getDayName, getRoleName } from '@/lib/utils'
-import { getWeekStart } from '@/lib/date-utils'
+import { getWeekStart, addWeekCalendarDays, formatDate } from '@/lib/date-utils'
 
 interface UserAvailability {
   userId: string
@@ -175,7 +174,7 @@ export default function AvailabilityOverviewPage() {
                   <ChevronLeft className="h-5 w-5" />
                 </button>
                 <div className="px-4 py-2 bg-white rounded-xl shadow-sm text-sm font-black text-gray-900 min-w-[180px] text-center">
-                  {format(currentWeek, 'd MMM', { locale: it })} — {format(addDays(currentWeek, 6), 'd MMM yyyy', { locale: it })}
+                  {formatDate(currentWeek)} — {formatDate(addWeekCalendarDays(currentWeek, 6))}
                 </div>
                 <button
                   onClick={goToNextWeek}
@@ -289,15 +288,18 @@ export default function AvailabilityOverviewPage() {
                 <tbody className="divide-y divide-gray-50">
                   {filteredUsers.map((user) => {
                     const isAbsentOnDay = (dayIdx: number): boolean => {
-                      const dayDate = addDays(currentWeek, dayIdx)
-                      const dayDateNormalized = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate())
-                      
-                      return user.absences.some(abs => {
-                        const absStartDate = new Date(abs.startDate)
-                        const absEndDate = new Date(abs.endDate)
-                        const absStart = new Date(absStartDate.getFullYear(), absStartDate.getMonth(), absStartDate.getDate())
-                        const absEnd = new Date(absEndDate.getFullYear(), absEndDate.getMonth(), absEndDate.getDate())
-                        return dayDateNormalized >= absStart && dayDateNormalized <= absEnd
+                      const dayDate = addWeekCalendarDays(currentWeek, dayIdx)
+                      const dNorm = Date.UTC(
+                        dayDate.getUTCFullYear(),
+                        dayDate.getUTCMonth(),
+                        dayDate.getUTCDate()
+                      )
+                      return user.absences.some((abs) => {
+                        const s = new Date(abs.startDate)
+                        const e = new Date(abs.endDate)
+                        const sNorm = Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate())
+                        const eNorm = Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), e.getUTCDate())
+                        return dNorm >= sNorm && dNorm <= eNorm
                       })
                     }
 

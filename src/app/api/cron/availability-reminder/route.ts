@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { addDays, startOfWeek } from 'date-fns'
 import { prisma } from '@/lib/prisma'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
 import { isPriorityUser } from '@/lib/utils'
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
     const today = new Date()
     const nextMonday = startOfWeek(addDays(today, 7), { weekStartsOn: 1 })
     const weekStart = normalizeDate(nextMonday)
-    const weekEnd = normalizeDate(addDays(weekStart, 6))
+    const weekEnd = normalizeDate(addWeekCalendarDays(weekStart, 6))
 
     console.log(`📅 Checking availability for week: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`)
 

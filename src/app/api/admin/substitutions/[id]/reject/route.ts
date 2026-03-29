@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format, addDays } from 'date-fns'
+import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
 
@@ -81,7 +82,7 @@ export async function POST(
 
     // 🔔 Send notifications
     try {
-      const shiftDate = addDays(new Date(updatedSubstitution.shifts.schedules.weekStart), updatedSubstitution.shifts.dayOfWeek)
+      const shiftDate = addWeekCalendarDays(new Date(updatedSubstitution.shifts.schedules.weekStart), updatedSubstitution.shifts.dayOfWeek)
       const formattedDate = format(shiftDate, 'dd/MM', { locale: it })
 
       // 1. Notify Requester (Rejected)

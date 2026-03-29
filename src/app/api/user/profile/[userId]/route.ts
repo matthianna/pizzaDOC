@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { addDays, parseISO } from 'date-fns'
+import { parseISO } from 'date-fns'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 
 export async function GET(
   request: NextRequest,
@@ -107,7 +108,7 @@ export async function GET(
       const weekStart = shift.schedules.weekStart instanceof Date 
         ? shift.schedules.weekStart 
         : new Date(shift.schedules.weekStart)
-      const shiftDate = addDays(weekStart, shift.dayOfWeek)
+      const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
       return {
         id: shift.id,
         dayOfWeek: shift.dayOfWeek,

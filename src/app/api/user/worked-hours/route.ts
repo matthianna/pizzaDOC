@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
-import { addDays } from 'date-fns'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 
 // GET - Fetch worked hours for a user
 export async function GET(request: NextRequest) {
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     // ⏰ Verifica che il turno sia effettivamente iniziato
     const weekStart = new Date(shift.schedules.weekStart)
     weekStart.setHours(0, 0, 0, 0)
-    const shiftDate = addDays(weekStart, shift.dayOfWeek)
+    const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
     
     const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number)
     const shiftStartDateTime = new Date(shiftDate)

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { addDays, format } from 'date-fns'
+import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
 
@@ -71,7 +72,7 @@ export async function GET() {
     const futureAvailable = availableSubstitutions.filter(sub => {
       const weekStart = normalizeDate(sub.shifts.schedules.weekStart)
       // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-      const shiftDate = addDays(weekStart, sub.shifts.dayOfWeek)
+      const shiftDate = addWeekCalendarDays(weekStart, sub.shifts.dayOfWeek)
 
       // Calcola l'orario esatto di inizio del turno
       const [startHour, startMinute] = sub.shifts.startTime.split(':').map(Number)
@@ -180,7 +181,7 @@ export async function POST(request: NextRequest) {
     // Check if shift has already started
     const weekStart = normalizeDate(shift.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-    const shiftDate = addDays(weekStart, shift.dayOfWeek)
+    const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
 
     // Parse shift start time (format: "HH:MM")
     const [startHour, startMinute] = shift.startTime.split(':').map(Number)

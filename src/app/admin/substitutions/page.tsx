@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Users, Check, X, Clock, AlertCircle, CheckCircle, XCircle, User, RefreshCw } from 'lucide-react'
-import { format, parseISO, addDays } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 import { Role, ShiftType, SubstitutionStatus } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -138,7 +139,7 @@ export default function AdminSubstitutionsPage() {
   const getShiftDate = (shift: Shift) => {
     const weekStart = new Date(shift.schedules.weekStart)
     // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-    return addDays(weekStart, shift.dayOfWeek)
+    return addWeekCalendarDays(weekStart, shift.dayOfWeek)
   }
 
   const getStatusIcon = (status: SubstitutionStatus) => {

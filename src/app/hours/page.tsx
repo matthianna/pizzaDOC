@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Clock, Send, AlertCircle, CheckCircle, XCircle, Calendar, History, Plus, BarChart3, TrendingUp, ChevronLeft, ChevronRight, User, Timer, ChevronDown } from 'lucide-react'
-import { format, addDays, addWeeks, subWeeks, parseISO } from 'date-fns'
+import { format, addWeeks, subWeeks, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
-import { getWeekStart } from '@/lib/date-utils'
+import { getWeekStart, addWeekCalendarDays, formatMonthYearIt } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -214,7 +214,7 @@ export default function HoursPage() {
     setCurrentWeek(getWeekStart(new Date()))
   }
 
-  const weekEnd = addDays(currentWeek, 6)
+  const weekEnd = addWeekCalendarDays(currentWeek, 6)
 
   const getStatusIcon = (status: HoursStatus) => {
     switch (status) {
@@ -332,12 +332,12 @@ export default function HoursPage() {
               
               <div className="text-center cursor-pointer group" onClick={goToCurrentWeek}>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] group-hover:text-orange-500 transition-colors">
-                  {format(currentWeek, 'MMMM yyyy', { locale: it })}
+                  {formatMonthYearIt(currentWeek)}
                 </p>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-lg font-black text-gray-900">{format(currentWeek, 'd')}</span>
+                  <span className="text-lg font-black text-gray-900">{currentWeek.getUTCDate()}</span>
                   <div className="h-1 w-4 bg-gray-200 rounded-full" />
-                  <span className="text-lg font-black text-gray-900">{format(weekEnd, 'd')}</span>
+                  <span className="text-lg font-black text-gray-900">{weekEnd.getUTCDate()}</span>
                 </div>
               </div>
 
@@ -494,7 +494,7 @@ function ShiftCard({
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
 
-  const shiftDate = addDays(currentWeek, shift.dayOfWeek)
+  const shiftDate = addWeekCalendarDays(currentWeek, shift.dayOfWeek)
   const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number)
   const shiftStartDateTime = new Date(shiftDate)
   shiftStartDateTime.setHours(shiftStartHour, shiftStartMinute, 0, 0)
@@ -538,7 +538,7 @@ function ShiftCard({
         <div className="flex items-center gap-5">
           <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex flex-col items-center justify-center font-black border border-gray-100">
             <span className="text-[10px] text-gray-400 uppercase leading-none">{getDayName(shift.dayOfWeek).substring(0, 3)}</span>
-            <span className="text-xl text-gray-900 leading-none mt-1">{format(shiftDate, 'd')}</span>
+            <span className="text-xl text-gray-900 leading-none mt-1">{shiftDate.getUTCDate()}</span>
           </div>
           <div>
             <div className="flex items-center gap-3">

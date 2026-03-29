@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
-import { addDays } from 'date-fns'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 
 export async function GET(request: NextRequest) {
     try {
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         }
 
         const weekStart = normalizeDate(weekStartParam)
-        const weekEnd = addDays(weekStart, 6)
+        const weekEnd = addWeekCalendarDays(weekStart, 6)
 
         // Trova il piano per questa settimana con TUTTI i turni
         const schedule = await prisma.schedules.findUnique({

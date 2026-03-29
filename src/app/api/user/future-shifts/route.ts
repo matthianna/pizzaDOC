@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { addDays } from 'date-fns'
 import { normalizeDate } from '@/lib/normalize-date'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 
 export async function GET() {
   try {
@@ -52,7 +52,7 @@ export async function GET() {
     const futureShifts = shifts.filter(shift => {
       const weekStart = normalizeDate(shift.schedules.weekStart)
       // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-      const shiftDate = addDays(weekStart, shift.dayOfWeek)
+      const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
       return shiftDate > now
     })
 
