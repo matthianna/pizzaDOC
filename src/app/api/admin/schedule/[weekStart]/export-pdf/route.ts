@@ -22,10 +22,15 @@ export async function GET(
 
     const resolvedParams = await params
     const rawWeekStart = normalizeDate(resolvedParams.weekStart)
+    const dayMs = 24 * 60 * 60 * 1000
+    const weekStartCandidates = [
+      normalizeDate(new Date(rawWeekStart.getTime() - dayMs)),
+      rawWeekStart,
+      normalizeDate(new Date(rawWeekStart.getTime() + dayMs)),
+    ]
 
-    // Query con la data dal database
-    const schedule = await prisma.schedules.findUnique({
-      where: { weekStart: rawWeekStart },
+    const scheduleRows = await prisma.schedules.findMany({
+      where: { weekStart: { in: weekStartCandidates } },
       include: {
         shifts: {
           include: {
@@ -46,6 +51,16 @@ export async function GET(
       }
     })
 
+    const schedule =
+      scheduleRows.length === 0
+        ? null
+        : scheduleRows.reduce((best, cur) =>
+            Math.abs(cur.weekStart.getTime() - rawWeekStart.getTime()) <=
+            Math.abs(best.weekStart.getTime() - rawWeekStart.getTime())
+              ? cur
+              : best
+          )
+
     if (!schedule) {
       return NextResponse.json(
         { error: 'Schedule not found' },
@@ -53,19 +68,17 @@ export async function GET(
       )
     }
 
-    // Carica i giorni festivi per la settimana
-    const weekEnd = addWeekCalendarDays(rawWeekStart, 6)
+    // Allinea festivi al weekStart effettivo nel DB (può differire di ±1 giorno dalla URL)
+    const weekStart = normalizeDate(schedule.weekStart)
+    const weekEnd = addWeekCalendarDays(weekStart, 6)
     const holidays = await prisma.holidays.findMany({
       where: {
         date: {
-          gte: rawWeekStart,
+          gte: weekStart,
           lte: weekEnd
         }
       }
     })
-
-    // weekStart dal DB è già normalizzato a lunedì UTC
-    const weekStart = normalizeDate(schedule.weekStart)
 
     // Genera l'HTML per il PDF
     const html = generateScheduleHTML(schedule, weekStart, holidays)

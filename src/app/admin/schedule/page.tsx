@@ -327,7 +327,11 @@ export default function AdminSchedulePage() {
 
   const exportToPDF = async () => {
     try {
-      const response = await fetch(`/api/admin/schedule/${currentWeek.toISOString()}/export-pdf`)
+      const weekSeg = encodeURIComponent(currentWeek.toISOString())
+      const response = await fetch(`/api/admin/schedule/${weekSeg}/export-pdf`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      })
       if (response.ok) {
         // Ottieni il PDF come blob
         const blob = await response.blob()
