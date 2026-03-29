@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, ChevronLeft, ChevronRight, Users, Check, X } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Users, Check, X, Sparkles } from 'lucide-react'
 import { format, addWeeks, subWeeks, addDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { cn, getDayName, getRoleName } from '@/lib/utils'
@@ -25,11 +25,52 @@ interface UserAvailability {
   }[]
 }
 
+interface OverviewHoliday {
+  date: string
+  closureType: 'FULL_DAY' | 'PRANZO_ONLY' | 'CENA_ONLY'
+  description: string | null
+}
+
+function utcDayKeyFromWeekIndex(weekStart: Date, dayIdx: number): string {
+  const d = new Date(
+    Date.UTC(
+      weekStart.getUTCFullYear(),
+      weekStart.getUTCMonth(),
+      weekStart.getUTCDate() + dayIdx,
+      0,
+      0,
+      0,
+      0
+    )
+  )
+  return d.toISOString().slice(0, 10)
+}
+
+function holidayBlocksOverviewSlot(
+  holidays: OverviewHoliday[],
+  weekStart: Date,
+  dayIdx: number,
+  shiftType: 'PRANZO' | 'CENA'
+): OverviewHoliday | null {
+  const dayKey = utcDayKeyFromWeekIndex(weekStart, dayIdx)
+  return (
+    holidays.find((h) => {
+      const hk = new Date(h.date).toISOString().slice(0, 10)
+      if (hk !== dayKey) return false
+      if (h.closureType === 'FULL_DAY') return true
+      if (h.closureType === 'PRANZO_ONLY' && shiftType === 'PRANZO') return true
+      if (h.closureType === 'CENA_ONLY' && shiftType === 'CENA') return true
+      return false
+    }) ?? null
+  )
+}
+
 export default function AvailabilityOverviewPage() {
   const [currentWeek, setCurrentWeek] = useState(() => {
     return getWeekStart(new Date())
   })
   const [usersAvailability, setUsersAvailability] = useState<UserAvailability[]>([])
+  const [weekHolidays, setWeekHolidays] = useState<OverviewHoliday[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedRole, setSelectedRole] = useState<string>('ALL')
 
@@ -55,6 +96,7 @@ export default function AvailabilityOverviewPage() {
       if (response.ok) {
         const data = await response.json()
         setUsersAvailability(data.users)
+        setWeekHolidays(data.holidays ?? [])
       }
     } catch (error) {
       console.error('Error fetching availability:', error)
@@ -86,7 +128,19 @@ export default function AvailabilityOverviewPage() {
 
   // Calcola statistiche
   const totalAvailabilities = filteredUsers.reduce((sum, user) => {
-    return sum + user.availabilities.filter(a => a.isAvailable).length
+    return (
+      sum +
+      user.availabilities.filter((a) => {
+        if (!a.isAvailable) return false
+        const h = holidayBlocksOverviewSlot(
+          weekHolidays,
+          currentWeek,
+          a.dayOfWeek,
+          a.shiftType
+        )
+        return !h
+      }).length
+    )
   }, 0)
 
   const totalSlots = filteredUsers.length * 7 * 2 // users * days * shifts
@@ -194,14 +248,29 @@ export default function AvailabilityOverviewPage() {
                     <th className="sticky left-0 z-20 bg-gray-50/80 backdrop-blur-md px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest border-r border-gray-100/50 min-w-[180px]">
                       Membro Squadra
                     </th>
-                    {days.map((day, idx) => (
+                    {days.map((day, idx) => {
+                      const dayKey = utcDayKeyFromWeekIndex(currentWeek, idx)
+                      const onDay = weekHolidays.filter(
+                        (h) => new Date(h.date).toISOString().slice(0, 10) === dayKey
+                      )
+                      const fullDay = onDay.some((h) => h.closureType === 'FULL_DAY')
+                      const partial = onDay.length > 0 && !fullDay
+                      return (
                       <th key={idx} colSpan={2} className={cn(
                         "px-2 py-5 text-center text-[10px] font-black uppercase tracking-widest border-l border-gray-100/50",
-                        idx % 2 === 0 ? "bg-gray-50/30" : "bg-white"
+                        idx % 2 === 0 ? "bg-gray-50/30" : "bg-white",
+                        fullDay && "bg-orange-50/40"
                       )}>
-                        {day}
+                        <span className="block">{day}</span>
+                        {fullDay && (
+                          <span className="mt-1 inline-block text-[8px] font-black text-orange-600 normal-case tracking-tight">Chiuso</span>
+                        )}
+                        {partial && (
+                          <span className="mt-1 inline-block text-[8px] font-black text-amber-600 normal-case tracking-tight">Parziale</span>
+                        )}
                       </th>
-                    ))}
+                      )
+                    })}
                   </tr>
                   <tr className="bg-gray-50/30 border-b border-gray-100">
                     <th className="sticky left-0 z-20 bg-gray-50/80 backdrop-blur-md border-r border-gray-100/50"></th>
@@ -249,6 +318,8 @@ export default function AvailabilityOverviewPage() {
                           const pranzoAvail = user.availabilities.find(a => a.dayOfWeek === dayIdx && a.shiftType === 'PRANZO')
                           const cenaAvail = user.availabilities.find(a => a.dayOfWeek === dayIdx && a.shiftType === 'CENA')
                           const isAbsent = isAbsentOnDay(dayIdx)
+                          const hPranzo = holidayBlocksOverviewSlot(weekHolidays, currentWeek, dayIdx, 'PRANZO')
+                          const hCena = holidayBlocksOverviewSlot(weekHolidays, currentWeek, dayIdx, 'CENA')
 
                           return (
                             <React.Fragment key={`${user.userId}-${dayIdx}`}>
@@ -256,6 +327,14 @@ export default function AvailabilityOverviewPage() {
                                 {isAbsent ? (
                                   <div className="flex items-center justify-center p-1 bg-red-50 rounded-lg" title="Assente">
                                     <span className="text-[10px] font-black text-red-600">ABS</span>
+                                  </div>
+                                ) : hPranzo ? (
+                                  <div
+                                    className="flex flex-col items-center justify-center p-1 bg-orange-50 rounded-lg border border-orange-100"
+                                    title={hPranzo.description || 'Locale chiuso / festivo'}
+                                  >
+                                    <Sparkles className="h-4 w-4 text-orange-500" />
+                                    <span className="text-[8px] font-black text-orange-700 uppercase mt-0.5">Chiuso</span>
                                   </div>
                                 ) : pranzoAvail?.isAvailable ? (
                                   <div className="flex items-center justify-center">
@@ -273,6 +352,14 @@ export default function AvailabilityOverviewPage() {
                                 {isAbsent ? (
                                   <div className="flex items-center justify-center p-1 bg-red-50 rounded-lg" title="Assente">
                                     <span className="text-[10px] font-black text-red-600">ABS</span>
+                                  </div>
+                                ) : hCena ? (
+                                  <div
+                                    className="flex flex-col items-center justify-center p-1 bg-orange-50 rounded-lg border border-orange-100"
+                                    title={hCena.description || 'Locale chiuso / festivo'}
+                                  >
+                                    <Sparkles className="h-4 w-4 text-orange-500" />
+                                    <span className="text-[8px] font-black text-orange-700 uppercase mt-0.5">Chiuso</span>
                                   </div>
                                 ) : cenaAvail?.isAvailable ? (
                                   <div className="flex items-center justify-center">
@@ -327,6 +414,12 @@ export default function AvailabilityOverviewPage() {
                 <span className="text-[9px] font-black uppercase">ABS</span>
               </div>
               <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">In Vacanza / Assente</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-orange-50 rounded-lg border border-orange-100">
+                <Sparkles className="h-4 w-4 text-orange-500" />
+              </div>
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Chiusura / Festivo</span>
             </div>
           </div>
         </div>

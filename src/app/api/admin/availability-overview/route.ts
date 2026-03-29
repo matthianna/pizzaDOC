@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
+import {
+  dateForAvailabilityDay,
+  holidayBlocksSlot,
+  utcCalendarKey,
+} from '@/lib/availability-holidays'
 
 // ⚠️ IMPORTANTE: Disabilita cache per avere sempre dati aggiornati
 export const dynamic = 'force-dynamic'
@@ -47,8 +52,10 @@ export async function GET(request: NextRequest) {
 
     console.log(`🔍 Cercando disponibilità per weekStart: ${weekStart.toISOString()} (candidati: ${weekStartCandidates.map(d => d.toISOString()).join(', ')})`)
 
-    // Carica tutti gli utenti attivi (no admin) con le loro disponibilità
-    const users = await prisma.User.findMany({
+    const weekSunday = dateForAvailabilityDay(weekStart, 6)
+
+    const [users, holidays] = await Promise.all([
+      prisma.user.findMany({
       where: {
         isActive: true,
         user_roles: {
@@ -79,7 +86,14 @@ export async function GET(request: NextRequest) {
       orderBy: {
         username: 'asc'
       }
-    })
+      }),
+      prisma.holidays.findMany({
+        where: {
+          date: { gte: weekStart, lte: weekSunday },
+        },
+        select: { date: true, closureType: true, description: true },
+      }),
+    ])
 
     const usersAvailability = users.map(user => {
       const targetMs = weekStart.getTime()
@@ -103,11 +117,26 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      const slots = Array.from(bySlot.values()).map((slot) => {
+        const slotKey = utcCalendarKey(
+          dateForAvailabilityDay(weekStart, slot.dayOfWeek)
+        )
+        const blocked = holidayBlocksSlot(
+          holidays,
+          slotKey,
+          slot.shiftType as 'PRANZO' | 'CENA'
+        )
+        if (blocked && slot.isAvailable) {
+          return { ...slot, isAvailable: false }
+        }
+        return slot
+      })
+
       return {
       userId: user.id,
       username: user.username,
       primaryRole: user.primaryRole,
-      availabilities: Array.from(bySlot.values()),
+      availabilities: slots,
       absences: user.absences.map(abs => ({
         id: abs.id,
         startDate: abs.startDate.toISOString(),
@@ -123,7 +152,12 @@ export async function GET(request: NextRequest) {
     // ⚠️ Headers anti-cache per garantire dati sempre freschi
     return NextResponse.json({
       users: usersAvailability,
-      weekStart: weekStart.toISOString()
+      weekStart: weekStart.toISOString(),
+      holidays: holidays.map((h) => ({
+        date: h.date.toISOString(),
+        closureType: h.closureType,
+        description: h.description,
+      })),
     }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
