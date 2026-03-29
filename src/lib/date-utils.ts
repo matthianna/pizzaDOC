@@ -1,10 +1,21 @@
 import { startOfWeek, addDays, format, isAfter, isBefore } from 'date-fns'
+import { TZDate } from '@date-fns/tz'
 import { it } from 'date-fns/locale'
 
+/** Fuso operativo del locale (piano turni / disponibilità): stessa chiave settimana ovunque. */
+const APP_TIMEZONE = 'Europe/Rome'
+
+/**
+ * Lunedì della settimana in Europe/Rome, espresso come Date UTC a mezzanotte del giorno
+ * di calendario del lunedì (coerente con normalizeDate sul server dopo toISOString).
+ * Evita che admin in altri fusi vedano settimane / query DB diverse dagli utenti in Italia.
+ */
 export function getWeekStart(date: Date = new Date()): Date {
-  const weekStart = startOfWeek(date, { weekStartsOn: 1 }) // Monday as first day
-  // Normalizza a UTC per consistenza
-  return new Date(Date.UTC(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate(), 0, 0, 0, 0))
+  const zoned = new TZDate(date, APP_TIMEZONE)
+  const monday = startOfWeek(zoned, { weekStartsOn: 1 })
+  return new Date(
+    Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate(), 0, 0, 0, 0)
+  )
 }
 
 export function getNextWeekStart(): Date {
