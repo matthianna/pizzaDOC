@@ -121,7 +121,10 @@ export default function AdminSchedulePage() {
   const fetchSchedule = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/schedule/${currentWeek.toISOString()}`)
+      const response = await fetch(
+        `/api/admin/schedule/${encodeURIComponent(currentWeek.toISOString())}?_t=${Date.now()}`,
+        { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }
+      )
       if (response.ok) {
         const data = await response.json()
         setSchedule(data)
@@ -167,7 +170,11 @@ export default function AdminSchedulePage() {
 
   const fetchMissingAvailability = async () => {
     try {
-      const response = await fetch(`/api/admin/missing-availability?weekStart=${currentWeek.toISOString()}`)
+      const qs = encodeURIComponent(currentWeek.toISOString())
+      const response = await fetch(
+        `/api/admin/missing-availability?weekStart=${qs}&_t=${Date.now()}`,
+        { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }
+      )
       if (response.ok) {
         const data = await response.json()
         setMissingAvailability(data.missingUsers.sort())

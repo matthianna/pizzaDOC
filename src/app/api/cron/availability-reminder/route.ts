@@ -42,9 +42,25 @@ export async function GET(request: NextRequest) {
     const today = new Date()
     const nextMonday = startOfWeek(addDays(today, 7), { weekStartsOn: 1 })
     const weekStart = normalizeDate(nextMonday)
-    const weekEnd = normalizeDate(addWeekCalendarDays(weekStart, 6))
+    const dayMs = 24 * 60 * 60 * 1000
+    const weekStartCandidates = [
+      normalizeDate(new Date(weekStart.getTime() - dayMs)),
+      weekStart,
+      normalizeDate(new Date(weekStart.getTime() + dayMs)),
+    ]
+    const weekEnd = new Date(
+      Date.UTC(
+        weekStart.getUTCFullYear(),
+        weekStart.getUTCMonth(),
+        weekStart.getUTCDate() + 6,
+        23,
+        59,
+        59,
+        999
+      )
+    )
 
-    console.log(`📅 Checking availability for week: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`)
+    console.log(`📅 Checking availability for week: ${weekStart.toISOString()} → ${weekEnd.toISOString()}`)
 
     // Trova tutti gli utenti attivi con disponibilità e assenze
     const allActiveUsers = await prisma.user.findMany({
@@ -57,37 +73,12 @@ export async function GET(request: NextRequest) {
         primaryRole: true,
         pushNotificationsEnabled: true,
         availabilities: {
-          where: { weekStart },
+          where: { weekStart: { in: weekStartCandidates } },
           select: { id: true, isAvailable: true }
         },
         absences: {
           where: {
-            OR: [
-              {
-                AND: [
-                  { startDate: { lte: weekStart } },
-                  { endDate: { gte: weekEnd } }
-                ]
-              },
-              {
-                AND: [
-                  { startDate: { gte: weekStart } },
-                  { endDate: { lte: weekEnd } }
-                ]
-              },
-              {
-                AND: [
-                  { startDate: { lte: weekStart } },
-                  { endDate: { gte: weekStart, lte: weekEnd } }
-                ]
-              },
-              {
-                AND: [
-                  { startDate: { gte: weekStart, lte: weekEnd } },
-                  { endDate: { gte: weekEnd } }
-                ]
-              }
-            ]
+            AND: [{ startDate: { lte: weekEnd } }, { endDate: { gte: weekStart } }],
           },
           select: { id: true, startDate: true, endDate: true }
         }
@@ -100,42 +91,34 @@ export async function GET(request: NextRequest) {
     )
 
     // Filtra utenti senza disponibilità per la settimana prossima
-    const usersWithoutAvailability = activeUsers.filter(user => {
-      const hasNoAvailability = !user.availabilities.some(a => a.isAvailable === true)
+    const utcDayKey = (d: Date) => d.toISOString().slice(0, 10)
+
+    const usersWithoutAvailability = activeUsers.filter((user) => {
+      // Ha compilato il modulo (anche tutti "no") = non sollecitare
+      const hasSubmittedAvailability = user.availabilities.length > 0
       const isNotAdmin = user.username.toLowerCase() !== 'admin'
 
-      // Calcola quanti giorni della settimana sono coperti da assenze
-      const weekStartTime = weekStart.getTime()
-      const weekEndTime = weekEnd.getTime()
-      const oneDayMs = 24 * 60 * 60 * 1000
-
-      const weekDays = new Set<string>()
+      const weekDayKeys: string[] = []
       for (let i = 0; i < 7; i++) {
-        const dayDate = new Date(weekStartTime + i * oneDayMs)
-        weekDays.add(dayDate.toISOString().split('T')[0])
+        weekDayKeys.push(utcDayKey(addWeekCalendarDays(weekStart, i)))
       }
 
       const coveredDays = new Set<string>()
       for (const absence of user.absences) {
-        const absenceStart = Math.max(absence.startDate.getTime(), weekStartTime)
-        const absenceEnd = Math.min(absence.endDate.getTime(), weekEndTime)
-
-        let currentDay = absenceStart
-        while (currentDay <= absenceEnd) {
-          const dayStr = new Date(currentDay).toISOString().split('T')[0]
-          coveredDays.add(dayStr)
-          currentDay += oneDayMs
+        const absStart = utcDayKey(absence.startDate)
+        const absEnd = utcDayKey(absence.endDate)
+        for (const k of weekDayKeys) {
+          if (k >= absStart && k <= absEnd) coveredDays.add(k)
         }
       }
 
-      const allDaysCovered = weekDays.size === coveredDays.size &&
-        Array.from(weekDays).every(day => coveredDays.has(day))
+      const allDaysCovered = coveredDays.size === 7
 
-      if (hasNoAvailability && isNotAdmin && allDaysCovered) {
-        console.log(`⏭️ Skipping ${user.username}: has ${coveredDays.size}/7 days covered by absences (full week off)`)
+      if (!hasSubmittedAvailability && isNotAdmin && allDaysCovered) {
+        console.log(`⏭️ Skipping ${user.username}: assenza su tutta la settimana`)
       }
 
-      return hasNoAvailability && isNotAdmin && !allDaysCovered
+      return !hasSubmittedAvailability && isNotAdmin && !allDaysCovered
     })
 
     console.log(`📊 Found ${usersWithoutAvailability.length} users without availability`)

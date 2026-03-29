@@ -3,6 +3,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
+import { addWeekCalendarDays } from '@/lib/date-utils'
+
+function utcDayKey(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+export const dynamic = 'force-dynamic'
 
 // GET /api/admin/missing-availability - Check which employees haven't submitted availability
 export async function GET(request: NextRequest) {
@@ -22,7 +29,15 @@ export async function GET(request: NextRequest) {
 
     const weekStart = normalizeDate(weekStartParam)
 
-    // Calculate weekEnd (Sunday UTC midnight)
+    // Stesso schema di availability-overview: il DB può avere weekStart ±1 giorno (client/server, vecchi salvataggi)
+    const dayMs = 24 * 60 * 60 * 1000
+    const weekStartCandidates = [
+      normalizeDate(new Date(weekStart.getTime() - dayMs)),
+      weekStart,
+      normalizeDate(new Date(weekStart.getTime() + dayMs)),
+    ]
+
+    // Fine settimana (domenica) fine giornata UTC
     const weekEnd = new Date(Date.UTC(
       weekStart.getUTCFullYear(),
       weekStart.getUTCMonth(),
@@ -30,7 +45,9 @@ export async function GET(request: NextRequest) {
       23, 59, 59, 999
     ))
 
-    console.log(`🔍 [Missing Availability API] Checking for weekStart: ${weekStart.toISOString()}`)
+    console.log(
+      `🔍 [Missing Availability API] weekStart: ${weekStart.toISOString()} candidati: ${weekStartCandidates.map((d) => d.toISOString()).join(', ')}`
+    )
 
     // Get all non-admin active users (exclude disabled users)
     const allUsers = await prisma.user.findMany({
@@ -47,32 +64,7 @@ export async function GET(request: NextRequest) {
         username: true,
         absences: {
           where: {
-            OR: [
-              {
-                AND: [
-                  { startDate: { lte: weekStart } },
-                  { endDate: { gte: weekEnd } }
-                ]
-              },
-              {
-                AND: [
-                  { startDate: { gte: weekStart } },
-                  { endDate: { lte: weekEnd } }
-                ]
-              },
-              {
-                AND: [
-                  { startDate: { lte: weekStart } },
-                  { endDate: { gte: weekStart, lte: weekEnd } }
-                ]
-              },
-              {
-                AND: [
-                  { startDate: { gte: weekStart, lte: weekEnd } },
-                  { endDate: { gte: weekEnd } }
-                ]
-              }
-            ]
+            AND: [{ startDate: { lte: weekEnd } }, { endDate: { gte: weekStart } }],
           },
           select: {
             id: true,
@@ -87,8 +79,7 @@ export async function GET(request: NextRequest) {
     // This means they have filled out the availability form, even if they marked themselves as unavailable
     const allAvailabilityRecords = await prisma.availabilities.findMany({
       where: {
-        weekStart: weekStart
-        // ⭐ RIMOSSO: isAvailable: true - consideriamo TUTTI gli utenti che hanno inserito disponibilità
+        weekStart: { in: weekStartCandidates },
       },
       select: {
         userId: true,
@@ -132,35 +123,22 @@ export async function GET(request: NextRequest) {
         // Check if user is absent for the entire week (all 7 days) via absences table
         if (user.absences.length === 0) return true // No absence, include them in missing list
 
-        // Calculate how many days of the week are covered by absences
-        const weekStartTime = weekStart.getTime()
-        const weekEndTime = weekEnd.getTime()
-        const oneDayMs = 24 * 60 * 60 * 1000
-
-        // Create set of all days in the week (7 days)
-        const weekDays = new Set<string>()
+        // Giorni della settimana (chiavi YYYY-MM-DD UTC, coerenti con weekStart DB)
+        const weekDayKeys: string[] = []
         for (let i = 0; i < 7; i++) {
-          const dayDate = new Date(weekStartTime + i * oneDayMs)
-          weekDays.add(dayDate.toISOString().split('T')[0])
+          weekDayKeys.push(utcDayKey(addWeekCalendarDays(weekStart, i)))
         }
 
-        // Mark days covered by absences
         const coveredDays = new Set<string>()
         for (const absence of user.absences) {
-          const absenceStart = Math.max(absence.startDate.getTime(), weekStartTime)
-          const absenceEnd = Math.min(absence.endDate.getTime(), weekEndTime)
-          
-          let currentDay = absenceStart
-          while (currentDay <= absenceEnd) {
-            const dayStr = new Date(currentDay).toISOString().split('T')[0]
-            coveredDays.add(dayStr)
-            currentDay += oneDayMs
+          const absStart = utcDayKey(absence.startDate)
+          const absEnd = utcDayKey(absence.endDate)
+          for (const k of weekDayKeys) {
+            if (k >= absStart && k <= absEnd) coveredDays.add(k)
           }
         }
 
-        // If all 7 days are covered by absences, exclude from missing list
-        const allDaysCovered = weekDays.size === coveredDays.size && 
-                              Array.from(weekDays).every(day => coveredDays.has(day))
+        const allDaysCovered = coveredDays.size === 7
         
         return !allDaysCovered // Include only if NOT fully absent
       })
@@ -176,13 +154,21 @@ export async function GET(request: NextRequest) {
     console.log(`📊 [Missing Availability API] Missing users: ${missingUsers.length}`)
     console.log(`📊 [Missing Availability API] Completion: ${completionPercentage}%`)
 
-    return NextResponse.json({
-      missingUsers,
-      totalUsers,
-      usersWithAvailability: usersWithData,
-      completionPercentage,
-      weekStart: weekStart.toISOString()
-    })
+    return NextResponse.json(
+      {
+        missingUsers,
+        totalUsers,
+        usersWithAvailability: usersWithData,
+        completionPercentage,
+        weekStart: weekStart.toISOString(),
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          Pragma: 'no-cache',
+        },
+      }
+    )
 
   } catch (error) {
     console.error('Error checking missing availability:', error)
