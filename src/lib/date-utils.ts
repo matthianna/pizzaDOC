@@ -1,6 +1,7 @@
 import { startOfWeek, isAfter, isBefore } from 'date-fns'
 import { TZDate } from '@date-fns/tz'
 import { getDayName } from '@/lib/utils'
+import { normalizeDate } from '@/lib/normalize-date'
 
 /** Fuso operativo del locale (piano turni / disponibilità): stessa chiave settimana ovunque. */
 const APP_TIMEZONE = 'Europe/Rome'
@@ -44,6 +45,29 @@ export function addWeekCalendarDays(weekStart: Date, days: number): Date {
       0
     )
   )
+}
+
+/**
+ * Alcuni `schedules.weekStart` nel DB sono salvati come domenica (UTC) mentre le colonne
+ * 0–6 sono Lunedì–Domenica operativo. Sposta al lunedì UTC successivo senza cambiare gli indici dei turni.
+ */
+export function ensureUtcMondayWeekStart(weekStart: Date | string): Date {
+  const n = normalizeDate(weekStart)
+  if (n.getUTCDay() === 0) {
+    return addWeekCalendarDays(n, 1)
+  }
+  return n
+}
+
+/** Sottotitolo settimana tipo "30 marzo — 5 aprile 2026" (solo calendario UTC, ok su Vercel US). */
+export function formatUtcWeekSubtitleIt(weekStart: Date, weekEnd: Date): string {
+  const y = weekEnd.getUTCFullYear()
+  return `${weekStart.getUTCDate()} ${MONTHS_IT[weekStart.getUTCMonth()]} — ${weekEnd.getUTCDate()} ${MONTHS_IT[weekEnd.getUTCMonth()]} ${y}`
+}
+
+/** Mese abbreviato (3 lettere) dal calendario UTC. */
+export function formatUtcMonthAbbrevIt(date: Date): string {
+  return MONTHS_IT[date.getUTCMonth()].slice(0, 3)
 }
 
 /** Chiave YYYY-MM-DD del giorno di calendario UTC (allineata a weekStart DB / normalizeDate). */

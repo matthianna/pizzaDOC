@@ -334,6 +334,14 @@ export default function AvailabilityPage() {
                 </tbody>
               </table>
             </div>
+
+            <div className="mt-6 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Legenda</span>
+              <div className="flex items-center gap-2" title="Turno non selezionabile">
+                <Sparkles className="h-4 w-4 text-orange-400 shrink-0" aria-hidden />
+                <span className="text-xs font-medium text-gray-600">Giorno festivo o locale chiuso</span>
+              </div>
+            </div>
           </div>
 
           {canEdit && (

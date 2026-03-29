@@ -14,6 +14,7 @@ import {
   formatMonthYearIt,
   utcCalendarDateKey,
   appTodayCalendarDateKey,
+  ensureUtcMondayWeekStart,
 } from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
 import { getRoleName, cn } from '@/lib/utils'
@@ -44,7 +45,7 @@ export default function WeeklyPlanPage() {
                 setData(jsonData)
                 const ws = jsonData.schedule?.weekStart
                 if (ws != null) {
-                    const normalized = normalizeDate(ws)
+                    const normalized = ensureUtcMondayWeekStart(normalizeDate(ws))
                     setCurrentWeek(prev =>
                         prev.getTime() === normalized.getTime() ? prev : normalized
                     )

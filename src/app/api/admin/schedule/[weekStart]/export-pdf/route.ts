@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format } from 'date-fns'
-import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
-import { addWeekCalendarDays } from '@/lib/date-utils'
+import {
+  addWeekCalendarDays,
+  ensureUtcMondayWeekStart,
+  formatUtcMonthAbbrevIt,
+  formatUtcWeekSubtitleIt,
+  utcCalendarDateKey,
+} from '@/lib/date-utils'
 import puppeteerCore from 'puppeteer-core'
 import chromium from '@sparticuz/chromium'
 
@@ -68,8 +72,8 @@ export async function GET(
       )
     }
 
-    // Allinea festivi al weekStart effettivo nel DB (può differire di ±1 giorno dalla URL)
-    const weekStart = normalizeDate(schedule.weekStart)
+    // Lunedì operativo UTC + range coerente con /weekly-plan (DB a volte ha domenica come anchor)
+    const weekStart = ensureUtcMondayWeekStart(normalizeDate(schedule.weekStart))
     const weekEnd = addWeekCalendarDays(weekStart, 6)
     const holidays = await prisma.holidays.findMany({
       where: {
@@ -112,7 +116,7 @@ export async function GET(
       await browser.close()
 
       // Restituisci il PDF
-      const fileName = `Piano-Lavoro-${format(weekStart, 'yyyy-MM-dd', { locale: it })}.pdf`
+      const fileName = `Piano-Lavoro-${utcCalendarDateKey(weekStart)}.pdf`
       
       return new NextResponse(pdfBuffer, {
         headers: {
@@ -137,6 +141,27 @@ export async function GET(
       { error: 'Internal server error' },
       { status: 500 }
     )
+  }
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function closureHintIt(closureType: string): string {
+  switch (closureType) {
+    case 'FULL_DAY':
+      return 'Chiusura: tutto il giorno'
+    case 'PRANZO_ONLY':
+      return 'Solo pranzo chiuso'
+    case 'CENA_ONLY':
+      return 'Solo cena chiusa'
+    default:
+      return ''
   }
 }
 
@@ -219,7 +244,7 @@ function generateScheduleHTML(schedule: {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Piano Lavoro ${format(weekStart, 'dd/MM', { locale: it })} - ${format(weekEnd, 'dd/MM/yyyy', { locale: it })}</title>
+    <title>Piano Lavoro ${utcCalendarDateKey(weekStart)} — ${utcCalendarDateKey(weekEnd)}</title>
     <style>
         @page { size: A4 portrait; margin: 12mm; }
         @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
@@ -430,27 +455,68 @@ function generateScheduleHTML(schedule: {
         .stats strong {
             color: #1e293b;
         }
+
+        .festa-bar {
+            background: linear-gradient(90deg, #fef3c7, #fde68a);
+            border: 1px solid #f59e0b;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin: 0 0 6px 0;
+            font-size: 9px;
+            font-weight: 700;
+            color: #92400e;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .festa-desc {
+            font-weight: 600;
+            text-transform: none;
+            color: #78350f;
+            margin-top: 2px;
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🍕 Piano di Lavoro Settimanale</h1>
-            <div class="dates">${format(weekStart, 'd MMMM', { locale: it })} — ${format(weekEnd, 'd MMMM yyyy', { locale: it })}</div>
+            <div class="dates">${formatUtcWeekSubtitleIt(weekStart, weekEnd)}</div>
         </div>
 
         ${daysFull.map((dayName, dayIndex) => {
           const dayDate = addWeekCalendarDays(weekStart, dayIndex)
-          const dayDateStr = dayDate.toISOString().split('T')[0]
-          
-          const isPranzoHoliday = holidays.some(h => {
-            const hDate = new Date(h.date).toISOString().split('T')[0]
-            return hDate === dayDateStr && (h.closureType === 'FULL_DAY' || h.closureType === 'PRANZO_ONLY')
-          })
-          const isCenaHoliday = holidays.some(h => {
-            const hDate = new Date(h.date).toISOString().split('T')[0]
-            return hDate === dayDateStr && (h.closureType === 'FULL_DAY' || h.closureType === 'CENA_ONLY')
-          })
+          const dayKey = utcCalendarDateKey(dayDate)
+
+          const dayHolidays = holidays.filter(
+            h => utcCalendarDateKey(normalizeDate(h.date)) === dayKey
+          )
+
+          const isPranzoHoliday = dayHolidays.some(
+            h => h.closureType === 'FULL_DAY' || h.closureType === 'PRANZO_ONLY'
+          )
+          const isCenaHoliday = dayHolidays.some(
+            h => h.closureType === 'FULL_DAY' || h.closureType === 'CENA_ONLY'
+          )
+
+          const festaBlock =
+            dayHolidays.length > 0
+              ? `<div class="festa-bar">Festa${dayHolidays
+                  .map(h =>
+                    h.description
+                      ? `<span class="festa-desc">${escapeHtml(h.description)}${
+                          h.closureType === 'FULL_DAY'
+                            ? ' (tutto il giorno)'
+                            : h.closureType === 'PRANZO_ONLY'
+                              ? ' (solo pranzo)'
+                              : h.closureType === 'CENA_ONLY'
+                                ? ' (solo cena)'
+                                : ''
+                        }</span>`
+                      : `<span class="festa-desc">${closureHintIt(h.closureType)}</span>`
+                  )
+                  .join('')}</div>`
+              : ''
 
           const renderShift = (shiftType: string, isHoliday: boolean) => {
             if (isHoliday) {
@@ -488,10 +554,11 @@ function generateScheduleHTML(schedule: {
                 <div class="shift-header">☀️ Pranzo</div>
                 <div class="shift-header">🌙 Cena</div>
               </div>
+              ${festaBlock}
               <div class="day-content">
                 <div class="day-label">
-                  <div class="date">${format(dayDate, 'd', { locale: it })}</div>
-                  <div class="month">${format(dayDate, 'MMM', { locale: it })}</div>
+                  <div class="date">${dayDate.getUTCDate()}</div>
+                  <div class="month">${formatUtcMonthAbbrevIt(dayDate)}</div>
                 </div>
                 <div class="shift-column pranzo">
                   ${renderShift('PRANZO', isPranzoHoliday)}

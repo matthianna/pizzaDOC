@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
+import { ensureUtcMondayWeekStart } from '@/lib/date-utils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -70,11 +71,11 @@ export async function GET(request: NextRequest) {
               : best
           )
 
-    const resolvedWeekStart = schedule?.weekStart ?? weekStart
+    const displayWeekStart = ensureUtcMondayWeekStart(schedule?.weekStart ?? weekStart)
 
     if (!schedule) {
       return NextResponse.json(
-        { shifts: [], weekStart: resolvedWeekStart.toISOString() },
+        { shifts: [], weekStart: displayWeekStart.toISOString() },
         {
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -88,11 +89,11 @@ export async function GET(request: NextRequest) {
     const shiftsWithMappedHours = schedule.shifts.map((shift: any) => ({
       ...shift,
       workedHours: shift.worked_hours,
-      schedule: { weekStart: schedule.weekStart.toISOString() }
+      schedule: { weekStart: displayWeekStart.toISOString() }
     }))
 
     return NextResponse.json(
-      { shifts: shiftsWithMappedHours, weekStart: schedule.weekStart.toISOString() },
+      { shifts: shiftsWithMappedHours, weekStart: displayWeekStart.toISOString() },
       {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate',
