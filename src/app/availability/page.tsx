@@ -102,9 +102,9 @@ export default function AvailabilityPage() {
     }
   }
 
-  const isHoliday = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA'): Holiday | null => {
-    const weekDays = getWeekDays(currentWeek)
-    const dayDate = weekDays[dayOfWeek].toISOString().split('T')[0]
+  /** Use the row's calendar day (not dayOfWeek index) so it stays correct with UTC week dates. */
+  const holidayForSlot = (calendarDay: Date, shiftType: 'PRANZO' | 'CENA'): Holiday | null => {
+    const dayDate = calendarDay.toISOString().split('T')[0]
     const holiday = holidays.find(h => {
       const holidayDate = new Date(h.date).toISOString().split('T')[0]
       if (holidayDate !== dayDate) return false
@@ -141,9 +141,9 @@ export default function AvailabilityPage() {
     }
   }
 
-  const toggleAvailability = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA') => {
+  const toggleAvailability = (calendarDay: Date, dayOfWeek: number, shiftType: 'PRANZO' | 'CENA') => {
     if (disabledDays.includes(dayOfWeek)) return
-    if (isHoliday(dayOfWeek, shiftType)) return
+    if (holidayForSlot(calendarDay, shiftType)) return
 
     lightClick()
     const existing = availabilities.find(a => a.dayOfWeek === dayOfWeek && a.shiftType === shiftType)
@@ -247,8 +247,8 @@ export default function AvailabilityPage() {
               {weekDays.map((day, index) => {
                 const dayOfWeek = getDayOfWeek(day)
                 const dayDisabled = isDayDisabled(dayOfWeek)
-                const pranzoHoliday = isHoliday(dayOfWeek, 'PRANZO')
-                const cenaHoliday = isHoliday(dayOfWeek, 'CENA')
+                const pranzoHoliday = holidayForSlot(day, 'PRANZO')
+                const cenaHoliday = holidayForSlot(day, 'CENA')
 
                 return (
                   <div key={index} className={`bg-white rounded-3xl shadow-soft border border-gray-100 p-5 transition-all ${dayDisabled ? 'bg-red-50/30' : ''}`}>
@@ -272,7 +272,7 @@ export default function AvailabilityPage() {
                         isActive={isAvailable(dayOfWeek, 'PRANZO')}
                         isDisabled={dayDisabled}
                         holiday={pranzoHoliday}
-                        onToggle={() => toggleAvailability(dayOfWeek, 'PRANZO')}
+                        onToggle={() => toggleAvailability(day, dayOfWeek, 'PRANZO')}
                         canEdit={canEdit && !loading}
                       />
                       <ShiftToggle
@@ -281,7 +281,7 @@ export default function AvailabilityPage() {
                         isActive={isAvailable(dayOfWeek, 'CENA')}
                         isDisabled={dayDisabled}
                         holiday={cenaHoliday}
-                        onToggle={() => toggleAvailability(dayOfWeek, 'CENA')}
+                        onToggle={() => toggleAvailability(day, dayOfWeek, 'CENA')}
                         canEdit={canEdit && !loading}
                       />
                     </div>
@@ -314,8 +314,8 @@ export default function AvailabilityPage() {
                           <ShiftCell
                             isActive={isAvailable(dOfW, 'PRANZO')}
                             isDisabled={dDisabled}
-                            holiday={isHoliday(dOfW, 'PRANZO')}
-                            onToggle={() => toggleAvailability(dOfW, 'PRANZO')}
+                            holiday={holidayForSlot(day, 'PRANZO')}
+                            onToggle={() => toggleAvailability(day, dOfW, 'PRANZO')}
                             canEdit={canEdit && !loading}
                           />
                         </td>
@@ -323,8 +323,8 @@ export default function AvailabilityPage() {
                           <ShiftCell
                             isActive={isAvailable(dOfW, 'CENA')}
                             isDisabled={dDisabled}
-                            holiday={isHoliday(dOfW, 'CENA')}
-                            onToggle={() => toggleAvailability(dOfW, 'CENA')}
+                            holiday={holidayForSlot(day, 'CENA')}
+                            onToggle={() => toggleAvailability(day, dOfW, 'CENA')}
                             canEdit={canEdit && !loading}
                           />
                         </td>

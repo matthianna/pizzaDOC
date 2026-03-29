@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getWeekStart } from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
+import {
+  dateForAvailabilityDay,
+  holidayBlocksSlot,
+  utcCalendarKey,
+} from '@/lib/availability-holidays'
 
 // GET /api/availability - Get user's availability for a specific week
 export async function GET(request: NextRequest) {
@@ -22,15 +26,33 @@ export async function GET(request: NextRequest) {
     }
 
     const weekStart = normalizeDate(weekStartParam)
+    const weekSunday = dateForAvailabilityDay(weekStart, 6)
 
-    const availabilities = await prisma.availabilities.findMany({
-      where: {
-        userId: session.user.id,
-        weekStart
+    const [availabilities, holidays] = await Promise.all([
+      prisma.availabilities.findMany({
+        where: {
+          userId: session.user.id,
+          weekStart,
+        },
+      }),
+      prisma.holidays.findMany({
+        where: {
+          date: { gte: weekStart, lte: weekSunday },
+        },
+        select: { date: true, closureType: true },
+      }),
+    ])
+
+    const merged = availabilities.map((a) => {
+      const slotKey = utcCalendarKey(dateForAvailabilityDay(weekStart, a.dayOfWeek))
+      const blocked = holidayBlocksSlot(holidays, slotKey, a.shiftType)
+      if (blocked && a.isAvailable) {
+        return { ...a, isAvailable: false }
       }
+      return a
     })
 
-    return NextResponse.json(availabilities)
+    return NextResponse.json(merged)
   } catch (error) {
     console.error('Error fetching availability:', error)
     return NextResponse.json(
@@ -56,6 +78,14 @@ export async function POST(request: NextRequest) {
     }
 
     const weekStartDate = normalizeDate(weekStart)
+    const weekSunday = dateForAvailabilityDay(weekStartDate, 6)
+
+    const holidays = await prisma.holidays.findMany({
+      where: {
+        date: { gte: weekStartDate, lte: weekSunday },
+      },
+      select: { date: true, closureType: true },
+    })
 
     // Delete existing availabilities for this week
     await prisma.availabilities.deleteMany({
@@ -88,18 +118,24 @@ export async function POST(request: NextRequest) {
         data: availabilityRecords
       })
     } else {
-      // Create availability records based on user selections
+      // Create availability records based on user selections (cannot be available on closed holidays)
       const now = new Date()
-      const availabilityRecords = availabilities.map((avail: any) => ({
-        id: crypto.randomUUID(),
-        userId: session.user.id,
-        weekStart: weekStartDate,
-        dayOfWeek: avail.dayOfWeek,
-        shiftType: avail.shiftType,
-        isAvailable: avail.isAvailable,
-        isAbsentWeek: false,
-        updatedAt: now
-      }))
+      const availabilityRecords = (availabilities as any[]).map((avail: any) => {
+        const slotKey = utcCalendarKey(
+          dateForAvailabilityDay(weekStartDate, avail.dayOfWeek)
+        )
+        const blocked = holidayBlocksSlot(holidays, slotKey, avail.shiftType)
+        return {
+          id: crypto.randomUUID(),
+          userId: session.user.id,
+          weekStart: weekStartDate,
+          dayOfWeek: avail.dayOfWeek,
+          shiftType: avail.shiftType,
+          isAvailable: blocked ? false : Boolean(avail.isAvailable),
+          isAbsentWeek: false,
+          updatedAt: now,
+        }
+      })
 
       if (availabilityRecords.length > 0) {
         await prisma.availabilities.createMany({

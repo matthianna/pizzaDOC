@@ -45,9 +45,10 @@ export function formatDateLong(date: Date): string {
 }
 
 export function getDayOfWeek(date: Date): number {
-  // Convert to our format: 0 = Monday, 1 = Tuesday, ..., 6 = Sunday
-  const jsDay = date.getDay() // JS: 0=Sunday, 1=Monday, ..., 6=Saturday
-  return jsDay === 0 ? 6 : jsDay - 1 // Convert: Monday=0, Tuesday=1, ..., Sunday=6
+  // Week boundaries use UTC calendar dates (see getWeekStart / normalizeDate). Local getDay()
+  // breaks holiday/availability alignment for users outside the app timezone.
+  const jsDay = date.getUTCDay() // 0=Sunday … 6=Saturday for the UTC calendar day
+  return jsDay === 0 ? 6 : jsDay - 1 // Our system: Monday=0 … Sunday=6
 }
 
 export function convertJsDayToOurDay(jsDay: number): number {
