@@ -101,7 +101,8 @@ export default function AdminHoursSummaryPage() {
       const response = await fetch('/api/admin/users')
       if (response.ok) {
         const data = await response.json()
-        setAllUsers(data.filter((user: {roles?: string[]}) => !user.roles?.includes('ADMIN')))
+        const list = Array.isArray(data) ? data : (data.users ?? [])
+        setAllUsers(list.filter((user: { roles?: string[] }) => !user.roles?.includes('ADMIN')))
       }
     } catch (error) {
       console.error('Error fetching users:', error)

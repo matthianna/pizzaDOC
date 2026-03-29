@@ -143,7 +143,7 @@ export default function AvailabilityOverviewPage() {
         {/* Filters & Quick Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-1 bg-white rounded-3xl shadow-soft border border-gray-100 p-6 flex flex-col justify-center">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Filtra Squadra</label>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Filtra Personale</label>
             <div className="relative">
               <select
                 value={selectedRole}

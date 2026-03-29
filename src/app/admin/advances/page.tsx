@@ -85,8 +85,9 @@ export default function AdvancesPage() {
       const response = await fetch('/api/admin/users')
       if (response.ok) {
         const data = await response.json()
+        const list = Array.isArray(data) ? data : (data.users ?? [])
         // Filtra solo utenti non-admin attivi
-        const activeUsers = data.filter((u: User) => 
+        const activeUsers = list.filter((u: User) => 
           u.primaryRole !== 'ADMIN' && !u.username.toLowerCase().includes('admin')
         )
         setUsers(activeUsers)

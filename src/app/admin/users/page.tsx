@@ -28,6 +28,14 @@ interface User {
   createdAt: string
   lastClientDisplayMode: string | null
   lastClientDisplayModeAt: string | null
+  notificationPermissionReported: string | null
+  notificationPermissionReportedAt: string | null
+  clientPushSubscribedReported: boolean | null
+  clientPushSubscribedReportedAt: string | null
+  engagementPwaSnoozeCount: number
+  engagementPwaSnoozedUntil: string | null
+  engagementPushSnoozeCount: number
+  engagementPushSnoozedUntil: string | null
   user_roles: { role: Role }[]
   user_transports: { transport: TransportType }[]
   push_subscriptions: { id: string }[]
@@ -48,45 +56,77 @@ function getClientAppPresence(user: Pick<User, 'lastClientDisplayMode' | 'lastCl
   }
 }
 
-function ClientAppCell({ user }: { user: User }) {
+function ClientAppCell({ user, engagementMax }: { user: User; engagementMax: number }) {
   const p = getClientAppPresence(user)
-  if (p.variant === 'none') {
-    return <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider">—</span>
-  }
-  const rel = formatDistanceToNow(new Date(p.at), { addSuffix: true, locale: localeIt })
-  if (p.variant === 'pwa') {
-    return (
+  const pwaSnooze = user.engagementPwaSnoozeCount ?? 0
+  const pushSnooze = user.engagementPushSnoozeCount ?? 0
+
+  const main =
+    p.variant === 'none' ? (
+      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider">—</span>
+    ) : p.variant === 'pwa' ? (
       <div className="flex flex-col gap-0.5 max-w-[140px]">
         <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+          <span className="w-2 h-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
           App PWA
         </span>
-        <span className="text-[9px] text-gray-400 font-medium leading-tight">{rel}</span>
+        <span className="text-[9px] font-medium leading-tight text-gray-400">
+          {formatDistanceToNow(new Date(p.at), { addSuffix: true, locale: localeIt })}
+        </span>
       </div>
-    )
-  }
-  if (p.variant === 'browser') {
-    return (
+    ) : p.variant === 'browser' ? (
       <div className="flex flex-col gap-0.5 max-w-[140px]">
         <span className="text-[10px] font-black uppercase tracking-wider text-sky-700">Browser</span>
-        <span className="text-[9px] text-gray-400 font-medium leading-tight">{rel}</span>
+        <span className="text-[9px] font-medium leading-tight text-gray-400">
+          {formatDistanceToNow(new Date(p.at), { addSuffix: true, locale: localeIt })}
+        </span>
+      </div>
+    ) : (
+      <div className="flex max-w-[160px] flex-col gap-0.5">
+        <span className="text-[10px] font-bold text-gray-500">
+          {p.lastMode === 'browser' ? 'Ultimo: browser' : 'Ultimo: app'}
+        </span>
+        <span className="text-[9px] font-medium leading-tight text-gray-400" title="Oltre 25 min fa">
+          {formatDistanceToNow(new Date(p.at), { addSuffix: true, locale: localeIt })}
+        </span>
       </div>
     )
-  }
+
   return (
-    <div className="flex flex-col gap-0.5 max-w-[160px]">
-      <span className="text-[10px] font-bold text-gray-500">
-        {p.lastMode === 'browser' ? 'Ultimo: browser' : 'Ultimo: app'}
-      </span>
-      <span className="text-[9px] text-gray-400 font-medium leading-tight" title="Oltre 25 min fa">
-        {rel}
-      </span>
+    <div className="max-w-[220px] space-y-2">
+      {main}
+      <div className="space-y-1 border-t border-gray-100 pt-2 text-[8px] leading-snug text-gray-400">
+        {user.notificationPermissionReported && (
+          <p>
+            Permesso notif.:{' '}
+            <span className="font-bold text-gray-600">{user.notificationPermissionReported}</span>
+            {user.notificationPermissionReportedAt && (
+              <span className="mt-0.5 block text-[7px] opacity-80">
+                {formatDistanceToNow(new Date(user.notificationPermissionReportedAt), {
+                  addSuffix: true,
+                  locale: localeIt
+                })}
+              </span>
+            )}
+          </p>
+        )}
+        {user.clientPushSubscribedReported != null && (
+          <p>
+            Iscrizione push (client):{' '}
+            <span className="font-bold text-gray-600">{user.clientPushSubscribedReported ? 'sì' : 'no'}</span>
+          </p>
+        )}
+        <p>
+          Posticipazioni banner: app {pwaSnooze}/{engagementMax} · push {pushSnooze}/{engagementMax}
+        </p>
+      </div>
     </div>
   )
 }
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
+  const [engagementMaxSnoozes, setEngagementMaxSnoozes] = useState(7)
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -103,7 +143,13 @@ export default function UsersPage() {
       const response = await fetch('/api/admin/users')
       if (response.ok) {
         const data = await response.json()
-        setUsers(data)
+        if (Array.isArray(data)) {
+          setUsers(data)
+          setEngagementMaxSnoozes(7)
+        } else {
+          setUsers(data.users ?? [])
+          setEngagementMaxSnoozes(data.meta?.engagementMaxSnoozesPerType ?? 7)
+        }
       }
     } catch (error) {
       console.error('Error fetching users:', error)
@@ -313,6 +359,7 @@ export default function UsersPage() {
                     <UserRow 
                       key={user.id} 
                       user={user} 
+                      engagementMax={engagementMaxSnoozes}
                       onEdit={() => setEditingUser(user)}
                       onDelete={() => openDeleteConfirm(user)}
                       onResetPassword={() => handleResetPassword(user.id)}
@@ -329,6 +376,7 @@ export default function UsersPage() {
                 <UserMobileCard 
                   key={user.id} 
                   user={user} 
+                  engagementMax={engagementMaxSnoozes}
                   onEdit={() => setEditingUser(user)}
                   onDelete={() => openDeleteConfirm(user)}
                   onResetPassword={() => handleResetPassword(user.id)}
@@ -359,6 +407,7 @@ export default function UsersPage() {
                       <UserRow 
                         key={user.id} 
                         user={user} 
+                        engagementMax={engagementMaxSnoozes}
                         onEdit={() => setEditingUser(user)}
                         onDelete={() => openDeleteConfirm(user)}
                         onResetPassword={() => handleResetPassword(user.id)}
@@ -373,6 +422,7 @@ export default function UsersPage() {
                   <UserMobileCard 
                     key={user.id} 
                     user={user} 
+                    engagementMax={engagementMaxSnoozes}
                     onEdit={() => setEditingUser(user)}
                     onDelete={() => openDeleteConfirm(user)}
                     onResetPassword={() => handleResetPassword(user.id)}
@@ -465,7 +515,7 @@ function StatCard({ label, value, icon: Icon, color, hint }: { label: string; va
   )
 }
 
-function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
+function UserRow({ user, engagementMax, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
   return (
     <tr className="group hover:bg-orange-50/30 transition-colors">
       <td className="px-8 py-5 whitespace-nowrap">
@@ -506,7 +556,7 @@ function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any)
         </div>
       </td>
       <td className="px-8 py-5">
-        <ClientAppCell user={user} />
+        <ClientAppCell user={user} engagementMax={engagementMax} />
       </td>
       <td className="px-8 py-5">
         <div className="flex items-center gap-3">
@@ -541,7 +591,7 @@ function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any)
   )
 }
 
-function UserMobileCard({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
+function UserMobileCard({ user, engagementMax, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
   return (
     <div className="bg-white rounded-[2rem] p-6 shadow-soft border border-gray-100 space-y-6">
       <div className="flex justify-between items-start">
@@ -580,7 +630,7 @@ function UserMobileCard({ user, onEdit, onDelete, onResetPassword, onTogglePush 
 
       <div className="space-y-2 pt-2 border-t border-gray-50">
         <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Client app (PWA)</p>
-        <ClientAppCell user={user} />
+        <ClientAppCell user={user} engagementMax={engagementMax} />
       </div>
 
       <div className="pt-4 border-t border-gray-50">

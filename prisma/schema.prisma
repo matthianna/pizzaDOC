@@ -207,6 +207,17 @@ model User {
   /// Last display mode reported by client: standalone | fullscreen | browser (see /api/user/client-display)
   lastClientDisplayMode                           String?
   lastClientDisplayModeAt                         DateTime?
+  /// Browser-reported Notification.permission: default | granted | denied
+  notificationPermissionReported                  String?
+  notificationPermissionReportedAt                DateTime?
+  /// Client-reported PushManager subscription presence (audit vs server subscriptions)
+  clientPushSubscribedReported                    Boolean?
+  clientPushSubscribedReportedAt                  DateTime?
+  /// Engagement banner: snooze count + until (server = source of truth, max N per type)
+  engagementPwaSnoozeCount                        Int               @default(0)
+  engagementPwaSnoozedUntil                       DateTime?
+  engagementPushSnoozeCount                       Int               @default(0)
+  engagementPushSnoozedUntil                      DateTime?
   createdAt                                       DateTime          @default(now())
   updatedAt                                       DateTime
   Account                                         Account[]

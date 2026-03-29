@@ -12,6 +12,7 @@ import Image from 'next/image'
 import { useHaptics } from '@/hooks/use-haptics'
 import { RefreshCw } from 'lucide-react'
 import { BadgeManager } from '../pwa/badge-manager'
+import { AppEngagementBanner } from '../pwa/app-engagement-banner'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -154,6 +155,8 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:pl-8">
             {/* Spacer for mobile header */}
             <div className="lg:hidden h-16 mb-4"></div>
+
+            <AppEngagementBanner />
 
             <div key={pathname} className="animate-page-enter">
               {children}

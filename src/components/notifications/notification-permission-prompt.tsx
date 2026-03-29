@@ -5,32 +5,11 @@ import { useSession } from 'next-auth/react'
 import { BellOff, Bell, Loader2 } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { usePushNotifications } from './notification-bell'
+import { detectPushSetupGap, type PushSetupGap } from '@/lib/push-setup-status'
 
-type PromptKind = 'denied' | 'request' | 'subscribe'
+type PromptKind = Exclude<PushSetupGap, 'none'>
 
 const MODAL_Z = 100050
-
-async function detectPromptKind(): Promise<PromptKind | null> {
-  if (typeof window === 'undefined' || !window.isSecureContext) return null
-  if (!('Notification' in window)) return null
-
-  const perm = Notification.permission
-  if (perm === 'denied') return 'denied'
-  if (perm === 'default') return 'request'
-
-  if (perm !== 'granted') return null
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null
-
-  try {
-    const reg = await navigator.serviceWorker.ready
-    const sub = await reg.pushManager.getSubscription()
-    if (!sub) return 'subscribe'
-  } catch {
-    return 'subscribe'
-  }
-
-  return null
-}
 
 /**
  * Dashboard: remind users to enable notifications. Covers permission "default" (common in PWA
@@ -48,11 +27,10 @@ export function NotificationPermissionPrompt() {
 
   const tryOpen = useCallback(async () => {
     if (statusRef.current !== 'authenticated') return
-    const k = await detectPromptKind()
-    if (k) {
-      setKind(k)
-      setOpen(true)
-    }
+    const gap = await detectPushSetupGap()
+    if (gap === 'none') return
+    setKind(gap)
+    setOpen(true)
   }, [])
 
   useEffect(() => {

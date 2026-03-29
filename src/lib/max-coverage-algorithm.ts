@@ -863,58 +863,71 @@ export class MaxCoverageAlgorithm {
 
       console.log(`\n   📋 ${this.getDayName(req.dayOfWeek)} ${req.shiftType} ${req.role}: cerco ${needed} persone`)
       
-      // 🎯 CALCOLA GAP ATTUALI per questo turno (per ottimizzazione globale)
-      const currentGaps = this.calculateTurnGaps(schedule, requirements, req.dayOfWeek, req.shiftType)
-      
-      // Log gap status per questo turno
-      const gapSummary = Object.entries(currentGaps)
+      // Log gap iniziale turno
+      const initialGaps = this.calculateTurnGaps(schedule, requirements, req.dayOfWeek, req.shiftType)
+      const gapSummary0 = Object.entries(initialGaps)
         .filter(([_, info]) => info.required > 0)
         .map(([role, info]) => `${role}: ${info.assigned}/${info.required}`)
         .join(', ')
-      if (gapSummary) {
-        console.log(`      📊 Gap turno: ${gapSummary}`)
+      if (gapSummary0) {
+        console.log(`      📊 Gap turno: ${gapSummary0}`)
       }
 
-      // Trova e ordina candidati per score (con context dei gap e scarsità ruoli)
-      // Il controllo del limite scooter è già integrato nella funzione
-      const candidates = await this.findCandidatesWithScore(users, req, schedule, mode, roleScarcity, transportLimits, currentGaps)
-      
-      if (candidates.length === 0) {
-        console.log(`      ❌ Nessun candidato disponibile`)
-        continue
-      }
+      // Un posto alla volta: ricalcola gap e candidati così dopo il 1° PIZZAIOLO il 2° slot
+      // vede cucina ancora vuota e depriorizza chi può fare anche CUCINA (evita 2+0)
+      let assignedCount2 = 0
+      while (assignedCount2 < needed) {
+        const currentGaps = this.calculateTurnGaps(schedule, requirements, req.dayOfWeek, req.shiftType)
+        const candidates = await this.findCandidatesWithScore(
+          users,
+          req,
+          schedule,
+          mode,
+          roleScarcity,
+          transportLimits,
+          currentGaps
+        )
 
-      console.log(`      ✅ ${candidates.length} candidati trovati`)
-      if (candidates.length <= 5) {
-        candidates.forEach((c, idx) => {
-          if (idx < 5) {  // Mostra top 5
+        const candidate = candidates.find(
+          c =>
+            !schedule.some(
+              s =>
+                s.userId === c.user.id &&
+                s.dayOfWeek === req.dayOfWeek &&
+                s.shiftType === req.shiftType
+            )
+        )
+
+        if (!candidate) {
+          if (assignedCount2 === 0) {
+            console.log(`      ❌ Nessun candidato disponibile`)
+          } else {
+            console.log(`      ⚠️  Nessun altro candidato (${assignedCount2}/${needed})`)
+          }
+          break
+        }
+
+        if (assignedCount2 === 0) {
+          console.log(`      ✅ ${candidates.length} candidati (ricalcolo a ogni posto)`)
+          const show = Math.min(5, candidates.length)
+          for (let idx = 0; idx < show; idx++) {
+            const c = candidates[idx]
             console.log(`         ${idx + 1}. ${c.user.username} (score: ${c.score.toFixed(1)}) - ${c.reason}`)
           }
-        })
-      } else {
-        // Mostra i top 3 e l'ultimo
-        candidates.slice(0, 3).forEach((c, idx) => {
-          console.log(`         ${idx + 1}. ${c.user.username} (score: ${c.score.toFixed(1)}) - ${c.reason}`)
-        })
-        console.log(`         ... altri ${candidates.length - 3} candidati`)
-      }
-      
-      // Assegna i migliori candidati
-      let assignedCount2 = 0
-      for (const candidate of candidates) {
-        if (assignedCount2 >= needed) break
-        
-        // Ottieni orario ottimale (con supporto orari personalizzati)
+          if (candidates.length > 5) {
+            console.log(`         ... altri ${candidates.length - 5} candidati`)
+          }
+        }
+
         const startTime = await this.getOptimalStartTime(
           req.shiftType,
-          req.role, 
-          req.dayOfWeek, 
+          req.role,
+          req.dayOfWeek,
           assignedStartTimes,
           candidate.user.username
         )
         const { end } = this.getGlobalShiftTimes(req.shiftType)
-        
-        // Crea turno
+
         const newShift: ScheduleShift = {
           userId: candidate.user.id,
           dayOfWeek: req.dayOfWeek,
@@ -928,14 +941,13 @@ export class MaxCoverageAlgorithm {
 
         schedule.push(newShift)
         assignedCount2++
-        
-        // Aggiorna contatore orari
+
         const key = `${req.dayOfWeek}_${req.shiftType}_${req.role}_${startTime}`
         assignedStartTimes.set(key, (assignedStartTimes.get(key) || 0) + 1)
-        
+
         console.log(`      ✅ ${candidate.user.username} → ${startTime}-${end} (${candidate.reason})`)
       }
-      
+
       if (assignedCount2 < needed) {
         console.log(`      ⚠️  Assegnati ${assignedCount2}/${needed}`)
       }
@@ -1122,15 +1134,27 @@ export class MaxCoverageAlgorithm {
           reasonParts.push('🎯 RUOLO-PREFERITO')
         }
 
-        // Chi ha sia PIZZAIOLO che CUCINA: favorisci il forno sul requisito PIZZAIOLO
-        // (evita di riempire solo cucina lasciando pizzaioli a 0)
+        // PIZZAIOLO + CUCINA: evita 2+0 quando servono entrambi (meglio 1+1 che 2+0)
         if (
           requirement.role === 'PIZZAIOLO' &&
           user.roles.includes('PIZZAIOLO') &&
           user.roles.includes('CUCINA')
         ) {
-          score += 100
-          reasonParts.push('🍕 PIZZAIOLO+CUCINA → preferenza forno')
+          const g = turnGaps
+          if (g && g.PIZZAIOLO.required > 0 && g.CUCINA.required > 0) {
+            const relP = g.PIZZAIOLO.gap / g.PIZZAIOLO.required
+            const relC = g.CUCINA.gap / g.CUCINA.required
+            if (relC <= relP + 0.001) {
+              score += 80
+              reasonParts.push('🍕 P+C → forno (cucina non più indietro)')
+            } else {
+              score -= 180
+              reasonParts.push('⚖️ P+C → preferisci cucina (no 2+0)')
+            }
+          } else {
+            score += 80
+            reasonParts.push('🍕 P+C → forno')
+          }
         }
 
         // 🤝 COORDINAMENTO VIP: Verifica se l'altro VIP è già nel turno
@@ -1238,8 +1262,8 @@ export class MaxCoverageAlgorithm {
         score -= userShiftsCount * 3  // Penalità normale per altri
         }
         
-      // 🎯 OTTIMIZZAZIONE GLOBALE: Considera i gap di altri ruoli
-      if (turnGaps && mode !== 'vip') {
+      // 🎯 OTTIMIZZAZIONE GLOBALE: Considera i gap di altri ruoli (anche VIP: bilancia forno/cucina)
+      if (turnGaps) {
         const currentRoleGap = turnGaps[requirement.role]
         
         // 🔴 PENALITÀ PESANTE: Se il ruolo è già coperto o sovra-coperto
