@@ -70,13 +70,14 @@ export class MaxCoverageAlgorithm {
     'valentino.dipietro': { pranzo: '11:00', cena: '17:00' }
   }
 
-  // 🎯 PREFERENZE RUOLI SPECIFICHE per coordinamento VIP
-  // Quando valentino e mario lavorano INSIEME nello stesso turno:
-  // - valentino → PIZZAIOLO (preferito)
-  // - mario → CUCINA (preferito)
+  // 🎯 PREFERENZE RUOLI SPECIFICHE per coordinamento VIP (solo vincolo stretto)
+  // Valentino è forzato su PIZZAIOLO in fase VIP.
+  // Mario ha sia PIZZAIOLO che CUCINA: NON va vincolato solo a CUCINA — altrimenti con
+  // PIZZAIOLO scoperto resta in cucina e il forno resta vuoto. I requisiti sono già
+  // ordinati con priorità ruolo (PIZZAIOLO > CUCINA), quindi Mario compete per PIZZAIOLO
+  // prima; se il turno è già coperto, può andare in CUCINA (es. con valentino al forno).
   private readonly VIP_ROLE_PREFERENCES: Record<string, Role> = {
-    'valentino.dipietro': 'PIZZAIOLO',
-    'mario.dipietro': 'CUCINA'
+    'valentino.dipietro': 'PIZZAIOLO'
   }
 
   /**
@@ -336,11 +337,11 @@ export class MaxCoverageAlgorithm {
       console.log(`   ${this.getDayName(req.dayOfWeek)} ${req.shiftType} ${req.role}: ${req.requiredStaff} persone (priorità: ${req.priority})`)
     })
     
-    // 3. FASE 0: Assegnamento Prioritario per VIP ai RUOLI PREFERITI
-    // Assegna valentino→PIZZAIOLO e mario→CUCINA prima di tutto
-    console.log(`\n\n🌟 === FASE 0: ASSEGNAMENTO VIP AI RUOLI PREFERITI ===`)
-    console.log(`   valentino.dipietro → PIZZAIOLO (preferito)`)
-    console.log(`   mario.dipietro → CUCINA (preferito)`)
+    // 3. FASE 0: Assegnamento Prioritario per VIP ai RUOLI PIZZAIOLO/CUCINA
+    // Valentino → solo PIZZAIOLO; Mario (PIZZAIOLO+CUCINA) → prima slot PIZZAIOLO poi CUCINA
+    console.log(`\n\n🌟 === FASE 0: ASSEGNAMENTO VIP AI RUOLI PIZZAIOLO/CUCINA ===`)
+    console.log(`   valentino.dipietro → PIZZAIOLO (vincolato)`)
+    console.log(`   mario.dipietro → PIZZAIOLO e/o CUCINA secondo priorità requisiti`)
     
     // Filtra solo i requisiti per PIZZAIOLO e CUCINA (ruoli preferiti dei VIP)
     const vipPreferredRequirements = sortedRequirements.filter(req => 
@@ -472,7 +473,8 @@ export class MaxCoverageAlgorithm {
 
   /**
    * Ottimizza il coordinamento tra valentino e mario
-   * Quando lavorano insieme, assicura: valentino→PIZZAIOLO, mario→CUCINA
+   * Quando entrambi sono nel turno in ruoli incrociati (valentino=CUCINA, mario=PIZZAIOLO),
+   * esegue lo swap verso valentino→PIZZAIOLO e mario→CUCINA se i ruoli lo consentono.
    */
   private optimizeVIPCoordination(
     schedule: ScheduleShift[],
@@ -1008,8 +1010,7 @@ export class MaxCoverageAlgorithm {
       if (mode === 'vip') {
         if (!this.isPriorityUser(user.username)) continue
         
-        // 🎯 VINCOLO VIP: In modalità VIP, assegna SOLO al ruolo preferito!
-        // valentino → PIZZAIOLO, mario → CUCINA
+        // 🎯 VINCOLO VIP: chi ha preferenza fitta (es. valentino) solo su quel ruolo
         const preferredRole = this.VIP_ROLE_PREFERENCES[user.username]
         if (preferredRole && requirement.role !== preferredRole) continue
       }
@@ -1114,11 +1115,22 @@ export class MaxCoverageAlgorithm {
         score += 500
         reasonParts.push('🌟 PRIORITARIO')
 
-        // 🎯 BONUS EXTRA per ruolo preferito (valentino→PIZZAIOLO, mario→CUCINA)
+        // 🎯 BONUS EXTRA per ruolo preferito vincolato (valentino → PIZZAIOLO)
         const preferredRole = this.VIP_ROLE_PREFERENCES[user.username]
         if (preferredRole && requirement.role === preferredRole) {
           score += 150
           reasonParts.push('🎯 RUOLO-PREFERITO')
+        }
+
+        // Chi ha sia PIZZAIOLO che CUCINA: favorisci il forno sul requisito PIZZAIOLO
+        // (evita di riempire solo cucina lasciando pizzaioli a 0)
+        if (
+          requirement.role === 'PIZZAIOLO' &&
+          user.roles.includes('PIZZAIOLO') &&
+          user.roles.includes('CUCINA')
+        ) {
+          score += 100
+          reasonParts.push('🍕 PIZZAIOLO+CUCINA → preferenza forno')
         }
 
         // 🤝 COORDINAMENTO VIP: Verifica se l'altro VIP è già nel turno
