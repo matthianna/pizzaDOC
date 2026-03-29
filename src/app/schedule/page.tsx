@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Users, AlertCircle, FileText } from 'lucide-react'
-import { addWeeks, subWeeks, isPast, isToday } from 'date-fns'
+import { isPast } from 'date-fns'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import {
   getWeekStart,
@@ -13,7 +13,10 @@ import {
   formatDate,
   formatMonthYearIt,
   shortWeekdayItFromDate,
+  utcCalendarDateKey,
+  appTodayCalendarDateKey,
 } from '@/lib/date-utils'
+import { normalizeDate } from '@/lib/normalize-date'
 import { Role, ShiftType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,10 +73,19 @@ export default function SchedulePage() {
     setLoading(true)
     try {
       const weekStart = currentWeek.toISOString()
-      const response = await fetch(`/api/user/schedule?weekStart=${weekStart}`)
+      const response = await fetch(`/api/user/schedule?weekStart=${encodeURIComponent(weekStart)}`, {
+        cache: 'no-store',
+      })
 
       if (response.ok) {
-        const shiftsData = await response.json()
+        const body = await response.json()
+        const shiftsData = body.shifts ?? []
+        if (body.weekStart) {
+          const normalized = normalizeDate(body.weekStart)
+          setCurrentWeek(prev =>
+            prev.getTime() === normalized.getTime() ? prev : normalized
+          )
+        }
         setShifts(shiftsData)
       }
     } catch (error) {
@@ -96,13 +108,11 @@ export default function SchedulePage() {
   }
 
   const goToPreviousWeek = () => {
-    // ⭐ USA getWeekStart per garantire normalizzazione UTC corretta
-    setCurrentWeek(prev => getWeekStart(subWeeks(prev, 1)))
+    setCurrentWeek(prev => addWeekCalendarDays(prev, -7))
   }
 
   const goToNextWeek = () => {
-    // ⭐ USA getWeekStart per garantire normalizzazione UTC corretta
-    setCurrentWeek(prev => getWeekStart(addWeeks(prev, 1)))
+    setCurrentWeek(prev => addWeekCalendarDays(prev, 7))
   }
 
   const goToCurrentWeek = () => {
@@ -175,7 +185,7 @@ export default function SchedulePage() {
     const shiftDate = addWeekCalendarDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
 
     // Se il turno non è oggi, controlla se è passato
-    if (!isToday(shiftDate)) {
+    if (utcCalendarDateKey(shiftDate) !== appTodayCalendarDateKey()) {
       return isPast(shiftDate)
     }
 
@@ -295,20 +305,20 @@ export default function SchedulePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
           {days.map((day, dayIndex) => {
             const dayShifts = shiftsByDay[dayIndex] || []
-            const isToday =
-              day.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10)
+            const columnIsToday =
+              utcCalendarDateKey(day) === appTodayCalendarDateKey()
 
             return (
-              <div key={dayIndex} className={`glass rounded-xl shadow-sm border overflow-hidden flex flex-col transition-all duration-300 ${isToday ? 'ring-2 ring-orange-400 border-orange-300 shadow-glow-orange transform scale-[1.02]' : 'border-white/40 hover:border-orange-200'}`}>
+              <div key={dayIndex} className={`glass rounded-xl shadow-sm border overflow-hidden flex flex-col transition-all duration-300 ${columnIsToday ? 'ring-2 ring-orange-400 border-orange-300 shadow-glow-orange transform scale-[1.02]' : 'border-white/40 hover:border-orange-200'}`}>
                 {/* Day Header */}
-                <div className={`px-3 py-3 text-center border-b ${isToday ? 'bg-gradient-to-b from-orange-500 to-orange-600 text-white border-orange-500' : 'bg-gradient-to-b from-gray-50 to-gray-100 border-gray-100'}`}>
-                  <div className={`text-sm font-black tracking-wider ${isToday ? 'text-white' : 'text-gray-500'}`}>
+                <div className={`px-3 py-3 text-center border-b ${columnIsToday ? 'bg-gradient-to-b from-orange-500 to-orange-600 text-white border-orange-500' : 'bg-gradient-to-b from-gray-50 to-gray-100 border-gray-100'}`}>
+                  <div className={`text-sm font-black tracking-wider ${columnIsToday ? 'text-white' : 'text-gray-500'}`}>
                     {shortWeekdayItFromDate(day).toUpperCase()}
                   </div>
-                  <div className={`text-lg font-bold ${isToday ? 'text-white' : 'text-gray-900'}`}>
+                  <div className={`text-lg font-bold ${columnIsToday ? 'text-white' : 'text-gray-900'}`}>
                     {String(day.getUTCDate()).padStart(2, '0')}
                   </div>
-                  {isToday && (
+                  {columnIsToday && (
                     <div className="text-[10px] text-orange-600 font-bold bg-white rounded-full px-2 py-0.5 inline-block mt-1 shadow-sm uppercase tracking-widest">Oggi</div>
                   )}
                 </div>

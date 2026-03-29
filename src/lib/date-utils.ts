@@ -46,6 +46,23 @@ export function addWeekCalendarDays(weekStart: Date, days: number): Date {
   )
 }
 
+/** Chiave YYYY-MM-DD del giorno di calendario UTC (allineata a weekStart DB / normalizeDate). */
+export function utcCalendarDateKey(date: Date): string {
+  const y = date.getUTCFullYear()
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const d = String(date.getUTCDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/** Oggi nel calendario operativo Europe/Rome, stessa forma YYYY-MM-DD per confronti con utcCalendarDateKey. */
+export function appTodayCalendarDateKey(now: Date = new Date()): string {
+  const z = new TZDate(now, APP_TIMEZONE)
+  const y = z.getFullYear()
+  const m = String(z.getMonth() + 1).padStart(2, '0')
+  const d = String(z.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 /**
  * Lunedì della settimana in Europe/Rome, espresso come Date UTC a mezzanotte del giorno
  * di calendario del lunedì (coerente con normalizeDate sul server dopo toISOString).

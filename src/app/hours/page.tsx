@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Clock, Send, AlertCircle, CheckCircle, XCircle, Calendar, History, Plus, BarChart3, TrendingUp, ChevronLeft, ChevronRight, User, Timer, ChevronDown } from 'lucide-react'
-import { format, addWeeks, subWeeks, parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
 import { getWeekStart, addWeekCalendarDays, formatMonthYearIt } from '@/lib/date-utils'
+import { normalizeDate } from '@/lib/normalize-date'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -67,53 +68,76 @@ export default function HoursPage() {
   const fetchShiftsAndHours = async () => {
     setLoading(true)
     try {
-      const weekStart = currentWeek.toISOString()
+      const weekStartIso = currentWeek.toISOString()
 
-      // Fetch shifts and worked hours
-      const [shiftsResponse, hoursResponse] = await Promise.all([
-        fetch(`/api/user/schedule?weekStart=${weekStart}`),
-        fetch(`/api/user/worked-hours?weekStart=${weekStart}`)
-      ])
-
-      if (shiftsResponse.ok && hoursResponse.ok) {
-        const shiftsData = await shiftsResponse.json()
-        const hoursData = await hoursResponse.json()
-
-        // Merge shifts with their worked hours
-        const shiftsWithHours = shiftsData.map((shift: Shift) => ({
-          ...shift,
-          workedHours: hoursData.find((wh: WorkedHours) => wh.shiftId === shift.id)
-        }))
-
-        // ✅ Sort shifts by ACTUAL DATE (not just day of week)
-        const sortedShifts = shiftsWithHours.sort((a: ShiftWithHours, b: ShiftWithHours) => {
-          const weekStartA = new Date(a.schedule.weekStart)
-          const shiftDateA = new Date(Date.UTC(
-            weekStartA.getUTCFullYear(),
-            weekStartA.getUTCMonth(),
-            weekStartA.getUTCDate() + a.dayOfWeek
-          ))
-
-          const weekStartB = new Date(b.schedule.weekStart)
-          const shiftDateB = new Date(Date.UTC(
-            weekStartB.getUTCFullYear(),
-            weekStartB.getUTCMonth(),
-            weekStartB.getUTCDate() + b.dayOfWeek
-          ))
-
-          if (shiftDateA.getTime() !== shiftDateB.getTime()) {
-            return shiftDateA.getTime() - shiftDateB.getTime()
-          }
-
-          if (a.shiftType !== b.shiftType) {
-            return a.shiftType === 'PRANZO' ? -1 : 1
-          }
-
-          return 0
-        })
-
-        setShifts(sortedShifts)
+      const shiftsResponse = await fetch(
+        `/api/user/schedule?weekStart=${encodeURIComponent(weekStartIso)}`,
+        { cache: 'no-store' }
+      )
+      if (!shiftsResponse.ok) {
+        showToast('Errore nel caricamento dei dati', 'error')
+        return
       }
+
+      const shiftsPayload = await shiftsResponse.json()
+      const shiftsData = shiftsPayload.shifts ?? []
+      const resolvedWeekIso =
+        typeof shiftsPayload.weekStart === 'string'
+          ? normalizeDate(shiftsPayload.weekStart).toISOString()
+          : weekStartIso
+
+      const hoursResponse = await fetch(
+        `/api/user/worked-hours?weekStart=${encodeURIComponent(resolvedWeekIso)}`,
+        { cache: 'no-store' }
+      )
+      if (!hoursResponse.ok) {
+        showToast('Errore nel caricamento dei dati', 'error')
+        return
+      }
+
+      if (shiftsPayload.weekStart) {
+        const normalized = normalizeDate(shiftsPayload.weekStart)
+        setCurrentWeek(prev =>
+          prev.getTime() === normalized.getTime() ? prev : normalized
+        )
+      }
+
+      const hoursData = await hoursResponse.json()
+
+      // Merge shifts with their worked hours
+      const shiftsWithHours = shiftsData.map((shift: Shift) => ({
+        ...shift,
+        workedHours: hoursData.find((wh: WorkedHours) => wh.shiftId === shift.id)
+      }))
+
+      // ✅ Sort shifts by ACTUAL DATE (not just day of week)
+      const sortedShifts = shiftsWithHours.sort((a: ShiftWithHours, b: ShiftWithHours) => {
+        const weekStartA = new Date(a.schedule.weekStart)
+        const shiftDateA = new Date(Date.UTC(
+          weekStartA.getUTCFullYear(),
+          weekStartA.getUTCMonth(),
+          weekStartA.getUTCDate() + a.dayOfWeek
+        ))
+
+        const weekStartB = new Date(b.schedule.weekStart)
+        const shiftDateB = new Date(Date.UTC(
+          weekStartB.getUTCFullYear(),
+          weekStartB.getUTCMonth(),
+          weekStartB.getUTCDate() + b.dayOfWeek
+        ))
+
+        if (shiftDateA.getTime() !== shiftDateB.getTime()) {
+          return shiftDateA.getTime() - shiftDateB.getTime()
+        }
+
+        if (a.shiftType !== b.shiftType) {
+          return a.shiftType === 'PRANZO' ? -1 : 1
+        }
+
+        return 0
+      })
+
+      setShifts(sortedShifts)
     } catch (error) {
       console.error('Error fetching data:', error)
       showToast('Errore nel caricamento dei dati', 'error')
@@ -203,11 +227,11 @@ export default function HoursPage() {
 
   const goToPreviousWeek = () => {
     lightClick()
-    setCurrentWeek(prev => getWeekStart(subWeeks(prev, 1)))
+    setCurrentWeek(prev => addWeekCalendarDays(prev, -7))
   }
   const goToNextWeek = () => {
     lightClick()
-    setCurrentWeek(prev => getWeekStart(addWeeks(prev, 1)))
+    setCurrentWeek(prev => addWeekCalendarDays(prev, 7))
   }
   const goToCurrentWeek = () => {
     lightClick()
