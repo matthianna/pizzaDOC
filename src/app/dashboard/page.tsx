@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import {
   Users, Calendar, Clock, BarChart3, UserCheck, TrendingUp, CalendarDays,
   AlertCircle, Settings, Shield, CheckIcon, Bike, UtensilsCrossed,
-  ChefHat, Pizza, ArrowRight, UserPlus
+  ChefHat, Pizza, ArrowRight, UserPlus, Sparkles
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -51,11 +51,21 @@ interface TodayShift {
   }
 }
 
+interface TodayHoliday {
+  id: string
+  closureType: string
+  description: string | null
+}
+
 interface TodayShiftsData {
   date: string
   dayOfWeek: number
   shifts: Record<string, TodayShift[]>
   totalWorkers: number
+  holidays?: TodayHoliday[]
+  isPranzoClosed?: boolean
+  isCenaClosed?: boolean
+  isFullClosure?: boolean
 }
 
 interface MyShift {
@@ -149,7 +159,7 @@ export default function DashboardPage() {
 
   const fetchTodayShifts = async () => {
     try {
-      const response = await fetch('/api/dashboard/today-shifts')
+      const response = await fetch('/api/dashboard/today-shifts', { cache: 'no-store' })
       if (response.ok) {
         const data = await response.json()
         setTodayShifts(data)
@@ -158,7 +168,11 @@ export default function DashboardPage() {
           date: new Date().toISOString(),
           dayOfWeek: 0,
           shifts: {},
-          totalWorkers: 0
+          totalWorkers: 0,
+          holidays: [],
+          isPranzoClosed: false,
+          isCenaClosed: false,
+          isFullClosure: false,
         })
       }
     } catch (error) {
@@ -167,7 +181,11 @@ export default function DashboardPage() {
         date: new Date().toISOString(),
         dayOfWeek: 0,
         shifts: {},
-        totalWorkers: 0
+        totalWorkers: 0,
+        holidays: [],
+        isPranzoClosed: false,
+        isCenaClosed: false,
+        isFullClosure: false,
       })
     }
   }
@@ -328,105 +346,240 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {todayShifts && (todayShifts.shifts['PRANZO']?.length > 0 || todayShifts.shifts['CENA']?.length > 0) ? (
-              <>
-                {['PRANZO', 'CENA'].map((type) => {
-                  const shifts = todayShifts.shifts[type] || []
-                  if (shifts.length === 0) return null
-                  
-                  return (
-                    <div key={type} className="bg-white rounded-[2rem] shadow-soft border border-gray-100 overflow-hidden">
-                      <div className={cn(
-                        "px-6 py-4 border-b border-gray-50 flex items-center justify-between",
-                        type === 'PRANZO' ? "bg-orange-50/30" : "bg-indigo-50/30"
-                      )}>
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "w-8 h-8 rounded-xl flex items-center justify-center shadow-sm",
-                            type === 'PRANZO' ? "bg-orange-100 text-orange-600" : "bg-indigo-100 text-indigo-600"
-                          )}>
-                            {type === 'PRANZO' ? <Pizza className="h-4 w-4" /> : <UtensilsCrossed className="h-4 w-4" />}
-                          </div>
-                          <span className={cn(
-                            "text-xs font-black uppercase tracking-[0.2em]",
-                            type === 'PRANZO' ? "text-orange-700" : "text-indigo-700"
-                          )}>
-                            Turno {type}
-                          </span>
+            {todayShifts && (() => {
+              const pranzoN = todayShifts.shifts['PRANZO']?.length ?? 0
+              const cenaN = todayShifts.shifts['CENA']?.length ?? 0
+              const hasWorkers = pranzoN > 0 || cenaN > 0
+              const hasHoliday = (todayShifts.holidays?.length ?? 0) > 0
+              const prClosed = !!todayShifts.isPranzoClosed
+              const ceClosed = !!todayShifts.isCenaClosed
+              const showSlot = (t: 'PRANZO' | 'CENA') =>
+                (t === 'PRANZO' ? prClosed : ceClosed) || (todayShifts.shifts[t]?.length ?? 0) > 0
+              const anySlot = showSlot('PRANZO') || showSlot('CENA')
+              const showEmpty = !hasWorkers && !hasHoliday && !anySlot
+
+              if (showEmpty) {
+                return (
+                  <div className="col-span-full bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 py-12 text-center">
+                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                      <Calendar className="h-8 w-8 text-gray-200" />
+                    </div>
+                    <p className="text-gray-400 font-black uppercase tracking-widest text-xs">
+                      Nessun turno programmato per oggi
+                    </p>
+                  </div>
+                )
+              }
+
+              const holidayDescriptions = [
+                ...new Set(
+                  (todayShifts.holidays ?? [])
+                    .map((h) => h.description?.trim())
+                    .filter(Boolean) as string[]
+                ),
+              ]
+
+              return (
+                <>
+                  {hasHoliday && (
+                    <div className="col-span-full rounded-[2rem] border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50/80 p-5 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200">
+                          <Sparkles className="h-5 w-5 text-amber-700" />
                         </div>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                          {shifts.length} {shifts.length === 1 ? 'Persona' : 'Persone'}
-                        </span>
-                      </div>
-                      <div className="p-4 grid grid-cols-1 gap-2">
-                        {shifts.map((s) => {
-                          const isCurrentUser = s.user.id === session?.user.id
-                          return (
-                            <div key={s.id} className={cn(
-                              "group flex items-center justify-between p-3 rounded-2xl transition-all duration-300",
-                              isCurrentUser 
-                                ? "bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-300 shadow-lg shadow-orange-100 ring-2 ring-orange-200 ring-offset-2" 
-                                : "bg-white border border-gray-100 hover:border-orange-200 hover:shadow-md"
-                            )}>
-                              <div className="flex items-center gap-3">
-                                <div className={cn(
-                                  "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                                  isCurrentUser 
-                                    ? "bg-orange-500 text-white shadow-lg shadow-orange-200" 
-                                    : "bg-gray-50 text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-600"
-                                )}>
-                                  {s.role === 'FATTORINO' ? <Bike className="h-5 w-5" /> : 
-                                   s.role === 'CUCINA' ? <ChefHat className="h-5 w-5" /> : 
-                                   <UserCheck className="h-5 w-5" />}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <p className={cn(
-                                      "text-sm font-black truncate leading-none",
-                                      isCurrentUser ? "text-orange-700" : "text-gray-900"
-                                    )}>
-                                      {s.user.username}
-                                    </p>
-                                    {isCurrentUser && (
-                                      <span className="px-2 py-0.5 bg-orange-500 text-white text-[8px] font-black uppercase tracking-wider rounded-full animate-pulse">
-                                        Tu
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className={cn(
-                                    "text-[9px] font-bold uppercase tracking-widest mt-1",
-                                    isCurrentUser ? "text-orange-500" : "text-gray-400"
-                                  )}>
-                                    {getRoleName(s.role as Role)}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex flex-col items-end">
-                                <span className={cn(
-                                  "text-[10px] font-black px-2 py-1 rounded-lg border",
-                                  isCurrentUser 
-                                    ? "text-orange-700 bg-orange-100 border-orange-200" 
-                                    : "text-gray-900 bg-gray-50 border-gray-100"
-                                )}>
-                                  {s.startTime}
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })}
+                        <div className="min-w-0 text-left">
+                          <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-900">
+                            Festa / chiusura oggi
+                          </p>
+                          {todayShifts.isFullClosure && (
+                            <p className="text-sm font-bold text-amber-950 mt-1">
+                              Locale chiuso tutto il giorno
+                            </p>
+                          )}
+                          {!todayShifts.isFullClosure && prClosed && !ceClosed && (
+                            <p className="text-sm font-bold text-amber-950 mt-1">Chiusura solo a pranzo</p>
+                          )}
+                          {!todayShifts.isFullClosure && ceClosed && !prClosed && (
+                            <p className="text-sm font-bold text-amber-950 mt-1">Chiusura solo a cena</p>
+                          )}
+                          {holidayDescriptions.length > 0 && (
+                            <p className="text-xs font-semibold text-amber-900/90 mt-2 leading-snug">
+                              {holidayDescriptions.join(' · ')}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  )
-                })}
-              </>
-            ) : (
-              <div className="col-span-full bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 py-12 text-center">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                  <Calendar className="h-8 w-8 text-gray-200" />
-                </div>
-                <p className="text-gray-400 font-black uppercase tracking-widest text-xs">Nessun turno programmato per oggi</p>
-              </div>
-            )}
+                  )}
+                  {(['PRANZO', 'CENA'] as const).map((type) => {
+                    const shifts = todayShifts.shifts[type] || []
+                    const closed = type === 'PRANZO' ? prClosed : ceClosed
+                    if (closed && shifts.length === 0) {
+                      return (
+                        <div
+                          key={type}
+                          className="bg-white rounded-[2rem] shadow-soft border border-red-100 overflow-hidden"
+                        >
+                          <div
+                            className={cn(
+                              'px-6 py-4 border-b flex items-center justify-between',
+                              type === 'PRANZO' ? 'bg-red-50/40 border-red-100' : 'bg-red-50/30 border-red-100'
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={cn(
+                                  'w-8 h-8 rounded-xl flex items-center justify-center shadow-sm',
+                                  type === 'PRANZO'
+                                    ? 'bg-red-100 text-red-600'
+                                    : 'bg-red-100 text-red-700'
+                                )}
+                              >
+                                {type === 'PRANZO' ? (
+                                  <Pizza className="h-4 w-4" />
+                                ) : (
+                                  <UtensilsCrossed className="h-4 w-4" />
+                                )}
+                              </div>
+                              <span className="text-xs font-black uppercase tracking-[0.2em] text-red-800">
+                                Turno {type}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">
+                              Chiuso
+                            </span>
+                          </div>
+                          <div className="p-8 flex flex-col items-center justify-center text-center">
+                            <Sparkles className="h-8 w-8 text-red-300 mb-2" />
+                            <p className="text-sm font-black text-red-700 uppercase tracking-wide">
+                              Nessun servizio
+                            </p>
+                            <p className="text-[11px] text-red-600/80 mt-1 font-medium">
+                              Giorno festivo o chiusura programmata
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    }
+                    if (shifts.length === 0) return null
+
+                    return (
+                      <div
+                        key={type}
+                        className="bg-white rounded-[2rem] shadow-soft border border-gray-100 overflow-hidden"
+                      >
+                        <div
+                          className={cn(
+                            'px-6 py-4 border-b border-gray-50 flex items-center justify-between',
+                            type === 'PRANZO' ? 'bg-orange-50/30' : 'bg-indigo-50/30'
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={cn(
+                                'w-8 h-8 rounded-xl flex items-center justify-center shadow-sm',
+                                type === 'PRANZO'
+                                  ? 'bg-orange-100 text-orange-600'
+                                  : 'bg-indigo-100 text-indigo-600'
+                              )}
+                            >
+                              {type === 'PRANZO' ? (
+                                <Pizza className="h-4 w-4" />
+                              ) : (
+                                <UtensilsCrossed className="h-4 w-4" />
+                              )}
+                            </div>
+                            <span
+                              className={cn(
+                                'text-xs font-black uppercase tracking-[0.2em]',
+                                type === 'PRANZO' ? 'text-orange-700' : 'text-indigo-700'
+                              )}
+                            >
+                              Turno {type}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            {shifts.length} {shifts.length === 1 ? 'Persona' : 'Persone'}
+                          </span>
+                        </div>
+                        <div className="p-4 grid grid-cols-1 gap-2">
+                          {shifts.map((s) => {
+                            const isCurrentUser = s.user.id === session?.user.id
+                            return (
+                              <div
+                                key={s.id}
+                                className={cn(
+                                  'group flex items-center justify-between p-3 rounded-2xl transition-all duration-300',
+                                  isCurrentUser
+                                    ? 'bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-300 shadow-lg shadow-orange-100 ring-2 ring-orange-200 ring-offset-2'
+                                    : 'bg-white border border-gray-100 hover:border-orange-200 hover:shadow-md'
+                                )}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={cn(
+                                      'w-10 h-10 rounded-xl flex items-center justify-center transition-colors',
+                                      isCurrentUser
+                                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-200'
+                                        : 'bg-gray-50 text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-600'
+                                    )}
+                                  >
+                                    {s.role === 'FATTORINO' ? (
+                                      <Bike className="h-5 w-5" />
+                                    ) : s.role === 'CUCINA' ? (
+                                      <ChefHat className="h-5 w-5" />
+                                    ) : (
+                                      <UserCheck className="h-5 w-5" />
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p
+                                        className={cn(
+                                          'text-sm font-black truncate leading-none',
+                                          isCurrentUser ? 'text-orange-700' : 'text-gray-900'
+                                        )}
+                                      >
+                                        {s.user.username}
+                                      </p>
+                                      {isCurrentUser && (
+                                        <span className="px-2 py-0.5 bg-orange-500 text-white text-[8px] font-black uppercase tracking-wider rounded-full animate-pulse">
+                                          Tu
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p
+                                      className={cn(
+                                        'text-[9px] font-bold uppercase tracking-widest mt-1',
+                                        isCurrentUser ? 'text-orange-500' : 'text-gray-400'
+                                      )}
+                                    >
+                                      {getRoleName(s.role as Role)}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                  <span
+                                    className={cn(
+                                      'text-[10px] font-black px-2 py-1 rounded-lg border',
+                                      isCurrentUser
+                                        ? 'text-orange-700 bg-orange-100 border-orange-200'
+                                        : 'text-gray-900 bg-gray-50 border-gray-100'
+                                    )}
+                                  >
+                                    {s.startTime}
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
+              )
+            })()}
           </div>
         </div>
 
