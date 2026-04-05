@@ -15,14 +15,17 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     
     if (!session || !session.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const weekStartParam = searchParams.get('weekStart')
     
     if (!weekStartParam) {
-      return NextResponse.json({ error: 'Week start parameter is required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Parametro settimana mancante' },
+        { status: 400 }
+      )
     }
 
     const weekStart = normalizeDate(weekStartParam)
@@ -67,7 +70,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching worked hours:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Errore del server. Riprova più tardi.' },
       { status: 500 }
     )
   }
@@ -79,14 +82,14 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     
     if (!session || !session.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
     const { shiftId, startTime, endTime, totalHours } = await request.json()
 
     if (!shiftId || !startTime || !endTime || typeof totalHours !== 'number') {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Dati obbligatori mancanti' },
         { status: 400 }
       )
     }
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     if (!shift) {
       return NextResponse.json(
-        { error: 'Shift not found or not assigned to you' },
+        { error: 'Turno non trovato o non assegnato a te' },
         { status: 404 }
       )
     }
@@ -138,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     if (existingHours) {
       return NextResponse.json(
-        { error: 'Hours already submitted for this shift' },
+        { error: 'Hai già inviato le ore per questo turno' },
         { status: 400 }
       )
     }
@@ -147,14 +150,14 @@ export async function POST(request: NextRequest) {
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
     if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
       return NextResponse.json(
-        { error: 'Invalid time format' },
+        { error: 'Formato orario non valido' },
         { status: 400 }
       )
     }
 
     if (startTime >= endTime) {
       return NextResponse.json(
-        { error: 'End time must be after start time' },
+        { error: "L'orario di fine deve essere dopo quello di inizio" },
         { status: 400 }
       )
     }
@@ -171,7 +174,7 @@ export async function POST(request: NextRequest) {
 
     if (Math.abs(calculatedHours - totalHours) > 0.01) {
       return NextResponse.json(
-        { error: 'Total hours calculation mismatch' },
+        { error: 'Il totale ore non corrisponde agli orari inseriti' },
         { status: 400 }
       )
     }
@@ -197,7 +200,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error submitting worked hours:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Errore del server. Riprova più tardi.' },
       { status: 500 }
     )
   }

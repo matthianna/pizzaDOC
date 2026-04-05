@@ -7,7 +7,13 @@ import { Clock, Send, AlertCircle, CheckCircle, XCircle, Calendar, History, Plus
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
-import { getWeekStart, addWeekCalendarDays, formatMonthYearIt } from '@/lib/date-utils'
+import { TZDate } from '@date-fns/tz'
+import {
+  getWeekStart,
+  addWeekCalendarDays,
+  formatMonthYearIt,
+  shiftCalendarDateUtc,
+} from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Button } from '@/components/ui/button'
@@ -112,19 +118,8 @@ export default function HoursPage() {
 
       // ✅ Sort shifts by ACTUAL DATE (not just day of week)
       const sortedShifts = shiftsWithHours.sort((a: ShiftWithHours, b: ShiftWithHours) => {
-        const weekStartA = new Date(a.schedule.weekStart)
-        const shiftDateA = new Date(Date.UTC(
-          weekStartA.getUTCFullYear(),
-          weekStartA.getUTCMonth(),
-          weekStartA.getUTCDate() + a.dayOfWeek
-        ))
-
-        const weekStartB = new Date(b.schedule.weekStart)
-        const shiftDateB = new Date(Date.UTC(
-          weekStartB.getUTCFullYear(),
-          weekStartB.getUTCMonth(),
-          weekStartB.getUTCDate() + b.dayOfWeek
-        ))
+        const shiftDateA = shiftCalendarDateUtc(a.schedule.weekStart, a.dayOfWeek)
+        const shiftDateB = shiftCalendarDateUtc(b.schedule.weekStart, b.dayOfWeek)
 
         if (shiftDateA.getTime() !== shiftDateB.getTime()) {
           return shiftDateA.getTime() - shiftDateB.getTime()
@@ -214,8 +209,16 @@ export default function HoursPage() {
         showToast(isResubmission ? 'Ore corrette e reinviate!' : 'Ore inviate per approvazione!', 'success')
         fetchShiftsAndHours() // Refresh data
       } else {
-        const error = await response.json()
-        showToast(error.error || 'Errore nell\'invio', 'error')
+        let message = 'Errore nell\'invio'
+        try {
+          const data = await response.json()
+          if (typeof data?.error === 'string' && data.error.trim()) {
+            message = data.error
+          }
+        } catch {
+          /* ignore */
+        }
+        showToast(message, 'error')
       }
     } catch (error) {
       console.error('Error submitting hours:', error)
@@ -387,7 +390,6 @@ export default function HoursPage() {
                   <ShiftCard
                     key={shift.id}
                     shift={shift}
-                    currentWeek={currentWeek}
                     onSubmitHours={submitHours}
                     submitting={submitting === shift.id}
                     getStatusIcon={getStatusIcon}
@@ -498,7 +500,6 @@ function DashboardStatCard({ label, value, icon: Icon, color }: any) {
 // Componente separato per ogni turno
 function ShiftCard({
   shift,
-  currentWeek,
   onSubmitHours,
   submitting,
   getStatusIcon,
@@ -507,7 +508,6 @@ function ShiftCard({
   lightClick
 }: {
   shift: ShiftWithHours
-  currentWeek: Date
   onSubmitHours: (shift: ShiftWithHours, startTime: string, endTime: string) => void
   submitting: boolean
   getStatusIcon: (status: HoursStatus) => React.JSX.Element
@@ -518,12 +518,19 @@ function ShiftCard({
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
 
-  const shiftDate = addWeekCalendarDays(currentWeek, shift.dayOfWeek)
+  const shiftDayUtc = shiftCalendarDateUtc(shift.schedule.weekStart, shift.dayOfWeek)
   const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number)
-  const shiftStartDateTime = new Date(shiftDate)
-  shiftStartDateTime.setHours(shiftStartHour, shiftStartMinute, 0, 0)
+  const shiftStartInstant = new TZDate(
+    shiftDayUtc.getUTCFullYear(),
+    shiftDayUtc.getUTCMonth(),
+    shiftDayUtc.getUTCDate(),
+    shiftStartHour,
+    shiftStartMinute,
+    0,
+    'Europe/Rome'
+  )
 
-  const hasShiftStarted = shiftStartDateTime <= new Date()
+  const hasShiftStarted = shiftStartInstant.getTime() <= Date.now()
   const isPastShift = hasShiftStarted
 
   useEffect(() => {
@@ -562,7 +569,7 @@ function ShiftCard({
         <div className="flex items-center gap-5">
           <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex flex-col items-center justify-center font-black border border-gray-100">
             <span className="text-[10px] text-gray-400 uppercase leading-none">{getDayName(shift.dayOfWeek).substring(0, 3)}</span>
-            <span className="text-xl text-gray-900 leading-none mt-1">{shiftDate.getUTCDate()}</span>
+            <span className="text-xl text-gray-900 leading-none mt-1">{shiftDayUtc.getUTCDate()}</span>
           </div>
           <div>
             <div className="flex items-center gap-3">
