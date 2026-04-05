@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
 import { ensureUtcMondayWeekStart } from '@/lib/date-utils'
+import { resolveScheduleForRequestedWeek } from '@/lib/resolve-schedule-for-week'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -64,12 +65,7 @@ export async function GET(request: NextRequest) {
     const schedule =
       scheduleRows.length === 0
         ? null
-        : scheduleRows.reduce((best, cur) =>
-            Math.abs(cur.weekStart.getTime() - weekStart.getTime()) <=
-            Math.abs(best.weekStart.getTime() - weekStart.getTime())
-              ? cur
-              : best
-          )
+        : resolveScheduleForRequestedWeek(scheduleRows, weekStart)
 
     const displayWeekStart = ensureUtcMondayWeekStart(schedule?.weekStart ?? weekStart)
 

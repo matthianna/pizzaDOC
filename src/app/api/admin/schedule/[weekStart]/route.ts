@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
+import { resolveScheduleForRequestedWeek } from '@/lib/resolve-schedule-for-week'
 import { logAuditAction } from '@/lib/audit-logger'
 
 // ⚠️ IMPORTANTE: Disabilita cache per avere sempre dati aggiornati
@@ -61,12 +62,7 @@ export async function GET(
     const schedule =
       scheduleRows.length === 0
         ? null
-        : scheduleRows.reduce((best, cur) =>
-            Math.abs(cur.weekStart.getTime() - weekStart.getTime()) <=
-            Math.abs(best.weekStart.getTime() - weekStart.getTime())
-              ? cur
-              : best
-          )
+        : resolveScheduleForRequestedWeek(scheduleRows, weekStart)
 
     if (!schedule) {
       return NextResponse.json(

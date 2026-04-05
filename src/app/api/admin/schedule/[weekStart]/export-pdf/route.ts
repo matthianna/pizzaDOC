@@ -10,6 +10,7 @@ import {
   formatUtcWeekSubtitleIt,
   utcCalendarDateKey,
 } from '@/lib/date-utils'
+import { resolveScheduleForRequestedWeek } from '@/lib/resolve-schedule-for-week'
 import puppeteerCore from 'puppeteer-core'
 import chromium from '@sparticuz/chromium'
 
@@ -58,12 +59,7 @@ export async function GET(
     const schedule =
       scheduleRows.length === 0
         ? null
-        : scheduleRows.reduce((best, cur) =>
-            Math.abs(cur.weekStart.getTime() - rawWeekStart.getTime()) <=
-            Math.abs(best.weekStart.getTime() - rawWeekStart.getTime())
-              ? cur
-              : best
-          )
+        : resolveScheduleForRequestedWeek(scheduleRows, rawWeekStart)
 
     if (!schedule) {
       return NextResponse.json(
