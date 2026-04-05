@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { TZDate } from '@date-fns/tz'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
-import { addWeekCalendarDays } from '@/lib/date-utils'
+import { addWeekCalendarDays, ensureUtcMondayWeekStart } from '@/lib/date-utils'
+
+const APP_TIMEZONE = 'Europe/Rome'
+const DAY_MS = 86400000
 
 // GET - Fetch worked hours for a user
 export async function GET(request: NextRequest) {
@@ -22,16 +26,23 @@ export async function GET(request: NextRequest) {
     }
 
     const weekStart = normalizeDate(weekStartParam)
+    const candidateTimes = [
+      weekStart.getTime() - DAY_MS,
+      weekStart.getTime(),
+      weekStart.getTime() + DAY_MS,
+    ]
+    const weekStartCandidates = [
+      ...new Set(candidateTimes.map((t) => normalizeDate(new Date(t)).getTime())),
+    ].map((t) => new Date(t))
 
-    // Find all worked hours for user's shifts in this week
     const workedHours = await prisma.worked_hours.findMany({
       where: {
         userId: session.user.id,
         shifts: {
           schedules: {
-            weekStart: weekStart
-          }
-        }
+            weekStart: { in: weekStartCandidates },
+          },
+        },
       },
       include: {
         shifts: {
@@ -98,17 +109,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ⏰ Verifica che il turno sia effettivamente iniziato
-    const weekStart = new Date(shift.schedules.weekStart)
-    weekStart.setHours(0, 0, 0, 0)
-    const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
-    
+    const ws = ensureUtcMondayWeekStart(shift.schedules.weekStart)
+    const shiftDate = addWeekCalendarDays(ws, shift.dayOfWeek)
+
     const [shiftStartHour, shiftStartMinute] = shift.startTime.split(':').map(Number)
-    const shiftStartDateTime = new Date(shiftDate)
-    shiftStartDateTime.setHours(shiftStartHour, shiftStartMinute, 0, 0)
-    
+    const shiftStartInstant = new TZDate(
+      shiftDate.getUTCFullYear(),
+      shiftDate.getUTCMonth(),
+      shiftDate.getUTCDate(),
+      shiftStartHour,
+      shiftStartMinute,
+      0,
+      APP_TIMEZONE
+    )
+
     const now = new Date()
-    if (shiftStartDateTime > now) {
+    if (shiftStartInstant.getTime() > now.getTime()) {
       return NextResponse.json(
         { error: `Non puoi inserire le ore prima che il turno inizi (alle ${shift.startTime})` },
         { status: 400 }

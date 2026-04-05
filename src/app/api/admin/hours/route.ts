@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import {
+  isUtcCalendarMonth,
+  shiftCalendarDateUtc,
+  utcWeekStartBoundsForCalendarMonth,
+} from '@/lib/date-utils'
 
 // GET /api/admin/hours - Get all hours for review
 export async function GET(request: NextRequest) {
@@ -29,15 +34,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (month && year) {
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1)
-      const endDate = new Date(parseInt(year), parseInt(month), 0)
+      const yearNum = parseInt(year, 10)
+      const monthNum = parseInt(month, 10)
+      const { gte, lte } = utcWeekStartBoundsForCalendarMonth(yearNum, monthNum)
       whereClause.shifts = {
         schedules: {
           weekStart: {
-            gte: startDate,
-            lte: endDate
-          }
-        }
+            gte,
+            lte,
+          },
+        },
       }
     }
 
@@ -72,34 +78,34 @@ export async function GET(request: NextRequest) {
       }
     }))
 
+    const yearNum = year ? parseInt(year, 10) : NaN
+    const monthNum = month ? parseInt(month, 10) : NaN
+    const filterByShiftMonth =
+      Number.isFinite(yearNum) && Number.isFinite(monthNum) && month && year
+
+    const inMonth = filterByShiftMonth
+      ? mapped.filter((a: any) =>
+          isUtcCalendarMonth(
+            shiftCalendarDateUtc(a.shifts.schedules.weekStart, a.shifts.dayOfWeek),
+            yearNum,
+            monthNum
+          )
+        )
+      : mapped
+
     // ✅ Ordina per DATA EFFETTIVA DEL TURNO (chronological order)
-    const sorted = mapped.sort((a: any, b: any) => {
-      // Calcola la data effettiva del turno per A
-      const weekStartA = new Date(a.shifts.schedules.weekStart)
-      const shiftDateA = new Date(Date.UTC(
-        weekStartA.getUTCFullYear(),
-        weekStartA.getUTCMonth(),
-        weekStartA.getUTCDate() + a.shifts.dayOfWeek
-      ))
-      
-      // Calcola la data effettiva del turno per B
-      const weekStartB = new Date(b.shifts.schedules.weekStart)
-      const shiftDateB = new Date(Date.UTC(
-        weekStartB.getUTCFullYear(),
-        weekStartB.getUTCMonth(),
-        weekStartB.getUTCDate() + b.shifts.dayOfWeek
-      ))
-      
-      // Ordina cronologicamente (dal più vecchio al più recente)
+    const sorted = inMonth.sort((a: any, b: any) => {
+      const shiftDateA = shiftCalendarDateUtc(a.shifts.schedules.weekStart, a.shifts.dayOfWeek)
+      const shiftDateB = shiftCalendarDateUtc(b.shifts.schedules.weekStart, b.shifts.dayOfWeek)
+
       if (shiftDateA.getTime() !== shiftDateB.getTime()) {
         return shiftDateA.getTime() - shiftDateB.getTime()
       }
-      
-      // Se stessa data, ordina per tipo turno (PRANZO prima di CENA)
+
       if (a.shifts.shiftType !== b.shifts.shiftType) {
         return a.shifts.shiftType === 'PRANZO' ? -1 : 1
       }
-      
+
       return 0
     })
 

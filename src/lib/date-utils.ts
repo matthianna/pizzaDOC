@@ -47,6 +47,42 @@ export function addWeekCalendarDays(weekStart: Date, days: number): Date {
   )
 }
 
+/** Lunedì (calendario UTC) della settimana operativa che contiene questo giorno UTC. */
+export function utcMondayOfWeekContainingCalendarDay(day: Date): Date {
+  const n = normalizeDate(day)
+  const daysSinceMonday = (n.getUTCDay() + 6) % 7
+  return addWeekCalendarDays(n, -daysSinceMonday)
+}
+
+/**
+ * Data (mezzanotte UTC) del giorno del turno: `weekStart` + `dayOfWeek` (0 = lunedì).
+ * Allineato a piano turni / `normalizeDate` nel DB.
+ */
+export function shiftCalendarDateUtc(weekStart: Date | string, dayOfWeek: number): Date {
+  const ws = ensureUtcMondayWeekStart(normalizeDate(weekStart))
+  return addWeekCalendarDays(ws, dayOfWeek)
+}
+
+/**
+ * Range di `schedules.weekStart` da interrogare in Prisma per includere ogni settimana
+ * che ha almeno un giorno nel mese di calendario UTC (year, month 1–12).
+ */
+export function utcWeekStartBoundsForCalendarMonth(
+  year: number,
+  month1to12: number
+): { gte: Date; lte: Date } {
+  const monthFirst = new Date(Date.UTC(year, month1to12 - 1, 1, 0, 0, 0, 0))
+  const monthLast = new Date(Date.UTC(year, month1to12, 0, 0, 0, 0, 0))
+  return {
+    gte: utcMondayOfWeekContainingCalendarDay(monthFirst),
+    lte: utcMondayOfWeekContainingCalendarDay(monthLast),
+  }
+}
+
+export function isUtcCalendarMonth(d: Date, year: number, month1to12: number): boolean {
+  return d.getUTCFullYear() === year && d.getUTCMonth() === month1to12 - 1
+}
+
 /**
  * Alcuni `schedules.weekStart` nel DB sono salvati come domenica (UTC) mentre le colonne
  * 0–6 sono Lunedì–Domenica operativo. Sposta al lunedì UTC successivo senza cambiare gli indici dei turni.

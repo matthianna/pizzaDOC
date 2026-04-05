@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculateHours } from '@/lib/utils'
+import {
+  isUtcCalendarMonth,
+  shiftCalendarDateUtc,
+  utcWeekStartBoundsForCalendarMonth,
+} from '@/lib/date-utils'
 
 // GET /api/hours - Get user's worked hours
 export async function GET(request: NextRequest) {
@@ -17,40 +22,51 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month')
     const year = searchParams.get('year')
 
-    let dateFilter = {}
+    let dateFilter: Record<string, unknown> = {}
+    let yearNum = NaN
+    let monthNum = NaN
     if (month && year) {
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1)
-      const endDate = new Date(parseInt(year), parseInt(month), 0)
+      yearNum = parseInt(year, 10)
+      monthNum = parseInt(month, 10)
+      const { gte, lte } = utcWeekStartBoundsForCalendarMonth(yearNum, monthNum)
       dateFilter = {
-        shift: {
-          schedule: {
-            weekStart: {
-              gte: startDate,
-              lte: endDate
-            }
-          }
-        }
+        shifts: {
+          schedules: {
+            weekStart: { gte, lte },
+          },
+        },
       }
     }
 
     const workedHours = await prisma.worked_hours.findMany({
       where: {
         userId: session.user.id,
-        ...dateFilter
+        ...dateFilter,
       },
       include: {
-        shift: {
+        shifts: {
           include: {
-            schedule: true
-          }
-        }
+            schedules: true,
+          },
+        },
       },
       orderBy: {
-        submittedAt: 'desc'
-      }
+        submittedAt: 'desc',
+      },
     })
 
-    return NextResponse.json(workedHours)
+    const filtered =
+      month && year && Number.isFinite(yearNum) && Number.isFinite(monthNum)
+        ? workedHours.filter((wh) =>
+            isUtcCalendarMonth(
+              shiftCalendarDateUtc(wh.shifts.schedules.weekStart, wh.shifts.dayOfWeek),
+              yearNum,
+              monthNum
+            )
+          )
+        : workedHours
+
+    return NextResponse.json(filtered)
   } catch (error) {
     console.error('Error fetching worked hours:', error)
     return NextResponse.json(
