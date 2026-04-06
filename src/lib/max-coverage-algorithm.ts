@@ -1,6 +1,8 @@
 import { prisma } from './prisma'
 import { Role, ShiftType, TransportType } from '@prisma/client'
 import { isPriorityUser } from './utils'
+import { addWeekCalendarDays, ensureUtcMondayWeekStart, utcCalendarDateKey } from './date-utils'
+import { normalizeDate } from './normalize-date'
 
 interface UserProfile {
   id: string
@@ -1331,10 +1333,20 @@ export class MaxCoverageAlgorithm {
    * Carica profili utenti con disponibilità filtrate per la settimana
    */
   private async loadUserProfiles(weekStart: Date): Promise<UserProfile[]> {
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 6)
-    weekEnd.setHours(23, 59, 59, 999)
-    
+    const ws = ensureUtcMondayWeekStart(normalizeDate(weekStart))
+    const lastDay = addWeekCalendarDays(ws, 6)
+    const weekEnd = new Date(
+      Date.UTC(
+        lastDay.getUTCFullYear(),
+        lastDay.getUTCMonth(),
+        lastDay.getUTCDate(),
+        23,
+        59,
+        59,
+        999
+      )
+    )
+
     const users = await prisma.user.findMany({
       where: { isActive: true },
       include: {
@@ -1349,7 +1361,7 @@ export class MaxCoverageAlgorithm {
               {
                 AND: [
                   { startDate: { lte: weekEnd } },
-                  { endDate: { gte: weekStart } }
+                  { endDate: { gte: ws } }
                 ]
               }
             ]
@@ -1370,16 +1382,11 @@ export class MaxCoverageAlgorithm {
         // Filtra disponibilità escludendo giorni in assenza
         const absences = user.absences || []
         const filteredAvailabilities = user.availabilities.filter(av => {
-          const dayDate = new Date(weekStart)
-          dayDate.setDate(weekStart.getDate() + av.dayOfWeek)
-          dayDate.setHours(12, 0, 0, 0)
-
+          const dayKey = utcCalendarDateKey(addWeekCalendarDays(ws, av.dayOfWeek))
           const isAbsent = absences.some(absence => {
-            const absStart = new Date(absence.startDate)
-            const absEnd = new Date(absence.endDate)
-            absStart.setHours(12, 0, 0, 0)
-            absEnd.setHours(12, 0, 0, 0)
-            return dayDate >= absStart && dayDate <= absEnd
+            const startKey = utcCalendarDateKey(normalizeDate(absence.startDate))
+            const endKey = utcCalendarDateKey(normalizeDate(absence.endDate))
+            return dayKey >= startKey && dayKey <= endKey
           })
 
           return !isAbsent
@@ -1402,16 +1409,25 @@ export class MaxCoverageAlgorithm {
    */
   private async loadShiftRequirements(weekStart: Date): Promise<ShiftRequirement[]> {
     const shiftLimits = await prisma.shift_limits.findMany()
-    
-    // ✅ Carica i giorni festivi per questa settimana
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekEnd.getDate() + 6)
-    weekEnd.setHours(23, 59, 59, 999)
-    
+
+    const ws = ensureUtcMondayWeekStart(normalizeDate(weekStart))
+    const lastDay = addWeekCalendarDays(ws, 6)
+    const weekEnd = new Date(
+      Date.UTC(
+        lastDay.getUTCFullYear(),
+        lastDay.getUTCMonth(),
+        lastDay.getUTCDate(),
+        23,
+        59,
+        59,
+        999
+      )
+    )
+
     const holidays = await prisma.holidays.findMany({
       where: {
         date: {
-          gte: weekStart,
+          gte: ws,
           lte: weekEnd
         }
       }
@@ -1424,16 +1440,11 @@ export class MaxCoverageAlgorithm {
     
     // ✅ Helper per controllare se un turno è festivo
     const isShiftHoliday = (dayOfWeek: number, shiftType: ShiftType): boolean => {
-      const shiftDate = new Date(weekStart)
-      shiftDate.setDate(shiftDate.getDate() + dayOfWeek)
-      shiftDate.setHours(0, 0, 0, 0)
-      
+      const shiftKey = utcCalendarDateKey(addWeekCalendarDays(ws, dayOfWeek))
+
       return holidays.some(h => {
-        const holidayDate = new Date(h.date)
-        holidayDate.setHours(0, 0, 0, 0)
-        
-        if (shiftDate.getTime() !== holidayDate.getTime()) return false
-        
+        if (utcCalendarDateKey(normalizeDate(h.date)) !== shiftKey) return false
+
         if (h.closureType === 'FULL_DAY') return true
         if (h.closureType === 'PRANZO_ONLY' && shiftType === 'PRANZO') return true
         if (h.closureType === 'CENA_ONLY' && shiftType === 'CENA') return true
