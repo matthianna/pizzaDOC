@@ -56,10 +56,18 @@ export default function AdminHoursPage() {
   const [editStartTime, setEditStartTime] = useState('')
   const [editEndTime, setEditEndTime] = useState('')
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set())
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const { lightClick, success: successClick } = useHaptics()
 
   const isAdminUser = true // This is an admin page
+
+  const yearOptions = (() => {
+    const y = new Date().getFullYear()
+    const from = Math.min(2023, y - 1)
+    const to = Math.max(y + 1, 2027)
+    return Array.from({ length: to - from + 1 }, (_, i) => from + i)
+  })()
 
   useEffect(() => {
     fetchWorkedHours()
@@ -67,19 +75,41 @@ export default function AdminHoursPage() {
 
   const fetchWorkedHours = async () => {
     setLoading(true)
+    setFetchError(null)
     try {
-      let url = `/api/admin/hours?month=${selectedMonth}&year=${selectedYear}`
+      const params = new URLSearchParams()
+      if (selectedMonth === 0) {
+        params.set('allMonths', '1')
+      } else {
+        params.set('month', String(selectedMonth))
+        params.set('year', String(selectedYear))
+      }
       if (filterStatus !== 'ALL') {
-        url += `&status=${filterStatus}`
+        params.set('status', filterStatus)
       }
 
-      const response = await fetch(url)
+      const response = await fetch(`/api/admin/hours?${params.toString()}`, {
+        cache: 'no-store',
+        credentials: 'include',
+      })
       if (response.ok) {
         const data = await response.json()
-        setWorkedHours(data)
+        setWorkedHours(Array.isArray(data) ? data : [])
+      } else {
+        let msg = 'Impossibile caricare le ore'
+        try {
+          const err = await response.json()
+          if (typeof err?.error === 'string') msg = err.error
+        } catch {
+          /* ignore */
+        }
+        setFetchError(msg)
+        setWorkedHours([])
       }
     } catch (error) {
       console.error('Error fetching worked hours:', error)
+      setFetchError('Errore di connessione')
+      setWorkedHours([])
     } finally {
       setLoading(false)
     }
@@ -329,31 +359,48 @@ export default function AdminHoursPage() {
             
             <ReactSelect
               label="Mese"
-              options={Array.from({ length: 12 }, (_, i) => ({
-                value: i + 1,
-                label: new Date(2024, i).toLocaleDateString('it-IT', { month: 'long' })
-              }))}
-              value={{ value: selectedMonth, label: new Date(2024, selectedMonth - 1).toLocaleDateString('it-IT', { month: 'long' }) }}
+              options={[
+                { value: 0, label: 'Tutti i mesi' },
+                ...Array.from({ length: 12 }, (_, i) => ({
+                  value: i + 1,
+                  label: new Date(2024, i).toLocaleDateString('it-IT', { month: 'long' }),
+                })),
+              ]}
+              value={{
+                value: selectedMonth,
+                label:
+                  selectedMonth === 0
+                    ? 'Tutti i mesi'
+                    : new Date(2024, selectedMonth - 1).toLocaleDateString('it-IT', { month: 'long' }),
+              }}
               onChange={(option) => {
                 lightClick()
-                setSelectedMonth(option?.value as number || 1)
+                setSelectedMonth((option?.value as number) ?? 1)
               }}
             />
 
-            <ReactSelect
-              label="Anno"
-              options={[2024, 2025, 2026].map(year => ({
-                value: year,
-                label: year.toString()
-              }))}
-              value={{ value: selectedYear, label: selectedYear.toString() }}
-              onChange={(option) => {
-                lightClick()
-                setSelectedYear(option?.value as number || 2024)
-              }}
-            />
+            <div className={cn(selectedMonth === 0 && 'opacity-40 pointer-events-none')}>
+              <ReactSelect
+                label="Anno"
+                options={yearOptions.map((y) => ({
+                  value: y,
+                  label: String(y),
+                }))}
+                value={{ value: selectedYear, label: String(selectedYear) }}
+                onChange={(option) => {
+                  lightClick()
+                  setSelectedYear((option?.value as number) ?? new Date().getFullYear())
+                }}
+              />
+            </div>
           </div>
         </div>
+
+        {fetchError && (
+          <div className="rounded-[2rem] border border-red-200 bg-red-50 px-6 py-4 text-sm font-bold text-red-800">
+            {fetchError}
+          </div>
+        )}
 
         {/* Worked Hours List */}
         <div className="space-y-6">

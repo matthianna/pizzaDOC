@@ -66,6 +66,9 @@ export function shiftCalendarDateUtc(weekStart: Date | string, dayOfWeek: number
 /**
  * Range di `schedules.weekStart` da interrogare in Prisma per includere ogni settimana
  * che ha almeno un giorno nel mese di calendario UTC (year, month 1–12).
+ *
+ * Margini ampi: nel DB `weekStart` può essere domenica UTC o sfasato di un giorno rispetto
+ * al lunedì teorico; il filtro preciso sul mese resta nella post-query (`isUtcCalendarMonth` + `shiftCalendarDateUtc`).
  */
 export function utcWeekStartBoundsForCalendarMonth(
   year: number,
@@ -73,9 +76,11 @@ export function utcWeekStartBoundsForCalendarMonth(
 ): { gte: Date; lte: Date } {
   const monthFirst = new Date(Date.UTC(year, month1to12 - 1, 1, 0, 0, 0, 0))
   const monthLast = new Date(Date.UTC(year, month1to12, 0, 0, 0, 0, 0))
+  const firstMon = utcMondayOfWeekContainingCalendarDay(monthFirst)
+  const lastMon = utcMondayOfWeekContainingCalendarDay(monthLast)
   return {
-    gte: utcMondayOfWeekContainingCalendarDay(monthFirst),
-    lte: utcMondayOfWeekContainingCalendarDay(monthLast),
+    gte: addWeekCalendarDays(firstMon, -2),
+    lte: addWeekCalendarDays(lastMon, 7),
   }
 }
 

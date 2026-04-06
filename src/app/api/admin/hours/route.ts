@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import type { HoursStatus, Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import {
@@ -13,7 +14,8 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || !session.user.roles.includes('ADMIN')) {
+    const roles = session?.user?.roles
+    if (!session?.user?.id || !Array.isArray(roles) || !roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -21,29 +23,29 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const month = searchParams.get('month')
     const year = searchParams.get('year')
+    const allMonths =
+      searchParams.get('allMonths') === '1' ||
+      searchParams.get('allMonths') === 'true'
 
-    const whereClause: {
-      status?: string;
-      user?: {
-        id: string;
-      };
-    } = {}
+    const whereClause: Prisma.worked_hoursWhereInput = {}
 
     if (status) {
-      whereClause.status = status
+      whereClause.status = status as HoursStatus
     }
 
-    if (month && year) {
+    if (!allMonths && month && year) {
       const yearNum = parseInt(year, 10)
       const monthNum = parseInt(month, 10)
-      const { gte, lte } = utcWeekStartBoundsForCalendarMonth(yearNum, monthNum)
-      whereClause.shifts = {
-        schedules: {
-          weekStart: {
-            gte,
-            lte,
+      if (Number.isFinite(yearNum) && Number.isFinite(monthNum)) {
+        const { gte, lte } = utcWeekStartBoundsForCalendarMonth(yearNum, monthNum)
+        whereClause.shifts = {
+          schedules: {
+            weekStart: {
+              gte,
+              lte,
+            },
           },
-        },
+        }
       }
     }
 
@@ -81,7 +83,10 @@ export async function GET(request: NextRequest) {
     const yearNum = year ? parseInt(year, 10) : NaN
     const monthNum = month ? parseInt(month, 10) : NaN
     const filterByShiftMonth =
-      Number.isFinite(yearNum) && Number.isFinite(monthNum) && month && year
+      !allMonths &&
+      Number.isFinite(yearNum) &&
+      Number.isFinite(monthNum) &&
+      Boolean(month && year)
 
     const inMonth = filterByShiftMonth
       ? mapped.filter((a: any) =>
