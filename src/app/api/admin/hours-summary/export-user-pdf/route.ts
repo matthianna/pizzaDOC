@@ -2,8 +2,9 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format, startOfMonth, endOfMonth } from 'date-fns'
+import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { shiftCalendarDateUtc, utcCalendarDateKey } from '@/lib/date-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +13,8 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
-    if (!session.user.roles.includes('ADMIN')) {
+    const roles = session.user.roles
+    if (!Array.isArray(roles) || !roles.includes('ADMIN')) {
       return Response.json({ error: 'Accesso negato' }, { status: 403 })
     }
 
@@ -56,25 +58,12 @@ export async function GET(request: NextRequest) {
     })
 
     // ✅ Filtra in base alla data EFFETTIVA del turno (non submittedAt)
-    const workedHours = allWorkedHours.filter(wh => {
-      // Forza parsing UTC per evitare problemi di timezone
-      const weekStartStr = wh.shifts.schedules.weekStart.toISOString().split('T')[0]
-      const [y, m, d] = weekStartStr.split('-').map(Number)
-      const weekStartDate = new Date(Date.UTC(y, m - 1, d))
-      
-      const shiftDate = new Date(Date.UTC(
-        weekStartDate.getUTCFullYear(),
-        weekStartDate.getUTCMonth(),
-        weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
-      ))
-      
+    const workedHours = allWorkedHours.filter((wh) => {
+      const shiftDate = shiftCalendarDateUtc(wh.shifts.schedules.weekStart, wh.shifts.dayOfWeek)
       const shiftYear = shiftDate.getUTCFullYear()
       const shiftMonth = shiftDate.getUTCMonth() + 1
-      
-      // Filtra per anno e mese
       if (shiftYear !== year) return false
       if (month && shiftMonth !== month) return false
-      
       return true
     })
 
@@ -128,7 +117,7 @@ function generatePDFHtml(
 
   // Raggruppa per settimana
   const weeklyData = workedHours.reduce((acc, wh) => {
-    const weekKey = format(wh.shifts.schedules.weekStart, 'yyyy-MM-dd')
+    const weekKey = utcCalendarDateKey(wh.shifts.schedules.weekStart)
     if (!acc[weekKey]) {
       acc[weekKey] = {
         weekStart: wh.shifts.schedules.weekStart,
@@ -161,20 +150,9 @@ function generatePDFHtml(
   // ✅ Ordina i turni dentro ogni settimana cronologicamente
   weeks.forEach(week => {
     week.shifts.sort((a, b) => {
-      const weekStart = new Date(week.weekStart)
-      const shiftDateA = new Date(Date.UTC(
-        weekStart.getUTCFullYear(),
-        weekStart.getUTCMonth(),
-        weekStart.getUTCDate() + a.shifts.dayOfWeek
-      ))
-      
-      const shiftDateB = new Date(Date.UTC(
-        weekStart.getUTCFullYear(),
-        weekStart.getUTCMonth(),
-        weekStart.getUTCDate() + b.shifts.dayOfWeek
-      ))
-      
-      // Ordina cronologicamente
+      const shiftDateA = shiftCalendarDateUtc(a.shifts.schedules.weekStart, a.shifts.dayOfWeek)
+      const shiftDateB = shiftCalendarDateUtc(b.shifts.schedules.weekStart, b.shifts.dayOfWeek)
+
       if (shiftDateA.getTime() !== shiftDateB.getTime()) {
         return shiftDateA.getTime() - shiftDateB.getTime()
       }

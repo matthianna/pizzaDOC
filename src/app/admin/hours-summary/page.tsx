@@ -10,6 +10,7 @@ import { Role, ShiftType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Select as ReactSelect } from '@/components/ui/react-select'
 import { useHaptics } from '@/hooks/use-haptics'
+import { shiftCalendarDateUtc } from '@/lib/date-utils'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 
 interface MissingHoursShift {
@@ -552,19 +553,17 @@ export default function AdminHoursSummaryPage() {
                                 {isMonthExpanded && (
                                   <div className="p-4 bg-white/50 space-y-2">
                                     {month.details.map((detail) => {
-                                      const weekStartDate = new Date(detail.shift.schedules.weekStart)
-                                      const shiftDate = new Date(Date.UTC(
-                                        weekStartDate.getUTCFullYear(),
-                                        weekStartDate.getUTCMonth(),
-                                        weekStartDate.getUTCDate() + detail.shift.dayOfWeek
-                                      ))
-                                      
+                                      const shiftDate = shiftCalendarDateUtc(
+                                        detail.shift.schedules.weekStart,
+                                        detail.shift.dayOfWeek
+                                      )
+
                                       return (
                                         <div key={detail.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 hover:border-blue-100 transition-all shadow-sm">
                                           <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-xl bg-gray-50 flex flex-col items-center justify-center font-black text-gray-400 border border-gray-100">
                                               <span className="text-[8px] uppercase leading-none">{getDayName(detail.shift.dayOfWeek).substring(0, 3)}</span>
-                                              <span className="text-sm leading-none mt-1">{format(shiftDate, 'd')}</span>
+                                              <span className="text-sm leading-none mt-1">{shiftDate.getUTCDate()}</span>
                                             </div>
                                             <div>
                                               <p className="text-xs font-black text-gray-900 uppercase tracking-tight">{getShiftTypeName(detail.shift.shiftType)}</p>

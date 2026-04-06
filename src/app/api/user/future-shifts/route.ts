@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { normalizeDate } from '@/lib/normalize-date'
-import { addWeekCalendarDays } from '@/lib/date-utils'
+import { addWeekCalendarDays, getWeekStart, shiftCalendarDateUtc, shiftInstantRome } from '@/lib/date-utils'
 
 export async function GET() {
   try {
@@ -16,44 +15,44 @@ export async function GET() {
     const now = new Date()
 
     // Get user's future shifts (not past and not already requested for substitution)
+    const fromWeek = addWeekCalendarDays(getWeekStart(now), -7)
+
     const shifts = await prisma.shifts.findMany({
       where: {
         userId: session.user.id,
-        schedule: {
+        schedules: {
           weekStart: {
-            gte: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7) // Include current week
-          }
+            gte: fromWeek,
+          },
         },
         NOT: {
           substitutions: {
             some: {
               status: {
-                in: ['PENDING', 'APPLIED', 'APPROVED']
-              }
-            }
-          }
-        }
+                in: ['PENDING', 'APPLIED', 'APPROVED'],
+              },
+            },
+          },
+        },
       },
       include: {
-        schedule: {
+        schedules: {
           select: {
-            weekStart: true
-          }
-        }
+            weekStart: true,
+          },
+        },
       },
       orderBy: [
-        { schedule: { weekStart: 'asc' } },
+        { schedules: { weekStart: 'asc' } },
         { dayOfWeek: 'asc' },
-        { shiftType: 'asc' }
-      ]
+        { shiftType: 'asc' },
+      ],
     })
 
-    // Filter out past shifts
-    const futureShifts = shifts.filter(shift => {
-      const weekStart = normalizeDate(shift.schedules.weekStart)
-      // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-      const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
-      return shiftDate > now
+    const futureShifts = shifts.filter((shift) => {
+      const shiftDay = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
+      const startInst = shiftInstantRome(shiftDay, shift.startTime)
+      return startInst.getTime() > Date.now()
     })
 
     return NextResponse.json(futureShifts)

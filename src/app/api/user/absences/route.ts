@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { convertJsDayToOurDay, getWeekStart } from '@/lib/date-utils'
+import { addWeekCalendarDays, convertJsDayToOurDay, getWeekStart } from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     while (currentWeek <= end) {
       weekStarts.push(new Date(currentWeek))
-      currentWeek = new Date(Date.UTC(currentWeek.getUTCFullYear(), currentWeek.getUTCMonth(), currentWeek.getUTCDate() + 7))
+      currentWeek = addWeekCalendarDays(currentWeek, 7)
     }
 
     // Per ogni giorno nell'intervallo di assenza, disabilita disponibilità
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       })
 
       // Vai al giorno successivo (usa UTC)
-      dayToCheck = new Date(Date.UTC(dayToCheck.getUTCFullYear(), dayToCheck.getUTCMonth(), dayToCheck.getUTCDate() + 1))
+      dayToCheck = addWeekCalendarDays(dayToCheck, 1)
     }
 
     // 🔔 Invia notifica Push agli Amministratori

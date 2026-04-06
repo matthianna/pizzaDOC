@@ -5,7 +5,7 @@ import { isAdmin } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { createNotification, sendPushToUsers } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
-import { getNextWeekStart } from '@/lib/date-utils'
+import { appTodayUtcMidnight, getNextWeekStart, shiftCalendarDateUtc, shiftInstantRome } from '@/lib/date-utils'
 import { isPriorityUser } from '@/lib/utils'
 
 // POST /api/notifications/broadcast - Send notification to all users
@@ -45,16 +45,14 @@ export async function POST(request: Request) {
                 .filter(u => u.primaryRole !== 'ADMIN' || isPriorityUser(u.username))
                 .map(u => u.id)
         } else if (filter === 'missing_hours') {
-            // Trova tutti i turni passati che non hanno ore inserite (o rifiutate)
-            const today = new Date()
-            today.setHours(0, 0, 0, 0)
+            const todayOps = appTodayUtcMidnight()
 
             const pastShifts = await prisma.shifts.findMany({
                 where: {
                     schedules: {
                         weekStart: {
-                            lt: today
-                        }
+                            lt: todayOps,
+                        },
                     },
                     user: {
                         isActive: true,
@@ -71,12 +69,14 @@ export async function POST(request: Request) {
             })
 
             const targetUserIds = new Set<string>()
-            pastShifts.forEach(shift => {
-                const shiftDate = new Date(shift.schedules.weekStart)
-                shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
+            pastShifts.forEach((shift) => {
+                const shiftDay = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
+                const endInst = shiftInstantRome(shiftDay, shift.endTime)
 
-                // Verifica che il turno sia effettivamente nel passato e manchino le ore
-                if (shiftDate < today && (!shift.worked_hours || shift.worked_hours.status === 'REJECTED')) {
+                if (
+                    endInst.getTime() < Date.now() &&
+                    (!shift.worked_hours || shift.worked_hours.status === 'REJECTED')
+                ) {
                     // Solo se non è admin o se è un VIP
                     if (shift.user.primaryRole !== 'ADMIN' || isPriorityUser(shift.user.username)) {
                         targetUserIds.add(shift.userId)
@@ -179,13 +179,12 @@ export async function GET(request: Request) {
         }
 
         // --- Hours Stats ---
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        
+        const todayOps = appTodayUtcMidnight()
+
         const pastShifts = await prisma.shifts.findMany({
             where: {
                 schedules: {
-                    weekStart: { lt: today }
+                    weekStart: { lt: todayOps },
                 },
                 user: {
                     isActive: true,
@@ -202,11 +201,11 @@ export async function GET(request: Request) {
         const missingHoursUsers = new Set<string>()
         const submittedHoursUsers = new Set<string>()
 
-        pastShifts.forEach(shift => {
-            const shiftDate = new Date(shift.schedules.weekStart)
-            shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
-            
-            if (shiftDate < today) {
+        pastShifts.forEach((shift) => {
+            const shiftDay = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
+            const endInst = shiftInstantRome(shiftDay, shift.endTime)
+
+            if (endInst.getTime() < Date.now()) {
                 // Solo se non è admin o se è un VIP
                 if (shift.user.primaryRole !== 'ADMIN' || isPriorityUser(shift.user.username)) {
                     if (!shift.worked_hours || shift.worked_hours.status === 'REJECTED') {

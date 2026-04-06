@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 
 // GET /api/user/absences/check-week - Check which days are covered by absences
 export async function GET(request: NextRequest) {
@@ -25,13 +26,18 @@ export async function GET(request: NextRequest) {
 
     const weekStart = normalizeDate(weekStartParam)
     
-    // Calcola weekEnd in UTC
-    const weekEnd = new Date(Date.UTC(
-      weekStart.getUTCFullYear(),
-      weekStart.getUTCMonth(),
-      weekStart.getUTCDate() + 6,
-      23, 59, 59, 999
-    ))
+    const weekEndDay = addWeekCalendarDays(weekStart, 6)
+    const weekEnd = new Date(
+      Date.UTC(
+        weekEndDay.getUTCFullYear(),
+        weekEndDay.getUTCMonth(),
+        weekEndDay.getUTCDate(),
+        23,
+        59,
+        59,
+        999
+      )
+    )
 
     // Trova assenze che si sovrappongono con questa settimana
     const absences = await prisma.absences.findMany({
@@ -52,12 +58,7 @@ export async function GET(request: NextRequest) {
     const disabledDays: number[] = []
     
     for (let i = 0; i < 7; i++) {
-      // Calcola il giorno corrente in UTC
-      const currentDay = new Date(Date.UTC(
-        weekStart.getUTCFullYear(),
-        weekStart.getUTCMonth(),
-        weekStart.getUTCDate() + i
-      ))
+      const currentDay = addWeekCalendarDays(weekStart, i)
       
       // Controlla se questo giorno è coperto da un'assenza
       const isDayDisabled = absences.some(absence => {

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { addDays } from 'date-fns'
-import { normalizeDate } from '@/lib/normalize-date'
+import { shiftCalendarDateUtc, shiftInstantRome } from '@/lib/date-utils'
 
 // GET /api/substitutions - Get substitutions for user
 export async function GET(request: NextRequest) {
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
               username: true
             }
           },
-          schedule: true,
+          schedules: true,
           substitutions: {
             where: {
               status: 'PENDING'
@@ -52,10 +51,10 @@ export async function GET(request: NextRequest) {
           }
         },
         orderBy: [
-          { schedule: { weekStart: 'asc' } },
+          { schedules: { weekStart: 'asc' } },
           { dayOfWeek: 'asc' },
-          { shiftType: 'asc' }
-        ]
+          { shiftType: 'asc' },
+        ],
       })
 
       return NextResponse.json(availableShifts)
@@ -131,8 +130,8 @@ export async function POST(request: NextRequest) {
         }
       },
       include: {
-        schedule: true
-      }
+        schedules: true,
+      },
     })
 
     if (!shift) {
@@ -143,8 +142,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has the required role
-    const user_roles = await prisma.userRole.findMany({
-      where: { userId: session.user.id }
+    const user_roles = await prisma.user_roles.findMany({
+      where: { userId: session.user.id },
     })
     
     const hasRequiredRole = user_roles.some(ur => ur.role === shift.role)
@@ -155,17 +154,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Set deadline (e.g., 24 hours before shift start)
-    const weekStartDate = normalizeDate(shift.schedules.weekStart)
-    // Calcola la data del turno in UTC
-    const shiftDate = new Date(Date.UTC(
-      weekStartDate.getUTCFullYear(),
-      weekStartDate.getUTCMonth(),
-      weekStartDate.getUTCDate() + shift.dayOfWeek
-    ))
-    const deadline = addDays(shiftDate, -1) // 1 day before
+    const shiftDay = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
+    const startInst = shiftInstantRome(shiftDay, shift.startTime)
+    const deadline = new Date(startInst.getTime() - 24 * 60 * 60 * 1000)
 
-    if (new Date() > deadline) {
+    if (Date.now() > deadline.getTime()) {
       return NextResponse.json(
         { error: 'Substitution deadline has passed' },
         { status: 400 }

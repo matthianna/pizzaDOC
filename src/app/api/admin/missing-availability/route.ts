@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || !session.user.roles.includes('ADMIN')) {
+    const roles = session?.user?.roles
+    if (!session?.user?.id || !Array.isArray(roles) || !roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -37,13 +38,18 @@ export async function GET(request: NextRequest) {
       normalizeDate(new Date(weekStart.getTime() + dayMs)),
     ]
 
-    // Fine settimana (domenica) fine giornata UTC
-    const weekEnd = new Date(Date.UTC(
-      weekStart.getUTCFullYear(),
-      weekStart.getUTCMonth(),
-      weekStart.getUTCDate() + 6,
-      23, 59, 59, 999
-    ))
+    const weekEndDay = addWeekCalendarDays(weekStart, 6)
+    const weekEnd = new Date(
+      Date.UTC(
+        weekEndDay.getUTCFullYear(),
+        weekEndDay.getUTCMonth(),
+        weekEndDay.getUTCDate(),
+        23,
+        59,
+        59,
+        999
+      )
+    )
 
     console.log(
       `🔍 [Missing Availability API] weekStart: ${weekStart.toISOString()} candidati: ${weekStartCandidates.map((d) => d.toISOString()).join(', ')}`

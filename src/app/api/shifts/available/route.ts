@@ -1,72 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isAfter, endOfDay } from 'date-fns'
-import { normalizeDate } from '@/lib/normalize-date'
+import { addWeekCalendarDays, appTodayUtcMidnight, shiftCalendarDateUtc, shiftInstantRome } from '@/lib/date-utils'
 
 // GET /api/shifts/available - Get available shifts for user to submit hours
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const now = new Date()
+    const todayOps = appTodayUtcMidnight(now)
+    const weekUpper = addWeekCalendarDays(todayOps, 6)
 
-    // Get user's shifts where they can submit hours
     const shifts = await prisma.shifts.findMany({
       where: {
         userId: session.user.id,
-        // Only shifts that have ended (schedule date + shift end time is past)
-        schedule: {
+        schedules: {
           weekStart: {
-            lt: now // Only past weeks for now (simplified)
-          }
+            lte: weekUpper,
+          },
         },
-        // Don't show shifts that already have hours submitted
-        worked_hours: null
+        worked_hours: null,
       },
       include: {
-        schedule: true,
-        worked_hours: true
+        schedules: true,
+        worked_hours: true,
       },
       orderBy: [
-        { schedule: { weekStart: 'desc' } },
+        { schedules: { weekStart: 'desc' } },
         { dayOfWeek: 'asc' },
-        { shiftType: 'asc' }
-      ]
+        { shiftType: 'asc' },
+      ],
     })
 
-    // Filter shifts that have actually ended
-    const availableShifts = shifts.filter(shift => {
-      const weekStartDate = normalizeDate(shift.schedules.weekStart)
-      // Calcola la data del turno in UTC
-      const shiftDate = new Date(Date.UTC(
-        weekStartDate.getUTCFullYear(),
-        weekStartDate.getUTCMonth(),
-        weekStartDate.getUTCDate() + shift.dayOfWeek
-      ))
-      
-      const [endHour, endMin] = shift.endTime.split(':').map(Number)
-      const shiftEndTime = new Date(Date.UTC(
-        shiftDate.getUTCFullYear(),
-        shiftDate.getUTCMonth(),
-        shiftDate.getUTCDate(),
-        endHour, endMin, 0, 0
-      ))
-      
-      return isAfter(now, shiftEndTime)
+    const availableShifts = shifts.filter((shift) => {
+      const shiftDay = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
+      const endInst = shiftInstantRome(shiftDay, shift.endTime)
+      return endInst.getTime() < Date.now()
     })
 
     return NextResponse.json(availableShifts)
   } catch (error) {
     console.error('Error fetching available shifts:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

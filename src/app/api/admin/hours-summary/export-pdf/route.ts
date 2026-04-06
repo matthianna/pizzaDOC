@@ -4,12 +4,14 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { shiftCalendarDateUtc } from '@/lib/date-utils'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || !session.user.roles.includes('ADMIN')) {
+    const roles = session?.user?.roles
+    if (!session?.user?.id || !Array.isArray(roles) || !roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -63,26 +65,12 @@ export async function GET(request: NextRequest) {
     })
 
     // ✅ PRIMA filtra i workedHours per anno/mese basandosi sulla data EFFETTIVA del turno
-    const filteredWorkedHours = workedHours.filter(wh => {
-      // Forza parsing UTC per evitare problemi di timezone
-      const weekStartStr = wh.shifts.schedules.weekStart.toISOString().split('T')[0]
-      const [y, m, d] = weekStartStr.split('-').map(Number)
-      const weekStartDate = new Date(Date.UTC(y, m - 1, d))
-      
-      const shiftDate = new Date(Date.UTC(
-        weekStartDate.getUTCFullYear(),
-        weekStartDate.getUTCMonth(),
-        weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
-      ))
-      
+    const filteredWorkedHours = workedHours.filter((wh) => {
+      const shiftDate = shiftCalendarDateUtc(wh.shifts.schedules.weekStart, wh.shifts.dayOfWeek)
       const shiftYear = shiftDate.getUTCFullYear()
-      const shiftMonth = shiftDate.getUTCMonth() + 1 // getUTCMonth() returns 0-11
-      
-      // Filtra per anno
+      const shiftMonth = shiftDate.getUTCMonth() + 1
       if (shiftYear !== year) return false
-      // Filtra per mese (se specificato)
       if (month !== null && shiftMonth !== month) return false
-      
       return true
     })
 
@@ -105,22 +93,11 @@ export async function GET(request: NextRequest) {
       yearlyTotal: number
     }> = {}
 
-    filteredWorkedHours.forEach(wh => {
+    filteredWorkedHours.forEach((wh) => {
       const userId = wh.user.id
-      
-      // ✅ Calcola la data EFFETTIVA del turno usando UTC
-      // Forza parsing UTC per evitare problemi di timezone
-      const weekStartStr = wh.shifts.schedules.weekStart.toISOString().split('T')[0]
-      const [y, m, d] = weekStartStr.split('-').map(Number)
-      const weekStartDate = new Date(Date.UTC(y, m - 1, d))
-      
-      const shiftDate = new Date(Date.UTC(
-        weekStartDate.getUTCFullYear(),
-        weekStartDate.getUTCMonth(),
-        weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
-      ))
-      
-      const monthKey = shiftDate.toISOString().slice(0, 7) // YYYY-MM format basato sulla DATA DEL TURNO
+
+      const shiftDate = shiftCalendarDateUtc(wh.shifts.schedules.weekStart, wh.shifts.dayOfWeek)
+      const monthKey = shiftDate.toISOString().slice(0, 7)
 
       if (!summary[userId]) {
         summary[userId] = {
@@ -147,21 +124,9 @@ export async function GET(request: NextRequest) {
     Object.values(summary).forEach(userSummary => {
       Object.values(userSummary.monthlyHours).forEach((monthData: any) => {
         monthData.details.sort((a: any, b: any) => {
-          const weekStartA = new Date(a.shift.schedules.weekStart)
-          const shiftDateA = new Date(Date.UTC(
-            weekStartA.getUTCFullYear(),
-            weekStartA.getUTCMonth(),
-            weekStartA.getUTCDate() + a.shift.dayOfWeek
-          ))
-          
-          const weekStartB = new Date(b.shift.schedules.weekStart)
-          const shiftDateB = new Date(Date.UTC(
-            weekStartB.getUTCFullYear(),
-            weekStartB.getUTCMonth(),
-            weekStartB.getUTCDate() + b.shift.dayOfWeek
-          ))
-          
-          // Ordina cronologicamente
+          const shiftDateA = shiftCalendarDateUtc(a.shift.schedules.weekStart, a.shift.dayOfWeek)
+          const shiftDateB = shiftCalendarDateUtc(b.shift.schedules.weekStart, b.shift.dayOfWeek)
+
           if (shiftDateA.getTime() !== shiftDateB.getTime()) {
             return shiftDateA.getTime() - shiftDateB.getTime()
           }

@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format } from 'date-fns'
-import { it } from 'date-fns/locale'
-import { normalizeDate } from '@/lib/normalize-date'
-import { getWeekStart } from '@/lib/date-utils'
+import { getDayName } from '@/lib/utils'
+import {
+  appTodayCalendarDateKey,
+  getWeekStart,
+  shiftCalendarDateUtc,
+  shiftInstantRome,
+  utcCalendarDateKey,
+} from '@/lib/date-utils'
 
 export async function GET() {
   try {
@@ -15,7 +19,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const today = normalizeDate(new Date())
+    const todayKey = appTodayCalendarDateKey()
 
     // Usa getWeekStart per calcolare correttamente l'inizio della settimana
     const startOfWeek = getWeekStart(new Date())
@@ -38,17 +42,12 @@ export async function GET() {
 
     // Trasforma i turni in un formato più leggibile e filtra solo i FUTURI
     const formattedShifts = myShifts
-      .map(shift => {
-        const weekStartDate = normalizeDate(shift.schedules.weekStart)
-        // Usa UTC per calcolare la data del turno
-        const shiftDate = new Date(Date.UTC(
-          weekStartDate.getUTCFullYear(),
-          weekStartDate.getUTCMonth(),
-          weekStartDate.getUTCDate() + shift.dayOfWeek
-        ))
+      .map((shift) => {
+        const shiftDayUtc = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
+        const startInst = shiftInstantRome(shiftDayUtc, shift.startTime)
 
-        const dayName = format(shiftDate, 'EEEE', { locale: it })
-        const dateStr = shiftDate.toISOString()
+        const dayName = getDayName(shift.dayOfWeek)
+        const dateStr = shiftDayUtc.toISOString()
 
         return {
           id: shift.id,
@@ -59,21 +58,20 @@ export async function GET() {
           role: shift.role,
           startTime: shift.startTime,
           endTime: shift.endTime,
-          isToday: shiftDate.toDateString() === today.toDateString(),
-          isPast: shiftDate < today,
-          shiftDateObj: shiftDate
+          isToday: utcCalendarDateKey(shiftDayUtc) === todayKey,
+          isPast: startInst.getTime() < Date.now(),
+          shiftDateObj: shiftDayUtc,
+          _sortTime: startInst.getTime(),
         }
       })
-      .filter(shift => !shift.isPast) // FILTRA SOLO TURNI FUTURI O OGGI
+      .filter((shift) => !shift.isPast)
       .sort((a, b) => {
-        // Ordina per data effettiva (prima per data, poi per tipo turno)
-        const dateCompare = a.shiftDateObj.getTime() - b.shiftDateObj.getTime()
-        if (dateCompare !== 0) return dateCompare
-        // Se stesso giorno, PRANZO prima di CENA
+        const t = a._sortTime - b._sortTime
+        if (t !== 0) return t
         return a.shiftType === 'PRANZO' ? -1 : 1
       })
-      .slice(0, 10) // Mostra max 10 turni prossimi
-      .map(({ shiftDateObj, ...shift }) => shift) // Rimuovi shiftDateObj dal risultato
+      .slice(0, 10)
+      .map(({ shiftDateObj, _sortTime, ...shift }) => shift)
 
     return NextResponse.json({
       shifts: formattedShifts,

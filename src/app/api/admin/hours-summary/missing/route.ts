@@ -2,25 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { appTodayUtcMidnight, shiftCalendarDateUtc, shiftInstantRome } from '@/lib/date-utils'
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || !session.user.roles.includes('ADMIN')) {
+    const roles = session?.user?.roles
+    if (!session?.user?.id || !Array.isArray(roles) || !roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const todayOps = appTodayUtcMidnight()
 
-    // Query 1: Turni senza ORE (nessuna riga in worked_hours)
     const shiftsWithoutHours = await prisma.shifts.findMany({
       where: {
         schedules: {
           weekStart: {
-            lt: today
-          }
+            lt: todayOps,
+          },
         },
         worked_hours: {
           is: null // Nessuna riga in worked_hours (relazione one-to-one)
@@ -53,8 +53,8 @@ export async function GET(req: NextRequest) {
       where: {
         schedules: {
           weekStart: {
-            lt: today
-          }
+            lt: todayOps,
+          },
         },
         worked_hours: {
           is: {
@@ -95,11 +95,10 @@ export async function GET(req: NextRequest) {
 
     // Filtra solo turni passati e mappa
     const missingHours = allShifts
-      .map(shift => {
-        // Calcola la data effettiva del turno
-        const shiftDate = new Date(shift.schedules.weekStart)
-        shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
-        
+      .map((shift) => {
+        const shiftDay = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
+        const endInst = shiftInstantRome(shiftDay, shift.endTime)
+
         return {
           shiftId: shift.id,
           userId: shift.user.id,
@@ -111,15 +110,13 @@ export async function GET(req: NextRequest) {
           startTime: shift.startTime,
           endTime: shift.endTime,
           weekStart: shift.schedules.weekStart,
-          shiftDate: shiftDate.toISOString(), // ✅ Converti in stringa ISO
-          shiftDateObj: shiftDate, // Per ordinamento
-          hoursStatus: shift.worked_hours?.status || null // One-to-one, non array
+          shiftDate: shiftDay.toISOString(),
+          shiftDateObj: shiftDay,
+          endMs: endInst.getTime(),
+          hoursStatus: shift.worked_hours?.status || null,
         }
       })
-      .filter(shift => {
-        // Solo turni nel PASSATO
-        return shift.shiftDateObj < today
-      })
+      .filter((shift) => shift.endMs < Date.now())
       .sort((a, b) => a.shiftDateObj.getTime() - b.shiftDateObj.getTime()) // ✅ Ordina per data crescente
 
     // Raggruppa per utente

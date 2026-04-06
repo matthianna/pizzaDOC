@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { addDays, startOfWeek } from 'date-fns'
 import { prisma } from '@/lib/prisma'
-import { addWeekCalendarDays } from '@/lib/date-utils'
+import { addWeekCalendarDays, getNextWeekStart } from '@/lib/date-utils'
+import { normalizeDate } from '@/lib/normalize-date'
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
 import { isPriorityUser } from '@/lib/utils'
-
-// Normalizza una data a mezzanotte UTC
-function normalizeDate(dateInput: string | Date): Date {
-  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0))
-}
 
 /**
  * Cron Job: Promemoria Disponibilità
@@ -38,21 +32,19 @@ export async function GET(request: NextRequest) {
       triggeredBy: isVercelCron ? 'Vercel Cron' : 'Manual call'
     })
 
-    // Calcola la settimana prossima (lunedì prossimo)
-    const today = new Date()
-    const nextMonday = startOfWeek(addDays(today, 7), { weekStartsOn: 1 })
-    const weekStart = normalizeDate(nextMonday)
+    const weekStart = normalizeDate(getNextWeekStart())
     const dayMs = 24 * 60 * 60 * 1000
     const weekStartCandidates = [
       normalizeDate(new Date(weekStart.getTime() - dayMs)),
       weekStart,
       normalizeDate(new Date(weekStart.getTime() + dayMs)),
     ]
+    const weekEndDay = addWeekCalendarDays(weekStart, 6)
     const weekEnd = new Date(
       Date.UTC(
-        weekStart.getUTCFullYear(),
-        weekStart.getUTCMonth(),
-        weekStart.getUTCDate() + 6,
+        weekEndDay.getUTCFullYear(),
+        weekEndDay.getUTCMonth(),
+        weekEndDay.getUTCDate(),
         23,
         59,
         59,

@@ -31,18 +31,7 @@ interface OverviewHoliday {
 }
 
 function utcDayKeyFromWeekIndex(weekStart: Date, dayIdx: number): string {
-  const d = new Date(
-    Date.UTC(
-      weekStart.getUTCFullYear(),
-      weekStart.getUTCMonth(),
-      weekStart.getUTCDate() + dayIdx,
-      0,
-      0,
-      0,
-      0
-    )
-  )
-  return d.toISOString().slice(0, 10)
+  return addWeekCalendarDays(weekStart, dayIdx).toISOString().slice(0, 10)
 }
 
 function holidayBlocksOverviewSlot(

@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { startOfWeek, isBefore } from 'date-fns'
-import { addWeekCalendarDays } from '@/lib/date-utils'
+import {
+  addWeekCalendarDays,
+  getWeekStart,
+  shiftCalendarDateUtc,
+  shiftInstantRome,
+} from '@/lib/date-utils'
 
 /**
  * GET /api/dashboard/missing-hours
@@ -31,18 +35,16 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const weekEndUtc = addWeekCalendarDays(getWeekStart(new Date()), 6)
 
-    // Trova tutti i turni dell'utente fino a oggi
     const shifts = await prisma.shifts.findMany({
       where: {
         userId: session.user.id,
         schedules: {
           weekStart: {
-            lte: today
-          }
-        }
+            lte: weekEndUtc,
+          },
+        },
       },
       include: {
         schedules: {
@@ -64,29 +66,18 @@ export async function GET(request: NextRequest) {
     })
 
     // Filtra solo i turni che sono già passati e non hanno ore inserite
-    const missingShifts = shifts.filter(shift => {
-      // Calcola la data del turno
-      const weekStart = shift.schedules.weekStart instanceof Date 
-        ? shift.schedules.weekStart 
-        : new Date(shift.schedules.weekStart)
-      const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
-      shiftDate.setHours(23, 59, 59, 999)
-
-      // Il turno è passato?
-      const isPast = isBefore(shiftDate, today)
-
-      // Non ha ore inserite? (worked_hours è opzionale, non un array)
+    const missingShifts = shifts.filter((shift) => {
+      const shiftDay = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
+      const endInst = shiftInstantRome(shiftDay, shift.endTime)
+      const isPast = endInst.getTime() < Date.now()
       const hasNoHours = !shift.worked_hours
 
       return isPast && hasNoHours
     })
 
     // Formatta i dati per il frontend
-    const formattedShifts = missingShifts.map(shift => {
-      const weekStart = shift.schedules.weekStart instanceof Date 
-        ? shift.schedules.weekStart 
-        : new Date(shift.schedules.weekStart)
-      const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
+    const formattedShifts = missingShifts.map((shift) => {
+      const shiftDate = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
 
       return {
         id: shift.id,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { isPriorityUser } from '@/lib/utils'
+import { appTodayUtcMidnight, shiftCalendarDateUtc, shiftInstantRome } from '@/lib/date-utils'
 import { createDatabaseBackup } from '@/lib/database-backup'
 
 export const dynamic = 'force-dynamic'
@@ -86,17 +87,14 @@ export async function GET(request: NextRequest) {
       console.error('❌ [CRON hours-reminder] Backup error:', backupError)
     }
 
-    // 📋 STEP 2: Check for missing hours
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const todayOps = appTodayUtcMidnight()
 
-    // Query 1: Turni senza ORE (nessuna riga in worked_hours)
     const initialShiftsWithoutHours = await prisma.shifts.findMany({
       where: {
         schedules: {
           weekStart: {
-            lt: today
-          }
+            lt: todayOps,
+          },
         },
         worked_hours: {
           is: null
@@ -127,8 +125,8 @@ export async function GET(request: NextRequest) {
       where: {
         schedules: {
           weekStart: {
-            lt: today
-          }
+            lt: todayOps,
+          },
         },
         worked_hours: {
           is: {
@@ -169,17 +167,18 @@ export async function GET(request: NextRequest) {
 
     // Filtra solo turni passati
     const missingHours = allShifts
-      .map(shift => {
-        const shiftDate = new Date(shift.schedules.weekStart)
-        shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
+      .map((shift) => {
+        const shiftDay = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
+        const endInst = shiftInstantRome(shiftDay, shift.endTime)
 
         return {
           userId: shift.user.id,
           username: shift.user.username,
-          shiftDate: shiftDate
+          shiftDate: shiftDay,
+          endMs: endInst.getTime(),
         }
       })
-      .filter(shift => shift.shiftDate < today)
+      .filter((shift) => shift.endMs < Date.now())
 
     // Raggruppa per utente e conta turni
     const groupedByUser = missingHours.reduce((acc, item) => {

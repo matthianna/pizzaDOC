@@ -16,7 +16,8 @@ export async function GET() {
     }
 
     // Solo gli admin possono accedere a questa API
-    if (!session.user.roles.includes('ADMIN')) {
+    const roles = session.user?.roles
+    if (!Array.isArray(roles) || !roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

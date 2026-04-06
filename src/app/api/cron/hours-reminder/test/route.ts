@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { appTodayUtcMidnight, shiftCalendarDateUtc, shiftInstantRome } from '@/lib/date-utils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -16,22 +17,21 @@ export async function GET(request: NextRequest) {
     // 🔒 Solo admin possono testare
     const session = await getServerSession(authOptions)
     
-    if (!session || !session.user.roles.includes('ADMIN')) {
+    const roles = session?.user?.roles
+    if (!session?.user?.id || !Array.isArray(roles) || !roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized - Admin only' }, { status: 401 })
     }
 
     console.log('🧪 [TEST hours-reminder] Starting test mode...')
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const todayOps = appTodayUtcMidnight()
 
-    // Query 1: Turni senza ORE (nessuna riga in worked_hours)
     const shiftsWithoutHours = await prisma.shifts.findMany({
       where: {
         schedules: {
           weekStart: {
-            lt: today
-          }
+            lt: todayOps,
+          },
         },
         worked_hours: {
           is: null
@@ -62,8 +62,8 @@ export async function GET(request: NextRequest) {
       where: {
         schedules: {
           weekStart: {
-            lt: today
-          }
+            lt: todayOps,
+          },
         },
         worked_hours: {
           is: {
@@ -96,17 +96,18 @@ export async function GET(request: NextRequest) {
 
     // Filtra solo turni passati
     const missingHours = allShifts
-      .map(shift => {
-        const shiftDate = new Date(shift.schedules.weekStart)
-        shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
-        
+      .map((shift) => {
+        const shiftDay = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
+        const endInst = shiftInstantRome(shiftDay, shift.endTime)
+
         return {
           userId: shift.user.id,
           username: shift.user.username,
-          shiftDate: shiftDate
+          shiftDate: shiftDay,
+          endMs: endInst.getTime(),
         }
       })
-      .filter(shift => shift.shiftDate < today)
+      .filter((shift) => shift.endMs < Date.now())
 
     // Raggruppa per utente e conta turni
     const groupedByUser = missingHours.reduce((acc, item) => {

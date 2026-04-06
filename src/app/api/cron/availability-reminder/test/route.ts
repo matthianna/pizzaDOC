@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { addDays, startOfWeek } from 'date-fns'
 import { prisma } from '@/lib/prisma'
-
-// Normalizza una data a mezzanotte UTC
-function normalizeDate(dateInput: string | Date): Date {
-  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0))
-}
+import { addWeekCalendarDays, getNextWeekStart } from '@/lib/date-utils'
+import { normalizeDate } from '@/lib/normalize-date'
 
 /**
  * TEST Endpoint: Mostra il messaggio che verrebbe inviato senza inviarlo realmente
@@ -15,26 +10,19 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🧪 TEST: Generating availability reminder message...')
 
-    // Calcola la settimana prossima (lunedì prossimo) in UTC
-    const today = new Date()
-    
-    // Trova il lunedì PROSSIMO usando solo UTC per evitare problemi di fuso orario
-    const todayUTC = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
-    const todayUTCDate = new Date(todayUTC)
-    const dayOfWeek = todayUTCDate.getUTCDay() // 0=Domenica, 1=Lunedì, ..., 6=Sabato
-    
-    // Calcola giorni fino al prossimo lunedì
-    const daysUntilNextMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek)
-    
-    // Crea weekStart (lunedì prossimo a mezzanotte UTC)
-    const weekStart = new Date(todayUTC)
-    weekStart.setUTCDate(weekStart.getUTCDate() + daysUntilNextMonday)
-    weekStart.setUTCHours(0, 0, 0, 0)
-    
-    // Crea weekEnd (domenica successiva a 23:59:59.999 UTC)
-    const weekEnd = new Date(weekStart)
-    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6)
-    weekEnd.setUTCHours(23, 59, 59, 999)
+    const weekStart = normalizeDate(getNextWeekStart())
+    const weekEndDay = addWeekCalendarDays(weekStart, 6)
+    const weekEnd = new Date(
+      Date.UTC(
+        weekEndDay.getUTCFullYear(),
+        weekEndDay.getUTCMonth(),
+        weekEndDay.getUTCDate(),
+        23,
+        59,
+        59,
+        999
+      )
+    )
 
     console.log(`📅 Checking availability for week: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`)
     console.log(`📅 WeekStart as string: "${weekStart.toISOString()}"`)

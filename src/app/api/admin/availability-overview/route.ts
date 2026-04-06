@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 import {
   dateForAvailabilityDay,
   holidayBlocksSlot,
@@ -42,13 +43,18 @@ export async function GET(request: NextRequest) {
       normalizeDate(new Date(weekStart.getTime() + dayMs))
     ]
     
-    // Calcola weekEnd in UTC
-    const weekEnd = new Date(Date.UTC(
-      weekStart.getUTCFullYear(),
-      weekStart.getUTCMonth(),
-      weekStart.getUTCDate() + 6,
-      23, 59, 59, 999
-    ))
+    const weekEndDay = addWeekCalendarDays(weekStart, 6)
+    const weekEnd = new Date(
+      Date.UTC(
+        weekEndDay.getUTCFullYear(),
+        weekEndDay.getUTCMonth(),
+        weekEndDay.getUTCDate(),
+        23,
+        59,
+        59,
+        999
+      )
+    )
 
     console.log(`🔍 Cercando disponibilità per weekStart: ${weekStart.toISOString()} (candidati: ${weekStartCandidates.map(d => d.toISOString()).join(', ')})`)
 

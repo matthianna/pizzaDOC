@@ -129,6 +129,30 @@ export function appTodayCalendarDateKey(now: Date = new Date()): string {
 }
 
 /**
+ * Mezzanotte UTC con gli stessi numeri Y-M-D del «giorno operativo» oggi (Rome).
+ * Utile per confronti con `schedules.weekStart` senza usare il fuso del server (es. Vercel US).
+ */
+export function appTodayUtcMidnight(now: Date = new Date()): Date {
+  const key = appTodayCalendarDateKey(now)
+  const [y, m, d] = key.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0))
+}
+
+/** Inizio/fine turno in Europe/Rome sul giorno di calendario UTC del turno (`shiftCalendarDateUtc`). */
+export function shiftInstantRome(shiftDayUtc: Date, hhmm: string): TZDate {
+  const [h, min] = hhmm.split(':').map(Number)
+  return new TZDate(
+    shiftDayUtc.getUTCFullYear(),
+    shiftDayUtc.getUTCMonth(),
+    shiftDayUtc.getUTCDate(),
+    h,
+    min,
+    0,
+    APP_TIMEZONE
+  )
+}
+
+/**
  * Lunedì della settimana in Europe/Rome, espresso come Date UTC a mezzanotte del giorno
  * di calendario del lunedì (coerente con normalizeDate sul server dopo toISOString).
  * Evita che admin in altri fusi vedano settimane / query DB diverse dagli utenti in Italia.

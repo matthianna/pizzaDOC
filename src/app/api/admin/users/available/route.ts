@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
+import { addWeekCalendarDays } from '@/lib/date-utils'
 
 // ⚠️ IMPORTANTE: Disabilita cache per avere sempre dati aggiornati
 export const dynamic = 'force-dynamic'
@@ -12,7 +13,8 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || !session.user.roles.includes('ADMIN')) {
+    const roles = session?.user?.roles
+    if (!session?.user?.id || !Array.isArray(roles) || !roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -27,13 +29,18 @@ export async function GET(req: NextRequest) {
     // ⭐ USA normalizeDate per UTC consistency (come tutti gli altri endpoint!)
     const weekStart = normalizeDate(weekStartParam)
     
-    // Calculate weekEnd (Sunday UTC midnight)
-    const weekEnd = new Date(Date.UTC(
-      weekStart.getUTCFullYear(),
-      weekStart.getUTCMonth(),
-      weekStart.getUTCDate() + 6,
-      23, 59, 59, 999
-    ))
+    const weekEndDay = addWeekCalendarDays(weekStart, 6)
+    const weekEnd = new Date(
+      Date.UTC(
+        weekEndDay.getUTCFullYear(),
+        weekEndDay.getUTCMonth(),
+        weekEndDay.getUTCDate(),
+        23,
+        59,
+        59,
+        999
+      )
+    )
     
     console.log(`🔍 [API /api/admin/users/available] Richiesta per settimana: ${weekStart.toISOString()}`)
 

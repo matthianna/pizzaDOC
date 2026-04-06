@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { format, startOfMonth, endOfMonth } from 'date-fns'
-import { it } from 'date-fns/locale'
-import { normalizeDate } from '@/lib/normalize-date'
+import { formatDate, formatMonthYearIt, shiftCalendarDateUtc } from '@/lib/date-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,17 +59,10 @@ export async function GET(request: NextRequest) {
     }> = {}
 
     workedHours.forEach((wh: any) => {
-      const weekStartDate = normalizeDate(wh.shifts.schedules.weekStart)
-      // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
-      // Usa UTC per calcolare la data del turno
-      const shiftDate = new Date(Date.UTC(
-        weekStartDate.getUTCFullYear(),
-        weekStartDate.getUTCMonth(),
-        weekStartDate.getUTCDate() + wh.shifts.dayOfWeek
-      ))
+      const shiftDate = shiftCalendarDateUtc(wh.shifts.schedules.weekStart, wh.shifts.dayOfWeek)
 
-      const monthKey = format(shiftDate, 'yyyy-MM')
-      const monthName = format(shiftDate, 'MMMM yyyy', { locale: it })
+      const monthKey = `${shiftDate.getUTCFullYear()}-${String(shiftDate.getUTCMonth() + 1).padStart(2, '0')}`
+      const monthName = formatMonthYearIt(shiftDate)
 
       if (!monthlyData[monthKey]) {
         monthlyData[monthKey] = {
@@ -86,7 +77,7 @@ export async function GET(request: NextRequest) {
       monthlyData[monthKey].totalHours += wh.totalHours
       monthlyData[monthKey].shiftsCount += 1
       monthlyData[monthKey].details.push({
-        date: format(shiftDate, 'dd/MM/yyyy'),
+        date: formatDate(shiftDate),
         role: wh.shifts.role,
         shiftType: wh.shifts.shiftType,
         hours: wh.totalHours,
