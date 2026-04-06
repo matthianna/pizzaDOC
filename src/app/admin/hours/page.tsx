@@ -6,7 +6,7 @@ import { it } from 'date-fns/locale'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, ChevronRight, User } from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
-import { formatDate } from '@/lib/date-utils'
+import { formatDate, shiftCalendarDateUtc } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Select as ReactSelect } from '@/components/ui/react-select'
 import { Skeleton, TableSkeleton, CardSkeleton } from '@/components/ui/skeleton'
@@ -236,12 +236,8 @@ export default function AdminHoursPage() {
     return options
   }
 
-  const getShiftDate = (shift: Shift): Date => {
-    const weekStart = new Date(shift.schedule.weekStart)
-    const shiftDate = new Date(weekStart)
-    shiftDate.setDate(shiftDate.getDate() + shift.dayOfWeek)
-    return shiftDate
-  }
+  const getShiftDate = (shift: Shift): Date =>
+    shiftCalendarDateUtc(shift.schedule.weekStart, shift.dayOfWeek)
 
   const getStatusColor = (status: HoursStatus) => {
     switch (status) {
