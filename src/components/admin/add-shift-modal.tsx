@@ -58,7 +58,7 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
 
   const shiftTypes = [
     { value: 'PRANZO', label: 'Pranzo (11:00-14:00)' },
-    { value: 'CENA', label: 'Cena (17:00-22:00)' }
+    { value: 'CENA', label: 'Cena (17:00-21:00)' }
   ]
 
   // Orari di inizio disponibili in base al turno e ruolo selezionato

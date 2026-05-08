@@ -9,31 +9,7 @@ import {
   utcWeekStartBoundsForCalendarMonth,
 } from '@/lib/date-utils'
 import { logAuditAction } from '@/lib/audit-logger'
-
-function parseAdminTimeRange(startTime: string, endTime: string): {
-  ok: true
-  totalHours: number
-} | { ok: false; error: string } {
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
-  if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
-    return { ok: false, error: 'Formato orario non valido' }
-  }
-
-  const [startHour, startMin] = startTime.split(':').map(Number)
-  const [endHour, endMin] = endTime.split(':').map(Number)
-
-  let totalMinutes = endHour * 60 + endMin - (startHour * 60 + startMin)
-  if (totalMinutes < 0) {
-    totalMinutes += 24 * 60
-  }
-
-  const totalHours = totalMinutes / 60
-  if (totalHours <= 0 || totalHours > 24) {
-    return { ok: false, error: 'Intervallo orario non valido' }
-  }
-
-  return { ok: true, totalHours }
-}
+import { validateAdminWorkedTimes } from '@/lib/admin-worked-time-rules'
 
 // POST /api/admin/hours — inserimento ore da admin (turno senza worked_hours)
 export async function POST(request: NextRequest) {
@@ -50,11 +26,6 @@ export async function POST(request: NextRequest) {
         { error: 'shiftId, startTime e endTime sono obbligatori' },
         { status: 400 }
       )
-    }
-
-    const parsed = parseAdminTimeRange(startTime, endTime)
-    if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
 
     const shift = await prisma.shifts.findFirst({
@@ -83,6 +54,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const validated = validateAdminWorkedTimes(shift.shiftType, startTime, endTime)
+    if (!validated.ok) {
+      return NextResponse.json({ error: validated.error }, { status: 400 })
+    }
+
     const now = new Date()
     const workedHours = await prisma.worked_hours.create({
       data: {
@@ -91,7 +67,7 @@ export async function POST(request: NextRequest) {
         userId: shift.userId,
         startTime,
         endTime,
-        totalHours: parsed.totalHours,
+        totalHours: validated.totalHours,
         status: 'APPROVED',
         submittedAt: now,
         reviewedAt: now,
@@ -109,14 +85,14 @@ export async function POST(request: NextRequest) {
       userId: session.user.id,
       userUsername: session.user.username,
       action: 'HOURS_EDIT',
-      description: `Inserite ore (admin) per ${shift.user.username}: ${startTime}-${endTime} (${parsed.totalHours}h)`,
+      description: `Inserite ore (admin) per ${shift.user.username}: ${startTime}-${endTime} (${validated.totalHours}h)`,
       metadata: {
         workedHoursId: workedHours.id,
         userId: workedHours.userId,
         shiftId,
         startTime,
         endTime,
-        totalHours: parsed.totalHours,
+        totalHours: validated.totalHours,
         source: 'admin_create',
       },
     })

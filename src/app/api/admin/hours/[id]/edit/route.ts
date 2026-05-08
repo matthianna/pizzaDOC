@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logAuditAction } from '@/lib/audit-logger'
+import { validateAdminWorkedTimes } from '@/lib/admin-worked-time-rules'
 
 export async function PUT(
   request: NextRequest,
@@ -21,37 +22,33 @@ export async function PUT(
 
     if (!startTime || !endTime) {
       return NextResponse.json(
-        { error: 'Start time and end time are required' },
+        { error: 'Orario di inizio e fine obbligatori' },
         { status: 400 }
       )
     }
 
     const existing = await prisma.worked_hours.findUnique({
       where: { id },
-      select: { status: true },
+      select: {
+        status: true,
+        shifts: { select: { shiftType: true } },
+      },
     })
 
     if (!existing) {
       return NextResponse.json({ error: 'Ore non trovate' }, { status: 404 })
     }
 
-    // Calcola le ore totali
-    const [startHour, startMin] = startTime.split(':').map(Number)
-    const [endHour, endMin] = endTime.split(':').map(Number)
-    
-    let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin)
-    if (totalMinutes < 0) {
-      totalMinutes += 24 * 60 // Gestisce i turni che passano la mezzanotte
+    const validated = validateAdminWorkedTimes(
+      existing.shifts.shiftType,
+      startTime,
+      endTime
+    )
+    if (!validated.ok) {
+      return NextResponse.json({ error: validated.error }, { status: 400 })
     }
-    
-    const totalHours = totalMinutes / 60
 
-    if (totalHours <= 0 || totalHours > 24) {
-      return NextResponse.json(
-        { error: 'Invalid time range' },
-        { status: 400 }
-      )
-    }
+    const totalHours = validated.totalHours
 
     const reactivatedFromReject = existing.status === 'REJECTED'
 

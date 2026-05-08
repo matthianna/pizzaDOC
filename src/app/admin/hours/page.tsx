@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { MainLayout } from '@/components/layout/main-layout'
@@ -13,6 +13,13 @@ import { Skeleton, TableSkeleton, CardSkeleton } from '@/components/ui/skeleton'
 import { Modal } from '@/components/ui/modal'
 import { cn } from '@/lib/utils'
 import { useHaptics } from '@/hooks/use-haptics'
+import {
+  ADMIN_WORKED_START_SLOTS,
+  adminWorkedSelectOptions,
+  allowedEndSlotsAfterStart,
+  pickInitialAdminWorkedTimes,
+  validateAdminWorkedTimes,
+} from '@/lib/admin-worked-time-rules'
 
 interface Shift {
   id: string
@@ -221,8 +228,13 @@ export default function AdminHoursPage() {
     lightClick()
     setCreatingShift(null)
     setEditingHours(hours)
-    setEditStartTime(hours.startTime)
-    setEditEndTime(hours.endTime)
+    const pick = pickInitialAdminWorkedTimes(
+      hours.shift.shiftType,
+      hours.startTime,
+      hours.endTime
+    )
+    setEditStartTime(pick.start)
+    setEditEndTime(pick.end)
   }
 
   const openCreateShiftModal = (user: MissingUserGroup, row: MissingShiftRow) => {
@@ -241,8 +253,9 @@ export default function AdminHoursPage() {
       shiftDateIso: row.shiftDate,
       hoursStatus: row.hoursStatus,
     })
-    setEditStartTime(row.startTime)
-    setEditEndTime(row.endTime)
+    const pick = pickInitialAdminWorkedTimes(row.shiftType, row.startTime, row.endTime)
+    setEditStartTime(pick.start)
+    setEditEndTime(pick.end)
   }
 
   const closeHourModal = () => {
@@ -316,45 +329,31 @@ export default function AdminHoursPage() {
     }
   }
 
-  const calculateTotalHours = (start: string, end: string): number => {
-    const [startHour, startMin] = start.split(':').map(Number)
-    const [endHour, endMin] = end.split(':').map(Number)
-    
-    let totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin)
-    if (totalMinutes < 0) {
-      totalMinutes += 24 * 60
-    }
-    
-    return totalMinutes / 60
-  }
+  const modalShiftType = editingHours?.shift.shiftType ?? creatingShift?.shiftType ?? null
 
-  // Genera opzioni di orario con offset ±30 min dal turno originale
-  const generateTimeOptions = (baseTime: string): { value: string; label: string }[] => {
-    const [hour, minute] = baseTime.split(':').map(Number)
-    const baseMinutes = hour * 60 + minute
-    
-    const options: { value: string; label: string }[] = []
-    
-    // Da -60 minuti a +60 minuti, con step di 30 minuti
-    for (let offset = -60; offset <= 60; offset += 30) {
-      let totalMinutes = baseMinutes + offset
-      
-      // Gestisci wrap around (es. 23:30 + 60 = 00:30)
-      if (totalMinutes < 0) totalMinutes += 24 * 60
-      if (totalMinutes >= 24 * 60) totalMinutes -= 24 * 60
-      
-      const h = Math.floor(totalMinutes / 60)
-      const m = totalMinutes % 60
-      const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
-      
-      options.push({
-        value: timeStr,
-        label: timeStr
-      })
+  const startSlotOptions = useMemo(() => {
+    if (!modalShiftType) return []
+    return adminWorkedSelectOptions(ADMIN_WORKED_START_SLOTS[modalShiftType])
+  }, [modalShiftType])
+
+  const endSlotOptions = useMemo(() => {
+    if (!modalShiftType || !editStartTime) return []
+    const allowed = allowedEndSlotsAfterStart(modalShiftType, editStartTime)
+    return adminWorkedSelectOptions(allowed)
+  }, [modalShiftType, editStartTime])
+
+  useEffect(() => {
+    if (!modalShiftType || !editStartTime || !editEndTime) return
+    const okEnds = allowedEndSlotsAfterStart(modalShiftType, editStartTime)
+    if (!okEnds.includes(editEndTime)) {
+      setEditEndTime(okEnds[0] ?? '')
     }
-    
-    return options
-  }
+  }, [modalShiftType, editStartTime])
+
+  const hourModalPreview =
+    modalShiftType && editStartTime && editEndTime
+      ? validateAdminWorkedTimes(modalShiftType, editStartTime, editEndTime)
+      : null
 
   const getShiftDate = (shift: Shift): Date =>
     shiftCalendarDateUtc(shift.schedule.weekStart, shift.dayOfWeek)
@@ -803,10 +802,15 @@ export default function AdminHoursPage() {
               <div className="space-y-3">
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ora inizio effettiva</label>
                 <ReactSelect
-                  options={generateTimeOptions(
-                    (editingHours?.shift.startTime ?? creatingShift?.plannedStart) || '09:00'
-                  )}
-                  value={editStartTime ? { value: editStartTime, label: editStartTime } : null}
+                  options={startSlotOptions}
+                  value={
+                    editStartTime
+                      ? startSlotOptions.find((o) => o.value === editStartTime) ?? {
+                          value: editStartTime,
+                          label: editStartTime,
+                        }
+                      : null
+                  }
                   onChange={(option) => {
                     lightClick()
                     setEditStartTime(option?.value?.toString() || '')
@@ -817,29 +821,47 @@ export default function AdminHoursPage() {
               <div className="space-y-3">
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ora fine effettiva</label>
                 <ReactSelect
-                  options={generateTimeOptions(
-                    (editingHours?.shift.endTime ?? creatingShift?.plannedEnd) || '18:00'
-                  )}
-                  value={editEndTime ? { value: editEndTime, label: editEndTime } : null}
+                  options={endSlotOptions}
+                  isDisabled={!editStartTime}
+                  value={
+                    editEndTime
+                      ? endSlotOptions.find((o) => o.value === editEndTime) ?? {
+                          value: editEndTime,
+                          label: editEndTime,
+                        }
+                      : null
+                  }
                   onChange={(option) => {
                     lightClick()
                     setEditEndTime(option?.value?.toString() || '')
                   }}
-                  placeholder="Seleziona..."
+                  placeholder={editStartTime ? 'Seleziona...' : "Scegli prima l'inizio"}
                 />
               </div>
             </div>
 
-            {editStartTime && editEndTime && (
-              <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-[2rem] p-8 shadow-xl shadow-orange-100 flex items-center justify-between text-white">
-                <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Ricalcolo ore totali</h4>
-                  <p className="text-lg font-bold mt-1">{editStartTime} – {editEndTime}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-4xl font-black">{calculateTotalHours(editStartTime, editEndTime).toFixed(1)}h</p>
-                </div>
-              </div>
+            {editStartTime && editEndTime && hourModalPreview && (
+              <>
+                {hourModalPreview.ok ? (
+                  <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-[2rem] p-8 shadow-xl shadow-orange-100 flex items-center justify-between text-white">
+                    <div>
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
+                        Ricalcolo ore totali
+                      </h4>
+                      <p className="text-lg font-bold mt-1">
+                        {editStartTime} – {editEndTime}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-4xl font-black">{hourModalPreview.totalHours.toFixed(1)}h</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-[2rem] border-2 border-red-100 bg-red-50 px-6 py-4 text-sm font-semibold text-red-800">
+                    {hourModalPreview.error}
+                  </div>
+                )}
+              </>
             )}
 
             <div className="flex gap-4 pt-4">
@@ -853,7 +875,7 @@ export default function AdminHoursPage() {
               <button
                 type="button"
                 onClick={saveHourModal}
-                disabled={!editStartTime || !editEndTime}
+                disabled={!editStartTime || !editEndTime || !hourModalPreview?.ok}
                 className="flex-[2] py-4 bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-100 hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 <Check className="h-4 w-4" />
