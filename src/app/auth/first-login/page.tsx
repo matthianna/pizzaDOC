@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useSession, signOut, signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Lock, Shield, Check, X, Sparkles, KeyRound } from 'lucide-react'
@@ -105,18 +106,15 @@ export default function FirstLoginPage() {
         <div className="text-center mb-8">
           {/* Logo */}
           <div className="relative inline-block mb-6">
-            <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-red-600 rounded-[2rem] shadow-2xl shadow-orange-200 flex items-center justify-center transform -rotate-6 hover:rotate-0 transition-transform duration-500">
-              <img
-                src="/logo.png"
-                alt="PizzaDOC Logo"
-                className="w-20 h-20 rounded-2xl object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                  const nextEl = e.currentTarget.nextElementSibling as HTMLElement
-                  if (nextEl) nextEl.style.display = 'flex'
-                }}
+            <div className="inline-flex items-center justify-center p-3 rounded-[2rem] bg-white shadow-2xl shadow-orange-200/60 border border-gray-100/80">
+              <Image
+                src="/logo-pizza-doc.png?v=2"
+                alt="Pizza D.O.C."
+                width={120}
+                height={120}
+                className="w-24 h-24 object-contain"
+                priority
               />
-              <span className="text-white font-bold text-4xl hidden items-center justify-center">🍕</span>
             </div>
             <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-xl flex items-center justify-center shadow-lg animate-bounce">
               <Sparkles className="w-4 h-4 text-white" />

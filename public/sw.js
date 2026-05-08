@@ -1,7 +1,7 @@
 // PizzaDOC Service Worker
-// Version: 1.1.0
+// Version: 1.2.0 — network-first for /_next/static so deploys pick up new UI (e.g. login logo)
 
-const CACHE_NAME = 'pizzadoc-v1.1';
+const CACHE_NAME = 'pizzadoc-v1.2.0';
 const OFFLINE_URL = '/offline';
 
 // Static assets to cache immediately
@@ -11,13 +11,14 @@ const STATIC_ASSETS = [
   '/offline',
   '/manifest.json',
   '/logo.png',
+  '/logo-pizza-doc.png',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png'
 ];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker v1.1...');
+  console.log('[SW] Installing service worker v1.2.0...');
 
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -116,6 +117,22 @@ self.addEventListener('fetch', (event) => {
               return caches.match(OFFLINE_URL);
             });
         })
+    );
+    return;
+  }
+
+  // Next.js hashed bundles: network-first so new deploys are never stuck on old JS
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }

@@ -139,7 +139,7 @@ export default function SignInPage() {
         <div className="text-center mb-10 animate-in fade-in zoom-in duration-700">
           <div className="inline-flex items-center justify-center mb-6 p-4 rounded-[2rem] bg-white shadow-2xl shadow-orange-200/60 border border-gray-100/80">
             <Image
-              src="/logo-pizza-doc.png"
+              src="/logo-pizza-doc.png?v=2"
               alt="Pizza D.O.C."
               width={140}
               height={140}
