@@ -454,7 +454,7 @@ function generatePDFHtml(
     <div class="header">
         <div class="logo-section">
             <div class="logo">
-                <img src="/logo.png" alt="PizzaDOC Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                <img src="/logo-pizza-doc.png" alt="Pizza D.O.C." onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
                 <span style="display: none;">🍕</span>
             </div>
             <div class="company-info">

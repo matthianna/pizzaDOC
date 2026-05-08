@@ -382,22 +382,21 @@ function SidebarContent({
     <div className="flex flex-col h-screen max-h-screen overflow-hidden">
       {/* Logo */}
       <div className={cn("flex items-center flex-shrink-0 px-4", isMobile ? "pt-4" : "pt-6")}>
-        <div className="flex items-center space-x-3 bg-gradient-to-r from-orange-600 to-red-600 p-4 rounded-[2rem] shadow-xl w-full border border-white/20">
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center ring-4 ring-orange-500/30 shadow-inner relative overflow-hidden">
-            <Image
-              src="/logo.png"
-              alt="PizzaDOC Logo"
-              width={36}
-              height={36}
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-          <div className="flex-1 flex items-center justify-between">
-            <h1 className="text-xl font-black text-white tracking-tighter uppercase">PizzaDOC</h1>
-            <div className="text-white bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
-              <NotificationBell iconClassName="text-white h-5 w-5" />
+        <div className="flex items-center gap-3 bg-gradient-to-r from-orange-600 to-red-600 p-4 rounded-[2rem] shadow-xl w-full border border-white/20">
+          <div className="flex-1 min-w-0">
+            <div className="bg-white/95 rounded-2xl px-3 py-2 border border-white/60 shadow-inner">
+              <Image
+                src="/logo-pizza-doc.png"
+                alt="Pizza D.O.C."
+                width={200}
+                height={56}
+                className="h-8 sm:h-9 w-auto max-w-full object-contain object-left"
+                priority
+              />
             </div>
+          </div>
+          <div className="flex-shrink-0 text-white bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
+            <NotificationBell iconClassName="text-white h-5 w-5" />
           </div>
         </div>
       </div>

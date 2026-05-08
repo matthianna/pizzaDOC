@@ -108,7 +108,7 @@ export default function FirstLoginPage() {
           <div className="relative inline-block mb-6">
             <div className="inline-flex items-center justify-center p-3 rounded-[2rem] bg-white shadow-2xl shadow-orange-200/60 border border-gray-100/80">
               <Image
-                src="/logo-pizza-doc.png?v=2"
+                src="/logo-pizza-doc.png?v=3"
                 alt="Pizza D.O.C."
                 width={120}
                 height={120}

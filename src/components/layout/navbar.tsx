@@ -2,8 +2,9 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Pizza, Users, Calendar, Settings, LogOut, BarChart3, Clock, UserCheck, KeyRound } from 'lucide-react'
+import { Users, Calendar, Settings, LogOut, BarChart3, Clock, UserCheck, KeyRound } from 'lucide-react'
 import { cn, getRoleName } from '@/lib/utils'
 
 export function Navbar() {
@@ -81,9 +82,15 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link href="/dashboard" className="flex items-center space-x-2 text-orange-600">
-              <Pizza className="h-8 w-8" />
-              <span className="text-xl font-bold">PizzaDOC</span>
+            <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0 shrink-0 text-orange-600">
+              <Image
+                src="/logo-pizza-doc.png"
+                alt="PizzaDOC"
+                width={160}
+                height={48}
+                className="h-8 w-auto max-h-8 sm:h-9 sm:max-h-9 object-contain object-left"
+                priority
+              />
             </Link>
           </div>
 

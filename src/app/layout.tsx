@@ -24,13 +24,13 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "PizzaDOC - Gestionale Pizzeria",
+  title: "Pizza D.O.C. — PizzaDOC",
   description: "Sistema di gestione piano di lavoro per pizzeria",
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'PizzaDOC',
+    title: 'Pizza D.O.C.',
   },
   formatDetection: {
     telephone: false,
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
       { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
   other: {
@@ -64,10 +64,10 @@ export default function RootLayout({
     <html lang="it" suppressHydrationWarning>
       <head>
         {/* PWA Meta Tags */}
-        <meta name="application-name" content="PizzaDOC" />
+        <meta name="application-name" content="Pizza D.O.C." />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="PizzaDOC" />
+        <meta name="apple-mobile-web-app-title" content="Pizza D.O.C." />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#EA580C" />
         <meta name="msapplication-tap-highlight" content="no" />

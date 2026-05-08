@@ -114,18 +114,15 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
 
       {/* Mobile header - Moved outside transformed container */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 z-40 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center overflow-hidden shadow-sm">
-            <Image
-              src="/logo.png"
-              alt="Logo"
-              width={20}
-              height={20}
-              className="object-contain"
-              unoptimized
-            />
-          </div>
-          <span className="font-black text-orange-600 text-lg tracking-tight">PizzaDOC</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Image
+            src="/logo-pizza-doc.png"
+            alt="Pizza D.O.C."
+            width={160}
+            height={40}
+            className="h-8 w-auto max-h-8 max-w-[min(200px,55vw)] object-contain object-left"
+            priority
+          />
         </div>
         <NotificationBell />
       </div>

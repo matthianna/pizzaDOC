@@ -1,7 +1,7 @@
 // PizzaDOC Service Worker
-// Version: 1.2.0 — network-first for /_next/static so deploys pick up new UI (e.g. login logo)
+// Version: 1.3.1 — apple-touch + logo paths
 
-const CACHE_NAME = 'pizzadoc-v1.2.0';
+const CACHE_NAME = 'pizzadoc-v1.3.1';
 const OFFLINE_URL = '/offline';
 
 // Static assets to cache immediately
@@ -12,13 +12,14 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/logo.png',
   '/logo-pizza-doc.png',
+  '/apple-touch-icon.png',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png'
 ];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker v1.2.0...');
+  console.log('[SW] Installing service worker v1.3.1...');
 
   event.waitUntil(
     caches.open(CACHE_NAME)
