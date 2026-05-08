@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { addWeekCalendarDays, getNextWeekStart } from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
@@ -8,6 +10,12 @@ import { normalizeDate } from '@/lib/normalize-date'
  */
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    const roles = session?.user?.roles
+    if (!session?.user?.id || !Array.isArray(roles) || !roles.includes('ADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized - Admin only' }, { status: 401 })
+    }
+
     console.log('🧪 TEST: Generating availability reminder message...')
 
     const weekStart = normalizeDate(getNextWeekStart())

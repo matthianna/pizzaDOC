@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCronAuthFailureResponse } from '@/lib/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { isPriorityUser } from '@/lib/utils'
 import { appTodayUtcMidnight, shiftCalendarDateUtc, shiftInstantRome } from '@/lib/date-utils'
@@ -16,21 +17,13 @@ export const revalidate = 0
  */
 export async function GET(request: NextRequest) {
   try {
-    // 🔒 Verifica autenticazione
-    const authHeader = request.headers.get('authorization')
-    const vercelCronHeader = request.headers.get('x-vercel-cron')
-    const cronSecret = process.env.CRON_SECRET
-
-    const isVercelCron = vercelCronHeader !== null
-    const hasValidSecret = cronSecret && authHeader === `Bearer ${cronSecret}`
-
-    if (!isVercelCron && cronSecret && !hasValidSecret) {
+    const authFailure = getCronAuthFailureResponse(request)
+    if (authFailure) {
       console.error('❌ [CRON hours-reminder] Unauthorized request')
-      return NextResponse.json({
-        error: 'Unauthorized',
-        hint: 'Use Authorization: Bearer <CRON_SECRET> header or wait for Vercel to run the cron automatically'
-      }, { status: 401 })
+      return authFailure
     }
+
+    const isVercelCron = request.headers.get('x-vercel-cron') !== null
 
     console.log('⏰ [CRON hours-reminder] Starting hours reminder job...', {
       triggeredBy: isVercelCron ? 'Vercel Cron' : 'Manual call'

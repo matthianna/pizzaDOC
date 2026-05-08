@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createDatabaseBackup, cleanOldBackups } from '@/lib/database-backup'
+import { getCronAuthFailureResponse } from '@/lib/cron-auth'
 
 /**
  * Endpoint Cron per backup giornalieri
@@ -13,12 +14,9 @@ import { createDatabaseBackup, cleanOldBackups } from '@/lib/database-backup'
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verifica authorization (opzionale ma consigliato)
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authFailure = getCronAuthFailureResponse(request)
+    if (authFailure) {
+      return authFailure
     }
 
     console.log('[CRON] Starting daily backup...')

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCronAuthFailureResponse } from '@/lib/cron-auth'
 import { expireSubstitutionsPastDeadline } from '@/lib/substitution-expiry'
 
 export const dynamic = 'force-dynamic'
@@ -10,22 +11,12 @@ export const revalidate = 0
  */
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    const vercelCronHeader = request.headers.get('x-vercel-cron')
-    const cronSecret = process.env.CRON_SECRET
-
-    const isVercelCron = vercelCronHeader !== null
-    const hasValidSecret = cronSecret && authHeader === `Bearer ${cronSecret}`
-
-    if (!isVercelCron && cronSecret && !hasValidSecret) {
-      return NextResponse.json(
-        {
-          error: 'Unauthorized',
-          hint: 'Use Authorization: Bearer <CRON_SECRET> header or wait for Vercel Cron',
-        },
-        { status: 401 }
-      )
+    const authFailure = getCronAuthFailureResponse(request)
+    if (authFailure) {
+      return authFailure
     }
+
+    const isVercelCron = request.headers.get('x-vercel-cron') !== null
 
     const result = await expireSubstitutionsPastDeadline()
 
