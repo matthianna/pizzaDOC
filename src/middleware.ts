@@ -1,55 +1,101 @@
-import { withAuth } from "next-auth/middleware"
-import { NextResponse } from "next/server"
+import { withAuth } from 'next-auth/middleware'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { checkLoginRateLimit, getClientIp } from '@/lib/login-rate-limit'
+
+/** Route NextAuth che devono restare anonime (login, CSRF, sessione, ecc.). */
+function isNextAuthPublicRoute(pathname: string): boolean {
+  if (
+    pathname === '/api/auth/session' ||
+    pathname === '/api/auth/csrf' ||
+    pathname === '/api/auth/providers'
+  ) {
+    return true
+  }
+  if (pathname.startsWith('/api/auth/signin')) return true
+  if (pathname.startsWith('/api/auth/callback')) return true
+  if (pathname === '/api/auth/signout' || pathname.startsWith('/api/auth/signout/')) {
+    return true
+  }
+  if (pathname.startsWith('/api/auth/error')) return true
+  return false
+}
+
+/** API raggiungibili senza sessione NextAuth (protezione propria negli handler se applicabile). */
+function isPublicApi(pathname: string): boolean {
+  if (pathname === '/api/health') return true
+  if (pathname === '/api/push/vapid-key') return true
+  if (pathname === '/api/seed') return true
+  if (pathname.startsWith('/api/cron')) return true
+  if (isNextAuthPublicRoute(pathname)) return true
+  return false
+}
 
 export default withAuth(
-  function middleware(req) {
+  async function middleware(req: NextRequest) {
+    const path = req.nextUrl.pathname
+    const method = req.method
     const token = req.nextauth.token
     const isAuth = !!token
-    const isAuthPage = req.nextUrl.pathname.startsWith('/auth')
-    const isApiAuth = req.nextUrl.pathname.startsWith('/api/auth')
-    const isApiSeed = req.nextUrl.pathname.startsWith('/api/seed')
-    const isApiHealth = req.nextUrl.pathname.startsWith('/api/health')
-    const isApiUser = req.nextUrl.pathname.startsWith('/api/user')
-    const isApiAdmin = req.nextUrl.pathname.startsWith('/api/admin')
-    const isApiCron = req.nextUrl.pathname.startsWith('/api/cron')
-    
-    // Allow API auth routes, health check, user routes, admin routes, seed, and cron jobs
-    if (isApiAuth || isApiSeed || isApiHealth || isApiUser || isApiAdmin || isApiCron) {
+
+    // Rate limit: solo POST sul callback credentials (brute force password)
+    if (path.startsWith('/api/auth/callback/credentials') && method === 'POST') {
+      const ip = getClientIp(req)
+      const result = await checkLoginRateLimit(`login:${ip}`)
+      if (!result.success) {
+        return NextResponse.json(
+          {
+            error: 'Troppi tentativi di accesso. Riprova più tardi.',
+            retryAfterSeconds: result.retryAfterSeconds,
+          },
+          {
+            status: 429,
+            headers: result.retryAfterSeconds
+              ? { 'Retry-After': String(result.retryAfterSeconds) }
+              : {},
+          }
+        )
+      }
+    }
+
+    // Tutte le altre API: sessione obbligatoria (JSON 401, mai redirect HTML)
+    if (path.startsWith('/api')) {
+      if (isPublicApi(path)) {
+        return NextResponse.next()
+      }
+      if (!isAuth) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      if (path.startsWith('/api/admin') && !token.roles?.includes('ADMIN')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
       return NextResponse.next()
     }
 
-    // If user is on auth page and is authenticated, redirect to dashboard
+    // --- Pagine ---
+    const isAuthPage = path.startsWith('/auth')
+
     if (isAuthPage && isAuth) {
-      // If user is on first-login page and has completed first login, redirect to dashboard
-      if (req.nextUrl.pathname === '/auth/first-login' && !token.isFirstLogin) {
+      if (path === '/auth/first-login' && !token.isFirstLogin) {
         return NextResponse.redirect(new URL('/dashboard', req.url))
       }
-      // If user hasn't completed first login, redirect to first-login
-      if (req.nextUrl.pathname !== '/auth/first-login' && token.isFirstLogin) {
+      if (path !== '/auth/first-login' && token.isFirstLogin) {
         return NextResponse.redirect(new URL('/auth/first-login', req.url))
       }
-      // If user is authenticated and on sign-in page, redirect to dashboard
-      if (req.nextUrl.pathname === '/auth/signin' && !token.isFirstLogin) {
+      if (path === '/auth/signin' && !token.isFirstLogin) {
         return NextResponse.redirect(new URL('/dashboard', req.url))
       }
     }
 
-    // If user is not authenticated and trying to access protected route
     if (!isAuthPage && !isAuth) {
       return NextResponse.redirect(new URL('/auth/signin', req.url))
     }
 
-    // If user is authenticated but hasn't completed first login
-    if (isAuth && token.isFirstLogin && req.nextUrl.pathname !== '/auth/first-login') {
+    if (isAuth && token.isFirstLogin && path !== '/auth/first-login') {
       return NextResponse.redirect(new URL('/auth/first-login', req.url))
     }
 
-    // Admin-only routes protection
-    const adminOnlyRoutes = ['/admin']
-    const isAdminRoute = adminOnlyRoutes.some(route => 
-      req.nextUrl.pathname.startsWith(route)
-    )
-    
+    const isAdminRoute = path.startsWith('/admin')
     if (isAdminRoute && isAuth && !token.roles?.includes('ADMIN')) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
@@ -59,17 +105,12 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Always allow access to auth pages
         if (req.nextUrl.pathname.startsWith('/auth')) {
           return true
         }
-        
-        // Allow access to API routes (will be handled by the middleware function)
         if (req.nextUrl.pathname.startsWith('/api')) {
           return true
         }
-        
-        // For all other routes, require authentication
         return !!token
       },
     },
@@ -78,16 +119,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - sw.js (service worker)
-     * - manifest.json (PWA manifest)
-     * - icons/ (PWA icons)
-     * - public folder assets
-     */
     '/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.json|icons|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)',
-  ]
+  ],
 }

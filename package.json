@@ -25,6 +25,8 @@
     "@sparticuz/chromium": "^143.0.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/pg": "^8.15.5",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
