@@ -54,6 +54,8 @@ export default function NotificationsPage() {
     }
 
     const { isSupported, isSubscribed, subscribe, unsubscribe, isLoading: pushLoading } = usePushNotifications()
+
+    const fetchNotifications = async (reset = false) => {
         if (!session?.user?.id) return
 
         try {
