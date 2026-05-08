@@ -18,8 +18,9 @@ export async function GET(
 
     const { userId: requestedUserId } = await params
 
-    // Solo admin o l'utente stesso può vedere il profilo
-    if (session.user.role !== 'ADMIN' && session.user.id !== requestedUserId) {
+    const roles = session.user.roles
+    const isAdmin = Array.isArray(roles) && roles.includes('ADMIN')
+    if (!isAdmin && session.user.id !== requestedUserId) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
     }
 

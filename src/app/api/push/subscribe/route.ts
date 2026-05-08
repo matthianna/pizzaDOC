@@ -23,6 +23,13 @@ export async function POST(request: Request) {
             where: { endpoint: subscription.endpoint }
         })
 
+        if (existing && existing.userId !== session.user.id) {
+            return NextResponse.json(
+                { error: 'Questo dispositivo è già associato ad un altro account' },
+                { status: 403 }
+            )
+        }
+
         if (existing) {
             // Update existing subscription
             await prisma.push_subscriptions.update({
