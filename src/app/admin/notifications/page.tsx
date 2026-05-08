@@ -92,13 +92,15 @@ export default function AdminNotificationsPage() {
         {
             id: 'missing_hours',
             icon: Clock,
-            title: 'Sollecito Ore',
-            subtitle: 'Solo chi manca',
+            title: 'Sollecito ore (admin)',
+            subtitle: 'Avvisa gli admin',
             color: 'blue',
             action: () => {
-                setTitle('Sollecito Ore')
-                setMessage('Ricordati di inserire le ore lavorate per i tuoi ultimi turni!')
-                setUrl('/hours')
+                setTitle('Ore: richiesta agli amministratori')
+                setMessage(
+                    'Ci sono dipendenti con turni passati senza ore registrate o con ore rifiutate. Apri Gestione ore per completarle.'
+                )
+                setUrl('/admin/hours')
                 setFilter('missing_hours')
                 fetchStats()
             }
@@ -231,9 +233,8 @@ export default function AdminNotificationsPage() {
                                     <p className="text-sm font-bold text-blue-900">Filtro Intelligente Attivo</p>
                                     <p className="text-xs text-blue-600">
                                         {filter === 'missing_availability'
-                                            ? "Solo chi non ha inserito la disponibilità"
-                                            : "Solo chi non ha inserito le ore"
-                                        }
+                                            ? 'Solo chi non ha inserito la disponibilità'
+                                            : 'Destinatari: amministratori. Sotto: staff con turni ancora senza ore.'}
                                     </p>
                                 </div>
                             </div>
@@ -256,7 +257,10 @@ export default function AdminNotificationsPage() {
                                     className="w-full flex items-center justify-between text-xs font-bold text-gray-600"
                                 >
                                     <span>
-                                        {filter === 'missing_availability' ? stats.availability?.missing.length : stats.hours?.missing.length} destinatari
+                                        {filter === 'missing_availability'
+                                            ? stats.availability?.missing.length
+                                            : stats.hours?.adminNotifyRecipients?.length}{' '}
+                                        destinatari
                                     </span>
                                     <span className="text-blue-600">{showLists ? 'Nascondi' : 'Mostra'}</span>
                                 </button>
@@ -264,20 +268,40 @@ export default function AdminNotificationsPage() {
                                 {showLists && (
                                     <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-[10px] font-bold text-red-600 uppercase mb-2">Mancano</p>
+                                            <p className="text-[10px] font-bold text-red-600 uppercase mb-2">
+                                                {filter === 'missing_hours'
+                                                    ? 'Staff (ore da registrare)'
+                                                    : 'Mancano'}
+                                            </p>
                                             <div className="flex flex-wrap gap-1">
-                                                {(filter === 'missing_availability' ? stats.availability?.missing : stats.hours?.missing).map((name: string) => (
-                                                    <span key={name} className="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-medium">
+                                                {(filter === 'missing_availability'
+                                                    ? stats.availability?.missing
+                                                    : stats.hours?.missing
+                                                ).map((name: string) => (
+                                                    <span
+                                                        key={name}
+                                                        className="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-medium"
+                                                    >
                                                         {name}
                                                     </span>
                                                 ))}
                                             </div>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-bold text-green-600 uppercase mb-2">Inserito</p>
+                                            <p className="text-[10px] font-bold text-green-600 uppercase mb-2">
+                                                {filter === 'missing_hours'
+                                                    ? 'Admin (ricevono la notifica)'
+                                                    : 'Inserito'}
+                                            </p>
                                             <div className="flex flex-wrap gap-1">
-                                                {(filter === 'missing_availability' ? stats.availability?.submitted : stats.hours?.submitted).map((name: string) => (
-                                                    <span key={name} className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
+                                                {(filter === 'missing_availability'
+                                                    ? stats.availability?.submitted
+                                                    : stats.hours?.adminNotifyRecipients
+                                                ).map((name: string) => (
+                                                    <span
+                                                        key={name}
+                                                        className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium"
+                                                    >
                                                         {name}
                                                     </span>
                                                 ))}

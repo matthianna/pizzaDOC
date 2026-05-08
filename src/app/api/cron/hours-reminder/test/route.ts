@@ -143,15 +143,15 @@ export async function GET(request: NextRequest) {
     let wouldSend = false
 
     if (result.length > 0) {
-      message = '⏰ *PROMEMORIA ORE LAVORATE*\n\n'
-      message += `📋 Questi dipendenti devono ancora inserire le ore:\n\n`
+      message = '⏰ *PROMEMORIA ORE (ADMIN)*\n\n'
+      message += `📋 Turni da gestire (staff senza ore o rifiutate):\n\n`
       
       result.forEach(user => {
         const turnoLabel = user.count === 1 ? 'turno' : 'turni'
         message += `• *${user.username}* - ${user.count} ${turnoLabel}\n`
       })
 
-      message += `\n📝 Inserisci le ore su:\nhttps://pizzadoc.vercel.app/hours`
+      message += `\n📝 Gli amministratori inseriscono le ore in:\nhttps://pizzadoc.vercel.app/admin/hours`
 
       // Determina se verrebbe inviato
       wouldSend = notificationsEnabled && !!groupChatId

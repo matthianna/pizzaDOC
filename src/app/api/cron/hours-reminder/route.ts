@@ -8,11 +8,11 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 /**
- * CRON JOB: Promemoria ore lavorate mancanti + Backup Database
+ * CRON JOB: Promemoria ore lavorate mancanti (per admin) + Backup Database
  * Eseguito ogni giovedì alle 15:00 CEST (13:00 UTC)
- * 
+ *
  * 1. Crea un backup automatico del database
- * 2. Invia notifiche push agli utenti con ore mancanti
+ * 2. Invia notifiche push agli amministratori se ci sono turni senza ore o con ore rifiutate
  */
 export async function GET(request: NextRequest) {
   try {
@@ -198,10 +198,10 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 [CRON hours-reminder] Turni senza ore: ${shiftsWithoutHours.length}`)
     console.log(`📊 [CRON hours-reminder] Turni con ore rifiutate: ${shiftsWithRejectedHours.length}`)
-    console.log(`📊 [CRON hours-reminder] Utenti con ore mancanti: ${result.length}`)
+    console.log(`📊 [CRON hours-reminder] Utenti coinvolti: ${result.length}, turni da sistemare: ${missingHours.length}`)
 
     // Se non ci sono ore mancanti
-    if (result.length === 0) {
+    if (missingHours.length === 0) {
       console.log('✅ [CRON hours-reminder] Nessuna ora mancante.')
       return NextResponse.json({
         success: true,
@@ -215,49 +215,65 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // 🔔 Send Push Notifications
+    // 🔔 Notifiche agli amministratori
     try {
       const { createNotification } = await import('@/lib/notifications')
       const { NotificationType } = await import('@prisma/client')
 
-      console.log('🔔 Sending push notifications to', result.length, 'users')
+      const admins = await prisma.user.findMany({
+        where: {
+          isActive: true,
+          user_roles: { some: { role: 'ADMIN' } },
+        },
+        select: { id: true, username: true },
+      })
 
+      console.log(
+        `🔔 Sending admin hours reminders: ${admins.length} admins, ${missingHours.length} shifts to fix`
+      )
+
+      const shiftWord = missingHours.length === 1 ? 'turno' : 'turni'
       const pushResults = await Promise.allSettled(
-        Object.entries(groupedByUser).map(async ([userId, data]) => {
+        admins.map(async (admin) => {
           try {
             await createNotification({
-              userId: userId,
+              userId: admin.id,
               type: NotificationType.HOURS_REMINDER,
-              title: 'Promemoria Ore Lavorate',
-              body: `Hai ${data.count} ${data.count === 1 ? 'turno' : 'turni'} senza ore inserite. Ricordati di completarle!`,
+              title: 'Ore lavorate: azione richiesta',
+              body: `Ci sono ${missingHours.length} ${shiftWord} senza ore registrate o con ore rifiutate. Apri Gestione ore per inserirle o correggerle.`,
               data: {
-                url: '/hours'
-              }
+                url: '/admin/hours',
+              },
             })
-            return { success: true, userId }
+            return { success: true, userId: admin.id }
           } catch (error) {
-            console.error(`❌ Failed to send push to ${data.username}:`, error)
-            return { success: false, userId, error }
+            console.error(`❌ Failed to send admin push to ${admin.username}:`, error)
+            return { success: false, userId: admin.id, error }
           }
         })
       )
 
-      const successfulPush = pushResults.filter(r => r.status === 'fulfilled' && (r.value as any).success).length
-      console.log(`✅ Push notifications sent: ${successfulPush}/${result.length}`)
+      const successfulPush = pushResults.filter(
+        (r) => r.status === 'fulfilled' && (r.value as { success?: boolean }).success
+      ).length
+      console.log(`✅ Admin push notifications sent: ${successfulPush}/${admins.length}`)
     } catch (notifError) {
       console.error('❌ [CRON] Error sending notifications:', notifError)
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Hours reminder completed',
-      usersWithMissingHours: result.length,
-      users: result.map(u => ({ username: u.username, missingCount: u.count })),
-      backup: backupResult ? {
-        success: backupResult.success,
-        timestamp: backupResult.timestamp,
-        tables: backupResult.tables
-      } : null
+      message: 'Hours reminder completed (admins notified)',
+      shiftsWithMissingHours: missingHours.length,
+      usersAffected: result.length,
+      users: result.map((u) => ({ username: u.username, missingCount: u.count })),
+      backup: backupResult
+        ? {
+            success: backupResult.success,
+            timestamp: backupResult.timestamp,
+            tables: backupResult.tables,
+          }
+        : null,
     })
   } catch (error) {
     console.error('❌ [CRON hours-reminder] Error in cron job:', error)

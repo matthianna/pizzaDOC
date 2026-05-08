@@ -103,9 +103,12 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
             markAsRead(notification.id)
         }
 
-        // Navigate to the relevant page if data contains a URL
-        const url = notification.data?.url as string | undefined
-        if (url) {
+        const isAdminUser = session?.user?.roles?.includes('ADMIN')
+        let url = notification.data?.url as string | undefined
+        if (!url && notification.type === 'HOURS_REMINDER') {
+            url = isAdminUser ? '/admin/hours' : '/hours'
+        }
+        if (url && url.startsWith('/')) {
             window.location.href = url
             setIsOpen(false)
         }

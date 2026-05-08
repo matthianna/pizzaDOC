@@ -26,6 +26,15 @@ export async function PUT(
       )
     }
 
+    const existing = await prisma.worked_hours.findUnique({
+      where: { id },
+      select: { status: true },
+    })
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Ore non trovate' }, { status: 404 })
+    }
+
     // Calcola le ore totali
     const [startHour, startMin] = startTime.split(':').map(Number)
     const [endHour, endMin] = endTime.split(':').map(Number)
@@ -44,6 +53,8 @@ export async function PUT(
       )
     }
 
+    const reactivatedFromReject = existing.status === 'REJECTED'
+
     // Aggiorna le ore lavorate
     const updatedHours = await prisma.worked_hours.update({
       where: { id },
@@ -51,7 +62,14 @@ export async function PUT(
         startTime,
         endTime,
         totalHours,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        ...(reactivatedFromReject
+          ? {
+              status: 'APPROVED',
+              rejectionReason: null,
+              reviewedAt: new Date(),
+            }
+          : {}),
       },
       include: {
         user: {
@@ -74,14 +92,17 @@ export async function PUT(
       userId: session.user.id,
       userUsername: session.user.username,
       action: 'HOURS_EDIT',
-      description: `Modificate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`,
+      description: reactivatedFromReject
+        ? `Corrette e riapprovate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`
+        : `Modificate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`,
       metadata: {
         workedHoursId: updatedHours.id,
         userId: updatedHours.userId,
         startTime,
         endTime,
-        totalHours
-      }
+        totalHours,
+        ...(reactivatedFromReject ? { fromRejected: true } : {}),
+      },
     })
 
     return NextResponse.json(updatedHours)

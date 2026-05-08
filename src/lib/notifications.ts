@@ -165,6 +165,12 @@ export async function sendPushToUsers(userIds: string[], payload: NotificationPa
  * Get the URL to navigate to for a notification type
  */
 function getNotificationUrl(type: NotificationType, data?: Record<string, unknown>): string {
+    const custom =
+        data && typeof data.url === 'string' && (data.url as string).startsWith('/')
+            ? (data.url as string)
+            : null
+    if (custom) return custom
+
     switch (type) {
         case 'SCHEDULE_PUBLISHED':
         case 'SHIFT_ASSIGNED':
@@ -173,8 +179,9 @@ function getNotificationUrl(type: NotificationType, data?: Record<string, unknow
             return '/schedule'
         case 'HOURS_APPROVED':
         case 'HOURS_REJECTED':
-        case 'HOURS_REMINDER':
             return '/hours'
+        case 'HOURS_REMINDER':
+            return '/admin/hours'
         case 'SUBSTITUTION_REQUEST':
         case 'SUBSTITUTION_APPLIED':
         case 'SUBSTITUTION_APPROVED':

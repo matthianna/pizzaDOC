@@ -126,7 +126,7 @@ export function Sidebar() {
     },
     // ⏰ ORE & ASSENZE
     {
-      name: 'Ore Lavorate',
+      name: 'Le mie ore',
       href: '/hours',
       icon: ClockIcon,
       iconSolid: ClockIconSolid,
@@ -263,7 +263,7 @@ export function Sidebar() {
     if (item.adminOnly && !isUserAdmin) return false
     if (item.hideForAdmin && isUserAdmin) return false
     // Nascondi "Ore Lavorate" se l'utente non ha trackHours abilitato
-    if (item.name === 'Ore Lavorate' && !session.user.trackHours) return false
+    if (item.name === 'Le mie ore' && !session.user.trackHours) return false
     return true
   })
 

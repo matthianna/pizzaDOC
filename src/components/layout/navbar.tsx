@@ -28,7 +28,7 @@ export function Navbar() {
       adminOnly: false
     },
     {
-      name: 'Ore Lavorate',
+      name: 'Le mie ore',
       href: '/hours',
       icon: Clock,
       adminOnly: false
@@ -65,7 +65,10 @@ export function Navbar() {
     }
   ]
 
-  const visibleNavigation = navigation.filter(item => !item.adminOnly || isAdmin)
+  const visibleNavigation = navigation.filter((item) => {
+    if (item.name === 'Le mie ore' && !session.user.trackHours) return false
+    return !item.adminOnly || isAdmin
+  })
 
   return (
     <nav className="bg-white shadow-sm border-b">

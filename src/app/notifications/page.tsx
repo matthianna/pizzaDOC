@@ -44,9 +44,16 @@ export default function NotificationsPage() {
     const [isDeleting, setIsDeleting] = useState<string | null>(null)
     const [isDeletingAll, setIsDeletingAll] = useState(false)
 
-    const { isSupported, isSubscribed, subscribe, unsubscribe, isLoading: pushLoading } = usePushNotifications()
+    const isUserAdmin = session?.user?.roles?.includes('ADMIN')
 
-    const fetchNotifications = async (reset = false) => {
+    const resolveNotificationLink = (n: Notification): string | null => {
+        const u = n.data?.url
+        if (typeof u === 'string' && u.startsWith('/')) return u
+        if (n.type === 'HOURS_REMINDER') return isUserAdmin ? '/admin/hours' : '/hours'
+        return null
+    }
+
+    const { isSupported, isSubscribed, subscribe, unsubscribe, isLoading: pushLoading } = usePushNotifications()
         if (!session?.user?.id) return
 
         try {
@@ -391,9 +398,11 @@ export default function NotificationsPage() {
                                 {selectedNotification.body as string}
                             </p>
 
-                            {typeof selectedNotification.data?.url === 'string' && (
+                            {selectedNotification && resolveNotificationLink(selectedNotification) && (
                                 <button
-                                    onClick={() => handleGoToLink(selectedNotification.data?.url as string)}
+                                    onClick={() =>
+                                        handleGoToLink(resolveNotificationLink(selectedNotification)!)
+                                    }
                                     className="w-full mt-8 py-4 bg-gradient-primary text-white rounded-2xl font-bold shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all transform active:scale-95 flex items-center justify-center gap-2"
                                 >
                                     Vai alla pagina

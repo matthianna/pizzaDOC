@@ -45,45 +45,14 @@ export async function POST(request: Request) {
                 .filter(u => u.primaryRole !== 'ADMIN' || isPriorityUser(u.username))
                 .map(u => u.id)
         } else if (filter === 'missing_hours') {
-            const todayOps = appTodayUtcMidnight()
-
-            const pastShifts = await prisma.shifts.findMany({
+            const admins = await prisma.user.findMany({
                 where: {
-                    schedules: {
-                        weekStart: {
-                            lt: todayOps,
-                        },
-                    },
-                    user: {
-                        isActive: true,
-                        trackHours: true
-                    }
+                    isActive: true,
+                    user_roles: { some: { role: 'ADMIN' } },
                 },
-                include: {
-                    worked_hours: true,
-                    schedules: true,
-                    user: {
-                        select: { id: true, username: true, primaryRole: true }
-                    }
-                }
+                select: { id: true },
             })
-
-            const targetUserIds = new Set<string>()
-            pastShifts.forEach((shift) => {
-                const shiftDay = shiftCalendarDateUtc(shift.schedules.weekStart, shift.dayOfWeek)
-                const endInst = shiftInstantRome(shiftDay, shift.endTime)
-
-                if (
-                    endInst.getTime() < Date.now() &&
-                    (!shift.worked_hours || shift.worked_hours.status === 'REJECTED')
-                ) {
-                    // Solo se non è admin o se è un VIP
-                    if (shift.user.primaryRole !== 'ADMIN' || isPriorityUser(shift.user.username)) {
-                        targetUserIds.add(shift.userId)
-                    }
-                }
-            })
-            userIds = Array.from(targetUserIds)
+            userIds = admins.map((a) => a.id)
         } else {
             // Get all active users
             const users = await prisma.user.findMany({
@@ -97,6 +66,10 @@ export async function POST(request: Request) {
                 .map(u => u.id)
         }
 
+        const defaultUrl =
+            filter === 'missing_hours' ? '/admin/hours' : '/dashboard'
+        const resolvedUrl = url || defaultUrl
+
         // Create notifications in database
         await prisma.notifications.createMany({
             data: userIds.map(userId => ({
@@ -105,7 +78,7 @@ export async function POST(request: Request) {
                 type: (filter === 'missing_hours' ? 'HOURS_REMINDER' : 'GENERAL') as NotificationType,
                 title,
                 body: message,
-                data: { url: url || '/dashboard' },
+                data: { url: resolvedUrl },
                 isRead: false,
                 sentAt: new Date()
             }))
@@ -118,7 +91,7 @@ export async function POST(request: Request) {
             icon: '/icons/icon-192x192.png',
             badge: '/icons/icon-72x72.png',
             data: {
-                url: url || '/dashboard',
+                url: resolvedUrl,
                 type: filter === 'missing_hours' ? 'HOURS_REMINDER' : 'GENERAL'
             },
             tag: filter === 'missing_hours' ? 'hours-reminder' : 'general-broadcast'
@@ -222,9 +195,22 @@ export async function GET(request: Request) {
             .filter(name => !missingHoursUsers.has(name))
             .sort()
 
+        const adminNotifyRecipients = (
+            await prisma.user.findMany({
+                where: {
+                    isActive: true,
+                    user_roles: { some: { role: 'ADMIN' } },
+                },
+                select: { username: true },
+            })
+        )
+            .map((u) => u.username)
+            .sort()
+
         stats.hours = {
             submitted: finalizedSubmitted,
-            missing: finalizedMissing
+            missing: finalizedMissing,
+            adminNotifyRecipients,
         }
 
         return NextResponse.json(stats)

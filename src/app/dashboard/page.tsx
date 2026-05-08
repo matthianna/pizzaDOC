@@ -600,9 +600,11 @@ export default function DashboardPage() {
                   </div>
                   <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                     <div>
-                      <h3 className="text-white text-xl font-black tracking-tight">Approvazione Ore</h3>
+                      <h3 className="text-white text-xl font-black tracking-tight">Revisione ore</h3>
                       <p className="text-orange-100 text-sm font-medium mt-1">
-                        Ci sono {pendingHours.totalShifts} turni in attesa di essere confermati.
+                        {pendingHours.totalShifts === 1
+                          ? "C'è una registrazione ore in attesa di approvazione o rifiuto."
+                          : `Ci sono ${pendingHours.totalShifts} registrazioni ore in attesa di approvazione o rifiuto.`}
                       </p>
                     </div>
                     <a href="/admin/hours" onClick={() => lightClick()} className="bg-white text-orange-600 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all text-center">
@@ -620,13 +622,13 @@ export default function DashboardPage() {
                   </div>
                   <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                     <div>
-                      <h3 className="text-white text-xl font-black tracking-tight">Ore Mancanti</h3>
+                      <h3 className="text-white text-xl font-black tracking-tight">Ore non ancora registrate</h3>
                       <p className="text-red-100 text-sm font-medium mt-1">
-                        Hai {missingHours.count} turni senza ore inserite. Completali subito!
+                        Hai {missingHours.count} {missingHours.count === 1 ? 'turno passato' : 'turni passati'} senza ore nel sistema. L&apos;amministrazione le inserirà: non devi fare nulla qui.
                       </p>
                     </div>
                     <a href="/hours" onClick={() => lightClick()} className="bg-white text-red-600 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all text-center">
-                      Inserisci Ore
+                      Vedi dettaglio
                     </a>
                   </div>
                 </div>

@@ -99,7 +99,8 @@ const TASKS = [
         name: 'Promemoria Ore Lavorate',
         path: '/api/cron/hours-reminder',
         schedule: '18 9 * * 4', // Thursday at 09:18
-        description: 'Invia promemoria agli utenti per inserire le ore lavorate della settimana corrente.',
+        description:
+            'Backup automatico e notifica push agli amministratori se ci sono turni passati senza ore o con ore rifiutate (Gestione ore).',
         type: 'notification' as const
     },
     {

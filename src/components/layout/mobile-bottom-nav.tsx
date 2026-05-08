@@ -97,7 +97,7 @@ export function MobileBottomNav() {
     // Additional items for the "More" menu
     const employeeMoreItems: NavItem[] = [
         {
-            name: 'Ore Lavorate',
+            name: 'Le mie ore',
             href: '/hours',
             icon: Clock,
         },
@@ -167,7 +167,11 @@ export function MobileBottomNav() {
     ]
 
     const navigation = isUserAdmin ? adminNav : employeeNav
-    const moreItems = isUserAdmin ? adminMoreItems : employeeMoreItems
+    const moreItemsRaw = isUserAdmin ? adminMoreItems : employeeMoreItems
+    const moreItems =
+        isUserAdmin || session.user.trackHours
+            ? moreItemsRaw
+            : moreItemsRaw.filter((item) => item.href !== '/hours')
 
     const handleNavClick = (href: string) => {
         if (href === '#more') {

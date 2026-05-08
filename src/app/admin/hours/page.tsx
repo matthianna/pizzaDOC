@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, ChevronRight, User } from 'lucide-react'
+import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, ChevronRight, User, Plus } from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { formatDate, shiftCalendarDateUtc } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
@@ -44,6 +44,26 @@ interface WorkedHours {
   shift: Shift
 }
 
+interface MissingShiftRow {
+  shiftId: string
+  workedHoursId: string | null
+  dayOfWeek: number
+  shiftType: ShiftType
+  role: Role
+  startTime: string
+  endTime: string
+  weekStart: string
+  shiftDate: string
+  hoursStatus: string | null
+}
+
+interface MissingUserGroup {
+  userId: string
+  username: string
+  primaryRole: Role
+  shifts: MissingShiftRow[]
+}
+
 export default function AdminHoursPage() {
   const [workedHours, setWorkedHours] = useState<WorkedHours[]>([])
   const [filterStatus, setFilterStatus] = useState<HoursStatus | 'ALL'>('PENDING')
@@ -57,6 +77,21 @@ export default function AdminHoursPage() {
   const [editEndTime, setEditEndTime] = useState('')
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set())
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [missingByUser, setMissingByUser] = useState<MissingUserGroup[]>([])
+  const [missingLoading, setMissingLoading] = useState(false)
+  const [creatingShift, setCreatingShift] = useState<{
+    shiftId: string
+    workedHoursId: string | null
+    username: string
+    shiftType: ShiftType
+    role: Role
+    dayOfWeek: number
+    weekStart: string
+    plannedStart: string
+    plannedEnd: string
+    shiftDateIso: string
+    hoursStatus: string | null
+  } | null>(null)
 
   const { lightClick, success: successClick } = useHaptics()
 
@@ -72,6 +107,31 @@ export default function AdminHoursPage() {
   useEffect(() => {
     fetchWorkedHours()
   }, [filterStatus, selectedMonth, selectedYear])
+
+  useEffect(() => {
+    fetchMissingShifts()
+  }, [])
+
+  const fetchMissingShifts = async () => {
+    setMissingLoading(true)
+    try {
+      const response = await fetch('/api/admin/hours-summary/missing', {
+        cache: 'no-store',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setMissingByUser(Array.isArray(data.missingHours) ? data.missingHours : [])
+      } else {
+        setMissingByUser([])
+      }
+    } catch (e) {
+      console.error(e)
+      setMissingByUser([])
+    } finally {
+      setMissingLoading(false)
+    }
+  }
 
   const fetchWorkedHours = async () => {
     setLoading(true)
@@ -124,6 +184,7 @@ export default function AdminHoursPage() {
       if (response.ok) {
         successClick()
         fetchWorkedHours()
+        fetchMissingShifts()
       } else {
         console.error('Errore durante l\'approvazione')
       }
@@ -147,6 +208,7 @@ export default function AdminHoursPage() {
         setRejectReason('')
         successClick()
         fetchWorkedHours()
+        fetchMissingShifts()
       } else {
         console.error('Errore durante il rifiuto')
       }
@@ -157,42 +219,100 @@ export default function AdminHoursPage() {
 
   const openEditModal = (hours: WorkedHours) => {
     lightClick()
+    setCreatingShift(null)
     setEditingHours(hours)
     setEditStartTime(hours.startTime)
     setEditEndTime(hours.endTime)
   }
 
-  const closeEditModal = () => {
+  const openCreateShiftModal = (user: MissingUserGroup, row: MissingShiftRow) => {
+    lightClick()
     setEditingHours(null)
+    setCreatingShift({
+      shiftId: row.shiftId,
+      workedHoursId: row.workedHoursId,
+      username: user.username,
+      shiftType: row.shiftType,
+      role: row.role,
+      dayOfWeek: row.dayOfWeek,
+      weekStart: row.weekStart,
+      plannedStart: row.startTime,
+      plannedEnd: row.endTime,
+      shiftDateIso: row.shiftDate,
+      hoursStatus: row.hoursStatus,
+    })
+    setEditStartTime(row.startTime)
+    setEditEndTime(row.endTime)
+  }
+
+  const closeHourModal = () => {
+    setEditingHours(null)
+    setCreatingShift(null)
     setEditStartTime('')
     setEditEndTime('')
   }
 
-  const saveEditedHours = async () => {
-    if (!editingHours) return
-
-    try {
-      const response = await fetch(`/api/admin/hours/${editingHours.id}/edit`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          startTime: editStartTime,
-          endTime: editEndTime
+  const saveHourModal = async () => {
+    if (editingHours) {
+      try {
+        const response = await fetch(`/api/admin/hours/${editingHours.id}/edit`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            startTime: editStartTime,
+            endTime: editEndTime,
+          }),
         })
-      })
 
-      if (response.ok) {
-        closeEditModal()
-        successClick()
-        fetchWorkedHours()
-      } else {
-        const error = await response.json()
-        console.error(error.error || 'Errore durante la modifica')
+        if (response.ok) {
+          closeHourModal()
+          successClick()
+          fetchWorkedHours()
+          fetchMissingShifts()
+        } else {
+          const error = await response.json()
+          console.error(error.error || 'Errore durante la modifica')
+        }
+      } catch (error) {
+        console.error('Error editing hours:', error)
       }
-    } catch (error) {
-      console.error('Error editing hours:', error)
+      return
+    }
+
+    if (creatingShift) {
+      try {
+        const isRejected = creatingShift.workedHoursId && creatingShift.hoursStatus === 'REJECTED'
+        const url = isRejected
+          ? `/api/admin/hours/${creatingShift.workedHoursId}/edit`
+          : '/api/admin/hours'
+        const response = await fetch(url, {
+          method: isRejected ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            isRejected
+              ? { startTime: editStartTime, endTime: editEndTime }
+              : { shiftId: creatingShift.shiftId, startTime: editStartTime, endTime: editEndTime }
+          ),
+        })
+
+        if (response.ok) {
+          closeHourModal()
+          successClick()
+          fetchWorkedHours()
+          fetchMissingShifts()
+        } else {
+          let msg = 'Errore salvataggio'
+          try {
+            const err = await response.json()
+            if (typeof err?.error === 'string') msg = err.error
+          } catch {
+            /* ignore */
+          }
+          console.error(msg)
+        }
+      } catch (error) {
+        console.error('Error saving hours:', error)
+      }
     }
   }
 
@@ -316,7 +436,7 @@ export default function AdminHoursPage() {
                   Gestione Ore Lavorate
                 </h1>
                 <p className="text-gray-500 mt-2 text-sm font-medium">
-                  Controlla e approva le ore inviate dal tuo team.
+                  Inserisci le ore per i turni, controlla le richieste in attesa e approva o rifiuta.
                 </p>
               </div>
             </div>
@@ -324,7 +444,7 @@ export default function AdminHoursPage() {
             {/* Quick Stats Summary */}
             <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-gray-100 pt-6 md:pt-0 md:pl-8">
               <div className="text-center">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">In Attesa</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Da revisionare</p>
                 <p className="text-3xl font-black text-orange-600 leading-none">{pendingCount}</p>
               </div>
               <div className="text-center">
@@ -390,6 +510,67 @@ export default function AdminHoursPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Turni senza ore (o rifiutate) */}
+        <div className="bg-white rounded-[2rem] shadow-soft border border-amber-100 p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-black text-gray-900 tracking-tight">Turni senza ore registrate</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Inserisci start/fine effettivi per i turni passati ancora senza ore, oppure correggi quelle rifiutate.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                lightClick()
+                fetchMissingShifts()
+              }}
+              className="shrink-0 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 transition-all"
+            >
+              Aggiorna elenco
+            </button>
+          </div>
+          {missingLoading ? (
+            <CardSkeleton />
+          ) : missingByUser.length === 0 ? (
+            <p className="text-sm font-medium text-gray-400 text-center py-8">
+              Nessun turno passato in attesa di ore per i filtri del sistema.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {missingByUser.map((u) => (
+                <div
+                  key={u.userId}
+                  className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 space-y-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <span className="font-black text-gray-900">{u.username}</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">
+                      {getRoleName(u.primaryRole)}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {u.shifts.map((row) => (
+                      <button
+                        key={row.shiftId}
+                        type="button"
+                        onClick={() => openCreateShiftModal(u, row)}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-800 hover:border-orange-300 hover:bg-orange-50/50 transition-all"
+                      >
+                        <Plus className="h-3.5 w-3.5 text-orange-600" />
+                        {formatDate(shiftCalendarDateUtc(row.weekStart, row.dayOfWeek))} ·{' '}
+                        {getShiftTypeName(row.shiftType)}
+                        {row.hoursStatus === 'REJECTED' ? ' · Rifiutato' : ''}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {fetchError && (
@@ -579,34 +760,52 @@ export default function AdminHoursPage() {
         </div>
       </div>
 
-      {/* Edit Hours Modal - Using Common Modal Component */}
+      {/* Ore: modifica o inserimento admin */}
       <Modal
-        isOpen={!!editingHours}
-        onClose={closeEditModal}
-        title="Modifica Ore"
-        subtitle={editingHours ? `${editingHours.user.username} • ${getDayName(editingHours.shift.dayOfWeek)} ${getShiftTypeName(editingHours.shift.shiftType)}` : ''}
+        isOpen={!!editingHours || !!creatingShift}
+        onClose={closeHourModal}
+        title={
+          creatingShift
+            ? creatingShift.hoursStatus === 'REJECTED'
+              ? 'Correggi ore rifiutate'
+              : 'Inserisci ore turno'
+            : 'Modifica Ore'
+        }
+        subtitle={
+          creatingShift
+            ? `${creatingShift.username} · ${getDayName(creatingShift.dayOfWeek)} ${getShiftTypeName(creatingShift.shiftType)}`
+            : editingHours
+              ? `${editingHours.user.username} · ${getDayName(editingHours.shift.dayOfWeek)} ${getShiftTypeName(editingHours.shift.shiftType)}`
+              : ''
+        }
         headerIcon={<Edit2 className="h-6 w-6" />}
         maxWidth="lg"
       >
-        {editingHours && (
+        {(editingHours || creatingShift) && (
           <div className="space-y-8 pt-4">
-            {/* Shift Info Header */}
             <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-[2rem] p-6">
               <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Orario Turno Originale</p>
-                <p className="text-xl font-black text-gray-900">{editingHours.shift.startTime} - {editingHours.shift.endTime}</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Orario turno pianificato</p>
+                <p className="text-xl font-black text-gray-900">
+                  {(editingHours?.shift.startTime ?? creatingShift?.plannedStart) ?? '—'} -{' '}
+                  {(editingHours?.shift.endTime ?? creatingShift?.plannedEnd) ?? '—'}
+                </p>
               </div>
               <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ruolo Assegnato</p>
-                <p className="text-xl font-black text-gray-900">{getRoleName(editingHours.shift.role)}</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ruolo assegnato</p>
+                <p className="text-xl font-black text-gray-900">
+                  {getRoleName((editingHours?.shift.role ?? creatingShift?.role)!)}
+                </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-3">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ora Inizio</label>
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ora inizio effettiva</label>
                 <ReactSelect
-                  options={generateTimeOptions(editingHours.shift.startTime)}
+                  options={generateTimeOptions(
+                    (editingHours?.shift.startTime ?? creatingShift?.plannedStart) || '09:00'
+                  )}
                   value={editStartTime ? { value: editStartTime, label: editStartTime } : null}
                   onChange={(option) => {
                     lightClick()
@@ -616,9 +815,11 @@ export default function AdminHoursPage() {
                 />
               </div>
               <div className="space-y-3">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ora Fine</label>
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ora fine effettiva</label>
                 <ReactSelect
-                  options={generateTimeOptions(editingHours.shift.endTime)}
+                  options={generateTimeOptions(
+                    (editingHours?.shift.endTime ?? creatingShift?.plannedEnd) || '18:00'
+                  )}
                   value={editEndTime ? { value: editEndTime, label: editEndTime } : null}
                   onChange={(option) => {
                     lightClick()
@@ -629,11 +830,10 @@ export default function AdminHoursPage() {
               </div>
             </div>
 
-            {/* Live Result Display */}
             {editStartTime && editEndTime && (
               <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-[2rem] p-8 shadow-xl shadow-orange-100 flex items-center justify-between text-white">
                 <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Ricalcolo Ore Totali</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Ricalcolo ore totali</h4>
                   <p className="text-lg font-bold mt-1">{editStartTime} – {editEndTime}</p>
                 </div>
                 <div className="text-right">
@@ -644,18 +844,20 @@ export default function AdminHoursPage() {
 
             <div className="flex gap-4 pt-4">
               <button
-                onClick={closeEditModal}
+                type="button"
+                onClick={closeHourModal}
                 className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-all active:scale-95"
               >
                 Annulla
               </button>
               <button
-                onClick={saveEditedHours}
+                type="button"
+                onClick={saveHourModal}
                 disabled={!editStartTime || !editEndTime}
                 className="flex-[2] py-4 bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-100 hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 <Check className="h-4 w-4" />
-                Salva Modifiche
+                {creatingShift && !creatingShift.workedHoursId ? 'Salva ore' : 'Salva modifiche'}
               </button>
             </div>
           </div>
@@ -677,7 +879,7 @@ export default function AdminHoursPage() {
             <div className="flex gap-4">
               <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
               <p className="text-sm font-bold text-red-800 leading-tight">
-                Le ore verranno rimandate al dipendente per essere corrette. Specifica il motivo qui sotto.
+                Le ore resteranno rifiutate finché un amministratore non le corregge. Indica il motivo del rifiuto.
               </p>
             </div>
           </div>

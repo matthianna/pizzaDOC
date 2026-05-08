@@ -101,6 +101,7 @@ export async function GET(req: NextRequest) {
 
         return {
           shiftId: shift.id,
+          workedHoursId: shift.worked_hours?.id ?? null,
           userId: shift.user.id,
           username: shift.user.username,
           primaryRole: shift.user.primaryRole,
@@ -131,6 +132,7 @@ export async function GET(req: NextRequest) {
       }
       acc[item.userId].shifts.push({
         shiftId: item.shiftId,
+        workedHoursId: item.workedHoursId,
         dayOfWeek: item.dayOfWeek,
         shiftType: item.shiftType,
         role: item.role,

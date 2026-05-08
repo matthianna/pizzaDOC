@@ -409,10 +409,10 @@ export default function SchedulePage() {
                               {needsHours && (
                                 <a
                                   href="/hours"
-                                  className="flex items-center justify-center w-full px-2 py-1.5 text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors gap-1"
+                                  className="flex items-center justify-center w-full px-2 py-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-colors gap-1"
                                 >
                                   <AlertCircle className="h-3 w-3" />
-                                  Inserisci Ore
+                                  Ore da registrare
                                 </a>
                               )}
 
