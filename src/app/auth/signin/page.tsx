@@ -51,7 +51,13 @@ export default function SignInPage() {
         
         if (data.status === 'ok') {
           setDbStatus('ok')
-          setDbMessage(`Database OK (${data.userCount} utenti)`)
+          const n =
+            typeof data.userCount === 'number' ? data.userCount : null
+          setDbMessage(
+            n !== null
+              ? `Database OK (${n} utenti)`
+              : 'Database OK'
+          )
         } else {
           setDbStatus('error')
           setDbMessage(`Errore DB: ${data.message || 'Sconosciuto'}`)
