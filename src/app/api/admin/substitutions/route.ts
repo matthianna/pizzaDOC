@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { expireSubstitutionsPastDeadline } from '@/lib/substitution-expiry'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,6 +11,8 @@ export async function GET(request: NextRequest) {
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    await expireSubstitutionsPastDeadline()
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')

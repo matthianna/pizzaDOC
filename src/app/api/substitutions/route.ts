@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { shiftCalendarDateUtc, shiftInstantRome } from '@/lib/date-utils'
+import { expireSubstitutionsPastDeadline } from '@/lib/substitution-expiry'
 
 // GET /api/substitutions - Get substitutions for user
 export async function GET(request: NextRequest) {
@@ -12,6 +13,8 @@ export async function GET(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    await expireSubstitutionsPastDeadline()
 
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') // 'available' or 'my-requests'
@@ -107,6 +110,8 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    await expireSubstitutionsPastDeadline()
 
     const { shiftId, requestNote } = await request.json()
 

@@ -17,6 +17,27 @@ function parseCronSchedule(schedule: string): { readable: string; nextRun?: stri
   }
 
   const [minute, hour, day, month, weekday] = parts
+
+  const minuteNumEarly = parseInt(minute, 10)
+  if (
+    hour === '*' &&
+    day === '*' &&
+    month === '*' &&
+    weekday === '*' &&
+    Number.isFinite(minuteNumEarly)
+  ) {
+    const nowEarly = new Date()
+    const nextHourly = new Date(nowEarly)
+    nextHourly.setSeconds(0, 0)
+    nextHourly.setMinutes(minuteNumEarly)
+    if (nextHourly <= nowEarly) {
+      nextHourly.setHours(nextHourly.getHours() + 1)
+    }
+    return {
+      readable: `Ogni ora (minuto :${minuteNumEarly.toString().padStart(2, '0')})`,
+      nextRun: nextHourly.toISOString(),
+    }
+  }
   
   // Parse weekday (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
   const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
@@ -101,6 +122,15 @@ const TASKS = [
         schedule: '18 9 * * 4', // Thursday at 09:18
         description:
             'Backup automatico e notifica push agli amministratori se ci sono turni passati senza ore o con ore rifiutate (Gestione ore).',
+        type: 'notification' as const
+    },
+    {
+        id: 'substitution-expiry',
+        name: 'Scadenza richieste sostituzione',
+        path: '/api/cron/substitution-expiry',
+        schedule: '7 * * * *', // Ogni ora al minuto 7
+        description:
+            'Imposta stato EXPIRED per le richieste ancora PENDING senza candidato dopo l’orario di inizio del turno.',
         type: 'notification' as const
     },
     {

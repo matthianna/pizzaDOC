@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/hours-reminder",
       "schedule": "18 9 * * 4"
+    },
+    {
+      "path": "/api/cron/substitution-expiry",
+      "schedule": "7 * * * *"
     }
   ]
 }

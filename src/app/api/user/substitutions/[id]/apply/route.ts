@@ -8,6 +8,7 @@ import { normalizeDate } from '@/lib/normalize-date'
 import { addWeekCalendarDays } from '@/lib/date-utils'
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
+import { expireSubstitutionsPastDeadline } from '@/lib/substitution-expiry'
 
 export async function POST(
   request: NextRequest,
@@ -22,6 +23,8 @@ export async function POST(
 
     const resolvedParams = await params
     const substitutionId = resolvedParams.id
+
+    await expireSubstitutionsPastDeadline()
 
     // Get the substitution request
     const substitution = await prisma.substitutions.findUnique({

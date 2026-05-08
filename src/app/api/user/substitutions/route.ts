@@ -8,6 +8,7 @@ import { normalizeDate } from '@/lib/normalize-date'
 import { addWeekCalendarDays } from '@/lib/date-utils'
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
+import { expireSubstitutionsPastDeadline } from '@/lib/substitution-expiry'
 
 // GET - Fetch available substitutions and user's own substitution requests
 export async function GET() {
@@ -19,6 +20,7 @@ export async function GET() {
     }
 
     const now = new Date()
+    await expireSubstitutionsPastDeadline(now)
 
     // Get available substitutions (not mine, future shifts, pending/applied status)
     const availableSubstitutions = await prisma.substitutions.findMany({
@@ -150,6 +152,8 @@ export async function POST(request: NextRequest) {
     if (!session || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    await expireSubstitutionsPastDeadline()
 
     const { shiftId, requestNote } = await request.json()
 
