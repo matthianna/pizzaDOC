@@ -73,7 +73,7 @@ export default function SettingsPage() {
   const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletingHoliday, setDeletingHoliday] = useState<Holiday | null>(null)
-  const [filterYear, setFilterYear] = useState<string>('2025')
+  const [filterYear, setFilterYear] = useState<string>(() => String(new Date().getFullYear()))
   const { showToast, ToastContainer } = useToast()
 
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
@@ -426,7 +426,7 @@ export default function SettingsPage() {
   }
 
   const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: 6 }, (_, i) => 2025 + i) // Start from 2025
+  const years = Array.from({ length: 6 }, (_, i) => currentYear + i)
 
   if (loading) {
     return (
