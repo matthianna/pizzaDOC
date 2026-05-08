@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/substitution-expiry",
-      "schedule": "7 * * * *"
+      "schedule": "17 6 * * *"
     }
   ]
 }

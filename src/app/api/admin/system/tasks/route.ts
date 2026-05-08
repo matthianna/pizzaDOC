@@ -128,7 +128,7 @@ const TASKS = [
         id: 'substitution-expiry',
         name: 'Scadenza richieste sostituzione',
         path: '/api/cron/substitution-expiry',
-        schedule: '7 * * * *', // Ogni ora al minuto 7
+        schedule: '17 6 * * *', // Una volta al giorno (Vercel Hobby: solo cron giornalieri)
         description:
             'Imposta stato EXPIRED per le richieste ancora PENDING senza candidato dopo l’orario di inizio del turno.',
         type: 'notification' as const
