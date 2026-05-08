@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Database } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -136,8 +137,15 @@ export default function SignInPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo and Title */}
         <div className="text-center mb-10 animate-in fade-in zoom-in duration-700">
-          <div className="inline-flex items-center justify-center w-28 h-28 mb-6 bg-gradient-to-br from-orange-500 to-red-600 rounded-[2rem] shadow-2xl shadow-orange-200 rotate-3 hover:rotate-0 transition-transform duration-500">
-            <span className="text-5xl drop-shadow-lg">🍕</span>
+          <div className="inline-flex items-center justify-center mb-6 p-4 rounded-[2rem] bg-white shadow-2xl shadow-orange-200/60 border border-gray-100/80">
+            <Image
+              src="/logo-pizza-doc.png"
+              alt="Pizza D.O.C."
+              width={140}
+              height={140}
+              className="w-[7.5rem] h-[7.5rem] sm:w-36 sm:h-36 object-contain"
+              priority
+            />
           </div>
           <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">
             Pizza<span className="text-orange-600">DOC</span>
