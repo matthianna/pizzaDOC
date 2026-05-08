@@ -29,7 +29,6 @@ export async function GET(
       select: {
         id: true,
         username: true,
-        phoneNumber: true,
         primaryRole: true,
         primaryTransport: true,
         isActive: true,
@@ -129,7 +128,6 @@ export async function GET(
     return NextResponse.json({
       id: user.id,
       username: user.username,
-      phoneNumber: user.phoneNumber,
       primaryRole: user.primaryRole,
       secondaryRoles,
       primaryTransport: user.primaryTransport,

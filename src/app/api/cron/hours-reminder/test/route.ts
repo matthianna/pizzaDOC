@@ -129,32 +129,19 @@ export async function GET(request: NextRequest) {
     console.log(`🧪 [TEST hours-reminder] Turni con ore rifiutate: ${shiftsWithRejectedHours.length}`)
     console.log(`🧪 [TEST hours-reminder] Utenti con ore mancanti: ${result.length}`)
 
-    // Verifica configurazione WhatsApp
-    const [groupChatIdSetting, notificationsEnabledSetting] = await Promise.all([
-      prisma.systemSettings.findUnique({ where: { key: 'whatsapp_group_chat_id' } }),
-      prisma.systemSettings.findUnique({ where: { key: 'whatsapp_notifications_enabled' } })
-    ])
-
-    const groupChatId = groupChatIdSetting?.value
-    const notificationsEnabled = notificationsEnabledSetting?.value === 'true'
-
     // Costruisci il messaggio (anche se vuoto)
     let message = ''
-    let wouldSend = false
 
     if (result.length > 0) {
-      message = '⏰ *PROMEMORIA ORE (ADMIN)*\n\n'
-      message += `📋 Turni da gestire (staff senza ore o rifiutate):\n\n`
-      
-      result.forEach(user => {
+      message = 'Promemoria ore (admin)\n\n'
+      message += 'Turni da gestire (staff senza ore o rifiutate):\n\n'
+
+      result.forEach((user) => {
         const turnoLabel = user.count === 1 ? 'turno' : 'turni'
-        message += `• *${user.username}* - ${user.count} ${turnoLabel}\n`
+        message += `• ${user.username} - ${user.count} ${turnoLabel}\n`
       })
 
-      message += `\n📝 Gli amministratori inseriscono le ore in:\nhttps://pizzadoc.vercel.app/admin/hours`
-
-      // Determina se verrebbe inviato
-      wouldSend = notificationsEnabled && !!groupChatId
+      message += `\nGli amministratori inseriscono le ore in /admin/hours`
     }
 
     return NextResponse.json({
@@ -166,18 +153,11 @@ export async function GET(request: NextRequest) {
         totalShifts: allShifts.length,
         usersWithMissingHours: result.length
       },
-      whatsappConfig: {
-        notificationsEnabled,
-        groupConfigured: !!groupChatId,
-        groupChatId: groupChatId || null
-      },
-      wouldSendMessage: wouldSend,
-      message: message || '(Nessun messaggio da inviare - nessuna ora mancante)',
+      productionChannel: 'in_app_and_push',
+      message: message || '(Nessun messaggio — nessuna ora mancante)',
       users: result.length > 0 ? result : [],
       reasons: {
-        noMissingHours: result.length === 0,
-        whatsappDisabled: !notificationsEnabled,
-        groupNotConfigured: !groupChatId
+        noMissingHours: result.length === 0
       }
     }, {
       headers: {

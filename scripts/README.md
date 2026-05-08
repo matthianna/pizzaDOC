@@ -15,15 +15,9 @@ npm run setup:database
 - ✅ Imposta limiti turni per ogni ruolo
 - ✅ Configura distribuzioni orari di inizio
 
-**Utenti creati:**
-- `admin` (password: `admin`)
-- `Mario` (Pizzaiolo/Cucina, password: `mario`)
-- `Valentino` (Pizzaiolo, password: `valentino`)
-- `Luis` (Fattorino Auto, password: `luis`)
-- `Matthias` (Fattorino Scooter, password: `matthias`)
-- E molti altri...
+**Utenti creati:** lo script `setup-database` crea account demo per lo sviluppo (credenziali definite nel codice dello script). **Non usare quelle password in produzione** e non pubblicare mai un dump del database con utenti reali.
 
-**Quando usarlo:** All'inizio per inizializzare un database vuoto.
+**Quando usarlo:** All'inizio per inizializzare un database vuoto (solo ambiente locale/test).
 
 ---
 
@@ -78,34 +72,6 @@ npm run reset:database
 
 ---
 
----
-
-### 4. Test Configurazione WAHA
-```bash
-npx tsx scripts/test-waha.ts
-```
-
-**Cosa fa:**
-- ✅ Verifica che WAHA_URL sia configurato
-- ✅ Testa la connessione con WAHA su Railway
-- ✅ Controlla lo stato della sessione WhatsApp
-- ✅ Mostra diagnostica dettagliata
-
-**Con test di invio:**
-```bash
-npx tsx scripts/test-waha.ts +41791234567
-```
-
-**Quando usarlo:**
-- Dopo aver riconfigurato WAHA su Railway
-- Per verificare che WhatsApp sia connesso
-- Per testare l'invio di messaggi
-- Per debug problemi di notifiche
-
-**Guida setup completo:** Vedi `WAHA_RICONFIGURAZIONE.md`
-
----
-
 ## 🗂️ File nella cartella
 
 | File | Descrizione | Comando |
@@ -113,7 +79,6 @@ npx tsx scripts/test-waha.ts +41791234567
 | `setup-database.ts` | Setup completo del sistema | `npm run setup:database` |
 | `generate-availability.ts` | Genera disponibilità settimanale | `npm run generate:availability` |
 | `reset-database.ts` | ⚠️ Reset completo (elimina tutto) | `npm run reset:database` |
-| `test-waha.ts` | 🆕 Test configurazione WAHA/WhatsApp | `npx tsx scripts/test-waha.ts` |
 | `seed.ts` | Script base Prisma (legacy) | `npm run seed` |
 
 ## 🔄 Workflow Tipico
@@ -127,8 +92,8 @@ npm run setup:database
 # 2. Genera disponibilità per la settimana corrente
 npm run generate:availability
 
-# 3. Accedi come admin e genera il piano turni
-# http://localhost:3000 -> admin/admin
+# 3. Accedi come admin e genera il piano turni (usa le credenziali demo dello script)
+# http://localhost:3000
 ```
 
 ### Nuova settimana:

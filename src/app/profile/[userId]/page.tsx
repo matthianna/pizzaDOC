@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { User, Calendar, Clock, MapPin, Phone, Briefcase, TrendingUp, ChevronRight, Star, ShieldCheck, Mail, Smartphone, Bike, Car } from 'lucide-react'
+import { User, Calendar, Clock, MapPin, Briefcase, TrendingUp, ChevronRight, Star, ShieldCheck, Mail, Smartphone, Bike, Car } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getRoleName, getShiftTypeName, cn } from '@/lib/utils'
@@ -13,7 +13,6 @@ import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
 interface UserProfile {
   id: string
   username: string
-  phoneNumber: string | null
   primaryRole: Role
   secondaryRoles: Role[]
   primaryTransport: Transport | null
@@ -145,14 +144,6 @@ export default function ProfilePage() {
             </div>
 
             <div className="flex items-center gap-4">
-              {profile.phoneNumber && (
-                <a 
-                  href={`tel:${profile.phoneNumber}`}
-                  className="p-4 bg-gray-50 text-gray-400 hover:bg-orange-50 hover:text-orange-600 rounded-2xl transition-all shadow-sm active:scale-90"
-                >
-                  <Phone className="h-6 w-6" />
-                </a>
-              )}
               {profile.primaryTransport && (
                 <div className="flex items-center gap-3 px-5 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
                   {profile.primaryTransport === 'AUTO' ? <Car className="h-5 w-5 text-blue-500" /> : <Bike className="h-5 w-5 text-orange-500" />}

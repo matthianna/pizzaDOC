@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Pizza, Users, Calendar, Settings, LogOut, BarChart3, Clock, UserCheck } from 'lucide-react'
+import { Pizza, Users, Calendar, Settings, LogOut, BarChart3, Clock, UserCheck, KeyRound } from 'lucide-react'
 import { cn, getRoleName } from '@/lib/utils'
 
 export function Navbar() {
@@ -61,6 +61,12 @@ export function Navbar() {
       name: 'Configurazioni',
       href: '/admin/settings',
       icon: Settings,
+      adminOnly: true
+    },
+    {
+      name: 'Hash password',
+      href: '/admin/bcrypt',
+      icon: KeyRound,
       adminOnly: true
     }
   ]

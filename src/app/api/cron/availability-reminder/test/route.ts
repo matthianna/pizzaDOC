@@ -37,15 +37,12 @@ export async function GET(request: NextRequest) {
 
     // Trova tutti gli utenti attivi con disponibilità e assenze
     const activeUsers = await prisma.user.findMany({
-      where: { 
+      where: {
         isActive: true,
-        whatsappNotificationsEnabled: true // ⭐ FILTRA SOLO utenti con notifiche abilitate
       },
       select: {
         id: true,
         username: true,
-        phoneNumber: true,
-        whatsappNotificationsEnabled: true, // Includi per debug
         availabilities: {
           where: { 
             weekStart: {
@@ -120,28 +117,19 @@ export async function GET(request: NextRequest) {
     let message = ''
     
     if (usersWithoutAvailability.length > 0) {
-      message = `
-⏰ *PROMEMORIA DISPONIBILITÀ*
-
-📅 Ricordatevi di inserire le vostre disponibilità per la prossima settimana.
-
-👥 *Utenti che non hanno ancora inserito le disponibilità:*
-${usersWithoutAvailability.map(u => `• ${u.username}`).join('\n')}
-
-🔗 Inserisci le tue disponibilità: https://pizzadoc.vercel.app/availability
-      `.trim()
+      message = [
+        'Promemoria disponibilità',
+        '',
+        'Ricordatevi di inserire le vostre disponibilità per la prossima settimana.',
+        '',
+        'Utenti che non hanno ancora inserito le disponibilità:',
+        ...usersWithoutAvailability.map((u) => `• ${u.username}`),
+        '',
+        'In produzione: notifica in-app e push (se abilitata) verso /availability',
+      ].join('\n')
     } else {
       message = '✅ Tutti gli utenti hanno già inserito le disponibilità per la prossima settimana!'
     }
-
-    // Recupera impostazioni WhatsApp per info
-    const [groupChatIdSetting, notificationsEnabledSetting] = await Promise.all([
-      prisma.systemSettings.findUnique({ where: { key: 'whatsapp_group_chat_id' } }),
-      prisma.systemSettings.findUnique({ where: { key: 'whatsapp_notifications_enabled' } })
-    ])
-
-    const groupChatId = groupChatIdSetting?.value
-    const notificationsEnabled = notificationsEnabledSetting?.value === 'true'
 
     return NextResponse.json({
       success: true,
@@ -151,9 +139,7 @@ ${usersWithoutAvailability.map(u => `• ${u.username}`).join('\n')}
         weekEnd: weekEnd.toISOString(),
         totalActiveUsers: activeUsers.length,
         usersWithoutAvailability: usersWithoutAvailability.length,
-        notificationsEnabled,
-        groupChatId,
-        wouldSendMessage: notificationsEnabled && groupChatId && usersWithoutAvailability.length > 0
+        productionChannel: 'in_app_and_push',
       },
       users: {
         withAvailability: activeUsers
@@ -188,7 +174,6 @@ ${usersWithoutAvailability.map(u => `• ${u.username}`).join('\n')}
           
           return {
             username: u.username,
-            phoneNumber: u.phoneNumber,
             hasAvailability: u.availabilities.length > 0,
             absencesCount: u.absences.length,
             daysCoveredByAbsences: coveredDays.size,

@@ -201,8 +201,6 @@ model User {
   trackHours                                      Boolean           @default(true)
   primaryRole                                     Role?
   primaryTransport                                TransportType?
-  phoneNumber                                     String?
-  whatsappNotificationsEnabled                    Boolean           @default(true)
   pushNotificationsEnabled                        Boolean           @default(true)
   /// Last display mode reported by client: standalone | fullscreen | browser (see /api/user/client-display)
   lastClientDisplayMode                           String?

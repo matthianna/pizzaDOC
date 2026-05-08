@@ -112,7 +112,7 @@ const TASKS = [
         name: 'Promemoria Disponibilità',
         path: '/api/cron/availability-reminder',
         schedule: '46 13 * * 0,6', // Sunday and Saturday at 13:46
-        description: 'Invia notifiche WhatsApp e Push agli utenti che non hanno inserito le disponibilità per la settimana successiva.',
+        description: 'Invia notifiche in-app e Push agli utenti che non hanno inserito le disponibilità per la settimana successiva.',
         type: 'notification' as const
     },
     {

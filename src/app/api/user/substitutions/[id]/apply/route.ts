@@ -148,7 +148,6 @@ export async function POST(
           select: {
             id: true,
             username: true,
-            phoneNumber: true
           }
         },
         substitute: {
