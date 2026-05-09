@@ -99,7 +99,10 @@ export default function AdminHoursSummaryPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users')
+      const response = await fetch('/api/admin/users', {
+        cache: 'no-store',
+        credentials: 'include',
+      })
       if (response.ok) {
         const data = await response.json()
         const list = Array.isArray(data) ? data : (data.users ?? [])
@@ -121,7 +124,10 @@ export default function AdminHoursSummaryPage() {
         url += `&month=${selectedMonth}`
       }
 
-      const response = await fetch(url)
+      const response = await fetch(url, {
+        cache: 'no-store',
+        credentials: 'include',
+      })
       if (response.ok) {
         const data = await response.json()
         setSummary(data)
@@ -136,7 +142,10 @@ export default function AdminHoursSummaryPage() {
   const fetchMissingHours = async () => {
     setLoadingMissing(true)
     try {
-      const response = await fetch(`/api/admin/hours-summary/missing`)
+      const response = await fetch(`/api/admin/hours-summary/missing`, {
+        cache: 'no-store',
+        credentials: 'include',
+      })
       if (response.ok) {
         const data = await response.json()
         setMissingHours(data.missingHours)
@@ -186,7 +195,8 @@ export default function AdminHoursSummaryPage() {
       
       const response = await fetch(url, {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store',
       })
       
       if (response.ok) {
@@ -216,7 +226,8 @@ export default function AdminHoursSummaryPage() {
       
       const response = await fetch(url, {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store',
       })
       
       if (response.ok) {
@@ -245,7 +256,8 @@ export default function AdminHoursSummaryPage() {
       
       const response = await fetch(url, {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store',
       })
       
       if (response.ok) {

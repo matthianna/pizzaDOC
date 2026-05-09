@@ -50,7 +50,8 @@ export async function PUT(
 
     const totalHours = validated.totalHours
 
-    const reactivatedFromReject = existing.status === 'REJECTED'
+    const shouldApproveOnSave =
+      existing.status === 'REJECTED' || existing.status === 'PENDING'
 
     // Aggiorna le ore lavorate
     const updatedHours = await prisma.worked_hours.update({
@@ -60,7 +61,7 @@ export async function PUT(
         endTime,
         totalHours,
         updatedAt: new Date(),
-        ...(reactivatedFromReject
+        ...(shouldApproveOnSave
           ? {
               status: 'APPROVED',
               rejectionReason: null,
@@ -89,16 +90,20 @@ export async function PUT(
       userId: session.user.id,
       userUsername: session.user.username,
       action: 'HOURS_EDIT',
-      description: reactivatedFromReject
-        ? `Corrette e riapprovate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`
-        : `Modificate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`,
+      description:
+        existing.status === 'REJECTED'
+          ? `Corrette e riapprovate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`
+          : existing.status === 'PENDING'
+            ? `Salvate e approvate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`
+            : `Modificate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`,
       metadata: {
         workedHoursId: updatedHours.id,
         userId: updatedHours.userId,
         startTime,
         endTime,
         totalHours,
-        ...(reactivatedFromReject ? { fromRejected: true } : {}),
+        ...(existing.status === 'REJECTED' ? { fromRejected: true } : {}),
+        ...(existing.status === 'PENDING' ? { fromPending: true } : {}),
       },
     })
 

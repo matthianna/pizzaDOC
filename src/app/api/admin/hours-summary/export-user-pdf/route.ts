@@ -20,8 +20,15 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString())
-    const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString())
+    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString(), 10)
+    const monthRaw = searchParams.get('month')
+    let monthFilter: number | null = null
+    if (monthRaw !== null && monthRaw !== '') {
+      const m = parseInt(monthRaw, 10)
+      if (Number.isFinite(m) && m >= 1 && m <= 12) {
+        monthFilter = m
+      }
+    }
 
     if (!userId) {
       return Response.json({ error: 'userId è richiesto' }, { status: 400 })
@@ -63,12 +70,12 @@ export async function GET(request: NextRequest) {
       const shiftYear = shiftDate.getUTCFullYear()
       const shiftMonth = shiftDate.getUTCMonth() + 1
       if (shiftYear !== year) return false
-      if (month && shiftMonth !== month) return false
+      if (monthFilter !== null && shiftMonth !== monthFilter) return false
       return true
     })
 
     // Genera HTML del PDF
-    const html = generatePDFHtml(user, workedHours, year, month)
+    const html = generatePDFHtml(user, workedHours, year, monthFilter ?? undefined)
 
     return new Response(html, {
       headers: {
