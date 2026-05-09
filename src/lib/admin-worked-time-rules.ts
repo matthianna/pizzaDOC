@@ -2,16 +2,16 @@ import { ShiftType } from '@prisma/client'
 
 /** Tutti gli orari ammessi (griglia 30 min) per inizio/fine effettivi */
 const ADMIN_WORKED_ALL_SLOTS: Record<ShiftType, readonly string[]> = {
-  PRANZO: ['12:30', '13:00', '13:30', '14:00', '14:30'],
-  CENA: ['20:00', '20:30', '21:00', '21:30', '22:00', '22:30'],
+  PRANZO: ['12:00', '12:30', '13:00', '13:30', '14:00', '14:30'],
+  CENA: ['19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00'],
 }
 
 /**
  * Solo partenze per cui esiste almeno una fine nella griglia (esclude ultimo slot).
  */
 export const ADMIN_WORKED_START_SLOTS: Record<ShiftType, readonly string[]> = {
-  PRANZO: ['12:30', '13:00', '13:30', '14:00'],
-  CENA: ['20:00', '20:30', '21:00', '21:30', '22:00'],
+  PRANZO: ['10:30', '11:00', '11:30', '12:00', '12:30', '13:00'],
+  CENA: ['16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30'],
 }
 
 export function adminWorkedSelectOptions(
