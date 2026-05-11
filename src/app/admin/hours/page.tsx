@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
-import { it } from 'date-fns/locale'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, ChevronRight, User, Plus } from 'lucide-react'
+import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, User, Plus, Search } from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { formatDate, shiftCalendarDateUtc } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Select as ReactSelect } from '@/components/ui/react-select'
-import { Skeleton, TableSkeleton, CardSkeleton } from '@/components/ui/skeleton'
+import { TableSkeleton, CardSkeleton } from '@/components/ui/skeleton'
 import { Modal } from '@/components/ui/modal'
 import { cn } from '@/lib/utils'
 import { useHaptics } from '@/hooks/use-haptics'
@@ -82,6 +81,8 @@ export default function AdminHoursPage() {
   const [editingHours, setEditingHours] = useState<WorkedHours | null>(null)
   const [editStartTime, setEditStartTime] = useState('')
   const [editEndTime, setEditEndTime] = useState('')
+  const [employeeSearch, setEmployeeSearch] = useState('')
+  const [hourModalError, setHourModalError] = useState<string | null>(null)
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set())
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [missingByUser, setMissingByUser] = useState<MissingUserGroup[]>([])
@@ -101,8 +102,6 @@ export default function AdminHoursPage() {
   } | null>(null)
 
   const { lightClick, success: successClick } = useHaptics()
-
-  const isAdminUser = true // This is an admin page
 
   const yearOptions = (() => {
     const y = new Date().getFullYear()
@@ -226,6 +225,7 @@ export default function AdminHoursPage() {
 
   const openEditModal = (hours: WorkedHours) => {
     lightClick()
+    setHourModalError(null)
     setCreatingShift(null)
     setEditingHours(hours)
     const pick = pickInitialAdminWorkedTimes(
@@ -239,6 +239,7 @@ export default function AdminHoursPage() {
 
   const openCreateShiftModal = (user: MissingUserGroup, row: MissingShiftRow) => {
     lightClick()
+    setHourModalError(null)
     setEditingHours(null)
     setCreatingShift({
       shiftId: row.shiftId,
@@ -263,9 +264,12 @@ export default function AdminHoursPage() {
     setCreatingShift(null)
     setEditStartTime('')
     setEditEndTime('')
+    setHourModalError(null)
   }
 
   const saveHourModal = async () => {
+    setHourModalError(null)
+
     if (editingHours) {
       try {
         const response = await fetch(`/api/admin/hours/${editingHours.id}/edit`, {
@@ -283,11 +287,18 @@ export default function AdminHoursPage() {
           fetchWorkedHours()
           fetchMissingShifts()
         } else {
-          const error = await response.json()
-          console.error(error.error || 'Errore durante la modifica')
+          let msg = 'Errore durante la modifica'
+          try {
+            const error = await response.json()
+            if (typeof error?.error === 'string') msg = error.error
+          } catch {
+            /* ignore */
+          }
+          setHourModalError(msg)
         }
       } catch (error) {
         console.error('Error editing hours:', error)
+        setHourModalError('Errore di connessione durante la modifica')
       }
       return
     }
@@ -321,10 +332,11 @@ export default function AdminHoursPage() {
           } catch {
             /* ignore */
           }
-          console.error(msg)
+          setHourModalError(msg)
         }
       } catch (error) {
         console.error('Error saving hours:', error)
+        setHourModalError('Errore di connessione durante il salvataggio')
       }
     }
   }
@@ -357,19 +369,6 @@ export default function AdminHoursPage() {
 
   const getShiftDate = (shift: Shift): Date =>
     shiftCalendarDateUtc(shift.schedule.weekStart, shift.dayOfWeek)
-
-  const getStatusColor = (status: HoursStatus) => {
-    switch (status) {
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'APPROVED':
-        return 'bg-green-100 text-green-800'
-      case 'REJECTED':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   const getStatusText = (status: HoursStatus) => {
     switch (status) {
@@ -405,6 +404,13 @@ export default function AdminHoursPage() {
   const userGroups = Object.values(groupedByUser).sort((a, b) => 
     a.user.username.localeCompare(b.user.username)
   )
+
+  const normalizedEmployeeSearch = employeeSearch.trim().toLowerCase()
+  const visibleUserGroups = normalizedEmployeeSearch
+    ? userGroups.filter((group) =>
+        group.user.username.toLowerCase().includes(normalizedEmployeeSearch)
+      )
+    : userGroups
 
   const toggleUser = (userId: string) => {
     setExpandedUsers(prev => {
@@ -450,6 +456,21 @@ export default function AdminHoursPage() {
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ore Totali</p>
                 <p className="text-3xl font-black text-gray-900 leading-none">{totalHours.toFixed(1)}h</p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-blue-50 rounded-[2rem] border border-blue-100 p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white text-blue-600 flex items-center justify-center shadow-sm shrink-0">
+              <Edit2 className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-gray-900 tracking-tight">Correggere ore sbagliate</h2>
+              <p className="text-sm text-blue-900/70 font-semibold mt-1 leading-relaxed">
+                Seleziona mese e stato, cerca il dipendente, apri la sua scheda e premi <span className="font-black">Correggi ore</span>.
+                Dopo il salvataggio il totale viene ricalcolato e la modifica resta registrata nello storico.
+              </p>
             </div>
           </div>
         </div>
@@ -580,13 +601,29 @@ export default function AdminHoursPage() {
 
         {/* Worked Hours List */}
         <div className="space-y-6">
+          <div className="bg-white rounded-[2rem] shadow-soft border border-gray-100 p-5">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+              Cerca dipendente
+            </label>
+            <div className="relative mt-3">
+              <Search className="absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-300" />
+              <input
+                type="search"
+                value={employeeSearch}
+                onChange={(e) => setEmployeeSearch(e.target.value)}
+                placeholder="Nome dipendente..."
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl pl-12 pr-5 py-4 text-sm font-bold text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-orange-500 transition-all"
+              />
+            </div>
+          </div>
+
           {loading ? (
             <div className="space-y-4">
               <TableSkeleton cols={5} rows={3} />
               <TableSkeleton cols={5} rows={3} />
             </div>
-          ) : userGroups.length > 0 ? (
-            userGroups.map((group) => {
+          ) : visibleUserGroups.length > 0 ? (
+            visibleUserGroups.map((group) => {
               const isExpanded = expandedUsers.has(group.user.id)
               const groupPendingCount = group.hours.filter(h => h.status === 'PENDING').length
               
@@ -709,11 +746,16 @@ export default function AdminHoursPage() {
                                 <td className="px-8 py-5 text-right">
                                   <div className="flex items-center justify-end gap-2">
                                     <button
+                                      type="button"
                                       onClick={() => openEditModal(hours)}
-                                      className="p-2 bg-gray-100 text-gray-400 hover:bg-blue-600 hover:text-white rounded-xl transition-all active:scale-90"
-                                      title="Modifica"
+                                      className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-xl transition-all active:scale-90"
+                                      title="Correggi ore"
+                                      aria-label={`Correggi ore di ${hours.user.username}`}
                                     >
                                       <Edit2 className="h-4 w-4" />
+                                      <span className="hidden xl:inline text-[10px] font-black uppercase tracking-widest">
+                                        Correggi ore
+                                      </span>
                                     </button>
                                     {hours.status === 'PENDING' && (
                                       <>
@@ -753,7 +795,11 @@ export default function AdminHoursPage() {
               <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Clock className="h-10 w-10 text-gray-200" />
               </div>
-              <h3 className="text-gray-400 font-black uppercase tracking-[0.2em] text-sm">Nessuna ora trovata per questi filtri</h3>
+              <h3 className="text-gray-400 font-black uppercase tracking-[0.2em] text-sm">
+                {userGroups.length > 0
+                  ? 'Nessun dipendente trovato con questa ricerca'
+                  : 'Nessuna ora trovata per questi filtri'}
+              </h3>
             </div>
           )}
         </div>
@@ -768,7 +814,7 @@ export default function AdminHoursPage() {
             ? creatingShift.hoursStatus === 'REJECTED'
               ? 'Correggi ore rifiutate'
               : 'Inserisci ore turno'
-            : 'Modifica Ore'
+            : 'Correggi ore'
         }
         subtitle={
           creatingShift
@@ -813,6 +859,7 @@ export default function AdminHoursPage() {
                   }
                   onChange={(option) => {
                     lightClick()
+                    setHourModalError(null)
                     setEditStartTime(option?.value?.toString() || '')
                   }}
                   placeholder="Seleziona..."
@@ -833,6 +880,7 @@ export default function AdminHoursPage() {
                   }
                   onChange={(option) => {
                     lightClick()
+                    setHourModalError(null)
                     setEditEndTime(option?.value?.toString() || '')
                   }}
                   placeholder={editStartTime ? 'Seleziona...' : "Scegli prima l'inizio"}
@@ -862,6 +910,12 @@ export default function AdminHoursPage() {
                   </div>
                 )}
               </>
+            )}
+
+            {hourModalError && (
+              <div className="rounded-[2rem] border-2 border-red-100 bg-red-50 px-6 py-4 text-sm font-semibold text-red-800">
+                {hourModalError}
+              </div>
             )}
 
             <div className="flex gap-4 pt-4">
