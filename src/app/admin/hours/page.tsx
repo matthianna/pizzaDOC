@@ -14,8 +14,9 @@ import { Modal } from '@/components/ui/modal'
 import { cn } from '@/lib/utils'
 import { useHaptics } from '@/hooks/use-haptics'
 import {
-  ADMIN_WORKED_TIME_INPUT_STEP_SEC,
   adminWorkedNativeTimeBounds,
+  adminWorkedTimeOptions,
+  parseAdminWorkedHmLoose,
   pickInitialAdminWorkedTimes,
   validateAdminWorkedTimes,
 } from '@/lib/admin-worked-time-rules'
@@ -350,6 +351,17 @@ export default function AdminHoursPage() {
       end: adminWorkedNativeTimeBounds(modalShiftType, 'end'),
     }
   }, [modalShiftType])
+
+  const adminWorkedStartSelectOptions = useMemo(() => {
+    if (!modalShiftType) return []
+    return adminWorkedTimeOptions(modalShiftType, 'start')
+  }, [modalShiftType])
+
+  const adminWorkedEndSelectOptions = useMemo(() => {
+    if (!modalShiftType) return []
+    const after = editStartTime ? parseAdminWorkedHmLoose(editStartTime) : null
+    return adminWorkedTimeOptions(modalShiftType, 'end', after)
+  }, [modalShiftType, editStartTime])
 
   useEffect(() => {
     if (!modalShiftType || !editStartTime) return
@@ -869,24 +881,30 @@ export default function AdminHoursPage() {
                     htmlFor="admin-worked-start"
                     className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1"
                   >
-                    Ora inizio effettiva
+                    Ora inizio effettiva (24h)
                   </label>
-                  <input
-                    id="admin-worked-start"
-                    type="time"
-                    step={ADMIN_WORKED_TIME_INPUT_STEP_SEC}
-                    min={hourModalTimeBounds.start.min}
-                    max={hourModalTimeBounds.start.max}
-                    value={editStartTime}
-                    onChange={(e) => {
-                      lightClick()
-                      setHourModalError(null)
-                      setEditStartTime(e.target.value)
-                    }}
-                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-[2rem] px-6 py-4 text-lg font-black text-gray-900 focus:outline-none focus:border-orange-500 transition-all [color-scheme:light]"
-                  />
+                  <div className="relative">
+                    <select
+                      id="admin-worked-start"
+                      value={editStartTime}
+                      onChange={(e) => {
+                        lightClick()
+                        setHourModalError(null)
+                        setEditStartTime(e.target.value)
+                      }}
+                      className="w-full bg-gray-50 border-2 border-gray-100 rounded-[2rem] pl-6 pr-12 py-4 text-lg font-black text-gray-900 focus:outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="">Seleziona…</option>
+                      {adminWorkedStartSelectOptions.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden />
+                  </div>
                   <p className="text-[10px] font-bold text-gray-400 ml-1">
-                    Fascia {hourModalTimeBounds.start.min}–{hourModalTimeBounds.start.max} (ogni 5 min)
+                    Fascia {hourModalTimeBounds.start.min}–{hourModalTimeBounds.start.max} (ogni 5 min, orario italiano)
                   </p>
                 </div>
                 <div className="space-y-3">
@@ -894,25 +912,31 @@ export default function AdminHoursPage() {
                     htmlFor="admin-worked-end"
                     className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1"
                   >
-                    Ora fine effettiva
+                    Ora fine effettiva (24h)
                   </label>
-                  <input
-                    id="admin-worked-end"
-                    type="time"
-                    step={ADMIN_WORKED_TIME_INPUT_STEP_SEC}
-                    min={hourModalTimeBounds.end.min}
-                    max={hourModalTimeBounds.end.max}
-                    value={editEndTime}
-                    disabled={!editStartTime}
-                    onChange={(e) => {
-                      lightClick()
-                      setHourModalError(null)
-                      setEditEndTime(e.target.value)
-                    }}
-                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-[2rem] px-6 py-4 text-lg font-black text-gray-900 focus:outline-none focus:border-orange-500 transition-all disabled:opacity-40 disabled:pointer-events-none [color-scheme:light]"
-                  />
+                  <div className="relative">
+                    <select
+                      id="admin-worked-end"
+                      value={editEndTime}
+                      disabled={!editStartTime || adminWorkedEndSelectOptions.length === 0}
+                      onChange={(e) => {
+                        lightClick()
+                        setHourModalError(null)
+                        setEditEndTime(e.target.value)
+                      }}
+                      className="w-full bg-gray-50 border-2 border-gray-100 rounded-[2rem] pl-6 pr-12 py-4 text-lg font-black text-gray-900 focus:outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <option value="">{editStartTime ? 'Seleziona…' : "Scegli prima l'inizio"}</option>
+                      {adminWorkedEndSelectOptions.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden />
+                  </div>
                   <p className="text-[10px] font-bold text-gray-400 ml-1">
-                    Fascia {hourModalTimeBounds.end.min}–{hourModalTimeBounds.end.max} (ogni 5 min)
+                    Fascia {hourModalTimeBounds.end.min}–{hourModalTimeBounds.end.max} (ogni 5 min, orario italiano)
                   </p>
                 </div>
               </div>

@@ -3,9 +3,6 @@ import { ShiftType } from '@prisma/client'
 /** Incremento minuti per inizio/fine effettivi (admin) */
 export const ADMIN_WORKED_STEP_MINUTES = 5
 
-/** Step in secondi per `<input type="time" step={...}>` */
-export const ADMIN_WORKED_TIME_INPUT_STEP_SEC = ADMIN_WORKED_STEP_MINUTES * 60
-
 type ShiftBounds = {
   startMin: number
   startMax: number
@@ -60,7 +57,34 @@ function parseAdminWorkedHmStrict(t: string): number | null {
   return mins
 }
 
-/** Min / max per attributi HTML `min` / `max` su `<input type="time">` */
+/** Opzioni HH:mm (24h) ammesse per inizio o fine turno, griglia 5 min. Per la fine, opzionale `endMustBeAfterMinutes` (minuti da mezzanotte) per avere solo orari dopo l'inizio. */
+export function adminWorkedTimeOptions(
+  shiftType: ShiftType,
+  field: 'start' | 'end',
+  endMustBeAfterMinutes?: number | null
+): string[] {
+  const b = BOUNDS[shiftType]
+  let lo = field === 'start' ? b.startMin : b.endMin
+  const hi = field === 'start' ? b.startMax : b.endMax
+
+  if (
+    field === 'end' &&
+    endMustBeAfterMinutes != null &&
+    Number.isFinite(endMustBeAfterMinutes)
+  ) {
+    lo = Math.max(lo, endMustBeAfterMinutes + ADMIN_WORKED_STEP_MINUTES)
+    const r = lo % ADMIN_WORKED_STEP_MINUTES
+    if (r !== 0) lo += ADMIN_WORKED_STEP_MINUTES - r
+  }
+
+  const out: string[] = []
+  for (let m = lo; m <= hi; m += ADMIN_WORKED_STEP_MINUTES) {
+    out.push(formatAdminWorkedHm(m))
+  }
+  return out
+}
+
+/** Min / max per testi di aiuto (es. fascia consentita) */
 export function adminWorkedNativeTimeBounds(
   shiftType: ShiftType,
   field: 'start' | 'end'
