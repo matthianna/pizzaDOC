@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
+import { it } from 'date-fns/locale'
+import { it } from 'date-fns/locale'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, User, Plus, Search } from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
@@ -381,6 +383,16 @@ export default function AdminHoursPage() {
     }
   }
 
+  const formatReviewedAtLabel = (status: HoursStatus, reviewedAtIso?: string) => {
+    if (!reviewedAtIso || status === 'PENDING') return null
+    const d = new Date(reviewedAtIso)
+    if (Number.isNaN(d.getTime())) return null
+    const when = format(d, 'd MMM yyyy, HH:mm', { locale: it })
+    if (status === 'APPROVED') return `Approvato il ${when}`
+    if (status === 'REJECTED') return `Rifiutato il ${when}`
+    return null
+  }
+
   const totalHours = workedHours.reduce((sum, h) => sum + h.totalHours, 0)
   const pendingCount = workedHours.filter(h => h.status === 'PENDING').length
 
@@ -694,6 +706,7 @@ export default function AdminHoursPage() {
                         <tbody className="divide-y divide-gray-50">
                           {group.hours.map((hours) => {
                             const shiftDate = getShiftDate(hours.shift)
+                            const reviewedLabel = formatReviewedAtLabel(hours.status, hours.reviewedAt)
                             return (
                               <tr key={hours.id} className="hover:bg-gray-50/50 transition-colors group/row">
                                 <td className="px-8 py-5">
@@ -737,6 +750,14 @@ export default function AdminHoursPage() {
                                     {hours.status === 'REJECTED' && hours.rejectionReason && (
                                       <p className="text-[9px] text-red-500 font-bold max-w-[120px] truncate" title={hours.rejectionReason}>
                                         {hours.rejectionReason}
+                                      </p>
+                                    )}
+                                    {reviewedLabel && (
+                                      <p
+                                        className="text-[9px] text-gray-500 font-bold text-center max-w-[160px] leading-tight"
+                                        title={hours.reviewedAt}
+                                      >
+                                        {reviewedLabel}
                                       </p>
                                     )}
                                   </div>
