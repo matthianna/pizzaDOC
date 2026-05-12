@@ -1,45 +1,75 @@
 import { ShiftType } from '@prisma/client'
 
-/** Tutti gli orari ammessi (griglia 30 min) per inizio/fine effettivi */
-const ADMIN_WORKED_ALL_SLOTS: Record<ShiftType, readonly string[]> = {
-  PRANZO: ['12:00', '12:30', '13:00', '13:30', '14:00', '14:30'],
-  CENA: ['19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00'],
+/** Incremento minuti per inizio/fine effettivi (admin) */
+export const ADMIN_WORKED_STEP_MINUTES = 5
+
+/** Step in secondi per `<input type="time" step={...}>` */
+export const ADMIN_WORKED_TIME_INPUT_STEP_SEC = ADMIN_WORKED_STEP_MINUTES * 60
+
+type ShiftBounds = {
+  startMin: number
+  startMax: number
+  endMin: number
+  endMax: number
 }
 
-/**
- * Solo partenze per cui esiste almeno una fine nella griglia (esclude ultimo slot).
- */
-export const ADMIN_WORKED_START_SLOTS: Record<ShiftType, readonly string[]> = {
-  PRANZO: ['10:30', '11:00', '11:30', '12:00', '12:30', '13:00'],
-  CENA: ['16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30'],
+const BOUNDS: Record<ShiftType, ShiftBounds> = {
+  PRANZO: {
+    startMin: 10 * 60 + 30,
+    startMax: 13 * 60,
+    endMin: 12 * 60,
+    endMax: 14 * 60 + 30,
+  },
+  CENA: {
+    startMin: 16 * 60 + 30,
+    startMax: 19 * 60 + 30,
+    endMin: 19 * 60,
+    endMax: 23 * 60,
+  },
 }
 
-export function adminWorkedSelectOptions(
-  slots: readonly string[]
-): { value: string; label: string }[] {
-  return slots.map((value) => ({ value, label: value }))
+export function formatAdminWorkedHm(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
-function parseHm(t: string): number | null {
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, n))
+}
+
+function snapToStep(mins: number): number {
+  const s = ADMIN_WORKED_STEP_MINUTES
+  return Math.round(mins / s) * s
+}
+
+/** Parsing senza vincolo sulla griglia (es. valori legacy dal DB) */
+export function parseAdminWorkedHmLoose(t: string): number | null {
   const m = /^(\d{1,2}):(\d{2})$/.exec(t.trim())
   if (!m) return null
   const h = parseInt(m[1], 10)
   const min = parseInt(m[2], 10)
-  if (h > 23 || min > 59 || min % 30 !== 0) return null
+  if (h > 23 || min > 59) return null
   return h * 60 + min
 }
 
-export function allowedEndSlotsAfterStart(
+function parseAdminWorkedHmStrict(t: string): number | null {
+  const mins = parseAdminWorkedHmLoose(t)
+  if (mins === null) return null
+  if (mins % ADMIN_WORKED_STEP_MINUTES !== 0) return null
+  return mins
+}
+
+/** Min / max per attributi HTML `min` / `max` su `<input type="time">` */
+export function adminWorkedNativeTimeBounds(
   shiftType: ShiftType,
-  startTime: string
-): string[] {
-  const slots = ADMIN_WORKED_ALL_SLOTS[shiftType]
-  const startM = parseHm(startTime)
-  if (startM === null) return []
-  return slots.filter((slot) => {
-    const m = parseHm(slot)
-    return m !== null && m > startM
-  })
+  field: 'start' | 'end'
+): { min: string; max: string } {
+  const b = BOUNDS[shiftType]
+  if (field === 'start') {
+    return { min: formatAdminWorkedHm(b.startMin), max: formatAdminWorkedHm(b.startMax) }
+  }
+  return { min: formatAdminWorkedHm(b.endMin), max: formatAdminWorkedHm(b.endMax) }
 }
 
 export type AdminWorkedValidation =
@@ -51,33 +81,34 @@ export function validateAdminWorkedTimes(
   startTime: string,
   endTime: string
 ): AdminWorkedValidation {
-  const allowedStarts = ADMIN_WORKED_START_SLOTS[shiftType]
-  const allowedEnds = ADMIN_WORKED_ALL_SLOTS[shiftType]
+  const b = BOUNDS[shiftType]
+  const sm = parseAdminWorkedHmStrict(startTime)
+  const em = parseAdminWorkedHmStrict(endTime)
 
-  if (!allowedStarts.includes(startTime)) {
-    const grid = `${allowedStarts[0]}–${allowedEnds[allowedEnds.length - 1]} (ogni 30 min)`
+  if (sm === null || em === null) {
+    return {
+      ok: false,
+      error: `Usa orari HH:mm con incrementi di ${ADMIN_WORKED_STEP_MINUTES} minuti (es. 18:05, 18:10).`,
+    }
+  }
+
+  if (sm < b.startMin || sm > b.startMax) {
     return {
       ok: false,
       error:
         shiftType === 'PRANZO'
-          ? `Per il pranzo scegli l'inizio tra gli slot ${grid}.`
-          : `Per la cena scegli l'inizio tra gli slot ${grid}.`,
+          ? `Per il pranzo l'inizio deve essere tra ${formatAdminWorkedHm(b.startMin)} e ${formatAdminWorkedHm(b.startMax)}.`
+          : `Per la cena l'inizio deve essere tra ${formatAdminWorkedHm(b.startMin)} e ${formatAdminWorkedHm(b.startMax)}.`,
     }
   }
 
-  if (!allowedEnds.includes(endTime)) {
+  if (em < b.endMin || em > b.endMax) {
     return {
       ok: false,
-      error:
-        'La fine turno deve essere uno degli slot consentiti (ogni 30 minuti nella fascia del turno).',
+      error: `La fine deve essere tra ${formatAdminWorkedHm(b.endMin)} e ${formatAdminWorkedHm(b.endMax)}.`,
     }
   }
 
-  const sm = parseHm(startTime)
-  const em = parseHm(endTime)
-  if (sm === null || em === null) {
-    return { ok: false, error: 'Formato orario non valido (usa HH:mm).' }
-  }
   if (em <= sm) {
     return { ok: false, error: "L'orario di fine deve essere dopo l'inizio." }
   }
@@ -86,16 +117,49 @@ export function validateAdminWorkedTimes(
   return { ok: true, totalHours }
 }
 
-/** Allinea valori da DB o pianificazione alla sola griglia admin */
+/**
+ * Normalizza valori da DB o pianificazione rispetto a fascia turno e griglia 5 min.
+ */
 export function pickInitialAdminWorkedTimes(
   shiftType: ShiftType,
   proposedStart: string,
   proposedEnd: string
 ): { start: string; end: string } {
-  const starts = ADMIN_WORKED_START_SLOTS[shiftType]
-  const start = starts.includes(proposedStart) ? proposedStart : ''
-  if (!start) return { start: '', end: '' }
-  const endsOk = allowedEndSlotsAfterStart(shiftType, start)
-  const end = endsOk.includes(proposedEnd) ? proposedEnd : endsOk[0] ?? ''
-  return { start, end }
+  const b = BOUNDS[shiftType]
+  let sm = parseAdminWorkedHmLoose(proposedStart)
+  let em = parseAdminWorkedHmLoose(proposedEnd)
+
+  if (sm !== null) sm = snapToStep(sm)
+  if (em !== null) em = snapToStep(em)
+
+  if (sm === null) sm = b.startMin
+  sm = clamp(sm, b.startMin, b.startMax)
+
+  if (em === null) {
+    em = sm + ADMIN_WORKED_STEP_MINUTES
+  }
+  em = clamp(em, b.endMin, b.endMax)
+
+  if (em <= sm) {
+    em = Math.min(b.endMax, sm + ADMIN_WORKED_STEP_MINUTES)
+  }
+  if (em <= sm) {
+    sm = Math.max(b.startMin, em - ADMIN_WORKED_STEP_MINUTES)
+  }
+
+  if (em <= sm) {
+    sm = b.startMin
+    em = clamp(sm + ADMIN_WORKED_STEP_MINUTES, b.endMin, b.endMax)
+  }
+
+  if (em > b.endMax) em = b.endMax
+  if (em < b.endMin) em = b.endMin
+  if (sm < b.startMin) sm = b.startMin
+  if (sm > b.startMax) sm = b.startMax
+
+  if (em <= sm) {
+    em = Math.min(b.endMax, sm + ADMIN_WORKED_STEP_MINUTES)
+  }
+
+  return { start: formatAdminWorkedHm(sm), end: formatAdminWorkedHm(em) }
 }

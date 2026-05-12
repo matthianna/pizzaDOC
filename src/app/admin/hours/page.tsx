@@ -13,9 +13,8 @@ import { Modal } from '@/components/ui/modal'
 import { cn } from '@/lib/utils'
 import { useHaptics } from '@/hooks/use-haptics'
 import {
-  ADMIN_WORKED_START_SLOTS,
-  adminWorkedSelectOptions,
-  allowedEndSlotsAfterStart,
+  ADMIN_WORKED_TIME_INPUT_STEP_SEC,
+  adminWorkedNativeTimeBounds,
   pickInitialAdminWorkedTimes,
   validateAdminWorkedTimes,
 } from '@/lib/admin-worked-time-rules'
@@ -343,23 +342,22 @@ export default function AdminHoursPage() {
 
   const modalShiftType = editingHours?.shift.shiftType ?? creatingShift?.shiftType ?? null
 
-  const startSlotOptions = useMemo(() => {
-    if (!modalShiftType) return []
-    return adminWorkedSelectOptions(ADMIN_WORKED_START_SLOTS[modalShiftType])
+  const hourModalTimeBounds = useMemo(() => {
+    if (!modalShiftType) return null
+    return {
+      start: adminWorkedNativeTimeBounds(modalShiftType, 'start'),
+      end: adminWorkedNativeTimeBounds(modalShiftType, 'end'),
+    }
   }, [modalShiftType])
 
-  const endSlotOptions = useMemo(() => {
-    if (!modalShiftType || !editStartTime) return []
-    const allowed = allowedEndSlotsAfterStart(modalShiftType, editStartTime)
-    return adminWorkedSelectOptions(allowed)
-  }, [modalShiftType, editStartTime])
-
   useEffect(() => {
-    if (!modalShiftType || !editStartTime || !editEndTime) return
-    const okEnds = allowedEndSlotsAfterStart(modalShiftType, editStartTime)
-    if (!okEnds.includes(editEndTime)) {
-      setEditEndTime(okEnds[0] ?? '')
-    }
+    if (!modalShiftType || !editStartTime) return
+    const v = validateAdminWorkedTimes(modalShiftType, editStartTime, editEndTime)
+    if (v.ok) return
+    const fixed = pickInitialAdminWorkedTimes(modalShiftType, editStartTime, editEndTime)
+    if (fixed.end !== editEndTime) setEditEndTime(fixed.end)
+    // Solo allinea la fine quando cambia l'inizio (o il tipo turno), non mentre l'utente modifica la fine.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- vedi sopra
   }, [modalShiftType, editStartTime])
 
   const hourModalPreview =
@@ -469,7 +467,7 @@ export default function AdminHoursPage() {
               <h2 className="text-lg font-black text-gray-900 tracking-tight">Correggere ore sbagliate</h2>
               <p className="text-sm text-blue-900/70 font-semibold mt-1 leading-relaxed">
                 Seleziona mese e stato, cerca il dipendente, apri la sua scheda e premi <span className="font-black">Correggi ore</span>.
-                Dopo il salvataggio il totale viene ricalcolato e la modifica resta registrata nello storico.
+                Scegli orari con il selettore (incrementi di 5 minuti). Dopo il salvataggio il totale viene ricalcolato e la modifica resta registrata nello storico.
               </p>
             </div>
           </div>
@@ -844,49 +842,61 @@ export default function AdminHoursPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ora inizio effettiva</label>
-                <ReactSelect
-                  options={startSlotOptions}
-                  value={
-                    editStartTime
-                      ? startSlotOptions.find((o) => o.value === editStartTime) ?? {
-                          value: editStartTime,
-                          label: editStartTime,
-                        }
-                      : null
-                  }
-                  onChange={(option) => {
-                    lightClick()
-                    setHourModalError(null)
-                    setEditStartTime(option?.value?.toString() || '')
-                  }}
-                  placeholder="Seleziona..."
-                />
+            {hourModalTimeBounds && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <label
+                    htmlFor="admin-worked-start"
+                    className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1"
+                  >
+                    Ora inizio effettiva
+                  </label>
+                  <input
+                    id="admin-worked-start"
+                    type="time"
+                    step={ADMIN_WORKED_TIME_INPUT_STEP_SEC}
+                    min={hourModalTimeBounds.start.min}
+                    max={hourModalTimeBounds.start.max}
+                    value={editStartTime}
+                    onChange={(e) => {
+                      lightClick()
+                      setHourModalError(null)
+                      setEditStartTime(e.target.value)
+                    }}
+                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-[2rem] px-6 py-4 text-lg font-black text-gray-900 focus:outline-none focus:border-orange-500 transition-all [color-scheme:light]"
+                  />
+                  <p className="text-[10px] font-bold text-gray-400 ml-1">
+                    Fascia {hourModalTimeBounds.start.min}–{hourModalTimeBounds.start.max} (ogni 5 min)
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <label
+                    htmlFor="admin-worked-end"
+                    className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1"
+                  >
+                    Ora fine effettiva
+                  </label>
+                  <input
+                    id="admin-worked-end"
+                    type="time"
+                    step={ADMIN_WORKED_TIME_INPUT_STEP_SEC}
+                    min={hourModalTimeBounds.end.min}
+                    max={hourModalTimeBounds.end.max}
+                    value={editEndTime}
+                    disabled={!editStartTime}
+                    onChange={(e) => {
+                      lightClick()
+                      setHourModalError(null)
+                      setEditEndTime(e.target.value)
+                    }}
+                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-[2rem] px-6 py-4 text-lg font-black text-gray-900 focus:outline-none focus:border-orange-500 transition-all disabled:opacity-40 disabled:pointer-events-none [color-scheme:light]"
+                  />
+                  <p className="text-[10px] font-bold text-gray-400 ml-1">
+                    Fascia {hourModalTimeBounds.end.min}–{hourModalTimeBounds.end.max} (ogni 5 min)
+                  </p>
+                </div>
               </div>
-              <div className="space-y-3">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ora fine effettiva</label>
-                <ReactSelect
-                  options={endSlotOptions}
-                  isDisabled={!editStartTime}
-                  value={
-                    editEndTime
-                      ? endSlotOptions.find((o) => o.value === editEndTime) ?? {
-                          value: editEndTime,
-                          label: editEndTime,
-                        }
-                      : null
-                  }
-                  onChange={(option) => {
-                    lightClick()
-                    setHourModalError(null)
-                    setEditEndTime(option?.value?.toString() || '')
-                  }}
-                  placeholder={editStartTime ? 'Seleziona...' : "Scegli prima l'inizio"}
-                />
-              </div>
-            </div>
+            )}
 
             {editStartTime && editEndTime && hourModalPreview && (
               <>

@@ -5,11 +5,17 @@ import { useState, useEffect } from 'react'
 interface TimePicker24hProps {
   value: string // formato "HH:MM"
   onChange: (value: string) => void
-  placeholder?: string
   className?: string
+  /** Incremento minuti (default 5: 00, 05, … 55) */
+  minuteStep?: number
 }
 
-export function TimePicker24h({ value, onChange, placeholder, className = '' }: TimePicker24hProps) {
+export function TimePicker24h({
+  value,
+  onChange,
+  className = '',
+  minuteStep = 5,
+}: TimePicker24hProps) {
   // Parse initial value
   const [hours, setHours] = useState('00')
   const [minutes, setMinutes] = useState('00')
@@ -38,11 +44,12 @@ export function TimePicker24h({ value, onChange, placeholder, className = '' }: 
     return { value: h, label: h }
   })
 
-  // Generate minutes (00, 30)
-  const minutesOptions = [
-    { value: '00', label: '00' },
-    { value: '30', label: '30' }
-  ]
+  const steps = Math.max(1, Math.min(30, Math.floor(minuteStep)))
+  const minutesOptions = Array.from({ length: Math.ceil(60 / steps) }, (_, i) => {
+    const m = (i * steps) % 60
+    const v = m.toString().padStart(2, '0')
+    return { value: v, label: v }
+  })
 
   return (
     <div className={`flex items-center gap-4 ${className}`}>
