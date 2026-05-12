@@ -4,7 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { shiftCalendarDateUtc, utcCalendarDateKey } from '@/lib/date-utils'
+import { shiftCalendarDateUtc, utcCalendarDateKey, formatDate, getDayOfWeek } from '@/lib/date-utils'
+import { getDayName } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -426,20 +427,6 @@ function generatePDFHtml(
             border-bottom: none;
         }
         
-        .status-badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .status-approved { background: #dcfce7; color: #166534; }
-        .status-pending { background: #fef3c7; color: #92400e; }
-        .status-rejected { background: #fee2e2; color: #991b1b; }
-        
         .footer {
             margin-top: 40px;
             padding-top: 20px;
@@ -536,17 +523,15 @@ function generatePDFHtml(
                             <th>Ruolo</th>
                             <th>Orario</th>
                             <th>Ore</th>
-                            <th>Stato</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${week.shifts.map(shift => {
-                          const dayNames = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
-                          const statusLabels: Record<string, string> = {
-                            'APPROVED': 'Approvato',
-                            'PENDING': 'In Attesa',
-                            'REJECTED': 'Rifiutato'
-                          }
+                          const shiftDate = shiftCalendarDateUtc(
+                            shift.shifts.schedules.weekStart,
+                            shift.shifts.dayOfWeek
+                          )
+                          const giornoTurno = `${getDayName(getDayOfWeek(shiftDate))} ${formatDate(shiftDate)}`
                           const roleNames: Record<string, string> = {
                             'ADMIN': 'Admin',
                             'FATTORINO': 'Fattorino',
@@ -556,12 +541,11 @@ function generatePDFHtml(
                           }
                           return `
                             <tr>
-                                <td>${dayNames[shift.shifts.dayOfWeek]}</td>
+                                <td>${giornoTurno}</td>
                                 <td>${shift.shifts.shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}</td>
                                 <td>${roleNames[shift.shifts.role] || shift.shifts.role}</td>
                                 <td>${shift.startTime} - ${shift.endTime}</td>
                                 <td>${shift.totalHours.toFixed(1)}h</td>
-                                <td><span class="status-badge status-${shift.status.toLowerCase()}">${statusLabels[shift.status] || shift.status}</span></td>
                             </tr>
                           `
                         }).join('')}
