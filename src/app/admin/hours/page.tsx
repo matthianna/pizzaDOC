@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { it } from 'date-fns/locale'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, User, Plus, Search } from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
