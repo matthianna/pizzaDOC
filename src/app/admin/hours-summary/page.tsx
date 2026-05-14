@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Select as ReactSelect } from '@/components/ui/react-select'
 import { useHaptics } from '@/hooks/use-haptics'
 import { shiftCalendarDateUtc } from '@/lib/date-utils'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 
 interface MissingHoursShift {
@@ -432,8 +433,9 @@ export default function AdminHoursSummaryPage() {
               <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 shadow-xl shadow-blue-100 text-white flex flex-col justify-center">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Ore Totali Periodo</p>
                 <div className="flex items-end gap-2">
-                  <span className="text-4xl font-black leading-none">{totalHoursAllUsers.toFixed(1)}</span>
-                  <span className="text-sm font-bold opacity-70 mb-1">Ore</span>
+                  <span className="text-4xl font-black leading-none normal-case">
+                    {formatDecimalHoursIt(totalHoursAllUsers)}
+                  </span>
                 </div>
                 <div className="mt-6 flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
@@ -488,7 +490,7 @@ export default function AdminHoursSummaryPage() {
                       <div className="flex items-center gap-6 self-end sm:self-auto">
                         <div className="text-right">
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Totale Ore</p>
-                          <p className="text-2xl font-black text-gray-900 leading-none">{userSummary.yearlyTotal.toFixed(1)}h</p>
+                          <p className="text-2xl font-black text-gray-900 leading-none">{formatDecimalHoursIt(userSummary.yearlyTotal)}</p>
                         </div>
                         <button
                           onClick={(e) => {
@@ -547,7 +549,7 @@ export default function AdminHoursSummaryPage() {
                                   <div className="flex items-center gap-4">
                                     <div className="text-right hidden sm:block">
                                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Ore / Turni</p>
-                                      <p className="text-sm font-black text-gray-900">{month.totalHours.toFixed(1)}h <span className="text-gray-300 font-medium">/</span> {month.shiftsCount}</p>
+                                      <p className="text-sm font-black text-gray-900">{formatDecimalHoursIt(month.totalHours)} <span className="text-gray-300 font-medium">/</span> {month.shiftsCount}</p>
                                     </div>
                                     <button
                                       onClick={(e) => {
@@ -584,7 +586,7 @@ export default function AdminHoursSummaryPage() {
                                           </div>
                                           <div className="text-right">
                                             <p className="text-xs font-black text-gray-900">{detail.startTime} - {detail.endTime}</p>
-                                            <p className="text-[10px] font-bold text-blue-600 mt-1">{detail.totalHours.toFixed(1)}h</p>
+                                            <p className="text-[10px] font-bold text-blue-600 mt-1">{formatDecimalHoursIt(detail.totalHours)}</p>
                                           </div>
                                         </div>
                                       )

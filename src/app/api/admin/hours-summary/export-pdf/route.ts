@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { shiftCalendarDateUtc } from '@/lib/date-utils'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 
 export async function GET(request: NextRequest) {
   try {
@@ -353,7 +354,7 @@ function generateHoursSummaryHTML(
 
     <div class="summary-stats">
         <div class="stat-card">
-            <div class="stat-number">${totalHoursAllUsers.toFixed(1)}h</div>
+            <div class="stat-number">${formatDecimalHoursIt(totalHoursAllUsers)}</div>
             <div class="stat-label">Ore Totali</div>
         </div>
         <div class="stat-card">
@@ -361,7 +362,7 @@ function generateHoursSummaryHTML(
             <div class="stat-label">Dipendenti</div>
         </div>
         <div class="stat-card">
-            <div class="stat-number">${totalUsers > 0 ? (totalHoursAllUsers / totalUsers).toFixed(1) : '0'}h</div>
+            <div class="stat-number">${formatDecimalHoursIt(totalUsers > 0 ? totalHoursAllUsers / totalUsers : 0)}</div>
             <div class="stat-label">Media per Dipendente</div>
         </div>
     </div>
@@ -376,7 +377,7 @@ function generateHoursSummaryHTML(
             <div class="user-header">
                 <div class="user-name">${userSummary.user.username}</div>
                 <div class="user-role">${userSummary.user.primaryRole ? getRoleName(userSummary.user.primaryRole) : ''}</div>
-                <div class="user-total">${userSummary.yearlyTotal.toFixed(1)}h</div>
+                <div class="user-total">${formatDecimalHoursIt(userSummary.yearlyTotal)}</div>
             </div>
             
             ${Object.keys(userSummary.monthlyHours).length === 0 ? `
@@ -390,7 +391,7 @@ function generateHoursSummaryHTML(
                             <div class="month-header">
                                 <div class="month-name">${getMonthName(monthKey)}</div>
                                 <div class="month-stats">${monthData.shiftsCount} turni lavorati</div>
-                                <div class="month-total">${monthData.totalHours.toFixed(1)}h</div>
+                                <div class="month-total">${formatDecimalHoursIt(monthData.totalHours)}</div>
                             </div>
                         </div>
                     `).join('')}

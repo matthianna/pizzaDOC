@@ -16,6 +16,7 @@ import { useHaptics } from '@/hooks/use-haptics'
 import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
 import { WeatherWidget } from '@/components/weather/weather-widget'
 import { NotificationPermissionPrompt } from '@/components/notifications/notification-permission-prompt'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 
 interface DashboardStats {
   // Admin stats
@@ -316,7 +317,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-6">
                   <div className="text-center">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ore Mese</p>
-                    <p className="text-2xl font-black text-blue-600">{(stats.myApprovedHours || 0).toFixed(1)}h</p>
+                    <p className="text-2xl font-black text-blue-600">{formatDecimalHoursIt(stats.myApprovedHours || 0)}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Turni</p>

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logAuditAction } from '@/lib/audit-logger'
 import { validateAdminWorkedTimes } from '@/lib/admin-worked-time-rules'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 
 export async function PUT(
   request: NextRequest,
@@ -92,10 +93,10 @@ export async function PUT(
       action: 'HOURS_EDIT',
       description:
         existing.status === 'REJECTED'
-          ? `Corrette e riapprovate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`
+          ? `Corrette e riapprovate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${formatDecimalHoursIt(totalHours)})`
           : existing.status === 'PENDING'
-            ? `Salvate e approvate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`
-            : `Modificate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${totalHours}h)`,
+            ? `Salvate e approvate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${formatDecimalHoursIt(totalHours)})`
+            : `Modificate ore di ${updatedHours.user.username}: ${startTime}-${endTime} (${formatDecimalHoursIt(totalHours)})`,
       metadata: {
         workedHoursId: updatedHours.id,
         userId: updatedHours.userId,

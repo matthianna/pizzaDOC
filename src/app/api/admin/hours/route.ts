@@ -10,6 +10,7 @@ import {
 } from '@/lib/date-utils'
 import { logAuditAction } from '@/lib/audit-logger'
 import { validateAdminWorkedTimes } from '@/lib/admin-worked-time-rules'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 
 // POST /api/admin/hours — inserimento ore da admin (turno senza worked_hours)
 export async function POST(request: NextRequest) {
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
       userId: session.user.id,
       userUsername: session.user.username,
       action: 'HOURS_EDIT',
-      description: `Inserite ore (admin) per ${shift.user.username}: ${startTime}-${endTime} (${validated.totalHours}h)`,
+      description: `Inserite ore (admin) per ${shift.user.username}: ${startTime}-${endTime} (${formatDecimalHoursIt(validated.totalHours)})`,
       metadata: {
         workedHoursId: workedHours.id,
         userId: workedHours.userId,

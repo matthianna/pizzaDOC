@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logAuditAction } from '@/lib/audit-logger'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 
 // POST /api/admin/hours/[id]/approve - Approve worked hours
 export async function POST(
@@ -52,7 +53,7 @@ export async function POST(
       userId: session.user.id,
       userUsername: session.user.username,
       action: 'HOURS_APPROVE',
-      description: `Approvate ore di ${updatedHours.user.username}: ${updatedHours.totalHours}h`,
+      description: `Approvate ore di ${updatedHours.user.username}: ${formatDecimalHoursIt(updatedHours.totalHours)}`,
       metadata: {
         workedHoursId: updatedHours.id,
         userId: updatedHours.userId,

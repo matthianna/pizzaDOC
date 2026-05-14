@@ -20,6 +20,7 @@ import {
   pickInitialAdminWorkedTimes,
   validateAdminWorkedTimes,
 } from '@/lib/admin-worked-time-rules'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 
 interface Shift {
   id: string
@@ -475,7 +476,7 @@ export default function AdminHoursPage() {
               </div>
               <div className="text-center">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ore Totali</p>
-                <p className="text-3xl font-black text-gray-900 leading-none">{totalHours.toFixed(1)}h</p>
+                <p className="text-3xl font-black text-gray-900 leading-none">{formatDecimalHoursIt(totalHours)}</p>
               </div>
             </div>
           </div>
@@ -689,7 +690,7 @@ export default function AdminHoursPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Totali</p>
-                          <p className="text-xl font-black text-orange-600 leading-none">{group.totalHours.toFixed(1)}h</p>
+                          <p className="text-xl font-black text-orange-600 leading-none">{formatDecimalHoursIt(group.totalHours)}</p>
                         </div>
                       </div>
                       <div className={cn(
@@ -745,7 +746,7 @@ export default function AdminHoursPage() {
                                 </td>
                                 <td className="px-8 py-5 text-center">
                                   <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-900 text-xs font-black rounded-lg">
-                                    {hours.totalHours.toFixed(1)}h
+                                    {formatDecimalHoursIt(hours.totalHours)}
                                   </span>
                                 </td>
                                 <td className="px-8 py-5 text-center">
@@ -955,7 +956,7 @@ export default function AdminHoursPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-4xl font-black">{hourModalPreview.totalHours.toFixed(1)}h</p>
+                      <p className="text-4xl font-black">{formatDecimalHoursIt(hourModalPreview.totalHours)}</p>
                     </div>
                   </div>
                 ) : (

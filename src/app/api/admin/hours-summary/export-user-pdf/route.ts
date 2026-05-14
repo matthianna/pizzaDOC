@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { shiftCalendarDateUtc, utcCalendarDateKey, formatDate, getDayOfWeek } from '@/lib/date-utils'
 import { getDayName } from '@/lib/utils'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 
 export async function GET(request: NextRequest) {
   try {
@@ -497,8 +498,7 @@ function generatePDFHtml(
         <div class="summary-grid">
             <div class="summary-card total">
                 <h4>Ore Totali</h4>
-                <div class="value">${totalHours.toFixed(1)}</div>
-                <div class="unit">ore</div>
+                <div class="value">${formatDecimalHoursIt(totalHours)}</div>
             </div>
         </div>
     </div>
@@ -545,7 +545,7 @@ function generatePDFHtml(
                                 <td>${shift.shifts.shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}</td>
                                 <td>${roleNames[shift.shifts.role] || shift.shifts.role}</td>
                                 <td>${shift.startTime} - ${shift.endTime}</td>
-                                <td>${shift.totalHours.toFixed(1)}h</td>
+                                <td>${formatDecimalHoursIt(shift.totalHours)}</td>
                             </tr>
                           `
                         }).join('')}

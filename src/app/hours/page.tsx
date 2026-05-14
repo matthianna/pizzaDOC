@@ -14,6 +14,7 @@ import {
   formatMonthYearIt,
   shiftCalendarDateUtc,
 } from '@/lib/date-utils'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 import { normalizeDate } from '@/lib/normalize-date'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { useToast } from '@/components/ui/toast'
@@ -262,7 +263,13 @@ export default function HoursPage() {
             <>
               <DashboardStatCard 
                 label="Ore Mese Corrente" 
-                value={`${historyData.months.find((m: any) => m.month.toLowerCase().includes(format(new Date(), 'MMMM', { locale: it }).toLowerCase()))?.totalHours || 0}h`}
+                value={formatDecimalHoursIt(
+                  Number(
+                    historyData.months.find((m: any) =>
+                      m.month.toLowerCase().includes(format(new Date(), 'MMMM', { locale: it }).toLowerCase())
+                    )?.totalHours ?? 0
+                  )
+                )}
                 icon={Clock} 
                 color="orange" 
               />
@@ -274,7 +281,13 @@ export default function HoursPage() {
               />
               <DashboardStatCard 
                 label="Media Ore/Turno" 
-                value={`${historyData.months.find((m: any) => m.month.toLowerCase().includes(format(new Date(), 'MMMM', { locale: it }).toLowerCase()))?.avgHoursPerShift || 0}h`}
+                value={formatDecimalHoursIt(
+                  Number(
+                    historyData.months.find((m: any) =>
+                      m.month.toLowerCase().includes(format(new Date(), 'MMMM', { locale: it }).toLowerCase())
+                    )?.avgHoursPerShift ?? 0
+                  )
+                )}
                 icon={TrendingUp} 
                 color="green" 
               />
@@ -365,7 +378,9 @@ export default function HoursPage() {
                     <div className="flex items-center justify-between px-4">
                       <h3 className="text-2xl font-black text-gray-900 capitalize tracking-tight">{month.month}</h3>
                       <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 bg-orange-100 text-orange-700 text-[10px] font-black uppercase rounded-lg">{month.totalHours}h Totali</span>
+                        <span className="px-3 py-1 bg-orange-100 text-orange-700 text-[10px] font-black rounded-lg normal-case">
+                          {formatDecimalHoursIt(Number(month.totalHours))} totali
+                        </span>
                         <span className="px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-black uppercase rounded-lg">{month.shiftsCount} Turni</span>
                       </div>
                     </div>
@@ -377,7 +392,7 @@ export default function HoursPage() {
                               <span className="text-lg leading-none">{detail.date.split(' ')[0]}</span>
                             </div>
                             <div className="px-3 py-1 bg-gradient-primary text-white rounded-lg font-black text-xs shadow-md">
-                              {detail.hours}h
+                              {formatDecimalHoursIt(Number(detail.hours))}
                             </div>
                           </div>
                           <div className="space-y-1">
@@ -463,7 +478,7 @@ function ShiftCard({
       </div>
       <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Totale ore</p>
-        <p className="text-lg font-black text-gray-900">{wh.totalHours}h</p>
+        <p className="text-lg font-black text-gray-900">{formatDecimalHoursIt(wh.totalHours)}</p>
       </div>
       <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Registrato il</p>

@@ -8,6 +8,7 @@ import { it } from 'date-fns/locale'
 import { getRoleName, getShiftTypeName, cn } from '@/lib/utils'
 import { useParams } from 'next/navigation'
 import { Role, ShiftType, Transport } from '@prisma/client'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
 
 interface UserProfile {
@@ -158,7 +159,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ProfileStatCard 
             label="Ore Totali Lavorate" 
-            value={`${profile.totalWorkedHours.toFixed(1)}h`}
+            value={formatDecimalHoursIt(profile.totalWorkedHours)}
             icon={Clock} 
             color="orange"
             description="Dall'inizio della collaborazione"
@@ -236,7 +237,7 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <div className="bg-gray-50 px-4 py-2 rounded-xl text-sm font-black text-gray-900">
-                      {hour.totalHours.toFixed(1)}h
+                      {formatDecimalHoursIt(hour.totalHours)}
                     </div>
                   </div>
                 ))

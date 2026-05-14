@@ -17,6 +17,7 @@ import {
   appTodayCalendarDateKey,
 } from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
+import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 import { Role, ShiftType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -400,7 +401,7 @@ export default function SchedulePage() {
                                     {shift.workedHours.status === 'PENDING' && <Clock className="h-3 w-3" />}
                                     {shift.workedHours.status === 'APPROVED' && <div className="h-1.5 w-1.5 rounded-full bg-green-500" />}
                                     {shift.workedHours.status === 'REJECTED' && <AlertCircle className="h-3 w-3" />}
-                                    {shift.workedHours.totalHours}h
+                                    {formatDecimalHoursIt(shift.workedHours.totalHours)}
                                   </div>
                                 </div>
                               )}
