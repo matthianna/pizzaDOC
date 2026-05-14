@@ -56,7 +56,7 @@ export default function SignInPage() {
             typeof data.userCount === 'number' ? data.userCount : null
           setDbMessage(
             n !== null
-              ? `Database OK (${n} utenti)`
+              ? `Database OK `
               : 'Database OK'
           )
         } else {

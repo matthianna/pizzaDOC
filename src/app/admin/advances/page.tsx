@@ -1,15 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Plus, Edit, Trash2, DollarSign, Calendar, User, X } from 'lucide-react'
+import { Plus, Edit, Trash2, DollarSign, Calendar, User, X, Info, AlertTriangle, RefreshCw, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getRoleName, cn } from '@/lib/utils'
 import { TrendingUp } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 
 interface Advance {
@@ -61,6 +59,16 @@ export default function AdvancesPage() {
       fetchAdvances()
     }
   }, [filterUserId])
+
+  useEffect(() => {
+    if (!showCreateForm) return
+    const scrollY = window.scrollY
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [showCreateForm])
 
   const fetchAdvances = async (userId?: string) => {
     try {
@@ -382,91 +390,188 @@ export default function AdvancesPage() {
         </div>
       </div>
 
-      {/* Create/Edit Form Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
+      {/* Create/Edit — stesso linguaggio visivo del modal eliminazione (ConfirmationModal) */}
+      {showCreateForm &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 box-border"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="advance-form-title"
+          >
+            <button
+              type="button"
+              aria-label="Chiudi"
+              className="absolute inset-0 bg-black/40 backdrop-blur-md"
+              onClick={() => {
+                if (!submitting) {
+                  setShowCreateForm(false)
+                  resetForm()
+                }
+              }}
+            />
+            <div
+              className="relative bg-white rounded-[48px] shadow-2xl w-full max-w-lg max-h-[calc(100vh-64px)] flex flex-col overflow-hidden border border-gray-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4 px-8 sm:px-12 pt-8 pb-6 border-b border-gray-100 shrink-0">
+                <h2
+                  id="advance-form-title"
+                  className="text-2xl sm:text-[28px] font-black text-gray-900 tracking-tight leading-tight pr-2"
+                >
                   {editingAdvance ? 'Modifica Acconto' : 'Nuovo Acconto'}
                 </h2>
                 <button
+                  type="button"
                   onClick={() => {
-                    setShowCreateForm(false)
-                    resetForm()
+                    if (!submitting) {
+                      setShowCreateForm(false)
+                      resetForm()
+                    }
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  disabled={submitting}
+                  className="p-3 bg-gray-100 rounded-2xl text-gray-500 hover:bg-gray-200 transition-colors shrink-0 disabled:opacity-50"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-6 w-6" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <Select
-                  label="Dipendente *"
-                  options={[
-                    { value: '', label: 'Seleziona dipendente' },
-                    ...users.map(u => ({ value: u.id, label: u.username }))
-                  ]}
-                  value={formUserId}
-                  onChange={(value) => setFormUserId(value as string)}
-                  disabled={!!editingAdvance}
-                />
+              <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+                <div className="px-8 sm:px-12 py-6 overflow-y-auto flex-1 space-y-6">
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl border border-purple-200">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-purple-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-200 shrink-0">
+                        <Info className="h-6 w-6" />
+                      </div>
+                      <p className="text-sm text-purple-800 font-medium leading-relaxed pt-0.5">
+                        {editingAdvance
+                          ? `Aggiorna importo, data o note per l'acconto di ${editingAdvance.user.username}.`
+                          : 'Registra un acconto in CHF per il dipendente selezionato. I campi contrassegnati da * sono obbligatori.'}
+                      </p>
+                    </div>
+                  </div>
 
-                <Input
-                  label="Importo (CHF) *"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={formAmount}
-                  onChange={(e) => setFormAmount(e.target.value)}
-                  placeholder="100.00"
-                />
+                  <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 px-0.5">
+                      Dipendente <span className="text-purple-600">*</span>
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none z-10" />
+                      <select
+                        value={formUserId}
+                        onChange={(e) => setFormUserId(e.target.value)}
+                        disabled={!!editingAdvance || submitting}
+                        className={cn(
+                          'w-full appearance-none border-2 border-gray-200 rounded-2xl pl-12 pr-10 py-3.5 text-gray-900 bg-gray-50 font-bold text-sm',
+                          'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white transition-all',
+                          (editingAdvance || submitting) && 'opacity-60 cursor-not-allowed'
+                        )}
+                      >
+                        <option value="">Seleziona dipendente</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.username}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                        <ChevronDown className="h-5 w-5" aria-hidden />
+                      </span>
+                    </div>
+                  </div>
 
-                <Input
-                  label="Data *"
-                  type="date"
-                  value={formDate}
-                  onChange={(e) => setFormDate(e.target.value)}
-                />
+                  <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 px-0.5">
+                      Importo (CHF) <span className="text-purple-600">*</span>
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={formAmount}
+                        onChange={(e) => setFormAmount(e.target.value)}
+                        placeholder="100.00"
+                        disabled={submitting}
+                        className="w-full border-2 border-gray-200 rounded-2xl pl-12 pr-5 py-3.5 text-gray-900 bg-gray-50 font-bold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white transition-all placeholder:text-gray-300 disabled:opacity-60"
+                      />
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Note
-                  </label>
-                  <textarea
-                    value={formNotes}
-                    onChange={(e) => setFormNotes(e.target.value)}
-                    placeholder="Note aggiuntive..."
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
+                  <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 px-0.5">
+                      Data <span className="text-purple-600">*</span>
+                    </label>
+                    <div className="relative">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                      <input
+                        type="date"
+                        value={formDate}
+                        onChange={(e) => setFormDate(e.target.value)}
+                        disabled={submitting}
+                        className="w-full border-2 border-gray-200 rounded-2xl pl-12 pr-5 py-3.5 text-gray-900 bg-gray-50 font-bold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white transition-all disabled:opacity-60"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 px-0.5">
+                      Note <span className="text-gray-300 font-bold normal-case tracking-normal">(facoltativo)</span>
+                    </label>
+                    <textarea
+                      value={formNotes}
+                      onChange={(e) => setFormNotes(e.target.value)}
+                      placeholder="Note aggiuntive..."
+                      rows={3}
+                      disabled={submitting}
+                      className="w-full border-2 border-gray-200 rounded-2xl px-5 py-3.5 text-gray-900 bg-gray-50 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white transition-all placeholder:text-gray-300 resize-none disabled:opacity-60"
+                    />
+                  </div>
+
+                  <p className="text-xs text-purple-800 font-medium bg-purple-50 px-4 py-3 rounded-xl flex items-center gap-2 border border-purple-100">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-purple-600" />
+                    Verifica importo e data prima di salvare: l&apos;acconto comparirà nei totali e nelle schede dipendente.
+                  </p>
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-4">
-                  <Button
+                <div className="flex justify-end gap-3 px-8 sm:px-12 pt-4 pb-8 border-t border-gray-100 shrink-0 bg-white">
+                  <button
                     type="button"
-                    variant="ghost"
                     onClick={() => {
-                      setShowCreateForm(false)
-                      resetForm()
+                      if (!submitting) {
+                        setShowCreateForm(false)
+                        resetForm()
+                      }
                     }}
+                    disabled={submitting}
+                    className="px-6 py-3 text-xs font-black text-gray-600 uppercase tracking-widest hover:bg-gray-100 rounded-xl transition-all disabled:opacity-50"
                   >
                     Annulla
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="submit"
                     disabled={submitting}
+                    className="px-8 py-3 bg-purple-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 min-w-[11rem]"
                   >
-                    {submitting ? 'Salvataggio...' : editingAdvance ? 'Salva Modifiche' : 'Crea Acconto'}
-                  </Button>
+                    {submitting ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Salvataggio…
+                      </>
+                    ) : editingAdvance ? (
+                      'Salva modifiche'
+                    ) : (
+                      'Crea acconto'
+                    )}
+                  </button>
                 </div>
               </form>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && deletingAdvance && (
