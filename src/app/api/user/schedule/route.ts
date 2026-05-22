@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
                 username: true
               }
             },
+            schedules: {
+              select: { weekStart: true }
+            },
             worked_hours: {
               select: {
                 id: true,
@@ -113,7 +116,13 @@ export async function GET(request: NextRequest) {
           }
         : null,
       requiresScooterLog: currentUser
-        ? shiftRequiresScooterLog(shift, currentUser, displayWeekStart)
+        ? shiftRequiresScooterLog(
+            shift,
+            currentUser,
+            shift.schedules?.weekStart
+              ? ensureUtcMondayWeekStart(shift.schedules.weekStart)
+              : displayWeekStart
+          )
         : false,
       schedule: { weekStart: displayWeekStart.toISOString() }
     }))

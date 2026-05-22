@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from 'uuid'
 import {
   shiftRequiresScooterLog,
   isShiftEndedForLog,
+  shiftWeekStartFromSchedule,
+  shiftNeedsScooterRegistrationNow,
   getMaxScooterCount,
   validateScooterNumber,
   checkScooterConflict,
@@ -63,6 +65,7 @@ export async function GET(request: NextRequest) {
         shifts: {
           where: { userId: session.user.id },
           include: {
+            schedules: { select: { weekStart: true } },
             shift_scooter_usages: {
               select: { id: true, scooterNumber: true, usedAuto: true, recordedAt: true },
             },
@@ -90,9 +93,17 @@ export async function GET(request: NextRequest) {
     }
 
     const shifts = schedule.shifts.map((shift) => {
-      const requiresScooterLog = shiftRequiresScooterLog(shift, user, displayWeekStart)
-      const isEnded = isShiftEndedForLog(shift, displayWeekStart)
-      const shiftDate = shiftCalendarDateUtc(displayWeekStart, shift.dayOfWeek)
+      const shiftWeekStart = shiftWeekStartFromSchedule(shift.schedules.weekStart)
+      const hasUsage = !!shift.shift_scooter_usages
+      const requiresScooterLog = shiftRequiresScooterLog(shift, user, shiftWeekStart)
+      const isEnded = isShiftEndedForLog(shift, shiftWeekStart)
+      const needsRegistration = shiftNeedsScooterRegistrationNow(
+        shift,
+        user,
+        shift.schedules.weekStart,
+        hasUsage
+      )
+      const shiftDate = shiftCalendarDateUtc(shiftWeekStart, shift.dayOfWeek)
 
       return {
         id: shift.id,
@@ -103,6 +114,7 @@ export async function GET(request: NextRequest) {
         endTime: shift.endTime,
         requiresScooterLog,
         isEnded,
+        needsRegistration,
         shiftDate: shiftDate.toISOString(),
         scooterUsage: shift.shift_scooter_usages
           ? {
@@ -176,15 +188,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Turno non trovato' }, { status: 404 })
     }
 
-    const weekStart = ensureUtcMondayWeekStart(shift.schedules.weekStart)
-    if (!shiftRequiresScooterLog(shift, shift.user, weekStart)) {
+    const shiftWeekStart = shiftWeekStartFromSchedule(shift.schedules.weekStart)
+    if (!shiftRequiresScooterLog(shift, shift.user, shiftWeekStart)) {
       return NextResponse.json(
         { error: 'Non devi registrare l\'utilizzo scooter per questo turno' },
         { status: 403 }
       )
     }
 
-    if (!isShiftEndedForLog(shift, weekStart)) {
+    if (!isShiftEndedForLog(shift, shiftWeekStart)) {
       return NextResponse.json(
         { error: 'Puoi registrare lo scooter solo dopo la fine del turno' },
         { status: 400 }

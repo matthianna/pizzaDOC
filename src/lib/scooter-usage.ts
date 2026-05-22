@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import {
   addWeekCalendarDays,
   appTodayCalendarDateKey,
+  ensureUtcMondayWeekStart,
   shiftCalendarDateUtc,
   shiftInstantRome,
   utcCalendarDateKey,
@@ -26,6 +27,12 @@ export type ScooterShift = {
   role: Role
   dayOfWeek: number
   shiftType: ShiftType
+  endTime?: string
+}
+
+/** Canonical week start for a shift row (always from its schedule, not the UI week picker). */
+export function shiftWeekStartFromSchedule(scheduleWeekStart: Date | string): Date {
+  return ensureUtcMondayWeekStart(scheduleWeekStart)
 }
 
 export function userUsesScooterTransport(user: ScooterUser): boolean {
@@ -52,14 +59,6 @@ export function shiftRequiresScooterLog(
   return shift.role === 'FATTORINO' && userUsesScooterTransport(user)
 }
 
-/** Ended shift that still needs a log (today onward only). */
-export function shiftNeedsScooterRegistration(
-  shift: ScooterShift & { dayOfWeek: number; shiftType: ShiftType },
-  user: ScooterUser,
-  weekStart: Date
-): boolean {
-  return shiftRequiresScooterLog(shift, user, weekStart) && isShiftEndedForLog(shift, weekStart)
-}
 
 export async function getMaxScooterCount(): Promise<number> {
   const setting = await prisma.systemSettings.findUnique({
@@ -76,26 +75,7 @@ export function validateScooterNumber(scooterNumber: number, max: number): strin
   return null
 }
 
-/** Same rules as schedule page: past day, or today after 14:00 PRANZO / 22:00 CENA */
-export function isShiftEndedForLog(
-  shift: { dayOfWeek: number; shiftType: ShiftType },
-  weekStart: Date
-): boolean {
-  const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
-
-  if (utcCalendarDateKey(shiftDate) !== appTodayCalendarDateKey()) {
-    return isPast(shiftDate)
-  }
-
-  const now = new Date()
-  const currentTime = now.getHours()
-  return (
-    (shift.shiftType === 'PRANZO' && currentTime >= 14) ||
-    (shift.shiftType === 'CENA' && currentTime >= 22)
-  )
-}
-
-/** Stricter: shift end instant in Rome timezone (for missing lists) */
+/** Shift end instant in Rome (uses scheduled endTime). */
 export function isShiftEndedByEndTime(
   shift: { dayOfWeek: number; shiftType: ShiftType; endTime: string },
   weekStart: Date
@@ -103,6 +83,48 @@ export function isShiftEndedByEndTime(
   const shiftDay = shiftCalendarDateUtc(weekStart, shift.dayOfWeek)
   const endInst = shiftInstantRome(shiftDay, shift.endTime)
   return endInst.getTime() < Date.now()
+}
+
+/**
+ * Turno finito per la registrazione scooter — stessa logica admin e utente (Rome + endTime).
+ * Fallback 14:00/22:00 solo se endTime mancante.
+ */
+export function isShiftEndedForLog(
+  shift: { dayOfWeek: number; shiftType: ShiftType; endTime?: string },
+  weekStart: Date
+): boolean {
+  if (shift.endTime) {
+    return isShiftEndedByEndTime(
+      shift as { dayOfWeek: number; shiftType: ShiftType; endTime: string },
+      weekStart
+    )
+  }
+
+  const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
+  if (utcCalendarDateKey(shiftDate) !== appTodayCalendarDateKey()) {
+    return isPast(shiftDate)
+  }
+
+  const currentTime = new Date().getHours()
+  return (
+    (shift.shiftType === 'PRANZO' && currentTime >= 14) ||
+    (shift.shiftType === 'CENA' && currentTime >= 22)
+  )
+}
+
+/** True when user must still log scooter/auto for this shift. */
+export function shiftNeedsScooterRegistrationNow(
+  shift: ScooterShift & { dayOfWeek: number; shiftType: ShiftType; endTime?: string },
+  user: ScooterUser,
+  scheduleWeekStart: Date | string,
+  hasUsage: boolean
+): boolean {
+  const weekStart = shiftWeekStartFromSchedule(scheduleWeekStart)
+  return (
+    shiftRequiresScooterLog(shift, user, weekStart) &&
+    isShiftEndedForLog(shift, weekStart) &&
+    !hasUsage
+  )
 }
 
 export async function checkScooterConflict(

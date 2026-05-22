@@ -45,6 +45,7 @@ interface ShiftRow {
   endTime: string
   requiresScooterLog: boolean
   isEnded: boolean
+  needsRegistration: boolean
   shiftDate: string
   scooterUsage: ScooterUsage | null
 }
@@ -134,7 +135,7 @@ export default function ScooterUsagePage() {
   const weekEnd = addWeekCalendarDays(currentWeek, 6)
 
   const { pending, registered, todayPending } = useMemo(() => {
-    const p = shifts.filter((s) => s.requiresScooterLog && s.isEnded && !s.scooterUsage)
+    const p = shifts.filter((s) => s.needsRegistration)
     const r = shifts.filter((s) => s.scooterUsage)
     const todayP = p.filter((s) => {
       const d = shiftCalendarDateUtc(currentWeek, s.dayOfWeek)

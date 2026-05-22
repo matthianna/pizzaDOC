@@ -6,11 +6,10 @@ import { normalizeDate } from '@/lib/normalize-date'
 import {
   appTodayUtcMidnight,
   shiftCalendarDateUtc,
-  shiftInstantRome,
   ensureUtcMondayWeekStart,
 } from '@/lib/date-utils'
 import {
-  shiftRequiresScooterLog,
+  shiftNeedsScooterRegistrationNow,
   userUsesScooterTransport,
   isExcludedFromScooterLog,
 } from '@/lib/scooter-usage'
@@ -67,16 +66,16 @@ export async function GET(request: NextRequest) {
         (shift) =>
           !isExcludedFromScooterLog(shift.user.username) &&
           userUsesScooterTransport(shift.user) &&
-          shiftRequiresScooterLog(
+          shiftNeedsScooterRegistrationNow(
             shift,
             shift.user,
-            ensureUtcMondayWeekStart(shift.schedules.weekStart)
+            shift.schedules.weekStart,
+            false
           )
       )
       .map((shift) => {
         const weekStart = ensureUtcMondayWeekStart(shift.schedules.weekStart)
         const shiftDate = shiftCalendarDateUtc(weekStart, shift.dayOfWeek)
-        const endInst = shiftInstantRome(shiftDate, shift.endTime)
 
         return {
           shiftId: shift.id,
@@ -88,11 +87,9 @@ export async function GET(request: NextRequest) {
           startTime: shift.startTime,
           endTime: shift.endTime,
           shiftDate: shiftDate.toISOString(),
-          endMs: endInst.getTime(),
         }
       })
-      .filter((s) => s.endMs < Date.now())
-      .sort((a, b) => b.endMs - a.endMs)
+      .sort((a, b) => new Date(b.shiftDate).getTime() - new Date(a.shiftDate).getTime())
 
     return NextResponse.json({
       totalMissing: missing.length,

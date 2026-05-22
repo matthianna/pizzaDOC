@@ -7,10 +7,10 @@ import {
   addWeekCalendarDays,
   shiftCalendarDateUtc,
   ensureUtcMondayWeekStart,
+  shiftCalendarDateUtc,
 } from '@/lib/date-utils'
 import {
-  shiftRequiresScooterLog,
-  isShiftEndedForLog,
+  shiftNeedsScooterRegistrationNow,
   userUsesScooterTransport,
   isExcludedFromScooterLog,
 } from '@/lib/scooter-usage'
@@ -57,13 +57,14 @@ export async function GET() {
     })
 
     const missingShifts = shifts
-      .filter((shift) => {
-        const weekStart = ensureUtcMondayWeekStart(shift.schedules.weekStart)
-        return (
-          shiftRequiresScooterLog(shift, user, weekStart) &&
-          isShiftEndedForLog(shift, weekStart)
+      .filter((shift) =>
+        shiftNeedsScooterRegistrationNow(
+          shift,
+          user,
+          shift.schedules.weekStart,
+          false
         )
-      })
+      )
       .map((shift) => {
         const weekStart = ensureUtcMondayWeekStart(shift.schedules.weekStart)
         const shiftDate = shiftCalendarDateUtc(weekStart, shift.dayOfWeek)
