@@ -7,7 +7,6 @@ import {
   addWeekCalendarDays,
   shiftCalendarDateUtc,
   ensureUtcMondayWeekStart,
-  shiftCalendarDateUtc,
 } from '@/lib/date-utils'
 import {
   shiftNeedsScooterRegistrationNow,
