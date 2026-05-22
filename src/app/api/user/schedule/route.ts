@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     const currentUser = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
+        username: true,
         primaryTransport: true,
         user_transports: { select: { transport: true } },
       },
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
           }
         : null,
       requiresScooterLog: currentUser
-        ? shiftRequiresScooterLog(shift, currentUser)
+        ? shiftRequiresScooterLog(shift, currentUser, displayWeekStart)
         : false,
       schedule: { weekStart: displayWeekStart.toISOString() }
     }))

@@ -12,6 +12,7 @@ import {
   shiftRequiresScooterLog,
   isShiftEndedForLog,
   userUsesScooterTransport,
+  isExcludedFromScooterLog,
 } from '@/lib/scooter-usage'
 
 export const dynamic = 'force-dynamic'
@@ -26,12 +27,17 @@ export async function GET() {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
+        username: true,
         primaryTransport: true,
         user_transports: { select: { transport: true } },
       },
     })
 
-    if (!user || !userUsesScooterTransport(user)) {
+    if (
+      !user ||
+      isExcludedFromScooterLog(user.username) ||
+      !userUsesScooterTransport(user)
+    ) {
       return NextResponse.json({ missingShifts: [], count: 0 })
     }
 
@@ -54,7 +60,7 @@ export async function GET() {
       .filter((shift) => {
         const weekStart = ensureUtcMondayWeekStart(shift.schedules.weekStart)
         return (
-          shiftRequiresScooterLog(shift, user) &&
+          shiftRequiresScooterLog(shift, user, weekStart) &&
           isShiftEndedForLog(shift, weekStart)
         )
       })

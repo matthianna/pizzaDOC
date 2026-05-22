@@ -8,10 +8,18 @@ import {
   shiftInstantRome,
   utcCalendarDateKey,
 } from '@/lib/date-utils'
+import { isExcludedFromScooterLog } from '@/lib/utils'
 
 export type ScooterUser = {
+  username?: string
   primaryTransport?: TransportType | null
   user_transports?: { transport: TransportType }[]
+}
+
+export { isExcludedFromScooterLog }
+
+export function getScooterRegistrationStartDateKey(): string {
+  return appTodayCalendarDateKey()
 }
 
 export type ScooterShift = {
@@ -25,8 +33,32 @@ export function userUsesScooterTransport(user: ScooterUser): boolean {
   return user.user_transports?.some((t) => t.transport === 'SCOOTER') ?? false
 }
 
-export function shiftRequiresScooterLog(shift: ScooterShift, user: ScooterUser): boolean {
+/** Shift calendar day is on or after the registration start date (today). */
+export function isShiftOnOrAfterRegistrationStart(
+  shift: { dayOfWeek: number },
+  weekStart: Date
+): boolean {
+  const shiftDateKey = utcCalendarDateKey(shiftCalendarDateUtc(weekStart, shift.dayOfWeek))
+  return shiftDateKey >= getScooterRegistrationStartDateKey()
+}
+
+export function shiftRequiresScooterLog(
+  shift: ScooterShift,
+  user: ScooterUser,
+  weekStart: Date
+): boolean {
+  if (isExcludedFromScooterLog(user.username)) return false
+  if (!isShiftOnOrAfterRegistrationStart(shift, weekStart)) return false
   return shift.role === 'FATTORINO' && userUsesScooterTransport(user)
+}
+
+/** Ended shift that still needs a log (today onward only). */
+export function shiftNeedsScooterRegistration(
+  shift: ScooterShift & { dayOfWeek: number; shiftType: ShiftType },
+  user: ScooterUser,
+  weekStart: Date
+): boolean {
+  return shiftRequiresScooterLog(shift, user, weekStart) && isShiftEndedForLog(shift, weekStart)
 }
 
 export async function getMaxScooterCount(): Promise<number> {

@@ -39,7 +39,7 @@ import {
   BanknotesIcon as BanknotesIconSolid,
   BellIcon as BellIconSolid
 } from '@heroicons/react/24/solid'
-import { cn, getRoleName } from '@/lib/utils'
+import { cn, getRoleName, isExcludedFromScooterLog } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
 import { NotificationBell } from '../notifications/notification-bell'
 import { useHaptics } from '@/hooks/use-haptics'
@@ -283,6 +283,9 @@ export function Sidebar() {
     if (item.hideForAdmin && isUserAdmin) return false
     // Nascondi "Ore Lavorate" se l'utente non ha trackHours abilitato
     if (item.name === 'Le mie ore' && !session.user.trackHours) return false
+    if (item.href === '/scooter-usage' && isExcludedFromScooterLog(session.user.username)) {
+      return false
+    }
     return true
   })
 

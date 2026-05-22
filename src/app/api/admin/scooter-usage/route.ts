@@ -136,12 +136,14 @@ export async function POST(request: NextRequest) {
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
       select: {
+        username: true,
         primaryTransport: true,
         user_transports: { select: { transport: true } },
       },
     })
 
-    if (!targetUser || !shiftRequiresScooterLog(shift, targetUser)) {
+    const shiftWeekStart = ensureUtcMondayWeekStart(shift.schedules.weekStart)
+    if (!targetUser || !shiftRequiresScooterLog(shift, targetUser, shiftWeekStart)) {
       return NextResponse.json(
         { error: 'L\'utente non è idoneo alla registrazione scooter per questo turno' },
         { status: 400 }

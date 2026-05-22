@@ -14,6 +14,8 @@ import {
   validateScooterNumber,
   checkScooterConflict,
   userUsesScooterTransport,
+  isExcludedFromScooterLog,
+  getScooterRegistrationStartDateKey,
 } from '@/lib/scooter-usage'
 
 export const dynamic = 'force-dynamic'
@@ -41,6 +43,7 @@ export async function GET(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
+        username: true,
         primaryTransport: true,
         user_transports: { select: { transport: true } },
       },
@@ -50,7 +53,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const eligible = userUsesScooterTransport(user)
+    const eligible =
+      !isExcludedFromScooterLog(user.username) && userUsesScooterTransport(user)
     const maxScooters = await getMaxScooterCount()
 
     const scheduleRows = await prisma.schedules.findMany({
@@ -80,12 +84,13 @@ export async function GET(request: NextRequest) {
         weekStart: displayWeekStart.toISOString(),
         eligible,
         maxScooters,
+        registrationStartDate: getScooterRegistrationStartDateKey(),
         shifts: [],
       })
     }
 
     const shifts = schedule.shifts.map((shift) => {
-      const requiresScooterLog = shiftRequiresScooterLog(shift, user)
+      const requiresScooterLog = shiftRequiresScooterLog(shift, user, displayWeekStart)
       const isEnded = isShiftEndedForLog(shift, displayWeekStart)
       const shiftDate = shiftCalendarDateUtc(displayWeekStart, shift.dayOfWeek)
 
@@ -114,6 +119,7 @@ export async function GET(request: NextRequest) {
       weekStart: displayWeekStart.toISOString(),
       eligible,
       maxScooters,
+      registrationStartDate: getScooterRegistrationStartDateKey(),
       shifts,
     })
   } catch (error) {
@@ -157,6 +163,7 @@ export async function POST(request: NextRequest) {
         user: {
           select: {
             id: true,
+            username: true,
             primaryTransport: true,
             user_transports: { select: { transport: true } },
           },
@@ -169,14 +176,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Turno non trovato' }, { status: 404 })
     }
 
-    if (!shiftRequiresScooterLog(shift, shift.user)) {
+    const weekStart = ensureUtcMondayWeekStart(shift.schedules.weekStart)
+    if (!shiftRequiresScooterLog(shift, shift.user, weekStart)) {
       return NextResponse.json(
         { error: 'Non devi registrare l\'utilizzo scooter per questo turno' },
         { status: 403 }
       )
     }
 
-    const weekStart = ensureUtcMondayWeekStart(shift.schedules.weekStart)
     if (!isShiftEndedForLog(shift, weekStart)) {
       return NextResponse.json(
         { error: 'Puoi registrare lo scooter solo dopo la fine del turno' },

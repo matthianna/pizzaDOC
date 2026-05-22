@@ -9,6 +9,15 @@ export const PRIORITY_USERS = [
   'giulia'
 ]
 
+/** Never required to log scooter usage after shifts. */
+export const SCOOTER_LOG_EXCLUDED_USERNAMES = ['giulia'] as const
+
+export function isExcludedFromScooterLog(username: string | undefined | null): boolean {
+  if (!username) return false
+  const normalized = username.trim().toLowerCase()
+  return SCOOTER_LOG_EXCLUDED_USERNAMES.some((u) => u === normalized)
+}
+
 export function isPriorityUser(username: string): boolean {
   return PRIORITY_USERS.includes(username.toLowerCase())
 }

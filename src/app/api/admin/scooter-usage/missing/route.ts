@@ -9,7 +9,11 @@ import {
   shiftInstantRome,
   ensureUtcMondayWeekStart,
 } from '@/lib/date-utils'
-import { shiftRequiresScooterLog, userUsesScooterTransport } from '@/lib/scooter-usage'
+import {
+  shiftRequiresScooterLog,
+  userUsesScooterTransport,
+  isExcludedFromScooterLog,
+} from '@/lib/scooter-usage'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,7 +63,16 @@ export async function GET(request: NextRequest) {
     })
 
     const missing = shifts
-      .filter((shift) => userUsesScooterTransport(shift.user) && shiftRequiresScooterLog(shift, shift.user))
+      .filter(
+        (shift) =>
+          !isExcludedFromScooterLog(shift.user.username) &&
+          userUsesScooterTransport(shift.user) &&
+          shiftRequiresScooterLog(
+            shift,
+            shift.user,
+            ensureUtcMondayWeekStart(shift.schedules.weekStart)
+          )
+      )
       .map((shift) => {
         const weekStart = ensureUtcMondayWeekStart(shift.schedules.weekStart)
         const shiftDate = shiftCalendarDateUtc(weekStart, shift.dayOfWeek)
