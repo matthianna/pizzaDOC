@@ -2,12 +2,23 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Bike, Plus, Edit, Trash2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  Bike,
+  Car,
+  Plus,
+  Edit,
+  Trash2,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  User,
+} from 'lucide-react'
+import { cn, getShiftTypeName } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
-import { getShiftTypeName } from '@/lib/utils'
 import {
   getWeekStart,
   addWeekCalendarDays,
@@ -73,6 +84,7 @@ export default function AdminScooterUsagePage() {
   const [showDelete, setShowDelete] = useState(false)
   const [deleting, setDeleting] = useState<UsageRecord | null>(null)
   const [saving, setSaving] = useState(false)
+  const [maxScooters, setMaxScooters] = useState(4)
   const { showToast, ToastContainer } = useToast()
 
   const weekEnd = addWeekCalendarDays(currentWeek, 6)
@@ -110,6 +122,13 @@ export default function AdminScooterUsagePage() {
 
   useEffect(() => {
     fetchUsers()
+    fetch('/api/admin/settings')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const n = parseInt(data?.scooter_count ?? '4', 10)
+        if (Number.isFinite(n) && n > 0) setMaxScooters(n)
+      })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -402,55 +421,164 @@ export default function AdminScooterUsagePage() {
             setEditing(null)
             setPrefillShift(null)
           }}
-          title={editing ? 'Modifica utilizzo' : 'Registra utilizzo scooter'}
+          title={editing ? 'Modifica utilizzo' : 'Registra utilizzo'}
+          subtitle={
+            prefillShift
+              ? 'Turno senza registrazione'
+              : editing
+                ? 'Aggiorna scooter o auto'
+                : 'Inserimento manuale'
+          }
+          maxWidth="sm"
+          headerIcon={<Bike className="h-7 w-7" strokeWidth={2.5} />}
         >
-          <div className="space-y-4">
-            {prefillShift && (
-              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-xl">
-                {formatShiftLabel({ ...prefillShift, username: prefillShift.username })}
-              </p>
+          <div className="space-y-5 -mt-2">
+            {(prefillShift || editing) && (
+              <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-4 space-y-3">
+                {prefillShift && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-gray-200 shadow-sm">
+                        <User className="h-4 w-4 text-gray-600" />
+                      </span>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                          Fattorino
+                        </p>
+                        <p className="font-black text-gray-900">{prefillShift.username}</p>
+                      </div>
+                    </div>
+                    <p className="text-sm font-bold text-gray-800 capitalize leading-snug">
+                      {format(parseISO(prefillShift.shiftDate), 'EEEE d MMMM yyyy', { locale: it })}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-black uppercase px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 border border-blue-200">
+                        {getShiftTypeName(prefillShift.shiftType as 'PRANZO' | 'CENA')}
+                      </span>
+                      <span className="text-xs text-gray-600 font-bold flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {prefillShift.startTime} – {prefillShift.endTime}
+                      </span>
+                    </div>
+                  </>
+                )}
+                {editing && !prefillShift && (
+                  <p className="text-sm font-medium text-gray-600">
+                    Modifica la registrazione per{' '}
+                    <span className="font-black text-gray-900">{editing.username}</span>
+                  </p>
+                )}
+              </div>
             )}
+
             {!editing && !prefillShift && (
-              <>
-                <label className="block text-xs font-bold text-gray-500 uppercase">ID Turno</label>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  ID turno
+                </label>
                 <input
-                  className="w-full border rounded-xl px-3 py-2"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100"
                   value={formShiftId}
                   onChange={(e) => setFormShiftId(e.target.value)}
-                  placeholder="shiftId"
+                  placeholder="Incolla l&apos;ID del turno"
                 />
-              </>
-            )}
-            <label className="block text-xs font-bold text-gray-500 uppercase">Utente</label>
-            <Select
-              value={formUserId}
-              onChange={(v) => setFormUserId(String(v))}
-              disabled={!!prefillShift}
-              placeholder="Seleziona utente"
-              options={users.map((u) => ({ value: u.id, label: u.username }))}
-            />
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formUsedAuto}
-                onChange={(e) => setFormUsedAuto(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <span className="text-sm font-bold text-gray-700">Ha lavorato in auto</span>
-            </label>
-            {!formUsedAuto && (
-              <>
-                <label className="block text-xs font-bold text-gray-500 uppercase">Scooter</label>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 pt-2">
+                  Utente
+                </label>
                 <Select
-                  value={formScooter}
-                  onChange={(v) => setFormScooter(String(v))}
-                  options={[1, 2, 3, 4].map((n) => ({ value: String(n), label: `Scooter ${n}` }))}
+                  value={formUserId}
+                  onChange={(v) => setFormUserId(String(v))}
+                  placeholder="Seleziona utente"
+                  options={users.map((u) => ({ value: u.id, label: u.username }))}
                 />
-              </>
+              </div>
             )}
-            <Button onClick={handleSave} disabled={saving || !formUserId || (!editing && !formShiftId)}>
-              {saving ? 'Salvataggio...' : 'Salva'}
-            </Button>
+
+            <div className="space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 text-center">
+                Mezzo utilizzato
+              </p>
+
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setFormUsedAuto(true)}
+                className={cn(
+                  'w-full py-4 rounded-2xl font-black border-2 flex items-center justify-center gap-3 transition-all active:scale-[0.98]',
+                  formUsedAuto
+                    ? 'bg-gray-900 text-white border-gray-900 shadow-lg'
+                    : 'bg-white text-gray-900 border-gray-200 hover:border-gray-400'
+                )}
+              >
+                <Car className="h-6 w-6" />
+                Ha lavorato in auto
+              </button>
+
+              <div className="relative py-1">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    oppure scooter
+                  </span>
+                </div>
+              </div>
+
+              <div
+                className={cn(
+                  'grid gap-3',
+                  maxScooters <= 3 ? 'grid-cols-3' : 'grid-cols-2'
+                )}
+              >
+                {Array.from({ length: maxScooters }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => {
+                      setFormUsedAuto(false)
+                      setFormScooter(String(n))
+                    }}
+                    className={cn(
+                      'aspect-square rounded-2xl text-2xl font-black border-2 transition-all active:scale-95 flex flex-col items-center justify-center gap-1',
+                      !formUsedAuto && formScooter === String(n)
+                        ? 'bg-sky-600 text-white border-sky-700 shadow-lg shadow-sky-200/80'
+                        : 'bg-white text-gray-900 border-gray-200 hover:border-sky-400 hover:bg-sky-50'
+                    )}
+                  >
+                    <Bike className="h-5 w-5 opacity-80" />
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2 border-t border-gray-100">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 rounded-xl py-3 font-bold"
+                disabled={saving}
+                onClick={() => {
+                  setShowModal(false)
+                  setEditing(null)
+                  setPrefillShift(null)
+                }}
+              >
+                Annulla
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                className="flex-1 rounded-xl py-3 font-black"
+                disabled={saving || !formUserId || (!editing && !formShiftId)}
+                isLoading={saving}
+                onClick={handleSave}
+              >
+                {saving ? 'Salvataggio...' : 'Salva'}
+              </Button>
+            </div>
           </div>
         </Modal>
 
