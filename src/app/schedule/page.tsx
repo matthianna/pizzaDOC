@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Users, AlertCircle, FileText } from 'lucide-react'
+import Link from 'next/link'
+import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Users, AlertCircle, FileText, Bike } from 'lucide-react'
 import { isPast } from 'date-fns'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import {
@@ -47,6 +48,13 @@ interface Shift {
     status: 'PENDING' | 'APPROVED' | 'REJECTED'
     totalHours: number
   }
+  requiresScooterLog?: boolean
+  scooterUsage?: {
+    id: string
+    scooterNumber: number | null
+    usedAuto: boolean
+    recordedAt: string
+  } | null
 }
 
 export default function SchedulePage() {
@@ -415,6 +423,30 @@ export default function SchedulePage() {
                                   <AlertCircle className="h-3 w-3" />
                                   Ore da registrare
                                 </a>
+                              )}
+
+                              {/* Scooter usage */}
+                              {shiftEnded && shift.requiresScooterLog && (
+                                shift.scooterUsage ? (
+                                  <div className="flex items-center justify-center w-full px-2 py-1.5 text-xs font-bold text-sky-800 bg-sky-50 border border-sky-200 rounded-md gap-1">
+                                    {shift.scooterUsage.usedAuto ? (
+                                      <>Auto</>
+                                    ) : (
+                                      <>
+                                        <Bike className="h-3 w-3" />
+                                        Scooter {shift.scooterUsage.scooterNumber}
+                                      </>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <Link
+                                    href="/scooter-usage"
+                                    className="flex items-center justify-center w-full px-2 py-1.5 text-xs font-bold text-sky-800 bg-sky-50 border border-sky-200 rounded-md hover:bg-sky-100 transition-colors gap-1"
+                                  >
+                                    <Bike className="h-3 w-3" />
+                                    Registra scooter
+                                  </Link>
+                                )
                               )}
 
                               {/* Request Substitution Button / Status */}

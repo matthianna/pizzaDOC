@@ -152,8 +152,9 @@ model shifts {
   updatedAt     DateTime
   schedules     schedules       @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  substitutions substitutions[]
-  worked_hours  worked_hours?
+  substitutions         substitutions[]
+  worked_hours          worked_hours?
+  shift_scooter_usages  shift_scooter_usages?
 }
 
 model substitutions {
@@ -232,6 +233,7 @@ model User {
   user_roles                                      user_roles[]
   user_transports                                 user_transports[]
   worked_hours                                    worked_hours[]
+  shift_scooter_usages                            shift_scooter_usages[]
   push_subscriptions                              push_subscriptions[]
   notifications                                   notifications[]
 
@@ -285,6 +287,19 @@ model worked_hours {
   updatedAt       DateTime
   shifts          shifts      @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model shift_scooter_usages {
+  id            String   @id
+  shiftId       String   @unique
+  userId        String
+  scooterNumber Int?
+  usedAuto      Boolean  @default(false)
+  recordedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+  shifts        shifts   @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model audit_logs {
@@ -388,6 +403,9 @@ enum AuditActionType {
   HOLIDAY_CREATE
   HOLIDAY_EDIT
   HOLIDAY_DELETE
+  SCOOTER_USAGE_CREATE
+  SCOOTER_USAGE_EDIT
+  SCOOTER_USAGE_DELETE
   TASK_RUN
 }
 

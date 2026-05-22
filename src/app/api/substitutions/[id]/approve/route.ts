@@ -107,6 +107,10 @@ export async function POST(
         }
       })
 
+      await tx.shift_scooter_usages.deleteMany({
+        where: { shiftId: substitution.shiftId },
+      })
+
       // Reject other pending/applied substitutions for this shift
       await tx.substitutions.updateMany({
         where: {

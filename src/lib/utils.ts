@@ -64,3 +64,12 @@ export function getTransportName(transport: string): string {
   }
   return transportNames[transport] || transport
 }
+
+export function formatVehicleUsageLabel(usage: {
+  usedAuto: boolean
+  scooterNumber: number | null
+}): string {
+  if (usage.usedAuto) return 'Auto'
+  if (usage.scooterNumber != null) return `Scooter ${usage.scooterNumber}`
+  return '—'
+}

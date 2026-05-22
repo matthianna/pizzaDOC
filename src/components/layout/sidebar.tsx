@@ -145,6 +145,16 @@ export function Sidebar() {
       emoji: '🏖️',
       section: 'ore'
     },
+    {
+      name: 'Utilizzo Scooter',
+      href: '/scooter-usage',
+      icon: ChartBarIcon,
+      iconSolid: ChartBarIconSolid,
+      adminOnly: false,
+      hideForAdmin: true,
+      emoji: '🛵',
+      section: 'ore'
+    },
     // 🔄 SOSTITUZIONI
     {
       name: 'Sostituzioni',
@@ -221,6 +231,15 @@ export function Sidebar() {
       icon: BanknotesIcon,
       iconSolid: BanknotesIconSolid,
       adminOnly: true,
+      section: 'ore'
+    },
+    {
+      name: 'Utilizzo Scooter',
+      href: '/admin/scooter-usage',
+      icon: ChartBarIcon,
+      iconSolid: ChartBarIconSolid,
+      adminOnly: true,
+      emoji: '🛵',
       section: 'ore'
     },
     // ⚙️ SISTEMA

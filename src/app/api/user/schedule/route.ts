@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
 import { ensureUtcMondayWeekStart } from '@/lib/date-utils'
 import { resolveScheduleForRequestedWeek } from '@/lib/resolve-schedule-for-week'
+import { shiftRequiresScooterLog } from '@/lib/scooter-usage'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -25,6 +26,15 @@ export async function GET(request: NextRequest) {
     }
 
     const weekStart = normalizeDate(weekStartParam)
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        primaryTransport: true,
+        user_transports: { select: { transport: true } },
+      },
+    })
+
     const dayMs = 24 * 60 * 60 * 1000
     const weekStartCandidates = [
       normalizeDate(new Date(weekStart.getTime() - dayMs)),
@@ -51,6 +61,14 @@ export async function GET(request: NextRequest) {
                 id: true,
                 status: true,
                 totalHours: true
+              }
+            },
+            shift_scooter_usages: {
+              select: {
+                id: true,
+                scooterNumber: true,
+                usedAuto: true,
+                recordedAt: true
               }
             }
           },
@@ -85,6 +103,17 @@ export async function GET(request: NextRequest) {
     const shiftsWithMappedHours = schedule.shifts.map((shift: any) => ({
       ...shift,
       workedHours: shift.worked_hours,
+      scooterUsage: shift.shift_scooter_usages
+        ? {
+            id: shift.shift_scooter_usages.id,
+            scooterNumber: shift.shift_scooter_usages.scooterNumber,
+            usedAuto: shift.shift_scooter_usages.usedAuto,
+            recordedAt: shift.shift_scooter_usages.recordedAt,
+          }
+        : null,
+      requiresScooterLog: currentUser
+        ? shiftRequiresScooterLog(shift, currentUser)
+        : false,
       schedule: { weekStart: displayWeekStart.toISOString() }
     }))
 
