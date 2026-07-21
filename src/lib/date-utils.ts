@@ -179,6 +179,13 @@ export function canEditAvailability(weekStart: Date): boolean {
   return isAfter(weekStart, currentWeekStart) || weekStart.getTime() === currentWeekStart.getTime()
 }
 
+/** True if this calendar day (UTC) is today or later in Europe/Rome. */
+export function canEditAvailabilityDay(day: Date, now: Date = new Date()): boolean {
+  const today = appTodayUtcMidnight(now)
+  const dayNorm = normalizeDate(day)
+  return dayNorm.getTime() >= today.getTime()
+}
+
 export function getWeekDays(weekStart: Date): Date[] {
   return Array.from({ length: 7 }, (_, i) => addWeekCalendarDays(weekStart, i))
 }

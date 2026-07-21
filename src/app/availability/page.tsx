@@ -5,7 +5,7 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { useSession } from 'next-auth/react'
 import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock, CheckCircle, Sparkles, Ban } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getWeekStart, getNextWeekStart, canEditAvailability, getWeekDays, formatDate, getDayOfWeek, getShiftTimes } from '@/lib/date-utils'
+import { getNextWeekStart, canEditAvailability, canEditAvailabilityDay, getWeekDays, formatDate, getDayOfWeek, getShiftTimes, addWeekCalendarDays } from '@/lib/date-utils'
 import { getDayName, getShiftTypeName } from '@/lib/utils'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -39,15 +39,6 @@ export default function AvailabilityPage() {
 
   const isUserPriority = session?.user.username ? isPriorityUser(session.user.username) : false
   const isAdmin = session?.user.roles.includes('ADMIN') && !isUserPriority
-
-  // Check if the week has already started (can't edit availability)
-  const hasWeekStarted = () => {
-    const today = new Date()
-    const monday = new Date(currentWeek)
-    return today >= monday
-  }
-
-  const canEditThisWeek = !hasWeekStarted()
 
   useEffect(() => {
     fetchAvailability()
@@ -142,6 +133,7 @@ export default function AvailabilityPage() {
   }
 
   const toggleAvailability = (calendarDay: Date, dayOfWeek: number, shiftType: 'PRANZO' | 'CENA') => {
+    if (!canEditAvailability(currentWeek) || !canEditAvailabilityDay(calendarDay)) return
     if (disabledDays.includes(dayOfWeek)) return
     if (holidayForSlot(calendarDay, shiftType)) return
 
@@ -165,13 +157,13 @@ export default function AvailabilityPage() {
   }
 
   const navigateWeek = (direction: 'prev' | 'next') => {
-    const newWeek = new Date(currentWeek)
-    newWeek.setDate(newWeek.getDate() + (direction === 'next' ? 7 : -7))
-    setCurrentWeek(newWeek)
+    setCurrentWeek(addWeekCalendarDays(currentWeek, direction === 'next' ? 7 : -7))
   }
 
   const weekDays = getWeekDays(currentWeek)
-  const canEdit = canEditThisWeek && canEditAvailability(currentWeek)
+  const canEditWeek = canEditAvailability(currentWeek)
+  const canEditDay = (day: Date) => canEditWeek && canEditAvailabilityDay(day)
+  const canEditAnyDay = canEditWeek && weekDays.some(canEditAvailabilityDay)
 
   if (isAdmin) {
     return (
@@ -213,7 +205,7 @@ export default function AvailabilityPage() {
               <h2 className="text-base sm:text-lg font-black text-gray-900 leading-tight">
                 {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
               </h2>
-              {!canEdit && (
+              {!canEditAnyDay && (
                 <div className="flex items-center justify-center mt-1 text-orange-600 font-bold">
                   <Lock className="h-3 w-3 mr-1" />
                   <span className="text-[10px] uppercase">Sola Lettura</span>
@@ -273,7 +265,7 @@ export default function AvailabilityPage() {
                         isDisabled={dayDisabled}
                         holiday={pranzoHoliday}
                         onToggle={() => toggleAvailability(day, dayOfWeek, 'PRANZO')}
-                        canEdit={canEdit && !loading}
+                        canEdit={canEditDay(day) && !loading}
                       />
                       <ShiftToggle
                         label="Cena"
@@ -282,7 +274,7 @@ export default function AvailabilityPage() {
                         isDisabled={dayDisabled}
                         holiday={cenaHoliday}
                         onToggle={() => toggleAvailability(day, dayOfWeek, 'CENA')}
-                        canEdit={canEdit && !loading}
+                        canEdit={canEditDay(day) && !loading}
                       />
                     </div>
                   </div>
@@ -316,7 +308,7 @@ export default function AvailabilityPage() {
                             isDisabled={dDisabled}
                             holiday={holidayForSlot(day, 'PRANZO')}
                             onToggle={() => toggleAvailability(day, dOfW, 'PRANZO')}
-                            canEdit={canEdit && !loading}
+                            canEdit={canEditDay(day) && !loading}
                           />
                         </td>
                         <td className="py-4 px-6 text-center">
@@ -325,7 +317,7 @@ export default function AvailabilityPage() {
                             isDisabled={dDisabled}
                             holiday={holidayForSlot(day, 'CENA')}
                             onToggle={() => toggleAvailability(day, dOfW, 'CENA')}
-                            canEdit={canEdit && !loading}
+                            canEdit={canEditDay(day) && !loading}
                           />
                         </td>
                       </tr>
@@ -344,7 +336,7 @@ export default function AvailabilityPage() {
             </div>
           </div>
 
-          {canEdit && (
+          {canEditAnyDay && (
             <div className="mt-8">
               <Button
                 onClick={saveAvailability}
