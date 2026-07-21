@@ -53,6 +53,52 @@ function holidayBlocksOverviewSlot(
   )
 }
 
+function AvailabilitySlotCell({
+  holiday,
+  isAbsent,
+  isAvailable,
+}: {
+  holiday: OverviewHoliday | null
+  isAbsent: boolean
+  isAvailable?: boolean
+}) {
+  if (holiday) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center p-1 bg-orange-50 rounded-lg border border-orange-100"
+        title={holiday.description || 'Locale chiuso / festivo'}
+      >
+        <Sparkles className="h-4 w-4 text-orange-500" />
+        <span className="text-[8px] font-black text-orange-700 uppercase mt-0.5">Chiuso</span>
+      </div>
+    )
+  }
+
+  if (isAbsent) {
+    return (
+      <div className="flex items-center justify-center p-1 bg-red-50 rounded-lg" title="Assente">
+        <span className="text-[10px] font-black text-red-600">ABS</span>
+      </div>
+    )
+  }
+
+  if (isAvailable) {
+    return (
+      <div className="flex items-center justify-center">
+        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm shadow-green-200 animate-in zoom-in duration-300">
+          <Check className="h-3.5 w-3.5 text-white stroke-[4]" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-center opacity-20">
+      <X className="h-4 w-4 text-gray-400" />
+    </div>
+  )
+}
+
 export default function AvailabilityOverviewPage() {
   const [currentWeek, setCurrentWeek] = useState(() => {
     return getWeekStart(new Date())
@@ -315,54 +361,18 @@ export default function AvailabilityOverviewPage() {
                           return (
                             <React.Fragment key={`${user.userId}-${dayIdx}`}>
                               <td className="px-2 py-4 text-center border-l border-gray-50 relative group/cell">
-                                {isAbsent ? (
-                                  <div className="flex items-center justify-center p-1 bg-red-50 rounded-lg" title="Assente">
-                                    <span className="text-[10px] font-black text-red-600">ABS</span>
-                                  </div>
-                                ) : hPranzo ? (
-                                  <div
-                                    className="flex flex-col items-center justify-center p-1 bg-orange-50 rounded-lg border border-orange-100"
-                                    title={hPranzo.description || 'Locale chiuso / festivo'}
-                                  >
-                                    <Sparkles className="h-4 w-4 text-orange-500" />
-                                    <span className="text-[8px] font-black text-orange-700 uppercase mt-0.5">Chiuso</span>
-                                  </div>
-                                ) : pranzoAvail?.isAvailable ? (
-                                  <div className="flex items-center justify-center">
-                                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm shadow-green-200 animate-in zoom-in duration-300">
-                                      <Check className="h-3.5 w-3.5 text-white stroke-[4]" />
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center justify-center opacity-20">
-                                    <X className="h-4 w-4 text-gray-400" />
-                                  </div>
-                                )}
+                                <AvailabilitySlotCell
+                                  holiday={hPranzo}
+                                  isAbsent={isAbsent}
+                                  isAvailable={pranzoAvail?.isAvailable}
+                                />
                               </td>
                               <td className="px-2 py-4 text-center relative group/cell">
-                                {isAbsent ? (
-                                  <div className="flex items-center justify-center p-1 bg-red-50 rounded-lg" title="Assente">
-                                    <span className="text-[10px] font-black text-red-600">ABS</span>
-                                  </div>
-                                ) : hCena ? (
-                                  <div
-                                    className="flex flex-col items-center justify-center p-1 bg-orange-50 rounded-lg border border-orange-100"
-                                    title={hCena.description || 'Locale chiuso / festivo'}
-                                  >
-                                    <Sparkles className="h-4 w-4 text-orange-500" />
-                                    <span className="text-[8px] font-black text-orange-700 uppercase mt-0.5">Chiuso</span>
-                                  </div>
-                                ) : cenaAvail?.isAvailable ? (
-                                  <div className="flex items-center justify-center">
-                                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm shadow-green-200 animate-in zoom-in duration-300">
-                                      <Check className="h-3.5 w-3.5 text-white stroke-[4]" />
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center justify-center opacity-20">
-                                    <X className="h-4 w-4 text-gray-400" />
-                                  </div>
-                                )}
+                                <AvailabilitySlotCell
+                                  holiday={hCena}
+                                  isAbsent={isAbsent}
+                                  isAvailable={cenaAvail?.isAvailable}
+                                />
                               </td>
                             </React.Fragment>
                           )

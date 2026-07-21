@@ -1,13 +1,27 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, type ElementType, type ReactNode } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
-import { Calendar, Plus, Edit2, Trash2, Info, Clock, CheckCircle, CalendarDays } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/components/ui/toast'
+import { useHaptics } from '@/hooks/use-haptics'
+import {
+  Calendar,
+  Plus,
+  Edit2,
+  Trash2,
+  Info,
+  Clock,
+  CalendarDays,
+  ChevronDown,
+  Palmtree,
+  History,
+} from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { shortWeekdayItFromDate } from '@/lib/date-utils'
 
 interface Absence {
   id: string
@@ -19,17 +33,49 @@ interface Absence {
   updatedAt: string
 }
 
+type AbsenceStatus = 'active' | 'future' | 'past'
+
+function countAbsenceDays(startDate: string, endDate: string): number {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+}
+
+function isInPast(absence: Absence): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return new Date(absence.endDate) < today
+}
+
+function isActive(absence: Absence): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const start = new Date(absence.startDate)
+  const end = new Date(absence.endDate)
+  return start <= today && end >= today
+}
+
+function getAbsenceStatus(absence: Absence): AbsenceStatus {
+  if (isActive(absence)) return 'active'
+  if (isInPast(absence)) return 'past'
+  return 'future'
+}
+
 export default function AbsencesPage() {
   const [absences, setAbsences] = useState<Absence[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingAbsence, setEditingAbsence] = useState<Absence | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [reason, setReason] = useState('')
   const [notes, setNotes] = useState('')
+
+  const { showToast, ToastContainer } = useToast()
+  const { lightClick } = useHaptics()
 
   useEffect(() => {
     fetchAbsences()
@@ -41,10 +87,12 @@ export default function AbsencesPage() {
       if (response.ok) {
         const data = await response.json()
         setAbsences(data)
+      } else {
+        showToast('Impossibile caricare le assenze', 'error')
       }
     } catch (error) {
       console.error('Error fetching absences:', error)
-      alert('Errore: impossibile caricare le assenze')
+      showToast('Impossibile caricare le assenze', 'error')
     } finally {
       setLoading(false)
     }
@@ -60,6 +108,7 @@ export default function AbsencesPage() {
   }
 
   const handleEdit = (absence: Absence) => {
+    lightClick()
     setEditingAbsence(absence)
     setStartDate(format(new Date(absence.startDate), 'yyyy-MM-dd'))
     setEndDate(format(new Date(absence.endDate), 'yyyy-MM-dd'))
@@ -77,35 +126,32 @@ export default function AbsencesPage() {
         startDate: new Date(startDate).toISOString(),
         endDate: new Date(endDate).toISOString(),
         reason: reason || null,
-        notes: notes || null
+        notes: notes || null,
       }
 
-      let response
-      if (editingAbsence) {
-        response = await fetch(`/api/user/absences/${editingAbsence.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        })
-      } else {
-        response = await fetch('/api/user/absences', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        })
-      }
+      const response = editingAbsence
+        ? await fetch(`/api/user/absences/${editingAbsence.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+        : await fetch('/api/user/absences', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          })
 
       if (response.ok) {
-        alert(editingAbsence ? 'Assenza modificata con successo!' : 'Assenza creata con successo!')
+        showToast(editingAbsence ? 'Assenza aggiornata' : 'Assenza creata', 'success')
         resetForm()
         fetchAbsences()
       } else {
         const data = await response.json()
-        alert('Errore: ' + (data.error || 'Operazione fallita'))
+        showToast(data.error || 'Operazione fallita', 'error')
       }
     } catch (error) {
       console.error('Error submitting absence:', error)
-      alert('Errore: impossibile salvare l\'assenza')
+      showToast('Impossibile salvare l\'assenza', 'error')
     } finally {
       setSubmitting(false)
     }
@@ -115,100 +161,158 @@ export default function AbsencesPage() {
     if (!confirm('Sei sicuro di voler eliminare questa assenza?')) return
 
     try {
-      const response = await fetch(`/api/user/absences/${id}`, {
-        method: 'DELETE'
-      })
+      const response = await fetch(`/api/user/absences/${id}`, { method: 'DELETE' })
 
       if (response.ok) {
-        alert('Assenza eliminata con successo!')
+        showToast('Assenza eliminata', 'success')
         fetchAbsences()
       } else {
         const data = await response.json()
-        alert('Errore: ' + (data.error || 'Impossibile eliminare l\'assenza'))
+        showToast(data.error || 'Impossibile eliminare l\'assenza', 'error')
       }
     } catch (error) {
       console.error('Error deleting absence:', error)
-      alert('Errore: impossibile eliminare l\'assenza')
+      showToast('Impossibile eliminare l\'assenza', 'error')
     }
   }
 
-  const isInPast = (absence: Absence) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return new Date(absence.startDate) < today
-  }
+  const { activeAbsences, futureAbsences, pastAbsences } = useMemo(() => {
+    const active: Absence[] = []
+    const future: Absence[] = []
+    const past: Absence[] = []
 
-  const isActive = (absence: Absence) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const start = new Date(absence.startDate)
-    const end = new Date(absence.endDate)
-    return start <= today && end >= today
-  }
+    for (const absence of absences) {
+      const status = getAbsenceStatus(absence)
+      if (status === 'active') active.push(absence)
+      else if (status === 'future') future.push(absence)
+      else past.push(absence)
+    }
 
-  const pastAbsences = absences.filter(a => isInPast(a) && !isActive(a))
-  const activeAbsences = absences.filter(a => isActive(a))
-  const futureAbsences = absences.filter(a => new Date(a.startDate) > new Date())
+    const byStart = (a: Absence, b: Absence) =>
+      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+
+    return {
+      activeAbsences: active.sort(byStart),
+      futureAbsences: future.sort(byStart),
+      pastAbsences: past.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()),
+    }
+  }, [absences])
+
+  const futureDays = futureAbsences.reduce(
+    (sum, a) => sum + countAbsenceDays(a.startDate, a.endDate),
+    0
+  )
+  const pastDays = pastAbsences.reduce(
+    (sum, a) => sum + countAbsenceDays(a.startDate, a.endDate),
+    0
+  )
 
   return (
     <MainLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-4 bg-orange-600 rounded-2xl shadow-lg shadow-orange-200">
-              <Calendar className="h-7 w-7 text-white" />
+      <div className="max-w-6xl mx-auto space-y-8 pb-20">
+        {/* Premium Header */}
+        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60" />
+
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-orange-100 transform -rotate-3">
+                <Calendar className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
+                  Assenze e Vacanze
+                </h1>
+                <p className="text-gray-500 mt-2 text-sm font-medium">
+                  Gestisci i tuoi periodi di riposo. Durante le assenze la disponibilità viene disabilitata automaticamente.
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-black text-gray-900 tracking-tight">Assenze e Vacanze</h1>
-              <p className="text-gray-500 font-medium text-sm mt-0.5">Gestisci i tuoi periodi di riposo</p>
-            </div>
+
+            <button
+              onClick={() => {
+                lightClick()
+                setShowForm(true)
+              }}
+              className="px-6 py-3 bg-gradient-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-100 hover:shadow-xl transition-all active:scale-95 flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Nuova Assenza
+            </button>
           </div>
-          <Button
-            onClick={() => setShowForm(true)}
-            className="bg-orange-600 hover:bg-orange-700 text-white rounded-2xl shadow-lg shadow-orange-200 py-6 px-6 font-black uppercase text-xs tracking-widest transition-all active:scale-95"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Nuova Assenza
-          </Button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {loading ? (
+            <>
+              <Skeleton className="h-28 rounded-[2rem]" />
+              <Skeleton className="h-28 rounded-[2rem]" />
+              <Skeleton className="h-28 rounded-[2rem]" />
+            </>
+          ) : (
+            <>
+              <StatCard
+                label="In Corso"
+                value={activeAbsences.length}
+                icon={Clock}
+                color="green"
+              />
+              <StatCard
+                label="Programmate"
+                value={futureAbsences.length}
+                icon={CalendarDays}
+                color="blue"
+              />
+              <StatCard
+                label="Giorni Programmati"
+                value={futureDays + activeAbsences.reduce((s, a) => s + countAbsenceDays(a.startDate, a.endDate), 0)}
+                icon={Palmtree}
+                color="orange"
+              />
+            </>
+          )}
         </div>
 
         {/* Info Banner */}
-        <div className="bg-blue-50 rounded-2xl p-5 border border-blue-100 flex items-start gap-4">
-          <div className="p-2 bg-blue-100 rounded-xl flex-shrink-0">
+        <div className="bg-white rounded-[2rem] shadow-soft border border-blue-100 p-5 sm:p-6 flex items-start gap-4">
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center flex-shrink-0">
             <Info className="h-5 w-5 text-blue-600" />
           </div>
           <div>
-            <p className="font-bold text-blue-900 text-sm">Informazioni importanti</p>
-            <p className="text-blue-700 text-sm mt-1">
-              Le assenze già iniziate o nel passato sono bloccate. Durante i periodi di assenza, il sistema disabiliterà automaticamente la possibilità di inserire disponibilità per quei giorni.
+            <p className="font-black text-blue-900 text-sm uppercase tracking-tight">Informazioni importanti</p>
+            <p className="text-blue-700/90 text-sm mt-1 font-medium leading-relaxed">
+              Le assenze già iniziate o nel passato sono bloccate. Durante i periodi di assenza, il sistema disabiliterà
+              automaticamente la possibilità di inserire disponibilità per quei giorni.
             </p>
           </div>
         </div>
 
         {/* Content */}
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-600"></div>
+          <div className="space-y-4">
+            <Skeleton className="h-32 rounded-[2rem]" />
+            <Skeleton className="h-32 rounded-[2rem]" />
           </div>
         ) : absences.length === 0 ? (
-          <div className="bg-white rounded-[2rem] p-16 text-center shadow-soft border border-gray-100">
-            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <CalendarDays className="h-10 w-10 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-black text-gray-900 mb-2">Nessuna assenza programmata</h3>
-            <p className="text-gray-500 font-medium">Clicca su &quot;Nuova Assenza&quot; per aggiungerne una</p>
+          <div className="bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-100 py-20 text-center">
+            <CalendarDays className="h-16 w-16 text-gray-200 mx-auto mb-6" />
+            <p className="text-gray-400 font-black uppercase tracking-widest text-sm">Nessuna assenza programmata</p>
+            <p className="text-gray-500 text-sm font-medium mt-2">Clicca su &quot;Nuova Assenza&quot; per aggiungerne una</p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Active Absences */}
+          <div className="space-y-4">
             {activeAbsences.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-xs font-black text-green-600 uppercase tracking-widest px-1 flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  In Corso
-                </h2>
-                <div className="space-y-3">
+              <AbsenceSection
+                title="In Corso"
+                subtitle={`${activeAbsences.length} ${activeAbsences.length === 1 ? 'assenza attiva' : 'assenze attive'}`}
+                icon={Clock}
+                accent="green"
+                isExpanded
+                onToggle={() => {}}
+                hideToggle
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {activeAbsences.map(absence => (
                     <AbsenceCard
                       key={absence.id}
@@ -219,17 +323,20 @@ export default function AbsencesPage() {
                     />
                   ))}
                 </div>
-              </div>
+              </AbsenceSection>
             )}
 
-            {/* Future Absences */}
             {futureAbsences.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-xs font-black text-blue-600 uppercase tracking-widest px-1 flex items-center gap-2">
-                  <Clock className="h-3 w-3" />
-                  Programmate
-                </h2>
-                <div className="space-y-3">
+              <AbsenceSection
+                title="Programmate"
+                subtitle={`${futureAbsences.length} ${futureAbsences.length === 1 ? 'assenza' : 'assenze'} · ${futureDays} giorni`}
+                icon={CalendarDays}
+                accent="blue"
+                isExpanded
+                onToggle={() => {}}
+                hideToggle={activeAbsences.length === 0 && futureAbsences.length <= 3}
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {futureAbsences.map(absence => (
                     <AbsenceCard
                       key={absence.id}
@@ -240,17 +347,22 @@ export default function AbsencesPage() {
                     />
                   ))}
                 </div>
-              </div>
+              </AbsenceSection>
             )}
 
-            {/* Past Absences */}
             {pastAbsences.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2">
-                  <CalendarDays className="h-3 w-3" />
-                  Storico Assenze
-                </h2>
-                <div className="space-y-3">
+              <AbsenceSection
+                title="Storico Assenze"
+                subtitle={`${pastAbsences.length} ${pastAbsences.length === 1 ? 'periodo' : 'periodi'} · ${pastDays} giorni totali`}
+                icon={History}
+                accent="gray"
+                isExpanded={showHistory}
+                onToggle={() => {
+                  lightClick()
+                  setShowHistory(prev => !prev)
+                }}
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                   {pastAbsences.map(absence => (
                     <AbsenceCard
                       key={absence.id}
@@ -261,15 +373,14 @@ export default function AbsencesPage() {
                     />
                   ))}
                 </div>
-              </div>
+              </AbsenceSection>
             )}
           </div>
         )}
 
-        {/* Form Modal */}
         {showForm && (
           <Modal
-            isOpen={true}
+            isOpen
             onClose={resetForm}
             title={editingAbsence ? 'Modifica Assenza' : 'Nuova Assenza'}
             subtitle={editingAbsence ? 'Aggiorna i dettagli' : 'Comunica il tuo periodo di assenza'}
@@ -316,10 +427,10 @@ export default function AbsencesPage() {
                   className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all appearance-none"
                 >
                   <option value="">Seleziona motivo...</option>
-                  <option value="Vacanza">🏖️ Vacanza</option>
-                  <option value="Malattia">🤒 Malattia</option>
-                  <option value="Personale">👤 Personale</option>
-                  <option value="Altro">📝 Altro</option>
+                  <option value="Vacanza">Vacanza</option>
+                  <option value="Malattia">Malattia</option>
+                  <option value="Personale">Personale</option>
+                  <option value="Altro">Altro</option>
                 </select>
               </div>
 
@@ -347,10 +458,10 @@ export default function AbsencesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-[2] py-4 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-[2] py-4 bg-gradient-primary text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {submitting ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                   ) : (
                     editingAbsence ? 'Salva Modifiche' : 'Crea Assenza'
                   )}
@@ -360,7 +471,94 @@ export default function AbsencesPage() {
           </Modal>
         )}
       </div>
+      <ToastContainer />
     </MainLayout>
+  )
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  color,
+}: {
+  label: string
+  value: number
+  icon: ElementType
+  color: 'orange' | 'blue' | 'green'
+}) {
+  const colors = {
+    orange: 'bg-orange-50 text-orange-600 shadow-orange-100',
+    blue: 'bg-blue-50 text-blue-600 shadow-blue-100',
+    green: 'bg-green-50 text-green-600 shadow-green-100',
+  }
+
+  return (
+    <div className="bg-white rounded-[2rem] p-6 shadow-soft border border-gray-100 flex items-center gap-5">
+      <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg', colors[color])}>
+        <Icon className="h-7 w-7" />
+      </div>
+      <div>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+        <p className="text-2xl font-black text-gray-900 leading-none">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function AbsenceSection({
+  title,
+  subtitle,
+  icon: Icon,
+  accent,
+  isExpanded,
+  onToggle,
+  hideToggle,
+  children,
+}: {
+  title: string
+  subtitle: string
+  icon: ElementType
+  accent: 'green' | 'blue' | 'gray'
+  isExpanded: boolean
+  onToggle: () => void
+  hideToggle?: boolean
+  children: ReactNode
+}) {
+  const accentStyles = {
+    green: 'bg-green-50 text-green-600',
+    blue: 'bg-blue-50 text-blue-600',
+    gray: 'bg-gray-100 text-gray-500',
+  }
+
+  const Wrapper = hideToggle ? 'div' : 'button'
+
+  return (
+    <div className="bg-white rounded-[2rem] shadow-soft border border-gray-100 overflow-hidden">
+      <Wrapper
+        type={hideToggle ? undefined : 'button'}
+        onClick={hideToggle ? undefined : onToggle}
+        className={cn(
+          'w-full px-5 sm:px-6 py-5 flex items-center justify-between gap-4 text-left',
+          !hideToggle && 'hover:bg-gray-50/80 transition-colors'
+        )}
+      >
+        <div className="flex items-center gap-4 min-w-0">
+          <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0', accentStyles[accent])}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">{title}</h2>
+            <p className="text-xs text-gray-500 font-medium mt-0.5 truncate">{subtitle}</p>
+          </div>
+        </div>
+        {!hideToggle && (
+          <ChevronDown className={cn('h-5 w-5 text-gray-400 transition-transform flex-shrink-0', isExpanded && 'rotate-180')} />
+        )}
+      </Wrapper>
+
+      {isExpanded && <div className="px-4 sm:px-6 pb-6 pt-1">{children}</div>}
+    </div>
   )
 }
 
@@ -368,97 +566,128 @@ function AbsenceCard({
   absence,
   status,
   onEdit,
-  onDelete
+  onDelete,
 }: {
   absence: Absence
-  status: 'active' | 'future' | 'past'
+  status: AbsenceStatus
   onEdit: (absence: Absence) => void
   onDelete: (id: string) => void
 }) {
   const startDate = new Date(absence.startDate)
   const endDate = new Date(absence.endDate)
-  const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  const daysDiff = countAbsenceDays(absence.startDate, absence.endDate)
+  const isSingleDay = daysDiff === 1
 
   const statusConfig = {
     active: {
-      bg: 'bg-green-50',
-      border: 'border-green-200',
-      accentBg: 'bg-green-500',
-      text: 'text-green-600',
-      badge: 'bg-green-500 text-white'
+      card: 'border-green-200/80 bg-gradient-to-br from-green-50/80 to-white',
+      header: 'bg-green-50/70 border-green-100',
+      badge: 'bg-green-500 text-white',
+      iconBg: 'bg-green-100 text-green-600',
     },
     future: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
-      accentBg: 'bg-blue-500',
-      text: 'text-blue-600',
-      badge: 'bg-blue-500 text-white'
+      card: 'border-blue-200/80 bg-gradient-to-br from-blue-50/80 to-white',
+      header: 'bg-blue-50/70 border-blue-100',
+      badge: 'bg-blue-500 text-white',
+      iconBg: 'bg-blue-100 text-blue-600',
     },
     past: {
-      bg: 'bg-gray-50',
-      border: 'border-gray-200',
-      accentBg: 'bg-gray-400',
-      text: 'text-gray-500',
-      badge: 'bg-gray-400 text-white'
-    }
+      card: 'border-gray-200/80 bg-gradient-to-br from-gray-50/60 to-white',
+      header: 'bg-gray-50/70 border-gray-100',
+      badge: 'bg-gray-400 text-white',
+      iconBg: 'bg-gray-100 text-gray-500',
+    },
   }
 
   const config = statusConfig[status]
 
   return (
-    <div className={cn(
-      "bg-white rounded-2xl border shadow-soft overflow-hidden transition-all",
-      config.border,
-      status === 'past' && 'opacity-60'
-    )}>
-      <div className={cn("h-1", config.accentBg)} />
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className={cn("p-3 rounded-xl flex-shrink-0", config.bg)}>
-              <Calendar className={cn("h-5 w-5", config.text)} />
+    <div className={cn('rounded-2xl border shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden', config.card)}>
+      <div className={cn('px-4 py-3 border-b flex items-start justify-between gap-3', config.header)}>
+        <div className="flex items-center gap-3 min-w-0">
+          {isSingleDay ? (
+            <div className="w-11 h-11 rounded-xl bg-white border border-white/80 shadow-sm flex flex-col items-center justify-center flex-shrink-0">
+              <span className="text-[9px] font-black text-gray-400 uppercase leading-none">
+                {shortWeekdayItFromDate(startDate).slice(0, 3)}
+              </span>
+              <span className="text-base font-black text-gray-900 leading-none mt-0.5">
+                {startDate.getDate()}
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="font-black text-gray-900">
-                  {format(startDate, 'dd/MM/yyyy', { locale: it })} - {format(endDate, 'dd/MM/yyyy', { locale: it })}
-                </h3>
-                <span className={cn("px-2 py-0.5 rounded-lg text-[10px] font-black uppercase", config.badge)}>
-                  {daysDiff} {daysDiff === 1 ? 'giorno' : 'giorni'}
+          ) : (
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-white border border-white/80 shadow-sm flex flex-col items-center justify-center">
+                <span className="text-[9px] font-black text-gray-400 uppercase leading-none">
+                  {shortWeekdayItFromDate(startDate).slice(0, 3)}
+                </span>
+                <span className="text-base font-black text-gray-900 leading-none mt-0.5">
+                  {startDate.getDate()}
                 </span>
               </div>
-              
-              {absence.reason && (
-                <p className="text-sm text-gray-600">
-                  <span className="font-bold">Motivo:</span> {absence.reason}
-                </p>
-              )}
-              
-              {absence.notes && (
-                <p className="text-sm text-gray-500 italic mt-1">
-                  {absence.notes}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {status !== 'past' && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => onEdit(absence)}
-                className="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-all"
-              >
-                <Edit2 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => onDelete(absence.id)}
-                className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-all"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <span className="text-gray-300 font-black">→</span>
+              <div className="w-11 h-11 rounded-xl bg-white border border-white/80 shadow-sm flex flex-col items-center justify-center">
+                <span className="text-[9px] font-black text-gray-400 uppercase leading-none">
+                  {shortWeekdayItFromDate(endDate).slice(0, 3)}
+                </span>
+                <span className="text-base font-black text-gray-900 leading-none mt-0.5">
+                  {endDate.getDate()}
+                </span>
+              </div>
             </div>
           )}
+
+          <div className="min-w-0">
+            <p className="text-sm font-black text-gray-900 tracking-tight truncate">
+              {format(startDate, 'dd/MM/yyyy', { locale: it })}
+              {!isSingleDay && (
+                <span className="text-gray-400 font-bold"> — {format(endDate, 'dd/MM/yyyy', { locale: it })}</span>
+              )}
+            </p>
+            {absence.reason && (
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest truncate mt-0.5">
+                {absence.reason}
+              </p>
+            )}
+          </div>
         </div>
+
+        <span className={cn('px-2.5 py-1 rounded-lg text-[10px] font-black uppercase flex-shrink-0', config.badge)}>
+          {daysDiff} {daysDiff === 1 ? 'giorno' : 'giorni'}
+        </span>
+      </div>
+
+      <div className="px-4 py-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', config.iconBg)}>
+            <Calendar className="h-4 w-4" />
+          </div>
+          {absence.notes ? (
+            <p className="text-xs text-gray-500 font-medium truncate italic">{absence.notes}</p>
+          ) : (
+            <p className="text-xs text-gray-400 font-medium">
+              {status === 'past' ? 'Periodo concluso' : status === 'active' ? 'Assenza in corso' : 'In programma'}
+            </p>
+          )}
+        </div>
+
+        {status !== 'past' && (
+          <div className="flex gap-1.5 flex-shrink-0">
+            <button
+              onClick={() => onEdit(absence)}
+              className="p-2 bg-white border border-blue-100 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+              aria-label="Modifica assenza"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => onDelete(absence.id)}
+              className="p-2 bg-white border border-red-100 text-red-600 hover:bg-red-50 rounded-xl transition-all"
+              aria-label="Elimina assenza"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

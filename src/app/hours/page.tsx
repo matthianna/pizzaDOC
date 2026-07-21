@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, type JSX } from 'react'
+import { useState, useEffect, useMemo, type JSX, type ElementType } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Clock, AlertCircle, CheckCircle, XCircle, Calendar, History, BarChart3, TrendingUp, ChevronLeft, ChevronRight, Timer } from 'lucide-react'
+import { Clock, AlertCircle, CheckCircle, XCircle, Calendar, History, BarChart3, TrendingUp, ChevronLeft, ChevronRight, Timer, ChevronDown, UtensilsCrossed, Moon } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
@@ -13,6 +13,7 @@ import {
   addWeekCalendarDays,
   formatMonthYearIt,
   shiftCalendarDateUtc,
+  shortWeekdayItFromDate,
 } from '@/lib/date-utils'
 import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 import { normalizeDate } from '@/lib/normalize-date'
@@ -49,6 +50,60 @@ interface ShiftWithHours extends Shift {
   workedHours?: WorkedHours
 }
 
+interface HistoryShiftDetail {
+  date: string
+  role: string
+  shiftType: ShiftType
+  hours: number
+  startTime: string
+  endTime: string
+}
+
+interface HistoryMonth {
+  month: string
+  totalHours: number
+  shiftsCount: number
+  avgHoursPerShift: number
+  details: HistoryShiftDetail[]
+}
+
+interface HistoryData {
+  year: number
+  months: HistoryMonth[]
+  totalYearHours: number
+  totalYearShifts: number
+  availableYears: number[]
+}
+
+function parseItDate(dateStr: string): Date {
+  const [dd, mm, yyyy] = dateStr.split('/').map(Number)
+  return new Date(Date.UTC(yyyy, mm - 1, dd))
+}
+
+function getShiftTypeStyles(shiftType: ShiftType | string) {
+  if (shiftType === 'PRANZO') {
+    return {
+      card: 'border-amber-200/80 bg-gradient-to-br from-amber-50/80 to-white',
+      header: 'bg-amber-50/70 border-amber-100',
+      badge: 'bg-amber-100 text-amber-800',
+      dot: 'bg-amber-500',
+      icon: UtensilsCrossed,
+    }
+  }
+  return {
+    card: 'border-indigo-200/80 bg-gradient-to-br from-indigo-50/80 to-white',
+    header: 'bg-indigo-50/70 border-indigo-100',
+    badge: 'bg-indigo-100 text-indigo-800',
+    dot: 'bg-indigo-600',
+    icon: Moon,
+  }
+}
+
+function getCurrentMonthData(months: HistoryMonth[]) {
+  const currentMonthLabel = format(new Date(), 'MMMM', { locale: it }).toLowerCase()
+  return months.find(m => m.month.toLowerCase().includes(currentMonthLabel))
+}
+
 export default function HoursPage() {
   const { data: session } = useSession()
   const [currentWeek, setCurrentWeek] = useState(() => {
@@ -57,17 +112,28 @@ export default function HoursPage() {
   const [shifts, setShifts] = useState<ShiftWithHours[]>([])
   const [loading, setLoading] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
-  const [historyData, setHistoryData] = useState<any>(null)
+  const [historyData, setHistoryData] = useState<HistoryData | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set())
   const { showToast, ToastContainer } = useToast()
   const { lightClick } = useHaptics()
 
   useEffect(() => {
     if (session?.user?.id) {
       fetchShiftsAndHours()
+      fetchHistory(selectedYear)
     }
   }, [session?.user?.id, currentWeek])
+
+  useEffect(() => {
+    if (historyData?.months.length) {
+      const latestMonth = [...historyData.months].reverse()[0]?.month
+      if (latestMonth) {
+        setExpandedMonths(new Set([latestMonth]))
+      }
+    }
+  }, [historyData?.year, selectedYear])
 
   const fetchShiftsAndHours = async () => {
     setLoading(true)
@@ -162,6 +228,31 @@ export default function HoursPage() {
     fetchHistory(year)
   }
 
+  const toggleMonth = (month: string) => {
+    lightClick()
+    setExpandedMonths(prev => {
+      const next = new Set(prev)
+      if (next.has(month)) next.delete(month)
+      else next.add(month)
+      return next
+    })
+  }
+
+  const currentMonthData = historyData ? getCurrentMonthData(historyData.months) : null
+
+  const weekStats = useMemo(() => {
+    const approved = shifts.filter(s => s.workedHours?.status === 'APPROVED')
+    const pending = shifts.filter(s => s.workedHours?.status === 'PENDING')
+    const missing = shifts.filter(s => !s.workedHours)
+    const totalHours = approved.reduce((sum, s) => sum + (s.workedHours?.totalHours ?? 0), 0)
+    return { approved: approved.length, pending: pending.length, missing: missing.length, totalHours }
+  }, [shifts])
+
+  const sortedHistoryMonths = useMemo(
+    () => (historyData ? [...historyData.months].reverse() : []),
+    [historyData]
+  )
+
   const goToPreviousWeek = () => {
     lightClick()
     setCurrentWeek(prev => addWeekCalendarDays(prev, -7))
@@ -253,46 +344,65 @@ export default function HoursPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {loading ? (
+          {loading && !showHistory ? (
             <>
               <Skeleton className="h-28 rounded-[2rem]" />
               <Skeleton className="h-28 rounded-[2rem]" />
               <Skeleton className="h-28 rounded-[2rem]" />
             </>
-          ) : historyData && (
+          ) : showHistory && historyData ? (
             <>
-              <DashboardStatCard 
-                label="Ore Mese Corrente" 
-                value={formatDecimalHoursIt(
-                  Number(
-                    historyData.months.find((m: any) =>
-                      m.month.toLowerCase().includes(format(new Date(), 'MMMM', { locale: it }).toLowerCase())
-                    )?.totalHours ?? 0
-                  )
-                )}
-                icon={Clock} 
-                color="orange" 
+              <DashboardStatCard
+                label={`Ore Totali ${selectedYear}`}
+                value={formatDecimalHoursIt(historyData.totalYearHours)}
+                icon={Clock}
+                color="orange"
               />
-              <DashboardStatCard 
-                label="Turni del Mese" 
-                value={historyData.months.find((m: any) => m.month.toLowerCase().includes(format(new Date(), 'MMMM', { locale: it }).toLowerCase()))?.shiftsCount || 0}
-                icon={Calendar} 
-                color="blue" 
+              <DashboardStatCard
+                label={`Turni ${selectedYear}`}
+                value={historyData.totalYearShifts}
+                icon={Calendar}
+                color="blue"
               />
-              <DashboardStatCard 
-                label="Media Ore/Turno" 
+              <DashboardStatCard
+                label="Media Ore/Turno"
                 value={formatDecimalHoursIt(
-                  Number(
-                    historyData.months.find((m: any) =>
-                      m.month.toLowerCase().includes(format(new Date(), 'MMMM', { locale: it }).toLowerCase())
-                    )?.avgHoursPerShift ?? 0
-                  )
+                  historyData.totalYearShifts > 0
+                    ? historyData.totalYearHours / historyData.totalYearShifts
+                    : 0
                 )}
-                icon={TrendingUp} 
-                color="green" 
+                icon={TrendingUp}
+                color="green"
               />
             </>
-          )}
+          ) : historyData ? (
+            <>
+              <DashboardStatCard
+                label="Ore Mese Corrente"
+                value={formatDecimalHoursIt(currentMonthData?.totalHours ?? 0)}
+                icon={Clock}
+                color="orange"
+              />
+              <DashboardStatCard
+                label="Turni del Mese"
+                value={currentMonthData?.shiftsCount ?? 0}
+                icon={Calendar}
+                color="blue"
+              />
+              <DashboardStatCard
+                label="Media Ore/Turno"
+                value={formatDecimalHoursIt(currentMonthData?.avgHoursPerShift ?? 0)}
+                icon={TrendingUp}
+                color="green"
+              />
+            </>
+          ) : historyLoading ? (
+            <>
+              <Skeleton className="h-28 rounded-[2rem]" />
+              <Skeleton className="h-28 rounded-[2rem]" />
+              <Skeleton className="h-28 rounded-[2rem]" />
+            </>
+          ) : null}
         </div>
 
         {!showHistory && (
@@ -318,6 +428,19 @@ export default function HoursPage() {
                 <ChevronRight className="h-6 w-6" />
               </button>
             </div>
+
+            {!loading && shifts.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <WeekStatPill label="Turni" value={shifts.length} color="gray" />
+                <WeekStatPill label="Approvate" value={weekStats.approved} color="green" />
+                <WeekStatPill label="In attesa" value={weekStats.pending} color="yellow" />
+                <WeekStatPill
+                  label="Ore approvate"
+                  value={formatDecimalHoursIt(weekStats.totalHours)}
+                  color="orange"
+                />
+              </div>
+            )}
 
             {/* Shifts Content */}
             <div className="space-y-6">
@@ -347,22 +470,54 @@ export default function HoursPage() {
         )}
 
         {showHistory && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* History Header Filter */}
-            <div className="bg-white rounded-[2rem] shadow-soft border border-gray-100 p-6 flex items-center justify-between">
-              <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Riepilogo {selectedYear}</h2>
-              {historyData?.availableYears && historyData.availableYears.length > 1 && (
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Seleziona Anno</span>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                    className="bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-2 text-sm font-black text-gray-900 focus:outline-none focus:border-orange-500"
-                  >
-                    {historyData.availableYears.map((y: number) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* History Header */}
+            <div className="bg-white rounded-[2rem] shadow-soft border border-gray-100 p-6 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Riepilogo {selectedYear}</h2>
+                  {historyData && historyData.totalYearShifts > 0 && (
+                    <p className="text-sm text-gray-500 font-medium mt-1">
+                      {formatDecimalHoursIt(historyData.totalYearHours)} su {historyData.totalYearShifts} turni approvati
+                    </p>
+                  )}
+                </div>
+                {historyData?.availableYears && historyData.availableYears.length > 1 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Anno</span>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                      className="bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-2 text-sm font-black text-gray-900 focus:outline-none focus:border-orange-500"
+                    >
+                      {historyData.availableYears.map((y: number) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {historyData && historyData.months.length > 1 && (
+                <div className="space-y-2">
+                  <div className="flex h-3 rounded-full overflow-hidden bg-gray-100">
+                    {sortedHistoryMonths.map((month) => {
+                      const share = historyData.totalYearHours > 0
+                        ? (month.totalHours / historyData.totalYearHours) * 100
+                        : 0
+                      return (
+                        <div
+                          key={month.month}
+                          title={`${month.month}: ${formatDecimalHoursIt(month.totalHours)}`}
+                          className="h-full bg-gradient-to-r from-orange-400 to-orange-500 first:rounded-l-full last:rounded-r-full opacity-80 hover:opacity-100 transition-opacity"
+                          style={{ width: `${Math.max(share, 4)}%` }}
+                        />
+                      )
+                    })}
+                  </div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    Distribuzione ore per mese
+                  </p>
                 </div>
               )}
             </div>
@@ -372,41 +527,15 @@ export default function HoursPage() {
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500 mx-auto" />
               </div>
             ) : historyData && historyData.months.length > 0 ? (
-              <div className="space-y-10">
-                {[...historyData.months].reverse().map((month: any, idx: number) => (
-                  <div key={idx} className="space-y-4">
-                    <div className="flex items-center justify-between px-4">
-                      <h3 className="text-2xl font-black text-gray-900 capitalize tracking-tight">{month.month}</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 bg-orange-100 text-orange-700 text-[10px] font-black rounded-lg normal-case">
-                          {formatDecimalHoursIt(Number(month.totalHours))} totali
-                        </span>
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-black uppercase rounded-lg">{month.shiftsCount} Turni</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {month.details.map((detail: any, dIdx: number) => (
-                        <div key={dIdx} className="bg-white rounded-[2rem] p-5 shadow-soft border border-gray-50 group hover:shadow-lg transition-all duration-300">
-                          <div className="flex justify-between items-start mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-gray-50 flex flex-col items-center justify-center font-black text-gray-400">
-                              <span className="text-lg leading-none">{detail.date.split(' ')[0]}</span>
-                            </div>
-                            <div className="px-3 py-1 bg-gradient-primary text-white rounded-lg font-black text-xs shadow-md">
-                              {formatDecimalHoursIt(Number(detail.hours))}
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs font-black text-gray-900 uppercase tracking-tight">{getShiftTypeName(detail.shiftType)}</p>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{getRoleName(detail.role)}</p>
-                          </div>
-                          <div className="mt-4 pt-4 border-t border-gray-50 flex items-center text-[10px] font-bold text-gray-400">
-                            <Clock className="h-3 w-3 mr-1.5" />
-                            {detail.startTime} - {detail.endTime}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              <div className="space-y-4">
+                {sortedHistoryMonths.map((month) => (
+                  <MonthSection
+                    key={month.month}
+                    month={month}
+                    isExpanded={expandedMonths.has(month.month)}
+                    onToggle={() => toggleMonth(month.month)}
+                    yearTotalHours={historyData.totalYearHours}
+                  />
                 ))}
               </div>
             ) : (
@@ -423,8 +552,8 @@ export default function HoursPage() {
   )
 }
 
-function DashboardStatCard({ label, value, icon: Icon, color }: any) {
-  const colors: any = {
+function DashboardStatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: ElementType; color: 'orange' | 'blue' | 'green' }) {
+  const colors = {
     orange: 'bg-orange-50 text-orange-600 shadow-orange-100',
     blue: 'bg-blue-50 text-blue-600 shadow-blue-100',
     green: 'bg-green-50 text-green-600 shadow-green-100'
@@ -437,6 +566,118 @@ function DashboardStatCard({ label, value, icon: Icon, color }: any) {
       <div>
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
         <p className="text-2xl font-black text-gray-900 leading-none">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function WeekStatPill({ label, value, color }: { label: string; value: string | number; color: 'gray' | 'green' | 'yellow' | 'orange' }) {
+  const colors = {
+    gray: 'bg-gray-50 text-gray-700 border-gray-100',
+    green: 'bg-green-50 text-green-700 border-green-100',
+    yellow: 'bg-amber-50 text-amber-700 border-amber-100',
+    orange: 'bg-orange-50 text-orange-700 border-orange-100',
+  }
+  return (
+    <div className={cn('rounded-2xl border px-4 py-3 text-center', colors[color])}>
+      <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{label}</p>
+      <p className="text-lg font-black mt-0.5">{value}</p>
+    </div>
+  )
+}
+
+function MonthSection({
+  month,
+  isExpanded,
+  onToggle,
+  yearTotalHours,
+}: {
+  month: HistoryMonth
+  isExpanded: boolean
+  onToggle: () => void
+  yearTotalHours: number
+}) {
+  const monthShare = yearTotalHours > 0 ? (month.totalHours / yearTotalHours) * 100 : 0
+
+  return (
+    <div className="bg-white rounded-[2rem] shadow-soft border border-gray-100 overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full px-5 sm:px-6 py-5 flex items-center justify-between gap-4 hover:bg-gray-50/80 transition-colors text-left"
+      >
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+            <Calendar className="h-5 w-5 text-orange-600" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-lg sm:text-xl font-black text-gray-900 capitalize tracking-tight truncate">{month.month}</h3>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">
+              {Math.round(monthShare)}% dell&apos;anno · media {formatDecimalHoursIt(month.avgHoursPerShift)}/turno
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <span className="hidden sm:inline px-3 py-1 bg-orange-100 text-orange-700 text-[10px] font-black rounded-lg normal-case">
+            {formatDecimalHoursIt(month.totalHours)}
+          </span>
+          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-black uppercase rounded-lg">
+            {month.shiftsCount} turni
+          </span>
+          <ChevronDown className={cn('h-5 w-5 text-gray-400 transition-transform', isExpanded && 'rotate-180')} />
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="px-4 sm:px-6 pb-6 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+            {month.details.map((detail, idx) => (
+              <HistoryShiftCard key={`${detail.date}-${detail.startTime}-${idx}`} detail={detail} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HistoryShiftCard({ detail }: { detail: HistoryShiftDetail }) {
+  const shiftDate = parseItDate(detail.date)
+  const styles = getShiftTypeStyles(detail.shiftType)
+  const ShiftIcon = styles.icon
+  const weekday = shortWeekdayItFromDate(shiftDate)
+
+  return (
+    <div className={cn('rounded-2xl border shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden', styles.card)}>
+      <div className={cn('px-4 py-3 border-b flex items-center justify-between gap-3', styles.header)}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-11 h-11 rounded-xl bg-white border border-white/80 shadow-sm flex flex-col items-center justify-center flex-shrink-0">
+            <span className="text-[9px] font-black text-gray-400 uppercase leading-none">{weekday.slice(0, 3)}</span>
+            <span className="text-base font-black text-gray-900 leading-none mt-0.5">{shiftDate.getUTCDate()}</span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-black text-gray-900 uppercase tracking-tight truncate">
+              {getShiftTypeName(detail.shiftType)}
+            </p>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest truncate">
+              {getRoleName(detail.role)}
+            </p>
+          </div>
+        </div>
+        <div className="px-2.5 py-1 bg-gradient-primary text-white rounded-lg font-black text-xs shadow-md flex-shrink-0">
+          {formatDecimalHoursIt(detail.hours)}
+        </div>
+      </div>
+
+      <div className="px-4 py-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+          <Clock className="h-3.5 w-3.5" />
+          <span>{detail.startTime} — {detail.endTime}</span>
+        </div>
+        <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase', styles.badge)}>
+          <ShiftIcon className="h-3 w-3" />
+          {detail.date}
+        </span>
       </div>
     </div>
   )
