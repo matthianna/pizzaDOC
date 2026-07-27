@@ -118,7 +118,7 @@ export default function AvailabilityOverviewPage() {
       // ⚠️ Aggiungi timestamp per forzare bypass cache browser
       const timestamp = new Date().getTime()
       const response = await fetch(
-        `/api/admin/availability-overview?weekStart=${currentWeek.toISOString()}&_t=${timestamp}`,
+        `/api/availability-overview?weekStart=${currentWeek.toISOString()}&_t=${timestamp}`,
         {
           cache: 'no-store', // ⚠️ Disabilita cache browser
           headers: {
