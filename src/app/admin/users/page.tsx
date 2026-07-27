@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ComponentType, type FormEvent } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Check, Clock, ChevronRight, ShieldCheck, Mail, Star, UserPlus, Trash, RotateCw, ShieldAlert, Smartphone, AppWindow } from 'lucide-react'
+import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, BellOff, Check, Clock, ChevronRight, ShieldCheck, Mail, Star, UserPlus, Trash, RotateCw, ShieldAlert, Smartphone, AppWindow, KeyRound, Copy, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { it as localeIt } from 'date-fns/locale'
 import { cn, getRoleName, getTransportName } from '@/lib/utils'
@@ -132,6 +132,7 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletingUser, setDeletingUser] = useState<User | null>(null)
+  const [resetTarget, setResetTarget] = useState<User | null>(null)
   const { lightClick, success: successClick, error: errorClick } = useHaptics()
 
   useEffect(() => {
@@ -189,27 +190,9 @@ export default function UsersPage() {
     }
   }
 
-  const handleResetPassword = async (userId: string) => {
+  const openResetPassword = (user: User) => {
     lightClick()
-    if (!confirm('Sei sicuro di voler resettare la password di questo utente?')) return
-
-    try {
-      const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
-        method: 'POST'
-      })
-
-      if (response.ok) {
-        successClick()
-        alert('Password resettata con successo. La nuova password è il nome utente.')
-      } else {
-        errorClick()
-        alert('Errore durante il reset della password')
-      }
-    } catch (error) {
-      errorClick()
-      console.error('Error resetting password:', error)
-      alert('Errore durante il reset della password')
-    }
+    setResetTarget(user)
   }
 
   const togglePushNotifications = async (userId: string, currentValue: boolean) => {
@@ -362,7 +345,7 @@ export default function UsersPage() {
                       engagementMax={engagementMaxSnoozes}
                       onEdit={() => setEditingUser(user)}
                       onDelete={() => openDeleteConfirm(user)}
-                      onResetPassword={() => handleResetPassword(user.id)}
+                      onResetPassword={() => openResetPassword(user)}
                       onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
                     />
               ))}
@@ -379,7 +362,7 @@ export default function UsersPage() {
                   engagementMax={engagementMaxSnoozes}
                   onEdit={() => setEditingUser(user)}
                   onDelete={() => openDeleteConfirm(user)}
-                  onResetPassword={() => handleResetPassword(user.id)}
+                  onResetPassword={() => openResetPassword(user)}
                   onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
                 />
               ))}
@@ -410,7 +393,7 @@ export default function UsersPage() {
                         engagementMax={engagementMaxSnoozes}
                         onEdit={() => setEditingUser(user)}
                         onDelete={() => openDeleteConfirm(user)}
-                        onResetPassword={() => handleResetPassword(user.id)}
+                        onResetPassword={() => openResetPassword(user)}
                         onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
                       />
                     ))}
@@ -425,7 +408,7 @@ export default function UsersPage() {
                     engagementMax={engagementMaxSnoozes}
                     onEdit={() => setEditingUser(user)}
                     onDelete={() => openDeleteConfirm(user)}
-                    onResetPassword={() => handleResetPassword(user.id)}
+                    onResetPassword={() => openResetPassword(user)}
                     onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
                   />
                 ))}
@@ -478,6 +461,17 @@ export default function UsersPage() {
           )
         }
       />
+
+      {resetTarget && (
+        <ResetPasswordModal
+          user={resetTarget}
+          onClose={() => setResetTarget(null)}
+          onSuccess={() => {
+            successClick()
+          }}
+          onError={() => errorClick()}
+        />
+      )}
     </MainLayout>
   )
 }
@@ -935,6 +929,251 @@ function UserFormModal({
           </button>
         </div>
       </form>
+    </Modal>
+  )
+}
+
+function ResetPasswordModal({
+  user,
+  onClose,
+  onSuccess,
+  onError
+}: {
+  user: User
+  onClose: () => void
+  onSuccess: () => void
+  onError: () => void
+}) {
+  const [mode, setMode] = useState<'username' | 'custom'>('username')
+  const [customPassword, setCustomPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [result, setResult] = useState<{ temporaryPassword: string; username: string } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const body =
+        mode === 'custom'
+          ? { newPassword: customPassword.trim() }
+          : {}
+
+      if (mode === 'custom' && customPassword.trim().length < 6) {
+        setError('La password deve essere di almeno 6 caratteri')
+        setLoading(false)
+        return
+      }
+
+      if (mode === 'username' && user.username.length < 6) {
+        setError(
+          `Lo username ha meno di 6 caratteri. Imposta una password personalizzata.`
+        )
+        setLoading(false)
+        return
+      }
+
+      const response = await fetch(`/api/admin/users/${user.id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        onError()
+        setError(data.error || 'Errore durante il reset della password')
+        return
+      }
+
+      onSuccess()
+      setResult({
+        temporaryPassword: data.temporaryPassword,
+        username: data.username || user.username
+      })
+    } catch (err) {
+      console.error('Error resetting password:', err)
+      onError()
+      setError('Errore di connessione. Riprova.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const copyPassword = async () => {
+    if (!result?.temporaryPassword) return
+    await navigator.clipboard.writeText(result.temporaryPassword)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <Modal isOpen onClose={loading ? () => {} : onClose} title="Reset Password">
+      {result ? (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                <Check className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-emerald-900">Password resettata</p>
+                <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
+                  Comunicare all&apos;utente le credenziali temporanee. Al primo accesso dovrà
+                  scegliere una nuova password.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
+                Username
+              </p>
+              <p className="text-sm font-black text-gray-900">{result.username}</p>
+            </div>
+
+            <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-1">
+                Password temporanea
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-sm font-black text-orange-900 break-all">
+                  {result.temporaryPassword}
+                </code>
+                <button
+                  type="button"
+                  onClick={copyPassword}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-orange-200 text-[10px] font-black uppercase tracking-wider text-orange-700 hover:bg-orange-100 transition-colors"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? 'Copiata' : 'Copia'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-4 bg-gradient-primary text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all"
+          >
+            Chiudi
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4 flex gap-3">
+            <KeyRound className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-orange-900 leading-relaxed">
+              Reset password per{' '}
+              <span className="font-black">{user.username}</span>. L&apos;utente dovrà cambiare la
+              password al prossimo accesso.
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setMode('username')}
+              className={cn(
+                'py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all',
+                mode === 'username'
+                  ? 'bg-orange-500 text-white border-orange-500'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-orange-200'
+              )}
+            >
+              = Username
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('custom')}
+              className={cn(
+                'py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all',
+                mode === 'custom'
+                  ? 'bg-orange-500 text-white border-orange-500'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-orange-200'
+              )}
+            >
+              Personalizzata
+            </button>
+          </div>
+
+          {mode === 'username' ? (
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
+                Password temporanea
+              </p>
+              <p className="text-sm font-black text-gray-900">{user.username}</p>
+              {user.username.length < 6 && (
+                <p className="text-[11px] text-red-600 mt-2 font-medium">
+                  Username troppo corto: scegli una password personalizzata (≥ 6 caratteri).
+                </p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
+                Nuova password temporanea
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={customPassword}
+                  onChange={(e) => setCustomPassword(e.target.value)}
+                  placeholder="Minimo 6 caratteri"
+                  autoComplete="new-password"
+                  className="pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase tracking-wider text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? 'Nascondi' : 'Mostra'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <p className="text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+              {error}
+            </p>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 py-4 text-xs font-black uppercase tracking-[0.2em] text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-[1.5rem] transition-all disabled:opacity-50"
+            >
+              Annulla
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-[2] py-4 bg-orange-500 text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Reset in corso...
+                </>
+              ) : (
+                'Resetta password'
+              )}
+            </button>
+          </div>
+        </form>
+      )}
     </Modal>
   )
 }

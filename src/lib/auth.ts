@@ -33,9 +33,13 @@ export const authOptions: NextAuthOptions = {
           }
 
           console.log('[AUTH] Prisma client OK, querying user...')
-          const user = await prisma.user.findUnique({
+          // Case-insensitive username match (passwords remain exact)
+          const user = await prisma.user.findFirst({
             where: {
-              username: credentials.username
+              username: {
+                equals: credentials.username.trim(),
+                mode: 'insensitive'
+              }
             },
             include: {
               user_roles: true

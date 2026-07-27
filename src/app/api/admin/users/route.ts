@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user with password = username (lowercase)
-    const hashedPassword = await hashPassword(username.toLowerCase())
+    // Create user with password = username (exact), force first-login change
+    const hashedPassword = await hashPassword(username)
 
     const user = await prisma.user.create({
       data: {
