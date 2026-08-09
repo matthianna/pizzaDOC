@@ -243,7 +243,7 @@ export default function AvailabilityPage() {
                 const cenaHoliday = holidayForSlot(day, 'CENA')
 
                 return (
-                  <div key={index} className={`bg-white rounded-3xl shadow-soft border border-gray-100 p-5 transition-all ${dayDisabled ? 'bg-red-50/30' : ''}`}>
+                  <div key={index} className={`rounded-3xl shadow-soft border border-gray-100 p-5 transition-all ${dayDisabled ? 'bg-red-50/30' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                     <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-50">
                       <div>
                         <span className={`font-black text-lg tracking-tight ${dayDisabled ? 'text-red-800' : 'text-gray-900'}`}>
@@ -297,7 +297,7 @@ export default function AvailabilityPage() {
                     const dOfW = getDayOfWeek(day)
                     const dDisabled = isDayDisabled(dOfW)
                     return (
-                      <tr key={index} className={dDisabled ? 'bg-red-50/20' : ''}>
+                      <tr key={index} className={dDisabled ? 'bg-red-50/20' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="py-4 px-6 whitespace-nowrap">
                           <p className={`font-black tracking-tight ${dDisabled ? 'text-red-700' : 'text-gray-900'}`}>{getDayName(dOfW)}</p>
                           <p className="text-xs font-bold text-gray-400 uppercase">{formatDate(day)}</p>
