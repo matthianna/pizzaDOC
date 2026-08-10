@@ -6,7 +6,7 @@ import {
   shiftCalendarDateUtc,
   shiftInstantRome,
 } from '@/lib/date-utils'
-import { getRoleName, getShiftTypeName } from '@/lib/utils'
+import { getRoleName } from '@/lib/utils'
 
 /** Fixed calendar end times (plan): lunch 14:00, dinner 22:00. */
 export function calendarEndTime(shiftType: ShiftType): string {
@@ -78,7 +78,9 @@ function buildVEvent(shift: CalendarShiftInput): string {
   const dayUtc = shiftCalendarDateUtc(shift.weekStart, shift.dayOfWeek)
   const start = shiftInstantRome(dayUtc, shift.startTime)
   const end = shiftInstantRome(dayUtc, calendarEndTime(shift.shiftType))
-  const summary = `${getShiftTypeName(shift.shiftType)} · ${getRoleName(shift.role)}`
+  const mealLabel = shift.shiftType === 'PRANZO' ? 'PRANZO' : 'CENA'
+  const summary = `Turno di Lavoro ${mealLabel}`
+  const roleLabel = getRoleName(shift.role)
   const stamp = shift.updatedAt ? new Date(shift.updatedAt) : new Date()
   const uid = `${shift.id}@pizzadoc`
 
@@ -89,7 +91,7 @@ function buildVEvent(shift: CalendarShiftInput): string {
     `DTSTART:${formatIcsUtc(new Date(start.getTime()))}`,
     `DTEND:${formatIcsUtc(new Date(end.getTime()))}`,
     `SUMMARY:${escapeIcsText(summary)}`,
-    `DESCRIPTION:${escapeIcsText(`Turno PizzaDOC — ${summary}`)}`,
+    `DESCRIPTION:${escapeIcsText(`PizzaDOC — ${summary} · ${roleLabel}`)}`,
     'STATUS:CONFIRMED',
     'TRANSP:OPAQUE',
     'END:VEVENT',
