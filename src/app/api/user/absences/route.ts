@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { addWeekCalendarDays, convertJsDayToOurDay, getWeekStart } from '@/lib/date-utils'
-import { normalizeDate } from '@/lib/normalize-date'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { createNotification } from '@/lib/notifications'
@@ -15,7 +13,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
 
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
     const absences = await prisma.absences.findMany({
@@ -43,7 +41,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
 
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
     const { startDate, endDate, reason, notes } = await request.json()
@@ -110,43 +108,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Aggiorna automaticamente le disponibilità per i giorni in assenza
-    // Trova tutte le settimane che si sovrappongono con l'assenza
-    const weekStarts: Date[] = []
-    let currentWeek = getWeekStart(start) // Calcola lunedì della settimana
-
-    while (currentWeek <= end) {
-      weekStarts.push(new Date(currentWeek))
-      currentWeek = addWeekCalendarDays(currentWeek, 7)
-    }
-
-    // Per ogni giorno nell'intervallo di assenza, disabilita disponibilità
-    let dayToCheck = new Date(start)
-
-    while (dayToCheck <= end) {
-      // Trova il lunedì di questa settimana
-      const mondayOfWeek = getWeekStart(dayToCheck)
-
-      // Converti da JS day (0=Sunday) al nostro sistema (0=Monday)
-      const jsDay = dayToCheck.getUTCDay()
-      const ourDay = convertJsDayToOurDay(jsDay)
-
-      // Aggiorna disponibilità per questo giorno (sia PRANZO che CENA)
-      await prisma.availabilities.updateMany({
-        where: {
-          userId: session.user.id,
-          weekStart: mondayOfWeek,
-          dayOfWeek: ourDay, // 0=Monday, 1=Tuesday, ..., 6=Sunday
-          isAvailable: true
-        },
-        data: {
-          isAvailable: false
-        }
-      })
-
-      // Vai al giorno successivo (usa UTC)
-      dayToCheck = addWeekCalendarDays(dayToCheck, 1)
-    }
+    // Availability is cleared only when an admin approves (see approve route).
 
     // 🔔 Invia notifica Push agli Amministratori
     try {

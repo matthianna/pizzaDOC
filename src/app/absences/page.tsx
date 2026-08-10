@@ -5,6 +5,7 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { Modal } from '@/components/ui/modal'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useHaptics } from '@/hooks/use-haptics'
 import {
   Calendar,
@@ -29,6 +30,7 @@ interface Absence {
   endDate: string
   reason: string | null
   notes: string | null
+  approved: boolean
   createdAt: string
   updatedAt: string
 }
@@ -68,6 +70,7 @@ export default function AbsencesPage() {
   const [editingAbsence, setEditingAbsence] = useState<Absence | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -158,8 +161,12 @@ export default function AbsencesPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questa assenza?')) return
+    setDeleteId(id)
+  }
 
+  const confirmDelete = async () => {
+    if (!deleteId) return
+    const id = deleteId
     try {
       const response = await fetch(`/api/user/absences/${id}`, { method: 'DELETE' })
 
@@ -173,6 +180,8 @@ export default function AbsencesPage() {
     } catch (error) {
       console.error('Error deleting absence:', error)
       showToast('Impossibile eliminare l\'assenza', 'error')
+    } finally {
+      setDeleteId(null)
     }
   }
 
@@ -209,6 +218,15 @@ export default function AbsencesPage() {
 
   return (
     <MainLayout>
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        title="Elimina assenza"
+        description="Vuoi eliminare questa richiesta di assenza? L’azione non si può annullare."
+        confirmLabel="Elimina"
+        isDangerous
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteId(null)}
+      />
       <div className="max-w-6xl mx-auto space-y-8 pb-20">
         {/* Premium Header */}
         <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
@@ -224,7 +242,7 @@ export default function AbsencesPage() {
                   Assenze e Vacanze
                 </h1>
                 <p className="text-gray-500 mt-2 text-sm font-medium">
-                  Gestisci i tuoi periodi di riposo. Durante le assenze la disponibilità viene disabilitata automaticamente.
+                  Richiedi un periodo di riposo. Resta in attesa di approvazione dall’amministrazione.
                 </p>
               </div>
             </div>
@@ -282,8 +300,9 @@ export default function AbsencesPage() {
           <div>
             <p className="font-black text-blue-900 text-sm uppercase tracking-tight">Informazioni importanti</p>
             <p className="text-blue-700/90 text-sm mt-1 font-medium leading-relaxed">
-              Le assenze già iniziate o nel passato sono bloccate. Durante i periodi di assenza, il sistema disabiliterà
-              automaticamente la possibilità di inserire disponibilità per quei giorni.
+              Le richieste restano in attesa finché un admin non le approva. Solo dopo l’approvazione
+              la disponibilità di quei giorni viene disabilitata. Le assenze approvate non si possono
+              modificare o eliminare da qui.
             </p>
           </div>
         </div>
@@ -656,6 +675,19 @@ function AbsenceCard({
         </span>
       </div>
 
+      <div className="px-4 py-2 border-b border-black/5">
+        <span
+          className={cn(
+            'inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase',
+            absence.approved
+              ? 'bg-green-50 text-green-700 border border-green-100'
+              : 'bg-amber-50 text-amber-700 border border-amber-100'
+          )}
+        >
+          {absence.approved ? 'Approvata' : 'In attesa di approvazione'}
+        </span>
+      </div>
+
       <div className="px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', config.iconBg)}>
@@ -670,7 +702,7 @@ function AbsenceCard({
           )}
         </div>
 
-        {status !== 'past' && (
+        {status !== 'past' && !absence.approved && (
           <div className="flex gap-1.5 flex-shrink-0">
             <button
               onClick={() => onEdit(absence)}

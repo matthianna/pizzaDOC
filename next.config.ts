@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/substitutions",
+        destination: "/substitution-requests",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
@@ -18,12 +27,13 @@ const nextConfig: NextConfig = {
     ];
   },
   eslint: {
-    // Durante il build, ignora gli errori ESLint per permettere il deploy
-    ignoreDuringBuilds: process.env.NODE_ENV === 'production',
+    // Fail the build on ESLint errors
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    // Durante il build, ignora gli errori TypeScript per permettere il deploy
-    ignoreBuildErrors: process.env.NODE_ENV === 'production',
+    // Keep true until legacy TS debt is cleaned up (hours-summary, uuid types, etc.).
+    // Security-critical paths (prisma.user, cron auth) are fixed; do not reintroduce ignore for those.
+    ignoreBuildErrors: true,
   },
 };
 

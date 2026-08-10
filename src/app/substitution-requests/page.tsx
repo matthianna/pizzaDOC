@@ -119,7 +119,7 @@ export default function SubstitutionRequestsPage() {
     lightClick()
     setApproving(substitutionId)
     try {
-      const response = await fetch(`/api/substitutions/${substitutionId}/approve`, {
+      const response = await fetch(`/api/user/substitutions/${substitutionId}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -210,7 +210,7 @@ export default function SubstitutionRequestsPage() {
     }
   }
 
-  if (!session) return <div>Loading...</div>
+  if (!session) return <div>Caricamento...</div>
 
   return (
     <MainLayout>

@@ -10,6 +10,7 @@ import { getDayName, getShiftTypeName } from '@/lib/utils'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { useHaptics } from '@/hooks/use-haptics'
+import { useToast } from '@/components/ui/toast'
 import { isPriorityUser } from '@/lib/utils'
 import type { Role } from '@prisma/client'
 
@@ -36,6 +37,7 @@ export default function AvailabilityPage() {
   const [absenceInfo, setAbsenceInfo] = useState<{ startDate: string, endDate: string, reason: string | null }[]>([])
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const { lightClick, success } = useHaptics()
+  const { showToast, ToastContainer } = useToast()
 
   const isUserPriority = session?.user.username ? isPriorityUser(session.user.username) : false
   const isAdmin = session?.user.roles.includes('ADMIN') && !isUserPriority
@@ -120,13 +122,13 @@ export default function AvailabilityPage() {
       })
       if (response.ok) {
         success()
-        alert('Disponibilità salvata con successo!')
+        showToast('Disponibilità salvata con successo!', 'success')
       } else {
-        alert('Errore durante il salvataggio')
+        showToast('Errore durante il salvataggio', 'error')
       }
     } catch (error) {
       console.error('Error saving availability:', error)
-      alert('Errore durante il salvataggio')
+      showToast('Errore durante il salvataggio', 'error')
     } finally {
       setSaving(false)
     }
@@ -350,6 +352,7 @@ export default function AvailabilityPage() {
           )}
         </div>
       </div>
+      <ToastContainer />
     </MainLayout>
   )
 }

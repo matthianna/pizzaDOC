@@ -25,6 +25,7 @@ function isNextAuthPublicRoute(pathname: string): boolean {
 function isPublicApi(pathname: string): boolean {
   if (pathname === '/api/health') return true
   if (pathname === '/api/push/vapid-key') return true
+  // Seed is public to NextAuth but always requires Bearer SEED_SECRET in the handler
   if (pathname === '/api/seed') return true
   if (pathname.startsWith('/api/cron')) return true
   // Personal ICS feed: authenticated by secret calendarToken in the path

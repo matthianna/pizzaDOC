@@ -101,11 +101,6 @@ export async function POST(
         }
       })
 
-      // 4. Remove scooter usage log (substitute must register their own)
-      await tx.shift_scooter_usages.deleteMany({
-        where: { shiftId: substitution.shiftId },
-      })
-
       return updatedSubstitution
     })
 

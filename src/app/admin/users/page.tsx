@@ -14,6 +14,7 @@ import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { Modal } from '@/components/ui/modal'
 import { useHaptics } from '@/hooks/use-haptics'
+import { useToast } from '@/components/ui/toast'
 
 const CLIENT_PRESENCE_STALE_MS = 25 * 60 * 1000
 
@@ -125,6 +126,21 @@ function ClientAppCell({ user, engagementMax }: { user: User; engagementMax: num
 }
 
 export default function UsersPage() {
+  const { showToast, ToastContainer } = useToast()
+  const notify = (message: string) => {
+    const clean = message.replace(/[✅❌⚠️ℹ️]/g, '').trim()
+    const lower = message.toLowerCase()
+    const type =
+      message.includes('❌') || lower.includes('errore')
+        ? 'error'
+        : message.includes('⚠️')
+          ? 'warning'
+          : message.includes('✅') || lower.includes('successo')
+            ? 'success'
+            : 'info'
+    showToast(clean, type as 'success' | 'error' | 'info' | 'warning')
+  }
+
   const [users, setUsers] = useState<User[]>([])
   const [engagementMaxSnoozes, setEngagementMaxSnoozes] = useState(7)
   const [loading, setLoading] = useState(true)
@@ -181,12 +197,12 @@ export default function UsersPage() {
         setDeletingUser(null)
       } else {
         errorClick()
-        alert('Errore durante l\'eliminazione')
+        notify('Errore durante l\'eliminazione')
       }
     } catch (error) {
       errorClick()
       console.error('Error deleting user:', error)
-      alert('Errore durante l\'eliminazione')
+      notify('Errore durante l\'eliminazione')
     }
   }
 
@@ -217,18 +233,19 @@ export default function UsersPage() {
         ))
       } else {
         errorClick()
-        alert('Errore durante l\'aggiornamento delle notifiche Push')
+        notify('Errore durante l\'aggiornamento delle notifiche Push')
       }
     } catch (error) {
       errorClick()
       console.error('Error toggling Push notifications:', error)
-      alert('Errore durante l\'aggiornamento delle notifiche Push')
+      notify('Errore durante l\'aggiornamento delle notifiche Push')
     }
   }
 
   if (loading) {
     return (
       <MainLayout adminOnly>
+      <ToastContainer />
         <div className="max-w-7xl mx-auto space-y-8">
           <Skeleton className="h-40 rounded-[2.5rem]" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -669,6 +686,20 @@ function UserFormModal({
   onClose: () => void
   onSave: () => void 
 }) {
+  const { showToast } = useToast()
+  const notify = (message: string) => {
+    const clean = message.replace(/[✅❌⚠️ℹ️]/g, '').trim()
+    const lower = message.toLowerCase()
+    const type =
+      message.includes('❌') || lower.includes('errore')
+        ? 'error'
+        : message.includes('⚠️')
+          ? 'warning'
+          : message.includes('✅') || lower.includes('successo')
+            ? 'success'
+            : 'info'
+    showToast(clean, type as 'success' | 'error' | 'info' | 'warning')
+  }
   const [formData, setFormData] = useState({
     username: user?.username || '',
     roles: user?.user_roles.map(ur => ur.role) || [],
@@ -705,12 +736,12 @@ function UserFormModal({
       } else {
         errorClick()
         const error = await response.json()
-        alert(error.error || 'Errore durante il salvataggio')
+        notify(error.error || 'Errore durante il salvataggio')
       }
     } catch (error) {
       errorClick()
       console.error('Error saving user:', error)
-      alert('Errore durante il salvataggio')
+      notify('Errore durante il salvataggio')
     } finally {
       setLoading(false)
     }

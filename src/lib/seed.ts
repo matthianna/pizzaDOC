@@ -6,7 +6,7 @@ import crypto from 'crypto'
 export async function seedDatabase() {
   try {
     // Check if admin already exists
-    const existingAdmin = await prisma.User.findFirst({
+    const existingAdmin = await prisma.user.findFirst({
       where: {
         user_roles: {
           some: {
@@ -24,7 +24,7 @@ export async function seedDatabase() {
     // Create admin user
     const adminPassword = await hashPassword('admin')
     
-    const admin = await prisma.User.create({
+    const admin = await prisma.user.create({
       data: {
         username: 'admin',
         password: adminPassword,

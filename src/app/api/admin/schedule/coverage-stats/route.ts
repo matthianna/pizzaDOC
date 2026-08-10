@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const weekStart = normalizeDate(weekStartParam)
 
     // 1. Carica tutti gli utenti non admin con i loro turni e disponibilità
-    const users = await prisma.User.findMany({
+    const users = await prisma.user.findMany({
       where: {
         user_roles: {
           none: {

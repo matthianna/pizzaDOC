@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import { MainLayout } from '@/components/layout/main-layout'
 import { usePushNotifications } from '@/components/notifications/notification-bell'
 import { useNotifications } from '@/components/notifications/notification-provider'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface Notification {
     id: string
@@ -43,6 +44,7 @@ export default function NotificationsPage() {
     const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
     const [isDeleting, setIsDeleting] = useState<string | null>(null)
     const [isDeletingAll, setIsDeletingAll] = useState(false)
+    const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false)
 
     const isUserAdmin = session?.user?.roles?.includes('ADMIN')
 
@@ -129,8 +131,6 @@ export default function NotificationsPage() {
     }
 
     const deleteAllNotifications = async () => {
-        if (!confirm('Sei sicuro di voler eliminare tutte le notifiche? Questa azione è irreversibile.')) return
-
         setIsDeletingAll(true)
         try {
             const response = await fetch('/api/notifications', { method: 'DELETE' })
@@ -141,6 +141,7 @@ export default function NotificationsPage() {
             }
         } catch (error) {
             console.error('Error deleting all notifications:', error)
+            throw error
         } finally {
             setIsDeletingAll(false)
         }
@@ -203,7 +204,7 @@ export default function NotificationsPage() {
                         <div className="flex items-center gap-3">
                             {notifications.length > 0 && (
                                 <button
-                                    onClick={deleteAllNotifications}
+                                    onClick={() => setShowDeleteAllConfirm(true)}
                                     disabled={isDeletingAll}
                                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
                                 >
@@ -423,6 +424,17 @@ export default function NotificationsPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={showDeleteAllConfirm}
+                onClose={() => setShowDeleteAllConfirm(false)}
+                onConfirm={deleteAllNotifications}
+                title="Elimina tutte le notifiche"
+                description="Sei sicuro di voler eliminare tutte le notifiche? Questa azione è irreversibile."
+                confirmLabel="Elimina tutte"
+                isDangerous
+                isLoading={isDeletingAll}
+            />
         </MainLayout>
     )
 }

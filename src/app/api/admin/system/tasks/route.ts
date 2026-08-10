@@ -174,9 +174,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Task not found' }, { status: 404 })
         }
 
-        // Trigger the task by calling its endpoint internally
-        // We use the CRON_SECRET if available
+        // Trigger the task by calling its endpoint internally with CRON_SECRET
         const cronSecret = process.env.CRON_SECRET
+        if (!cronSecret) {
+            return NextResponse.json(
+                { error: 'CRON_SECRET non configurato — impossibile eseguire il task' },
+                { status: 500 }
+            )
+        }
+
         const baseUrl = process.env.NEXTAUTH_URL || `http://localhost:${process.env.PORT || 3000}`
 
         console.log(`[ADMIN] Triggering task ${taskId} at ${baseUrl}${task.path}`)
@@ -184,9 +190,8 @@ export async function POST(request: NextRequest) {
         const response = await fetch(`${baseUrl}${task.path}`, {
             method: taskId === 'daily-backup' ? 'POST' : 'GET',
             headers: {
-                ...(cronSecret ? { 'Authorization': `Bearer ${cronSecret}` } : {}),
-                'x-vercel-cron': 'true' // Simulate Vercel Cron header
-            }
+                Authorization: `Bearer ${cronSecret}`,
+            },
         })
 
         const result = await response.json()

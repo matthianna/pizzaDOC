@@ -155,6 +155,9 @@ model shifts {
   substitutions         substitutions[]
   worked_hours          worked_hours?
   shift_scooter_usages  shift_scooter_usages?
+
+  @@index([userId])
+  @@index([scheduleId])
 }
 
 model substitutions {
@@ -173,6 +176,10 @@ model substitutions {
   requester  User              @relation("substitutions_requesterIdTousers", fields: [requesterId], references: [id], onDelete: Cascade)
   shifts                                  shifts             @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   substitute User?             @relation("substitutions_substituteIdTousers", fields: [substituteId], references: [id])
+
+  @@index([shiftId])
+  @@index([status, deadline])
+  @@index([requesterId])
 }
 
 model user_roles {
@@ -289,6 +296,9 @@ model worked_hours {
   updatedAt       DateTime
   shifts          shifts      @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
 }
 
 model shift_scooter_usages {

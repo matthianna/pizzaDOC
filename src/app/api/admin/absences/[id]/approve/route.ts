@@ -7,48 +7,52 @@ import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { clearAvailabilityForAbsenceRange } from '@/lib/absence-availability'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
 
     if (!session || !session.user.roles.includes('ADMIN')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
 
-    // Find the absence
     const absence = await prisma.absences.findUnique({
       where: { id },
       include: {
         user: {
           select: {
             id: true,
-            username: true
-          }
-        }
-      }
+            username: true,
+          },
+        },
+      },
     })
 
     if (!absence) {
-      return NextResponse.json({ error: 'Absence not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Assenza non trovata' }, { status: 404 })
     }
 
-    // Update absence
     const updated = await prisma.absences.update({
       where: { id },
       data: {
         approved: true,
         approvedBy: session.user.id,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     })
 
-    // Log audit action
+    await clearAvailabilityForAbsenceRange(
+      absence.userId,
+      absence.startDate,
+      absence.endDate
+    )
+
     await logAuditAction({
       userId: session.user.id,
       action: 'ABSENCE_APPROVE',
@@ -56,15 +60,21 @@ export async function POST(
       recordId: id,
       changes: {
         approved: true,
-        approvedBy: session.user.id
-      }
+        approvedBy: session.user.id,
+      },
     })
 
-    // 🔔 Notify user
     try {
-      const formattedStartDate = format(new Date(absence.startDate), 'dd/MM/yyyy', { locale: it })
-      const formattedEndDate = format(new Date(absence.endDate), 'dd/MM/yyyy', { locale: it })
-      const dateRange = formattedStartDate === formattedEndDate ? formattedStartDate : `${formattedStartDate} - ${formattedEndDate}`
+      const formattedStartDate = format(new Date(absence.startDate), 'dd/MM/yyyy', {
+        locale: it,
+      })
+      const formattedEndDate = format(new Date(absence.endDate), 'dd/MM/yyyy', {
+        locale: it,
+      })
+      const dateRange =
+        formattedStartDate === formattedEndDate
+          ? formattedStartDate
+          : `${formattedStartDate} - ${formattedEndDate}`
 
       await createNotification({
         userId: absence.userId,
@@ -73,20 +83,18 @@ export async function POST(
         body: `La tua richiesta di assenza per ${dateRange} è stata approvata.`,
         data: {
           url: '/absences',
-          relatedId: id
-        }
+          relatedId: id,
+        },
       })
-
-      console.log('✅ Push notification sent for absence approval')
     } catch (notificationError) {
-      console.error('❌ Error sending push notification:', notificationError)
+      console.error('Error sending push notification:', notificationError)
     }
 
     return NextResponse.json(updated)
   } catch (error) {
     console.error('Error approving absence:', error)
     return NextResponse.json(
-      { error: 'Failed to approve absence' },
+      { error: "Impossibile approvare l'assenza" },
       { status: 500 }
     )
   }

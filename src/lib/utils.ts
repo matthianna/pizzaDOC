@@ -9,15 +9,6 @@ export const PRIORITY_USERS = [
   'giulia'
 ]
 
-/** Never required to log scooter usage after shifts. */
-export const SCOOTER_LOG_EXCLUDED_USERNAMES = ['giulia'] as const
-
-export function isExcludedFromScooterLog(username: string | undefined | null): boolean {
-  if (!username) return false
-  const normalized = username.trim().toLowerCase()
-  return SCOOTER_LOG_EXCLUDED_USERNAMES.some((u) => u === normalized)
-}
-
 export function isPriorityUser(username: string): boolean {
   return PRIORITY_USERS.includes(username.toLowerCase())
 }
@@ -72,13 +63,4 @@ export function getTransportName(transport: string): string {
     'SCOOTER': 'Scooter'
   }
   return transportNames[transport] || transport
-}
-
-export function formatVehicleUsageLabel(usage: {
-  usedAuto: boolean
-  scooterNumber: number | null
-}): string {
-  if (usage.usedAuto) return 'Auto'
-  if (usage.scooterNumber != null) return `Scooter ${usage.scooterNumber}`
-  return '—'
 }

@@ -76,7 +76,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
         'Content-Disposition': `attachment; filename="pizzadoc-${user.username}.ics"`,
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'private, no-store',
       },
     })
   } catch (error) {

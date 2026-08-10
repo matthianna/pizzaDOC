@@ -39,7 +39,7 @@ import {
   BanknotesIcon as BanknotesIconSolid,
   BellIcon as BellIconSolid
 } from '@heroicons/react/24/solid'
-import { cn, getRoleName, isExcludedFromScooterLog } from '@/lib/utils'
+import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
 import { NotificationBell } from '../notifications/notification-bell'
 import { useHaptics } from '@/hooks/use-haptics'
@@ -67,7 +67,7 @@ export function Sidebar() {
   const navigation = [
     // 🏠 HOME
     {
-      name: 'Dashboard',
+      name: 'Home',
       href: '/dashboard',
       icon: HomeIcon,
       iconSolid: HomeIconSolid,
@@ -143,16 +143,6 @@ export function Sidebar() {
       adminOnly: false,
       hideForAdmin: true,
       emoji: '🏖️',
-      section: 'ore'
-    },
-    {
-      name: 'Utilizzo Scooter',
-      href: '/scooter-usage',
-      icon: ChartBarIcon,
-      iconSolid: ChartBarIconSolid,
-      adminOnly: false,
-      hideForAdmin: true,
-      emoji: '🛵',
       section: 'ore'
     },
     // 🔄 SOSTITUZIONI
@@ -233,15 +223,6 @@ export function Sidebar() {
       adminOnly: true,
       section: 'ore'
     },
-    {
-      name: 'Utilizzo Scooter',
-      href: '/admin/scooter-usage',
-      icon: ChartBarIcon,
-      iconSolid: ChartBarIconSolid,
-      adminOnly: true,
-      emoji: '🛵',
-      section: 'ore'
-    },
     // ⚙️ SISTEMA
     {
       name: 'Configurazioni',
@@ -283,9 +264,6 @@ export function Sidebar() {
     if (item.hideForAdmin && isUserAdmin) return false
     // Nascondi "Ore Lavorate" se l'utente non ha trackHours abilitato
     if (item.name === 'Le mie ore' && !session.user.trackHours) return false
-    if (item.href === '/scooter-usage' && isExcludedFromScooterLog(session.user.username)) {
-      return false
-    }
     return true
   })
 
@@ -301,7 +279,7 @@ export function Sidebar() {
           className="rounded-2xl p-3 inline-flex items-center justify-center text-gray-500 hover:text-orange-600 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500 bg-white/80 backdrop-blur-md shadow-lg border border-white transition-all active:scale-90"
           onClick={handleOpenSidebar}
         >
-          <span className="sr-only">Open sidebar</span>
+          <span className="sr-only">Apri menu</span>
           <Bars3Icon className="h-7 w-7" aria-hidden="true" />
         </button>
       </div>
@@ -318,7 +296,7 @@ export function Sidebar() {
                   className="ml-1 flex items-center justify-center h-12 w-12 rounded-2xl bg-orange-600 text-white shadow-xl shadow-orange-200 border border-orange-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white active:scale-90 transition-all"
                   onClick={handleCloseSidebar}
                 >
-                  <span className="sr-only">Close sidebar</span>
+                  <span className="sr-only">Chiudi menu</span>
                   <XMarkIcon className="h-7 w-7" aria-hidden="true" />
                 </button>
               </div>
@@ -590,7 +568,7 @@ function SidebarContent({
                 <span className="text-xl mr-3 transition-transform duration-300 group-hover:scale-110">
                   🏠
                 </span>
-                <span className="uppercase tracking-widest text-[11px]">Dashboard</span>
+                <span className="uppercase tracking-widest text-[11px]">Home</span>
                 {pathname === '/dashboard' && <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/20" />}
               </Link>
             </div>

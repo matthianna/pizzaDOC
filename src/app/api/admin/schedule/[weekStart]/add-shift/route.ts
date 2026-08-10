@@ -28,7 +28,7 @@ export async function POST(
     }
 
     // Verifica che l'utente esista e sia attivo
-    const user = await prisma.User.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
         user_roles: true

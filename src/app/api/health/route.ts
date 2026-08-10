@@ -9,11 +9,9 @@ export async function GET() {
   }
 
   try {
-    const userCount = await prisma.user.count()
-    return NextResponse.json({
-      ...base,
-      userCount,
-    })
+    // Lightweight connectivity check — do not expose counts or DB error details
+    await prisma.$queryRaw`SELECT 1`
+    return NextResponse.json(base)
   } catch (e) {
     console.error('[health] DB check failed:', e)
     return NextResponse.json(
@@ -21,8 +19,7 @@ export async function GET() {
         status: 'error',
         timestamp: base.timestamp,
         version: base.version,
-        message: e instanceof Error ? e.message : 'Database unreachable',
-        userCount: null,
+        message: 'Database unreachable',
       },
       { status: 503 }
     )

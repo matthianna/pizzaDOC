@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Copy, Download, Link2, RefreshCw, Smartphone } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 type CalendarUrls = {
   httpsUrl: string
@@ -20,6 +21,7 @@ export function PersonalCalendarSubscribe() {
   const [loading, setLoading] = useState(true)
   const [regenerating, setRegenerating] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [showRegenConfirm, setShowRegenConfirm] = useState(false)
   const { showToast, ToastContainer } = useToast()
 
   const fetchUrls = useCallback(async () => {
@@ -52,13 +54,6 @@ export function PersonalCalendarSubscribe() {
   }
 
   const regenerate = async () => {
-    if (
-      !confirm(
-        'Rigenerare il link invalida la sottoscrizione attuale su iPhone e Google Calendar. Continuare?'
-      )
-    ) {
-      return
-    }
     setRegenerating(true)
     try {
       const res = await fetch('/api/user/calendar', { method: 'POST' })
@@ -68,6 +63,7 @@ export function PersonalCalendarSubscribe() {
       showToast('Nuovo link generato — risottoscrivi su iPhone o Google', 'success')
     } catch {
       showToast('Errore nella rigenerazione', 'error')
+      throw new Error('regen failed')
     } finally {
       setRegenerating(false)
     }
@@ -76,6 +72,16 @@ export function PersonalCalendarSubscribe() {
   return (
     <div className="glass rounded-xl shadow-soft border border-white/40 px-4 py-4 sm:px-5">
       <ToastContainer />
+      <ConfirmDialog
+        isOpen={showRegenConfirm}
+        onClose={() => setShowRegenConfirm(false)}
+        onConfirm={regenerate}
+        title="Rigenera link calendario"
+        description="Rigenerare il link invalida la sottoscrizione attuale su iPhone e Google Calendar. Continuare?"
+        confirmLabel="Rigenera"
+        isDangerous
+        isLoading={regenerating}
+      />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
@@ -83,9 +89,7 @@ export function PersonalCalendarSubscribe() {
             Calendario personale
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            Sottoscrivi i tuoi turni su iPhone (Apple Calendario) o Android (Google Calendar). Si
-            aggiorna da solo quando cambia il piano settimanale. Pranzo fino alle 14:00, cena fino
-            alle 22:00.
+            Sottoscrivi i tuoi turni su iPhone (Apple Calendario) o Android (Google Calendar).
           </p>
         </div>
         <button
@@ -166,7 +170,7 @@ export function PersonalCalendarSubscribe() {
             <Button
               type="button"
               variant="outline"
-              onClick={regenerate}
+              onClick={() => setShowRegenConfirm(true)}
               disabled={regenerating}
               isLoading={regenerating}
               className="gap-2 text-gray-600"

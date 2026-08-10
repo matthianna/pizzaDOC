@@ -100,19 +100,6 @@ interface MissingHoursData {
   count: number
 }
 
-interface MissingScooterData {
-  missingShifts: Array<{
-    id: string
-    date: string
-    dayOfWeek: number
-    shiftType: 'PRANZO' | 'CENA'
-    role: string
-    startTime: string
-    endTime: string
-  }>
-  count: number
-}
-
 interface PendingHoursData {
   users: Array<{
     user: {
@@ -153,7 +140,6 @@ export default function DashboardPage() {
   const [myShifts, setMyShifts] = useState<MyShiftsData | null>(null)
   const [pendingHours, setPendingHours] = useState<PendingHoursData | null>(null)
   const [missingHours, setMissingHours] = useState<MissingHoursData | null>(null)
-  const [missingScooter, setMissingScooter] = useState<MissingScooterData | null>(null)
   const [loading, setLoading] = useState(true)
   const { lightClick } = useHaptics()
 
@@ -167,7 +153,6 @@ export default function DashboardPage() {
     if (!isAdminUser) {
       fetchMyShifts()
       fetchMissingHours()
-      fetchMissingScooter()
     } else {
       fetchPendingHours()
     }
@@ -247,22 +232,6 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Error fetching missing hours:', error)
-    }
-  }
-
-  const fetchMissingScooter = async () => {
-    try {
-      const timestamp = new Date().getTime()
-      const response = await fetch(`/api/dashboard/missing-scooter-usage?_t=${timestamp}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setMissingScooter(data)
-      }
-    } catch (error) {
-      console.error('Error fetching missing scooter usage:', error)
     }
   }
 
@@ -661,31 +630,6 @@ export default function DashboardPage() {
                     </div>
                     <a href="/hours" onClick={() => lightClick()} className="bg-white text-red-600 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all text-center">
                       Vedi dettaglio
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {/* User: Missing scooter usage */}
-              {!isAdminUser && missingScooter && missingScooter.count > 0 && (
-                <div className="relative overflow-hidden bg-gradient-to-r from-sky-500 to-blue-600 rounded-[2rem] p-6 shadow-lg shadow-sky-100 group">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                    <Bike className="h-20 w-20 text-white" />
-                  </div>
-                  <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                    <div>
-                      <h3 className="text-white text-xl font-black tracking-tight">Scooter da registrare</h3>
-                      <p className="text-sky-100 text-sm font-medium mt-1">
-                        Hai {missingScooter.count}{' '}
-                        {missingScooter.count === 1 ? 'turno' : 'turni'} senza registrazione scooter. Indica quale scooter hai usato.
-                      </p>
-                    </div>
-                    <a
-                      href="/scooter-usage"
-                      onClick={() => lightClick()}
-                      className="bg-white text-sky-600 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all text-center"
-                    >
-                      Registra ora
                     </a>
                   </div>
                 </div>

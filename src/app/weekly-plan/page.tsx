@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
 import {
     Calendar, Download, ChevronLeft, ChevronRight,
@@ -22,6 +23,8 @@ import { useHaptics } from '@/hooks/use-haptics'
 import { Button } from '@/components/ui/button'
 
 export default function WeeklyPlanPage() {
+    const { data: session } = useSession()
+    const isAdmin = session?.user?.roles?.includes('ADMIN') ?? false
     const [currentWeek, setCurrentWeek] = useState(() => getWeekStart(new Date()))
     const [data, setData] = useState<{ schedule: any, holidays: any[] } | null>(null)
     const [loading, setLoading] = useState(true)
@@ -131,6 +134,7 @@ export default function WeeklyPlanPage() {
                         </div>
 
                         <div className="flex items-center gap-3">
+                            {isAdmin && (
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -140,6 +144,7 @@ export default function WeeklyPlanPage() {
                                 <Download className="h-4 w-4 mr-2" />
                                 PDF
                             </Button>
+                            )}
                             <div className="bg-gray-100 p-1 rounded-xl flex gap-1">
                                 <button
                                     onClick={() => { lightClick(); setActiveTab('LIST') }}

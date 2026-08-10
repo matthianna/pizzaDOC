@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// POST /api/substitutions/[id]/approve - Approve substitution
+// POST /api/user/substitutions/[id]/approve - Approve substitution
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -105,10 +105,6 @@ export async function POST(
           shiftId: substitution.shiftId,
           userId: substitution.requesterId
         }
-      })
-
-      await tx.shift_scooter_usages.deleteMany({
-        where: { shiftId: substitution.shiftId },
       })
 
       // Reject other pending/applied substitutions for this shift

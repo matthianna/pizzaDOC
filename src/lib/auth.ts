@@ -97,7 +97,7 @@ export const authOptions: NextAuthOptions = {
       // Check if user is still active and update token periodically
       if (token.id && (!token.lastActivity || Date.now() - (token.lastActivity as number) > 5 * 60 * 1000)) {
         try {
-          const currentUser = await prisma.User.findUnique({
+          const currentUser = await prisma.user.findUnique({
             where: { id: token.id as string },
             include: { user_roles: true }
           })
@@ -121,7 +121,7 @@ export const authOptions: NextAuthOptions = {
       
       // Handle session update (e.g., after password change)
       if (trigger === 'update' && session) {
-        const updatedUser = await prisma.User.findUnique({
+        const updatedUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           include: { user_roles: true }
         })

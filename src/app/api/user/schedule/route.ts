@@ -5,7 +5,6 @@ import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
 import { ensureUtcMondayWeekStart } from '@/lib/date-utils'
 import { resolveScheduleForRequestedWeek } from '@/lib/resolve-schedule-for-week'
-import { shiftRequiresScooterLog } from '@/lib/scooter-usage'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -15,7 +14,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     
     if (!session || !session.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -26,15 +25,6 @@ export async function GET(request: NextRequest) {
     }
 
     const weekStart = normalizeDate(weekStartParam)
-
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        username: true,
-        primaryTransport: true,
-        user_transports: { select: { transport: true } },
-      },
-    })
 
     const dayMs = 24 * 60 * 60 * 1000
     const weekStartCandidates = [
@@ -67,14 +57,6 @@ export async function GET(request: NextRequest) {
                 totalHours: true
               }
             },
-            shift_scooter_usages: {
-              select: {
-                id: true,
-                scooterNumber: true,
-                usedAuto: true,
-                recordedAt: true
-              }
-            }
           },
           orderBy: [
             { dayOfWeek: 'asc' },
@@ -107,23 +89,6 @@ export async function GET(request: NextRequest) {
     const shiftsWithMappedHours = schedule.shifts.map((shift: any) => ({
       ...shift,
       workedHours: shift.worked_hours,
-      scooterUsage: shift.shift_scooter_usages
-        ? {
-            id: shift.shift_scooter_usages.id,
-            scooterNumber: shift.shift_scooter_usages.scooterNumber,
-            usedAuto: shift.shift_scooter_usages.usedAuto,
-            recordedAt: shift.shift_scooter_usages.recordedAt,
-          }
-        : null,
-      requiresScooterLog: currentUser
-        ? shiftRequiresScooterLog(
-            shift,
-            currentUser,
-            shift.schedules?.weekStart
-              ? ensureUtcMondayWeekStart(shift.schedules.weekStart)
-              : displayWeekStart
-          )
-        : false,
       schedule: { weekStart: displayWeekStart.toISOString() }
     }))
 

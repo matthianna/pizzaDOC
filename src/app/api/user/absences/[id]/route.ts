@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { addWeekCalendarDays, convertJsDayToOurDay, getWeekStart } from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
 
 // PUT /api/user/absences/[id] - Update absence
@@ -14,7 +13,7 @@ export async function PUT(
     const session = await getServerSession(authOptions)
     
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
     const resolvedParams = await params
@@ -36,8 +35,16 @@ export async function PUT(
     const isAdmin = session.user.roles.includes('ADMIN')
     if (!isAdmin && existingAbsence.userId !== session.user.id) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Non autorizzato' },
         { status: 403 }
+      )
+    }
+
+    // Solo per utenti normali (non admin): non modificare assenze già approvate
+    if (!isAdmin && existingAbsence.approved) {
+      return NextResponse.json(
+        { error: 'Non puoi modificare un\'assenza già approvata' },
+        { status: 400 }
       )
     }
 
@@ -100,47 +107,15 @@ export async function PUT(
         startDate: start,
         endDate: end,
         reason: reason || null,
-        notes: notes || null
+        notes: notes || null,
+        // Re-submit requires new admin approval if dates/content changed
+        ...(!isAdmin
+          ? { approved: false, approvedBy: null, updatedAt: new Date() }
+          : { updatedAt: new Date() }),
       }
     })
 
-    // Aggiorna automaticamente le disponibilità per i giorni in assenza
-    // Trova tutte le settimane che si sovrappongono con l'assenza
-    const weekStarts: Date[] = []
-    let currentWeek = getWeekStart(start) // Calcola lunedì della settimana
-    
-    while (currentWeek <= end) {
-      weekStarts.push(new Date(currentWeek))
-      currentWeek = addWeekCalendarDays(currentWeek, 7)
-    }
-
-    // Per ogni giorno nell'intervallo di assenza, disabilita disponibilità
-    let dayToCheck = new Date(start)
-    
-    while (dayToCheck <= end) {
-      // Trova il lunedì di questa settimana
-      const mondayOfWeek = getWeekStart(dayToCheck)
-      
-      // Converti da JS day (0=Sunday) al nostro sistema (0=Monday)
-      const jsDay = dayToCheck.getUTCDay()
-      const ourDay = convertJsDayToOurDay(jsDay)
-      
-      // Aggiorna disponibilità per questo giorno (sia PRANZO che CENA) - usa userId dell'assenza
-      await prisma.availabilities.updateMany({
-        where: {
-          userId: existingAbsence.userId,
-          weekStart: mondayOfWeek,
-          dayOfWeek: ourDay, // 0=Monday, 1=Tuesday, ..., 6=Sunday
-          isAvailable: true
-        },
-        data: {
-          isAvailable: false
-        }
-      })
-      
-      // Vai al giorno successivo (usa UTC)
-      dayToCheck = addWeekCalendarDays(dayToCheck, 1)
-    }
+    // Availability is cleared only on admin approval.
 
     return NextResponse.json(updatedAbsence)
   } catch (error) {
@@ -161,7 +136,7 @@ export async function DELETE(
     const session = await getServerSession(authOptions)
     
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
     const resolvedParams = await params
@@ -183,14 +158,21 @@ export async function DELETE(
     const isAdmin = session.user.roles.includes('ADMIN')
     if (!isAdmin && existingAbsence.userId !== session.user.id) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Non autorizzato' },
         { status: 403 }
       )
     }
 
     const today = normalizeDate(new Date())
 
-    // Solo per utenti normali (non admin): non permettere di eliminare assenze già iniziate
+    // Solo per utenti normali (non admin): non permettere di eliminare assenze già iniziate o approvate
+    if (!isAdmin && existingAbsence.approved) {
+      return NextResponse.json(
+        { error: 'Non puoi eliminare un\'assenza già approvata' },
+        { status: 400 }
+      )
+    }
+
     if (!isAdmin && existingAbsence.startDate < today) {
       return NextResponse.json(
         { error: 'Non puoi eliminare assenze già iniziate o nel passato' },

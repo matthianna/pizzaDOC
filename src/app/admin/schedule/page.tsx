@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { Modal } from '@/components/ui/modal'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/components/ui/toast'
 
 interface ScheduleShift {
   id: string
@@ -69,6 +70,20 @@ function holidayLabelsForDay(onDay: Holiday[]): { full: boolean; badges: string[
 }
 
 export default function AdminSchedulePage() {
+  const { showToast, ToastContainer } = useToast()
+  const notify = (message: string) => {
+    const clean = message.replace(/[✅❌⚠️ℹ️]/g, '').trim()
+    const lower = message.toLowerCase()
+    const type =
+      message.includes('❌') || lower.includes('errore')
+        ? 'error'
+        : message.includes('⚠️')
+          ? 'warning'
+          : message.includes('✅') || lower.includes('successo')
+            ? 'success'
+            : 'info'
+    showToast(clean, type as 'success' | 'error' | 'info' | 'warning')
+  }
   const [currentWeek, setCurrentWeek] = useState(getNextWeekStart())
   const [schedule, setSchedule] = useState<Schedule | null>(null)
   const [gaps, setGaps] = useState<Gap[]>([])
@@ -252,13 +267,13 @@ export default function AdminSchedulePage() {
         const data = await response.json()
         setGaps(data.gaps || [])
         await fetchSchedule()
-        alert(`Piano generato con successo! ${data.shiftsGenerated} turni assegnati.`)
+        notify(`Piano generato con successo! ${data.shiftsGenerated} turni assegnati.`)
       } else {
-        alert('Errore durante la generazione del piano')
+        notify('Errore durante la generazione del piano')
       }
     } catch (error) {
       console.error('Error generating schedule:', error)
-      alert('Errore durante la generazione del piano')
+      notify('Errore durante la generazione del piano')
     } finally {
       setGenerating(false)
     }
@@ -273,19 +288,19 @@ export default function AdminSchedulePage() {
       if (response.ok) {
         setSchedule(null)
         setGaps([])
-        alert('Piano eliminato con successo')
+        notify('Piano eliminato con successo')
       } else {
-        alert('Errore durante l\'eliminazione del piano')
+        notify('Errore durante l\'eliminazione del piano')
       }
     } catch (error) {
       console.error('Error deleting schedule:', error)
-      alert('Errore durante l\'eliminazione del piano')
+      notify('Errore durante l\'eliminazione del piano')
     }
   }
 
   const notifyUsers = async () => {
     if (!schedule) {
-      alert('Nessun piano disponibile per questa settimana')
+      notify('Nessun piano disponibile per questa settimana')
       return
     }
 
@@ -305,9 +320,9 @@ export default function AdminSchedulePage() {
 
       if (response.ok) {
         if (data.success) {
-          alert(`✅ ${data.message || `Notifiche inviate con successo a ${data.successful || 0} utenti!`}`)
+          notify(`✅ ${data.message || `Notifiche inviate con successo a ${data.successful || 0} utenti!`}`)
         } else {
-          alert(`⚠️ ${data.error || 'Errore durante l\'invio delle notifiche'}`)
+          notify(`⚠️ ${data.error || 'Errore durante l\'invio delle notifiche'}`)
         }
       } else {
         const errorMessage = data.error || 'Errore durante l\'invio delle notifiche'
@@ -315,11 +330,11 @@ export default function AdminSchedulePage() {
         if (data.debug) {
           details += `\n\nDebug:\nCercato: ${data.debug.searched}\nEsistenti: ${data.debug.existing.join(', ')}`
         }
-        alert(`❌ ${errorMessage}${details}`)
+        notify(`❌ ${errorMessage}${details}`)
       }
     } catch (error: any) {
       console.error('Error sending notifications:', error)
-      alert(`❌ Errore durante l'invio delle notifiche: ${error.message || 'Errore di connessione'}`)
+      notify(`❌ Errore durante l'invio delle notifiche: ${error.message || 'Errore di connessione'}`)
     } finally {
       setNotifying(false)
     }
@@ -362,11 +377,11 @@ export default function AdminSchedulePage() {
         }, 100)
       } else {
         const error = await response.json().catch(() => ({ error: 'Errore sconosciuto' }))
-        alert(`❌ Errore durante l'esportazione PDF: ${error.error || error.details || 'Errore sconosciuto'}`)
+        notify(`❌ Errore durante l'esportazione PDF: ${error.error || error.details || 'Errore sconosciuto'}`)
       }
     } catch (error: any) {
       console.error('Error exporting PDF:', error)
-      alert(`❌ Errore durante l'esportazione PDF: ${error.message || 'Errore di connessione'}`)
+      notify(`❌ Errore durante l'esportazione PDF: ${error.message || 'Errore di connessione'}`)
     }
   }
 
@@ -409,17 +424,17 @@ export default function AdminSchedulePage() {
         await fetchSchedule()
 
         if (result.alreadyRemoved) {
-          alert('Il turno era già stato rimosso. Il piano è aggiornato.')
+          notify('Il turno era già stato rimosso. Il piano è aggiornato.')
         } else {
-          alert(`Turno di ${result.username} rimosso definitivamente.`)
+          notify(`Turno di ${result.username} rimosso definitivamente.`)
         }
       } else {
         const error = await response.json()
-        alert(error.error || 'Errore nella rimozione')
+        notify(error.error || 'Errore nella rimozione')
       }
     } catch (error) {
       console.error('Error removing shift:', error)
-      alert('Errore nella rimozione del turno')
+      notify('Errore nella rimozione del turno')
     } finally {
       removeShiftInFlight.current = false
       setRemoving(false)
@@ -456,11 +471,11 @@ export default function AdminSchedulePage() {
         fetchSchedule() // Ricarica il piano
       } else {
         const error = await response.json()
-        alert(error.error || 'Errore nell\'aggiornamento degli orari')
+        notify(error.error || 'Errore nell\'aggiornamento degli orari')
       }
     } catch (error) {
       console.error('Error updating shift times:', error)
-      alert('Errore nell\'aggiornamento degli orari')
+      notify('Errore nell\'aggiornamento degli orari')
     } finally {
       setUpdatingTime(false)
     }
@@ -493,11 +508,11 @@ export default function AdminSchedulePage() {
         fetchSchedule() // Ricarica il piano
       } else {
         const error = await response.json()
-        alert(error.error || 'Errore nell\'aggiornamento del ruolo')
+        notify(error.error || 'Errore nell\'aggiornamento del ruolo')
       }
     } catch (error) {
       console.error('Error updating shift role:', error)
-      alert('Errore nell\'aggiornamento del ruolo')
+      notify('Errore nell\'aggiornamento del ruolo')
     } finally {
       setUpdatingRole(false)
     }
@@ -533,6 +548,7 @@ export default function AdminSchedulePage() {
 
   return (
     <MainLayout adminOnly>
+      <ToastContainer />
       <div className="space-y-8 max-w-[1600px] mx-auto pb-20">
         {/* Advanced Header */}
         <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">

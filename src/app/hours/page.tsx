@@ -453,17 +453,30 @@ export default function HoursPage() {
                 <div className="bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-100 py-20 text-center">
                   <Calendar className="h-16 w-16 text-gray-200 mx-auto mb-6" />
                   <p className="text-gray-400 font-black uppercase tracking-widest text-sm">Nessun turno assegnato per questa settimana</p>
+                  <p className="text-gray-500 text-sm font-medium mt-3 max-w-md mx-auto">
+                    Le ore vengono registrate dall&apos;amministrazione; puoi solo consultarle.
+                  </p>
                 </div>
               ) : (
-                shifts.map((shift) => (
-                  <ShiftCard
-                    key={shift.id}
-                    shift={shift}
-                    getStatusIcon={getStatusIcon}
-                    getStatusText={getStatusText}
-                    getStatusColor={getStatusColor}
-                  />
-                ))
+                <>
+                  {weekStats.missing > 0 && (
+                    <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-blue-800 font-medium">
+                        Alcuni turni non hanno ancora ore registrate dall’amministrazione.
+                      </p>
+                    </div>
+                  )}
+                  {shifts.map((shift) => (
+                    <ShiftCard
+                      key={shift.id}
+                      shift={shift}
+                      getStatusIcon={getStatusIcon}
+                      getStatusText={getStatusText}
+                      getStatusColor={getStatusColor}
+                    />
+                  ))}
+                </>
               )}
             </div>
           </>
