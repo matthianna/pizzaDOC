@@ -30,8 +30,6 @@ export async function POST(request: Request) {
 
     const now = new Date()
 
-    const isPwaSurface = displayMode === 'standalone' || displayMode === 'fullscreen'
-
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
@@ -49,8 +47,6 @@ export async function POST(request: Request) {
               clientPushSubscribedReportedAt: now
             }
           : {}),
-        ...(isPwaSurface ? { engagementPwaSnoozedUntil: null } : {}),
-        ...(hasPushSubscription === true ? { engagementPushSnoozedUntil: null } : {}),
         updatedAt: now
       }
     })

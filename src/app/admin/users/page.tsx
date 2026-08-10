@@ -33,10 +33,6 @@ interface User {
   notificationPermissionReportedAt: string | null
   clientPushSubscribedReported: boolean | null
   clientPushSubscribedReportedAt: string | null
-  engagementPwaSnoozeCount: number
-  engagementPwaSnoozedUntil: string | null
-  engagementPushSnoozeCount: number
-  engagementPushSnoozedUntil: string | null
   user_roles: { role: Role }[]
   user_transports: { transport: TransportType }[]
   push_subscriptions: { id: string }[]
@@ -57,10 +53,8 @@ function getClientAppPresence(user: Pick<User, 'lastClientDisplayMode' | 'lastCl
   }
 }
 
-function ClientAppCell({ user, engagementMax }: { user: User; engagementMax: number }) {
+function ClientAppCell({ user }: { user: User }) {
   const p = getClientAppPresence(user)
-  const pwaSnooze = user.engagementPwaSnoozeCount ?? 0
-  const pushSnooze = user.engagementPushSnoozeCount ?? 0
 
   const main =
     p.variant === 'none' ? (
@@ -117,9 +111,6 @@ function ClientAppCell({ user, engagementMax }: { user: User; engagementMax: num
             <span className="font-bold text-gray-600">{user.clientPushSubscribedReported ? 'sì' : 'no'}</span>
           </p>
         )}
-        <p>
-          Posticipazioni banner: app {pwaSnooze}/{engagementMax} · push {pushSnooze}/{engagementMax}
-        </p>
       </div>
     </div>
   )
@@ -142,7 +133,6 @@ export default function UsersPage() {
   }
 
   const [users, setUsers] = useState<User[]>([])
-  const [engagementMaxSnoozes, setEngagementMaxSnoozes] = useState(7)
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -162,10 +152,8 @@ export default function UsersPage() {
         const data = await response.json()
         if (Array.isArray(data)) {
           setUsers(data)
-          setEngagementMaxSnoozes(7)
         } else {
           setUsers(data.users ?? [])
-          setEngagementMaxSnoozes(data.meta?.engagementMaxSnoozesPerType ?? 7)
         }
       }
     } catch (error) {
@@ -359,7 +347,6 @@ export default function UsersPage() {
                     <UserRow 
                       key={user.id} 
                       user={user} 
-                      engagementMax={engagementMaxSnoozes}
                       onEdit={() => setEditingUser(user)}
                       onDelete={() => openDeleteConfirm(user)}
                       onResetPassword={() => openResetPassword(user)}
@@ -376,7 +363,6 @@ export default function UsersPage() {
                 <UserMobileCard 
                   key={user.id} 
                   user={user} 
-                  engagementMax={engagementMaxSnoozes}
                   onEdit={() => setEditingUser(user)}
                   onDelete={() => openDeleteConfirm(user)}
                   onResetPassword={() => openResetPassword(user)}
@@ -407,8 +393,7 @@ export default function UsersPage() {
                       <UserRow 
                         key={user.id} 
                         user={user} 
-                        engagementMax={engagementMaxSnoozes}
-                        onEdit={() => setEditingUser(user)}
+                          onEdit={() => setEditingUser(user)}
                         onDelete={() => openDeleteConfirm(user)}
                         onResetPassword={() => openResetPassword(user)}
                         onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
@@ -422,8 +407,7 @@ export default function UsersPage() {
                   <UserMobileCard 
                     key={user.id} 
                     user={user} 
-                    engagementMax={engagementMaxSnoozes}
-                    onEdit={() => setEditingUser(user)}
+                      onEdit={() => setEditingUser(user)}
                     onDelete={() => openDeleteConfirm(user)}
                     onResetPassword={() => openResetPassword(user)}
                     onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
@@ -526,7 +510,7 @@ function StatCard({ label, value, icon: Icon, color, hint }: { label: string; va
   )
 }
 
-function UserRow({ user, engagementMax, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
+function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
   return (
     <tr className="group hover:bg-orange-50/30 transition-colors">
       <td className="px-8 py-5 whitespace-nowrap">
@@ -567,7 +551,7 @@ function UserRow({ user, engagementMax, onEdit, onDelete, onResetPassword, onTog
         </div>
       </td>
       <td className="px-8 py-5">
-        <ClientAppCell user={user} engagementMax={engagementMax} />
+        <ClientAppCell user={user} />
       </td>
       <td className="px-8 py-5">
         <div className="flex items-center gap-3">
@@ -602,7 +586,7 @@ function UserRow({ user, engagementMax, onEdit, onDelete, onResetPassword, onTog
   )
 }
 
-function UserMobileCard({ user, engagementMax, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
+function UserMobileCard({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
   return (
     <div className="bg-white rounded-[2rem] p-6 shadow-soft border border-gray-100 space-y-6">
       <div className="flex justify-between items-start">
@@ -641,7 +625,7 @@ function UserMobileCard({ user, engagementMax, onEdit, onDelete, onResetPassword
 
       <div className="space-y-2 pt-2 border-t border-gray-50">
         <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Client app (PWA)</p>
-        <ClientAppCell user={user} engagementMax={engagementMax} />
+        <ClientAppCell user={user} />
       </div>
 
       <div className="pt-4 border-t border-gray-50">

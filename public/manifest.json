@@ -72,20 +72,11 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshots/dashboard.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Dashboard PizzaDOC"
-    }
-  ],
   "shortcuts": [
     {
-      "name": "Dashboard",
-      "short_name": "Dashboard",
-      "description": "Vai alla dashboard",
+      "name": "Home",
+      "short_name": "Home",
+      "description": "Vai alla home",
       "url": "/dashboard",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
@@ -99,7 +90,7 @@
     {
       "name": "Ore Lavorate",
       "short_name": "Ore",
-      "description": "Inserisci le ore lavorate",
+      "description": "Consulta le ore lavorate",
       "url": "/hours",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }

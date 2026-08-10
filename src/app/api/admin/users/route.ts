@@ -4,7 +4,6 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/utils'
 import { logAuditAction } from '@/lib/audit-logger'
-import { getMaxEngagementSnoozesPerType } from '@/lib/engagement-limits'
 
 // GET /api/admin/users - Get all users
 export async function GET() {
@@ -30,12 +29,7 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json({
-      users,
-      meta: {
-        engagementMaxSnoozesPerType: getMaxEngagementSnoozesPerType()
-      }
-    })
+    return NextResponse.json({ users })
   } catch (error) {
     console.error('Error fetching users:', error)
     return NextResponse.json(

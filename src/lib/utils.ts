@@ -21,21 +21,6 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12)
 }
 
-export function formatTime(time: string): string {
-  return time.slice(0, 5) // "HH:MM"
-}
-
-export function calculateHours(startTime: string, endTime: string): number {
-  const [startHour, startMin] = startTime.split(':').map(Number)
-  const [endHour, endMin] = endTime.split(':').map(Number)
-  
-  const startMinutes = startHour * 60 + startMin
-  const endMinutes = endHour * 60 + endMin
-  
-  const diffMinutes = endMinutes - startMinutes
-  return Math.round((diffMinutes / 60) * 2) / 2 // Round to nearest 0.5
-}
-
 export function getDayName(dayOfWeek: number): string {
   // Our system: 0=Monday, 1=Tuesday, ..., 6=Sunday
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
