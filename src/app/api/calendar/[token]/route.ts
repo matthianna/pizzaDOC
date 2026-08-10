@@ -39,7 +39,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         status: { not: 'SUBSTITUTED' },
         schedules: {
           weekStart: {
-            gte: fromWeekStart,
+            ...(fromWeekStart ? { gte: fromWeekStart } : {}),
             lte: toWeekStart,
           },
         },

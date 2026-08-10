@@ -50,12 +50,13 @@ export type CalendarShiftInput = {
 }
 
 export function getCalendarFeedWeekRange(now: Date = new Date()): {
-  fromWeekStart: Date
+  fromWeekStart: Date | null
   toWeekStart: Date
 } {
   const current = getWeekStart(now)
   return {
-    fromWeekStart: addWeekCalendarDays(current, -14),
+    // Include all historical shifts so Apple Calendar shows the full past schedule.
+    fromWeekStart: null,
     toWeekStart: addWeekCalendarDays(current, 56),
   }
 }
