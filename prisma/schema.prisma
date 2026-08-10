@@ -217,6 +217,8 @@ model User {
   engagementPwaSnoozedUntil                       DateTime?
   engagementPushSnoozeCount                       Int               @default(0)
   engagementPushSnoozedUntil                      DateTime?
+  /// Secret token for personal ICS/webcal feed (Apple Calendar subscribe)
+  calendarToken                                   String?           @unique
   createdAt                                       DateTime          @default(now())
   updatedAt                                       DateTime
   Account                                         Account[]

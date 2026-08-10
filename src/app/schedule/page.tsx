@@ -23,6 +23,7 @@ import { Role, ShiftType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
+import { PersonalCalendarSubscribe } from '@/components/schedule/personal-calendar-subscribe'
 
 interface Substitution {
   id: string
@@ -226,6 +227,8 @@ export default function SchedulePage() {
             </p>
           </div>
         </div>
+
+        <PersonalCalendarSubscribe />
 
         {/* Week Navigation */}
         <div className="glass rounded-xl shadow-soft p-4 sm:p-6 mb-6">

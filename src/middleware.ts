@@ -27,6 +27,8 @@ function isPublicApi(pathname: string): boolean {
   if (pathname === '/api/push/vapid-key') return true
   if (pathname === '/api/seed') return true
   if (pathname.startsWith('/api/cron')) return true
+  // Personal ICS feed: authenticated by secret calendarToken in the path
+  if (pathname.startsWith('/api/calendar/')) return true
   if (isNextAuthPublicRoute(pathname)) return true
   return false
 }
