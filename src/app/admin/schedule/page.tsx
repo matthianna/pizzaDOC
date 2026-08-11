@@ -928,7 +928,7 @@ export default function AdminSchedulePage() {
                 </div>
                 <div className="bg-[var(--pd-surface)]/60 rounded-xl p-3">
                   <p className="text-[10px] font-bold" style={{ color: 'var(--pd-danger)' }}>Orario</p>
-                  <p className="font-semibold" style={{ color: 'var(--pd-danger)' }}>{selectedShift.startTime} - {selectedShift.endTime}</p>
+                  <p className="font-semibold" style={{ color: 'var(--pd-danger)' }}>{selectedShift.startTime}</p>
                 </div>
               </div>
             </div>

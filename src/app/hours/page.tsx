@@ -7,12 +7,12 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { PageHeader } from '@/components/layout/page-header'
 import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
-import { ListRow, EmptyState } from '@/components/ui/list-row'
+import { EmptyState } from '@/components/ui/list-row'
 import { WeekNavigator } from '@/components/ui/week-navigator'
 import { Clock, AlertCircle, CheckCircle, XCircle, History, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
+import { getRoleName, getShiftTypeName, cn } from '@/lib/utils'
 import { TZDate } from '@date-fns/tz'
 import {
   getWeekStart,
@@ -20,6 +20,7 @@ import {
   formatMonthYearIt,
   shiftCalendarDateUtc,
   formatDate,
+  shortWeekdayItFromDate,
 } from '@/lib/date-utils'
 import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 import { normalizeDate } from '@/lib/normalize-date'
@@ -316,6 +317,7 @@ export default function HoursPage() {
     <MainLayout contentWidth="4xl" title="Le mie ore" subtitle="Ore registrate dall'amministrazione">
       <div className="pd-page pb-20">
         <PageHeader
+          dense
           title="Le mie ore"
           subtitle="Ore registrate dall'amministrazione"
           action={
@@ -443,24 +445,26 @@ export default function HoursPage() {
                         <button
                           type="button"
                           onClick={() => toggleMonth(month.month)}
-                          className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left pd-press"
+                          className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left pd-press"
                         >
                           <div className="min-w-0">
                             <p className="text-sm font-semibold capitalize" style={{ color: 'var(--pd-text)' }}>
                               {month.month}
                             </p>
                             <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
-                              {Math.round(monthShare)}% dell&apos;anno · media{' '}
-                              {formatDecimalHoursIt(month.avgHoursPerShift)}/turno
+                              {month.shiftsCount} {month.shiftsCount === 1 ? 'turno' : 'turni'} · media{' '}
+                              {formatDecimalHoursIt(month.avgHoursPerShift)}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-xs tabular-nums font-semibold" style={{ color: 'var(--pd-text)' }}>
-                              {formatDecimalHoursIt(month.totalHours)}
-                            </span>
-                            <span className="text-xs" style={{ color: 'var(--pd-muted)' }}>
-                              {month.shiftsCount} turni
-                            </span>
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="text-right">
+                              <p className="text-sm font-semibold tabular-nums" style={{ color: 'var(--pd-text)' }}>
+                                {formatDecimalHoursIt(month.totalHours)}
+                              </p>
+                              <p className="text-[10px] mt-0.5" style={{ color: 'var(--pd-muted)' }}>
+                                {Math.round(monthShare)}% anno
+                              </p>
+                            </div>
                             <ChevronDown
                               className={cn(
                                 'h-4 w-4 transition-transform',
@@ -471,20 +475,54 @@ export default function HoursPage() {
                           </div>
                         </button>
                         {isExpanded && (
-                          <div style={{ borderTop: '1px solid var(--pd-border)' }}>
-                            {month.details.map((detail, idx) => (
-                              <ListRow
-                                key={`${detail.date}-${detail.startTime}-${idx}`}
-                                title={getShiftTypeName(detail.shiftType)}
-                                subtitle={`${getRoleName(detail.role)} · ${detail.startTime}–${detail.endTime}`}
-                                meta={formatDecimalHoursIt(detail.hours)}
-                                trailing={
-                                  <span className="text-[11px]" style={{ color: 'var(--pd-muted)' }}>
-                                    {detail.date}
-                                  </span>
+                          <div className="divide-y" style={{ borderColor: 'var(--pd-border)', borderTop: '1px solid var(--pd-border)' }}>
+                            {month.details.map((detail, idx) => {
+                              let parsedDate: Date | null = null
+                              try {
+                                // detail.date may be dd/MM/yyyy or ISO
+                                if (detail.date.includes('/')) {
+                                  const [dd, mm, yyyy] = detail.date.split('/').map(Number)
+                                  parsedDate = new Date(Date.UTC(yyyy, mm - 1, dd))
+                                } else {
+                                  parsedDate = normalizeDate(detail.date)
                                 }
-                              />
-                            ))}
+                              } catch {
+                                parsedDate = null
+                              }
+
+                              return (
+                                <div
+                                  key={`${detail.date}-${detail.startTime}-${idx}`}
+                                  className="px-4 py-3 flex items-center gap-3"
+                                >
+                                  <div
+                                    className="w-11 shrink-0 text-center py-1"
+                                    style={{
+                                      background: 'var(--pd-surface-muted)',
+                                      borderRadius: 'var(--pd-radius)',
+                                    }}
+                                  >
+                                    <p className="text-[10px] font-semibold uppercase" style={{ color: 'var(--pd-muted)' }}>
+                                      {parsedDate ? shortWeekdayItFromDate(parsedDate) : '—'}
+                                    </p>
+                                    <p className="text-sm font-semibold tabular-nums leading-tight" style={{ color: 'var(--pd-text)' }}>
+                                      {parsedDate ? String(parsedDate.getUTCDate()).padStart(2, '0') : '—'}
+                                    </p>
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                                      {getShiftTypeName(detail.shiftType)}
+                                    </p>
+                                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--pd-muted)' }}>
+                                      {getRoleName(detail.role)} · {detail.startTime}–{detail.endTime}
+                                    </p>
+                                  </div>
+                                  <p className="text-sm font-semibold tabular-nums shrink-0" style={{ color: 'var(--pd-text)' }}>
+                                    {formatDecimalHoursIt(detail.hours)}
+                                  </p>
+                                </div>
+                              )
+                            })}
                           </div>
                         )}
                       </div>
@@ -528,45 +566,100 @@ function HoursShiftRow({
 
   const isPastShift = shiftStartInstant.getTime() <= Date.now()
   const wh = shift.workedHours
+  const start = shift.startTime?.slice?.(0, 5) ?? shift.startTime
+  const end = shift.endTime?.slice?.(0, 5) ?? shift.endTime
 
-  let subtitle = `${getRoleName(shift.role)} · inizio ${shift.startTime}`
-  if (wh && wh.status !== 'REJECTED') {
-    subtitle = `${wh.startTime}–${wh.endTime} · ${formatDecimalHoursIt(wh.totalHours)}`
+  let statusLine = `${getRoleName(shift.role)} · ${start}${end ? `–${end}` : ''}`
+  let statusTone: { color: string; bg: string; label: string; icon: JSX.Element } | null = null
+
+  if (wh?.status === 'APPROVED') {
+    statusLine = `${wh.startTime}–${wh.endTime}`
+    statusTone = {
+      label: formatDecimalHoursIt(wh.totalHours),
+      color: 'var(--pd-success)',
+      bg: 'var(--pd-success-soft)',
+      icon: getStatusIcon(wh.status),
+    }
+  } else if (wh?.status === 'PENDING') {
+    statusLine = `${wh.startTime}–${wh.endTime} · ${formatDecimalHoursIt(wh.totalHours)}`
+    statusTone = {
+      label: getStatusText(wh.status),
+      color: 'var(--pd-warning)',
+      bg: 'var(--pd-warning-soft)',
+      icon: getStatusIcon(wh.status),
+    }
   } else if (wh?.status === 'REJECTED') {
-    subtitle = wh.rejectionReason || 'Ore rifiutate — contatta l\'amministrazione'
+    statusLine = wh.rejectionReason || 'Ore rifiutate — contatta l\'amministrazione'
+    statusTone = {
+      label: getStatusText(wh.status),
+      color: 'var(--pd-danger)',
+      bg: 'var(--pd-danger-soft)',
+      icon: getStatusIcon(wh.status),
+    }
   } else if (!wh && isPastShift) {
-    subtitle = 'In attesa di registrazione dall\'amministrazione'
+    statusLine = 'In attesa di registrazione dall\'amministrazione'
+    statusTone = {
+      label: 'Da registrare',
+      color: 'var(--pd-muted)',
+      bg: 'var(--pd-surface-muted)',
+      icon: <AlertCircle className="h-3.5 w-3.5" />,
+    }
   } else if (!wh && !isPastShift) {
-    subtitle = `Turno non ancora iniziato · ${getRoleName(shift.role)}`
+    statusLine = `${getRoleName(shift.role)} · turno non ancora iniziato`
+    statusTone = {
+      label: 'Programmato',
+      color: 'var(--pd-muted)',
+      bg: 'var(--pd-surface-muted)',
+      icon: <Clock className="h-3.5 w-3.5" />,
+    }
   }
 
   return (
-    <ListRow
-      title={`${getDayName(shift.dayOfWeek)} · ${getShiftTypeName(shift.shiftType)}`}
-      subtitle={subtitle}
-      meta={String(shiftDayUtc.getUTCDate()).padStart(2, '0')}
-      trailing={
-        wh ? (
-          <span
-            className="inline-flex items-center gap-1 text-[11px] font-medium"
-            style={{
-              color:
-                wh.status === 'APPROVED'
-                  ? 'var(--pd-success)'
-                  : wh.status === 'REJECTED'
-                    ? 'var(--pd-danger)'
-                    : 'var(--pd-warning)',
-            }}
-          >
-            {getStatusIcon(wh.status)}
-            {getStatusText(wh.status)}
-          </span>
-        ) : isPastShift ? (
-          <AlertCircle className="h-4 w-4" style={{ color: 'var(--pd-muted)' }} />
-        ) : (
-          <Clock className="h-4 w-4" style={{ color: 'var(--pd-muted)' }} />
-        )
-      }
-    />
+    <div
+      className="px-4 py-3.5 flex items-center gap-3"
+      style={{ borderBottom: '1px solid var(--pd-border)' }}
+      data-list-row
+    >
+      <div
+        className="w-12 shrink-0 text-center py-1.5"
+        style={{
+          background: 'var(--pd-surface-muted)',
+          borderRadius: 'var(--pd-radius)',
+        }}
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--pd-muted)' }}>
+          {shortWeekdayItFromDate(shiftDayUtc)}
+        </p>
+        <p className="text-base font-semibold tabular-nums leading-none mt-0.5" style={{ color: 'var(--pd-text)' }}>
+          {String(shiftDayUtc.getUTCDate()).padStart(2, '0')}
+        </p>
+        <p className="text-[10px] mt-0.5 capitalize" style={{ color: 'var(--pd-muted)' }}>
+          {format(shiftDayUtc, 'MMM', { locale: it })}
+        </p>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+          {getShiftTypeName(shift.shiftType)}
+        </p>
+        <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--pd-muted)' }}>
+          {statusLine}
+        </p>
+      </div>
+
+      {statusTone && (
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold shrink-0 tabular-nums"
+          style={{
+            color: statusTone.color,
+            background: statusTone.bg,
+            borderRadius: 'var(--pd-radius-pill)',
+          }}
+        >
+          {statusTone.icon}
+          {statusTone.label}
+        </span>
+      )}
+    </div>
   )
 }

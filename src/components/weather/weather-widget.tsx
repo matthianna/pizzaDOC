@@ -53,8 +53,9 @@ export function WeatherWidget() {
 
   const fetchWeather = async () => {
     try {
-      const lat = 46.0167
-      const lon = 8.9500
+      // Savosa (TI), CH
+      const lat = 46.0206
+      const lon = 8.9431
 
       const response = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&hourly=temperature_2m,weather_code,precipitation,relative_humidity_2m&timezone=Europe/Zurich&forecast_days=7`

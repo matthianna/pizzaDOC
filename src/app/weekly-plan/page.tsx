@@ -600,9 +600,6 @@ function ShiftSlot({
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold tabular-nums" style={{ color: 'var(--pd-text)' }}>
                     {shift.startTime}
-                    {shift.endTime ? (
-                      <span style={{ color: 'var(--pd-muted)' }}>–{shift.endTime}</span>
-                    ) : null}
                   </p>
                 </div>
               </li>

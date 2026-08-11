@@ -16,6 +16,8 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -26,7 +28,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { WeatherWidget } from '@/components/weather/weather-widget'
 import { NotificationPermissionPrompt } from '@/components/notifications/notification-permission-prompt'
 import { formatDecimalHoursIt } from '@/lib/format-hours-display'
-import { getShiftTimes } from '@/lib/date-utils'
 import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
 import { QuickActionPills } from '@/components/ui/quick-action-pills'
@@ -150,6 +151,10 @@ function roleIcon(role: string) {
   return UserCheck
 }
 
+function timeLabel(t: string) {
+  return typeof t === 'string' ? t.slice(0, 5) : t
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession()
   const [stats, setStats] = useState<DashboardStats>({})
@@ -158,7 +163,7 @@ export default function DashboardPage() {
   const [pendingHours, setPendingHours] = useState<PendingHoursData | null>(null)
   const [missingHours, setMissingHours] = useState<MissingHoursData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [weatherOpen, setWeatherOpen] = useState(false)
+  const [weatherOpen, setWeatherOpen] = useState(true)
   const { lightClick } = useHaptics()
 
   const isAdminUser = session?.user.roles.includes('ADMIN')
@@ -271,6 +276,7 @@ export default function DashboardPage() {
   const hour = new Date().getHours()
   const greeting = hour < 17 ? 'Buongiorno' : 'Buonasera'
   const displayName = formatUsername(session?.user.username)
+  const todayLabel = format(new Date(), "EEEE d MMMM", { locale: it })
 
   const myTodayShifts: TodayShift[] = []
   if (todayShifts && session?.user.id) {
@@ -281,16 +287,14 @@ export default function DashboardPage() {
     }
   }
 
-  let shiftSummary = 'Nessun turno oggi'
+  let shiftSummary = isAdminUser ? 'Amministratore' : 'Nessun turno oggi'
   if (myTodayShifts.length === 1) {
     const s = myTodayShifts[0]
-    shiftSummary = `Oggi hai turno a ${s.shiftType === 'PRANZO' ? 'pranzo' : 'cena'} · ${s.startTime}–${s.endTime} · ${getRoleName(s.role as Role)}`
+    shiftSummary = `Turno a ${s.shiftType === 'PRANZO' ? 'pranzo' : 'cena'} · dalle ${timeLabel(s.startTime)} · ${getRoleName(s.role as Role)}`
   } else if (myTodayShifts.length > 1) {
-    shiftSummary = `Oggi hai ${myTodayShifts.length} turni · ${myTodayShifts
-      .map((s) => `${s.shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'} ${s.startTime}`)
+    shiftSummary = `${myTodayShifts.length} turni oggi · ${myTodayShifts
+      .map((s) => `${s.shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'} ${timeLabel(s.startTime)}`)
       .join(' · ')}`
-  } else if (isAdminUser) {
-    shiftSummary = `${format(new Date(), 'EEEE d MMMM', { locale: it })} · Amministratore`
   }
 
   const statItems = isAdminUser
@@ -354,17 +358,46 @@ export default function DashboardPage() {
 
   return (
     <MainLayout contentWidth="4xl" title="Home">
-      <div className="pd-page pb-4">
+      <div className="pd-page pb-8">
         <section>
-          <p className="text-sm font-medium" style={{ color: 'var(--pd-muted)' }}>
-            {greeting}
+          <p className="text-sm font-medium capitalize" style={{ color: 'var(--pd-muted)' }}>
+            {greeting} · {todayLabel}
           </p>
-          <h2 className="pd-display text-2xl sm:text-3xl font-semibold tracking-tight mt-0.5">
+          <h2 className="pd-display text-2xl sm:text-3xl font-semibold tracking-tight mt-1">
             {displayName}
           </h2>
-          <p className="mt-2 text-sm" style={{ color: 'var(--pd-muted)' }}>
+          <p className="mt-1.5 text-sm" style={{ color: 'var(--pd-muted)' }}>
             {shiftSummary}
           </p>
+        </section>
+
+        <section
+          className="overflow-hidden"
+          style={{
+            background: 'var(--pd-surface)',
+            border: '1px solid var(--pd-border)',
+            borderRadius: 'var(--pd-radius-lg)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setWeatherOpen((o) => !o)}
+            className="w-full flex items-center justify-between px-4 py-3 text-left pd-press"
+          >
+            <span className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+              Meteo Savosa
+            </span>
+            {weatherOpen ? (
+              <ChevronUp className="h-4 w-4" style={{ color: 'var(--pd-muted)' }} />
+            ) : (
+              <ChevronDown className="h-4 w-4" style={{ color: 'var(--pd-muted)' }} />
+            )}
+          </button>
+          {weatherOpen && (
+            <div style={{ borderTop: '1px solid var(--pd-border)' }}>
+              <WeatherWidget />
+            </div>
+          )}
         </section>
 
         <StatStrip items={statItems} />
@@ -373,23 +406,82 @@ export default function DashboardPage() {
           <QuickActionPills items={quickActions} />
         </SectionBlock>
 
+        {hasActions && (
+          <SectionBlock title="Da gestire" card>
+            {showAdminHoursAlert && (
+              <Link href="/admin/hours" onClick={() => lightClick()} className="block">
+                <ListRow
+                  leading={<Clock className="h-5 w-5" style={{ color: 'var(--pd-accent)' }} />}
+                  title="Revisione ore"
+                  subtitle={
+                    pendingHours!.totalShifts === 1
+                      ? '1 registrazione in attesa'
+                      : `${pendingHours!.totalShifts} registrazioni in attesa`
+                  }
+                  trailing={
+                    <span className="text-xs font-semibold" style={{ color: 'var(--pd-accent)' }}>
+                      Approva →
+                    </span>
+                  }
+                />
+              </Link>
+            )}
+
+            {showMissingHoursAlert && (
+              <Link href="/hours" onClick={() => lightClick()} className="block">
+                <ListRow
+                  leading={<AlertCircle className="h-5 w-5" style={{ color: 'var(--pd-danger)' }} />}
+                  title="Ore non registrate"
+                  subtitle={
+                    missingHours!.count === 1
+                      ? '1 turno passato senza ore'
+                      : `${missingHours!.count} turni passati senza ore`
+                  }
+                  trailing={
+                    <span className="text-xs font-semibold" style={{ color: 'var(--pd-accent)' }}>
+                      Dettaglio →
+                    </span>
+                  }
+                />
+              </Link>
+            )}
+
+            {showSubsAlert && (
+              <Link href="/admin/substitutions" onClick={() => lightClick()} className="block">
+                <ListRow
+                  leading={
+                    <ArrowLeftRight className="h-5 w-5" style={{ color: 'var(--pd-accent)' }} />
+                  }
+                  title="Sostituzioni"
+                  subtitle={`${stats.pendingSubstitutions} ${
+                    stats.pendingSubstitutions === 1 ? 'richiesta' : 'richieste'
+                  } da approvare`}
+                  trailing={
+                    <span className="text-xs font-semibold" style={{ color: 'var(--pd-accent)' }}>
+                      Gestisci →
+                    </span>
+                  }
+                />
+              </Link>
+            )}
+          </SectionBlock>
+        )}
+
         <SectionBlock
           title="Turni di oggi"
-          subtitle={`${todayShifts?.totalWorkers ?? 0} in servizio · ${format(new Date(), 'dd/MM')}`}
+          subtitle={
+            todayShifts
+              ? `${todayShifts.totalWorkers} ${todayShifts.totalWorkers === 1 ? 'persona' : 'persone'} in servizio`
+              : undefined
+          }
           action={
-            isAdminUser ? (
-              <a
-                href="/admin/schedule"
-                className="text-xs font-semibold"
-                style={{ color: 'var(--pd-accent)' }}
-              >
-                Piano completo →
-              </a>
-            ) : (
-              <a href="/schedule" className="text-xs font-semibold" style={{ color: 'var(--pd-accent)' }}>
-                Mio piano →
-              </a>
-            )
+            <a
+              href={isAdminUser ? '/admin/schedule' : '/schedule'}
+              className="text-xs font-semibold"
+              style={{ color: 'var(--pd-accent)' }}
+            >
+              {isAdminUser ? 'Piano completo →' : 'Mio piano →'}
+            </a>
           }
         >
           {todayShifts &&
@@ -433,7 +525,7 @@ export default function DashboardPage() {
               ]
 
               return (
-                <div className="space-y-5">
+                <div className="space-y-4">
                   {hasHoliday && (
                     <div
                       className="px-4 py-3 flex items-start gap-3"
@@ -471,42 +563,72 @@ export default function DashboardPage() {
                     const closed = type === 'PRANZO' ? prClosed : ceClosed
                     if (!closed && shifts.length === 0) return null
 
-                    const times = getShiftTimes(type)
-                    const title = type === 'PRANZO' ? 'Pranzo' : 'Cena'
+                    const isPranzo = type === 'PRANZO'
+                    const SlotIcon = isPranzo ? Sun : Moon
+                    const title = isPranzo ? 'Pranzo' : 'Cena'
+                    const earliest = shifts.length
+                      ? [...shifts].sort((a, b) => a.startTime.localeCompare(b.startTime))[0]
+                          .startTime
+                      : isPranzo
+                        ? '11:30'
+                        : '18:00'
 
                     return (
-                      <div key={type}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
-                            {title}
-                          </p>
-                          <span className="text-xs" style={{ color: 'var(--pd-muted)' }}>
-                            {closed ? 'Chiuso' : `${times.start}–${times.end}`}
-                          </span>
-                        </div>
-                        <ul
-                          className="overflow-hidden"
+                      <div
+                        key={type}
+                        className="overflow-hidden"
+                        style={{
+                          background: 'var(--pd-surface)',
+                          border: '1px solid var(--pd-border)',
+                          borderRadius: 'var(--pd-radius-lg)',
+                          boxShadow: 'var(--pd-shadow)',
+                        }}
+                      >
+                        <div
+                          className="px-4 py-2.5 flex items-center justify-between gap-2"
                           style={{
-                            background: 'var(--pd-surface)',
-                            border: '1px solid var(--pd-border)',
-                            borderRadius: 'var(--pd-radius-lg)',
+                            background: 'var(--pd-surface-muted)',
+                            borderBottom: '1px solid var(--pd-border)',
                           }}
                         >
-                          {closed && shifts.length === 0 ? (
-                            <li className="px-4 py-4 text-sm" style={{ color: 'var(--pd-muted)' }}>
-                              Nessun servizio · chiusura programmata
-                            </li>
-                          ) : (
-                            shifts.map((s) => {
-                              const isMe = s.user.id === session?.user.id
-                              const Icon = roleIcon(s.role)
-                              return (
-                                <ListRow
-                                  key={s.id}
-                                  as="li"
-                                  highlight={isMe}
-                                  className="last:border-b-0"
-                                  leading={
+                          <p
+                            className="text-sm font-semibold inline-flex items-center gap-1.5"
+                            style={{ color: 'var(--pd-text)' }}
+                          >
+                            <SlotIcon
+                              className="h-4 w-4"
+                              style={{ color: isPranzo ? 'var(--pd-warning)' : 'var(--pd-muted)' }}
+                            />
+                            {title}
+                          </p>
+                          <span className="text-xs font-medium tabular-nums" style={{ color: 'var(--pd-muted)' }}>
+                            {closed
+                              ? 'Chiuso'
+                              : `${shifts.length} ${shifts.length === 1 ? 'persona' : 'persone'} · dalle ${timeLabel(earliest)}`}
+                          </span>
+                        </div>
+
+                        {closed && shifts.length === 0 ? (
+                          <p className="px-4 py-4 text-sm" style={{ color: 'var(--pd-muted)' }}>
+                            Nessun servizio · chiusura programmata
+                          </p>
+                        ) : (
+                          <ul className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
+                            {[...shifts]
+                              .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                              .map((s) => {
+                                const isMe = s.user.id === session?.user.id
+                                const Icon = roleIcon(s.role)
+                                return (
+                                  <li
+                                    key={s.id}
+                                    className="px-4 py-3 flex items-center gap-3"
+                                    style={{
+                                      background: isMe
+                                        ? 'color-mix(in srgb, var(--pd-accent-soft) 45%, transparent)'
+                                        : undefined,
+                                    }}
+                                  >
                                     <span
                                       className="flex h-9 w-9 items-center justify-center rounded-full shrink-0"
                                       style={{
@@ -518,26 +640,33 @@ export default function DashboardPage() {
                                     >
                                       <Icon className="h-4 w-4" />
                                     </span>
-                                  }
-                                  title={
-                                    <>
-                                      {formatUsername(s.user.username)}
-                                      {isMe && (
-                                        <span
-                                          className="ml-2 text-[10px] font-bold uppercase tracking-wider"
-                                          style={{ color: 'var(--pd-accent)' }}
-                                        >
-                                          Tu
-                                        </span>
-                                      )}
-                                    </>
-                                  }
-                                  subtitle={`${getRoleName(s.role as Role)} · ${s.startTime}–${s.endTime}`}
-                                />
-                              )
-                            })
-                          )}
-                        </ul>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--pd-text)' }}>
+                                        {formatUsername(s.user.username)}
+                                        {isMe && (
+                                          <span
+                                            className="ml-1.5 text-[10px] font-bold uppercase tracking-wider"
+                                            style={{ color: 'var(--pd-accent)' }}
+                                          >
+                                            Tu
+                                          </span>
+                                        )}
+                                      </p>
+                                      <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
+                                        {getRoleName(s.role as Role)}
+                                      </p>
+                                    </div>
+                                    <span
+                                      className="text-sm font-semibold tabular-nums shrink-0"
+                                      style={{ color: 'var(--pd-text)' }}
+                                    >
+                                      {timeLabel(s.startTime)}
+                                    </span>
+                                  </li>
+                                )
+                              })}
+                          </ul>
+                        )}
                       </div>
                     )
                   })}
@@ -545,65 +674,6 @@ export default function DashboardPage() {
               )
             })()}
         </SectionBlock>
-
-        {hasActions && (
-          <SectionBlock title="Azioni richieste" card>
-              {showAdminHoursAlert && (
-                <Link href="/admin/hours" onClick={() => lightClick()} className="block">
-                  <ListRow
-                    leading={<Clock className="h-5 w-5" style={{ color: 'var(--pd-accent)' }} />}
-                    title="Revisione ore"
-                    subtitle={
-                      pendingHours!.totalShifts === 1
-                        ? '1 registrazione in attesa'
-                        : `${pendingHours!.totalShifts} registrazioni in attesa`
-                    }
-                    trailing={
-                      <span className="text-xs font-semibold" style={{ color: 'var(--pd-accent)' }}>
-                        Approva →
-                      </span>
-                    }
-                  />
-                </Link>
-              )}
-
-              {showMissingHoursAlert && (
-                <Link href="/hours" onClick={() => lightClick()} className="block">
-                  <ListRow
-                    leading={<AlertCircle className="h-5 w-5" style={{ color: 'var(--pd-danger)' }} />}
-                    title="Ore non registrate"
-                    subtitle={
-                      missingHours!.count === 1
-                        ? '1 turno passato senza ore'
-                        : `${missingHours!.count} turni passati senza ore`
-                    }
-                    trailing={
-                      <span className="text-xs font-semibold" style={{ color: 'var(--pd-accent)' }}>
-                        Dettaglio →
-                      </span>
-                    }
-                  />
-                </Link>
-              )}
-
-              {showSubsAlert && (
-                <Link href="/admin/substitutions" onClick={() => lightClick()} className="block">
-                  <ListRow
-                    leading={<ArrowLeftRight className="h-5 w-5" style={{ color: 'var(--pd-accent)' }} />}
-                    title="Sostituzioni"
-                    subtitle={`${stats.pendingSubstitutions} ${
-                      stats.pendingSubstitutions === 1 ? 'richiesta' : 'richieste'
-                    } da approvare`}
-                    trailing={
-                      <span className="text-xs font-semibold" style={{ color: 'var(--pd-accent)' }}>
-                        Gestisci →
-                      </span>
-                    }
-                  />
-                </Link>
-              )}
-          </SectionBlock>
-        )}
 
         {!isAdminUser && myShifts && myShifts.shifts.length > 0 && (
           <SectionBlock title="I miei prossimi turni" card>
@@ -613,29 +683,11 @@ export default function DashboardPage() {
                 highlight={s.isToday}
                 title={`${s.shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'} · ${getRoleName(s.role as Role)}`}
                 subtitle={`${s.dayName} ${format(new Date(s.date), 'd MMM', { locale: it })}`}
-                meta={s.startTime}
+                meta={timeLabel(s.startTime)}
               />
             ))}
           </SectionBlock>
         )}
-
-        <section>
-          <button
-            type="button"
-            onClick={() => setWeatherOpen((o) => !o)}
-            className="w-full flex items-center justify-between px-1 py-2 text-left"
-          >
-            <span className="text-sm font-semibold" style={{ color: 'var(--pd-muted)' }}>
-              Meteo Locarno
-            </span>
-            {weatherOpen ? (
-              <ChevronUp className="h-4 w-4" style={{ color: 'var(--pd-muted)' }} />
-            ) : (
-              <ChevronDown className="h-4 w-4" style={{ color: 'var(--pd-muted)' }} />
-            )}
-          </button>
-          {weatherOpen && <WeatherWidget />}
-        </section>
       </div>
       <NotificationPermissionPrompt />
     </MainLayout>

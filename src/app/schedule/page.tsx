@@ -394,11 +394,6 @@ export default function SchedulePage() {
                                 style={{ color: 'var(--pd-text)' }}
                               >
                                 {timeLabel(shift.startTime)}
-                                {shift.endTime ? (
-                                  <span style={{ color: 'var(--pd-muted)' }}>
-                                    –{timeLabel(shift.endTime)}
-                                  </span>
-                                ) : null}
                               </p>
 
                               {shift.workedHours && (
@@ -512,8 +507,7 @@ export default function SchedulePage() {
                 </p>
                 <p className="text-xs mt-1 tabular-nums" style={{ color: 'var(--pd-muted)' }}>
                   {formatDate(addWeekCalendarDays(currentWeek, selectedShift.dayOfWeek))} ·{' '}
-                  {timeLabel(selectedShift.startTime)}
-                  {selectedShift.endTime ? `–${timeLabel(selectedShift.endTime)}` : ''} ·{' '}
+                  {timeLabel(selectedShift.startTime)} ·{' '}
                   {getRoleName(selectedShift.role)}
                 </p>
               </div>

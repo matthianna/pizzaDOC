@@ -263,7 +263,7 @@ export default function ProfilePage() {
                   <ListRow
                     key={shift.id}
                     title={`${format(parseISO(shift.date), 'EEE d MMM', { locale: it })} · ${getShiftTypeName(shift.shiftType)}`}
-                    subtitle={`${getRoleName(shift.role)} · ${shift.startTime}–${shift.endTime}`}
+                    subtitle={`${getRoleName(shift.role)} · ${shift.startTime}`}
                     meta={format(parseISO(shift.date), 'dd/MM', { locale: it })}
                     leading={
                       <div

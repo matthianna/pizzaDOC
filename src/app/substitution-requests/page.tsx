@@ -8,7 +8,7 @@ import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
 import { ListRow, EmptyState } from '@/components/ui/list-row'
 import { CheckCircle, Send, Trash2 } from 'lucide-react'
-import { format, parseISO, isPast } from 'date-fns'
+import { format, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { addWeekCalendarDays } from '@/lib/date-utils'
@@ -247,12 +247,15 @@ export default function SubstitutionRequestsPage() {
                     <div key={substitution.id}>
                       <ListRow
                         title={`${getDayName(substitution.shifts.dayOfWeek)} · ${getShiftTypeName(substitution.shifts.shiftType)}`}
-                        subtitle={`${format(shiftDate, 'dd MMM yyyy', { locale: it })} · ${substitution.shifts.startTime}–${substitution.shifts.endTime} · ${getRoleName(substitution.shifts.role)} · ${substitution.requester.username}`}
-                        meta={format(parseISO(substitution.createdAt), 'dd/MM')}
+                        subtitle={`${format(shiftDate, 'd MMMM yyyy', { locale: it })} · ${substitution.shifts.startTime} · ${getRoleName(substitution.shifts.role)} · ${substitution.requester.username}`}
                         trailing={
                           <span
-                            className="text-[11px] font-medium"
-                            style={{ color: getStatusColor(substitution.status) }}
+                            className="inline-flex px-2.5 py-1 text-[11px] font-semibold"
+                            style={{
+                              color: getStatusColor(substitution.status),
+                              background: 'var(--pd-surface-muted)',
+                              borderRadius: 'var(--pd-radius-pill)',
+                            }}
                           >
                             {getStatusText(substitution.status)}
                           </span>
@@ -304,16 +307,19 @@ export default function SubstitutionRequestsPage() {
                     <div key={substitution.id}>
                       <ListRow
                         title={`${getDayName(substitution.shifts.dayOfWeek)} · ${getShiftTypeName(substitution.shifts.shiftType)}`}
-                        subtitle={`${format(shiftDate, 'dd MMMM yyyy', { locale: it })}${
+                        subtitle={`${format(shiftDate, 'd MMMM yyyy', { locale: it })} · ${substitution.shifts.startTime}${
                           substitution.substitute
                             ? ` · Candidato: ${substitution.substitute.username}`
                             : ''
                         }`}
-                        meta={format(parseISO(substitution.createdAt), 'dd/MM')}
                         trailing={
                           <span
-                            className="text-[11px] font-medium"
-                            style={{ color: getStatusColor(substitution.status) }}
+                            className="inline-flex px-2.5 py-1 text-[11px] font-semibold"
+                            style={{
+                              color: getStatusColor(substitution.status),
+                              background: 'var(--pd-surface-muted)',
+                              borderRadius: 'var(--pd-radius-pill)',
+                            }}
                           >
                             {getStatusText(substitution.status)}
                           </span>
