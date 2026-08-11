@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -8,7 +8,6 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
-import { cn } from '@/lib/utils'
 
 const inputStyle: React.CSSProperties = {
   background: 'var(--pd-surface)',
@@ -29,59 +28,8 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [dbStatus, setDbStatus] = useState<'checking' | 'ok' | 'error'>('checking')
-  const [dbMessage, setDbMessage] = useState('Verificando connessione...')
   const router = useRouter()
   const { ToastContainer } = useToast()
-
-  useEffect(() => {
-    const checkDatabaseHealth = async () => {
-      try {
-        console.log('[LOGIN] Checking database health...')
-        const response = await fetch('/api/health')
-        console.log('[LOGIN] Health response status:', response.status)
-
-        if (!response.ok) {
-          console.error('[LOGIN] Health check failed with status:', response.status)
-          setDbStatus('error')
-          setDbMessage(`Errore HTTP ${response.status}`)
-          return
-        }
-
-        const contentType = response.headers.get('content-type')
-        console.log('[LOGIN] Content-Type:', contentType)
-
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text()
-          console.error('[LOGIN] Non-JSON response:', text.substring(0, 200))
-          setDbStatus('error')
-          setDbMessage('Risposta non valida dal server')
-          return
-        }
-
-        const data = await response.json()
-        console.log('[LOGIN] Health check data:', data)
-
-        if (data.status === 'ok') {
-          setDbStatus('ok')
-          const n = typeof data.userCount === 'number' ? data.userCount : null
-          setDbMessage(n !== null ? `Database OK ` : 'Database OK')
-        } else {
-          setDbStatus('error')
-          setDbMessage(`Errore DB: ${data.message || 'Sconosciuto'}`)
-        }
-      } catch (error: any) {
-        console.error('[LOGIN] Health check exception:', error)
-        setDbStatus('error')
-        setDbMessage(`Errore: ${error.message || 'Connessione fallita'}`)
-      }
-    }
-
-    checkDatabaseHealth()
-
-    const interval = setInterval(checkDatabaseHealth, 30000)
-    return () => clearInterval(interval)
-  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -245,40 +193,6 @@ export default function SignInPage() {
               {isLoading ? 'Accesso in corso...' : 'Accedi'}
             </Button>
           </form>
-
-          <div className="mt-8 flex justify-center">
-            <div
-              className={cn('flex items-center gap-2.5 px-4 py-2 text-[11px] font-semibold rounded-full')}
-              style={{
-                background:
-                  dbStatus === 'ok'
-                    ? 'var(--pd-success-soft)'
-                    : dbStatus === 'error'
-                      ? 'var(--pd-danger-soft)'
-                      : 'var(--pd-surface)',
-                color:
-                  dbStatus === 'ok'
-                    ? 'var(--pd-success)'
-                    : dbStatus === 'error'
-                      ? 'var(--pd-danger)'
-                      : 'var(--pd-muted)',
-                border: '1px solid var(--pd-border)',
-              }}
-            >
-              <div
-                className={cn('w-2 h-2 rounded-full', dbStatus === 'checking' && 'animate-pulse')}
-                style={{
-                  background:
-                    dbStatus === 'ok'
-                      ? 'var(--pd-success)'
-                      : dbStatus === 'error'
-                        ? 'var(--pd-danger)'
-                        : 'var(--pd-muted)',
-                }}
-              />
-              <span>{dbMessage}</span>
-            </div>
-          </div>
 
           <p className="mt-10 text-center text-xs" style={{ color: 'var(--pd-muted)' }}>
             © {new Date().getFullYear()} Pizza D.O.C.
