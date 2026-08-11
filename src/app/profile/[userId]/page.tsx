@@ -1,23 +1,41 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import Link from 'next/link'
 import { MainLayout } from '@/components/layout/main-layout'
-import { StaffPageHeader } from '@/components/layout/staff-page-header'
-import { User, Calendar, Clock, MapPin, Briefcase, TrendingUp, ChevronRight, Star, ShieldCheck, Mail, Smartphone, Bike, Car } from 'lucide-react'
+import { PageHeader } from '@/components/layout/page-header'
+import { StatStrip } from '@/components/ui/stat-strip'
+import { SectionBlock } from '@/components/ui/section-block'
+import { QuickActionPills } from '@/components/ui/quick-action-pills'
+import { ListRow, EmptyState } from '@/components/ui/list-row'
+import {
+  User,
+  Calendar,
+  Clock,
+  ShieldCheck,
+  Bike,
+  Car,
+  Users,
+  LayoutGrid,
+  Settings,
+  ArrowLeftRight,
+} from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { getRoleName, getShiftTypeName, cn } from '@/lib/utils'
+import { getRoleName, getShiftTypeName } from '@/lib/utils'
 import { useParams } from 'next/navigation'
-import { Role, ShiftType, Transport } from '@prisma/client'
+import { Role, ShiftType, TransportType } from '@prisma/client'
 import { formatDecimalHoursIt } from '@/lib/format-hours-display'
-import { Skeleton, CardSkeleton } from '@/components/ui/skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
+import { isAdmin } from '@/lib/auth-utils'
 
 interface UserProfile {
   id: string
   username: string
   primaryRole: Role
   secondaryRoles: Role[]
-  primaryTransport: Transport | null
+  primaryTransport: TransportType | null
   isActive: boolean
   totalWorkedHours: number
   totalShifts: number
@@ -47,13 +65,12 @@ interface UserProfile {
 export default function ProfilePage() {
   const params = useParams()
   const userId = params?.userId as string
+  const { data: session } = useSession()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (userId) {
-      fetchProfile()
-    }
+    if (userId) fetchProfile()
   }, [userId])
 
   const fetchProfile = async () => {
@@ -61,8 +78,7 @@ export default function ProfilePage() {
     try {
       const response = await fetch(`/api/user/profile/${userId}`)
       if (response.ok) {
-        const data = await response.json()
-        setProfile(data)
+        setProfile(await response.json())
       }
     } catch (error) {
       console.error('Error fetching profile:', error)
@@ -73,14 +89,11 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="max-w-5xl mx-auto space-y-8">
-          <Skeleton className="h-48 rounded-[2.5rem]" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Skeleton className="h-32 rounded-[2rem]" />
-            <Skeleton className="h-32 rounded-[2rem]" />
-          </div>
-          <Skeleton className="h-64 rounded-[2.5rem]" />
+      <MainLayout contentWidth="4xl">
+        <div className="pd-page">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-40 w-full" />
         </div>
       </MainLayout>
     )
@@ -88,193 +101,178 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <MainLayout>
-        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
-            <User className="h-10 w-10 text-gray-300" />
-          </div>
-          <h2 className="pd-display text-xl font-semibold" style={{ color: 'var(--pd-text)' }}>Profilo non trovato</h2>
-          <p className="text-gray-500 font-medium">L'utente che stai cercando non esiste o è stato rimosso.</p>
+      <MainLayout contentWidth="4xl">
+        <div className="pd-page">
+          <SectionBlock card>
+            <EmptyState
+              title="Profilo non trovato"
+              description="L'utente che stai cercando non esiste o è stato rimosso."
+              icon={<User className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
+            />
+          </SectionBlock>
         </div>
       </MainLayout>
     )
   }
 
+  const profileIsAdmin = profile.primaryRole === 'ADMIN'
+  const viewingOwnProfile = session?.user?.id === profile.id
+  const viewerIsAdmin = isAdmin(session)
+  // Admin accounts are managers — never show staff hours/shifts UI for them
+  const showStaffWorkSections = !profileIsAdmin
+
   return (
-    <MainLayout>
-      <div className="max-w-5xl mx-auto space-y-8 pb-20">
-        <section className="pd-card p-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="flex items-center gap-8">
-              <div className="relative">
-                <div
-                  className="w-24 h-24 flex items-center justify-center"
-                  style={{ borderRadius: 'var(--pd-radius-lg)', background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}
-                >
-                  <span className="pd-display text-4xl font-semibold">
-                    {profile.username.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div
-                  className="absolute -bottom-2 -right-2 px-3 py-1 rounded-xl text-[10px] font-semibold shadow-lg border-2"
-                  style={{
-                    borderColor: 'var(--pd-surface)',
-                    background: profile.isActive ? 'var(--pd-success)' : 'var(--pd-danger)',
-                    color: 'var(--pd-accent-fg)',
-                  }}
-                >
-                  {profile.isActive ? 'Attivo' : 'Offline'}
-                </div>
-              </div>
+    <MainLayout
+      contentWidth="4xl"
+      title={viewingOwnProfile ? 'Il mio profilo' : profile.username}
+      subtitle={profileIsAdmin ? 'Amministratore' : getRoleName(profile.primaryRole)}
+    >
+      <div className="pd-page pb-20">
+        <PageHeader
+          title={viewingOwnProfile ? (profileIsAdmin ? 'Account amministratore' : 'Il mio profilo') : profile.username}
+          subtitle={
+            profileIsAdmin
+              ? [
+                  'Amministratore',
+                  profile.isActive ? 'Attivo' : 'Non attivo',
+                  viewingOwnProfile ? 'Gestione Pizza D.O.C.' : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+              : [
+                  getRoleName(profile.primaryRole),
+                  ...profile.secondaryRoles.map((r) => getRoleName(r)),
+                  profile.isActive ? 'Attivo' : 'Non attivo',
+                ].join(' · ')
+          }
+          action={
+            profileIsAdmin ? (
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold"
+                style={{
+                  background: 'var(--pd-accent-soft)',
+                  color: 'var(--pd-accent)',
+                  borderRadius: 'var(--pd-radius-pill)',
+                }}
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Admin
+              </span>
+            ) : profile.primaryTransport ? (
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold"
+                style={{
+                  background: 'var(--pd-surface-muted)',
+                  borderRadius: 'var(--pd-radius-pill)',
+                  color: 'var(--pd-text)',
+                  border: '1px solid var(--pd-border)',
+                }}
+              >
+                {profile.primaryTransport === 'AUTO' ? (
+                  <Car className="h-3.5 w-3.5" />
+                ) : (
+                  <Bike className="h-3.5 w-3.5" />
+                )}
+                {profile.primaryTransport}
+              </span>
+            ) : null
+          }
+        />
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <h1 className="pd-display text-3xl font-semibold tracking-tight leading-none">
-                    {profile.username}
-                  </h1>
-                  {profile.primaryRole === 'ADMIN' && (
-                    <ShieldCheck className="h-6 w-6 text-orange-500" />
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-3 py-1 text-[11px] font-semibold rounded-lg border" style={{ background: 'var(--pd-accent-soft)', color: 'var(--pd-accent)', borderColor: 'var(--pd-border)' }}>
-                    {getRoleName(profile.primaryRole)}
-                  </span>
-                  {profile.secondaryRoles.map((role, i) => (
-                    <span key={i} className="px-3 py-1 bg-gray-50 text-gray-400 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-gray-100">
-                      {getRoleName(role)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
+        {profileIsAdmin && viewingOwnProfile ? (
+          <>
+            <SectionBlock
+              title="Strumenti di gestione"
+              subtitle="Scorciatoie alle aree admin"
+            >
+              <QuickActionPills
+                items={[
+                  { label: 'Piano lavoro', href: '/admin/schedule', icon: LayoutGrid },
+                  { label: 'Utenti', href: '/admin/users', icon: Users },
+                  { label: 'Ore', href: '/admin/hours', icon: Clock },
+                  { label: 'Sostituzioni', href: '/admin/substitutions', icon: ArrowLeftRight },
+                  { label: 'Configurazioni', href: '/admin/settings', icon: Settings },
+                ]}
+              />
+            </SectionBlock>
 
-            <div className="flex items-center gap-4">
-              {profile.primaryTransport && (
-                <div className="flex items-center gap-3 px-5 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                  {profile.primaryTransport === 'AUTO' ? <Car className="h-5 w-5 text-blue-500" /> : <Bike className="h-5 w-5 text-orange-500" />}
-                  <span className="text-xs font-semibold">{profile.primaryTransport}</span>
-                </div>
+            <SectionBlock title="Account" card>
+              <ListRow title="Ruolo" subtitle="Amministratore del sistema" trailing={<ShieldCheck className="h-4 w-4" style={{ color: 'var(--pd-accent)' }} />} />
+              <ListRow
+                title="Stato"
+                subtitle={profile.isActive ? 'Account attivo' : 'Account disattivato'}
+              />
+              {viewerIsAdmin && (
+                <Link href="/admin/users" className="block">
+                  <ListRow
+                    title="Gestione utenti"
+                    subtitle="Crea, modifica e disattiva collaboratori"
+                    meta="Apri"
+                  />
+                </Link>
               )}
-            </div>
-          </div>
-        </section>
+            </SectionBlock>
+          </>
+        ) : null}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ProfileStatCard 
-            label="Ore Totali Lavorate" 
-            value={formatDecimalHoursIt(profile.totalWorkedHours)}
-            icon={Clock} 
-            color="orange"
-            description="Dall'inizio della collaborazione"
-          />
-          <ProfileStatCard 
-            label="Turni Completati" 
-            value={profile.totalShifts}
-            icon={TrendingUp} 
-            color="green"
-            description="Turni regolarmente registrati"
-          />
-        </div>
+        {showStaffWorkSections ? (
+          <>
+            <StatStrip
+              items={[
+                { label: 'Ore totali', value: formatDecimalHoursIt(profile.totalWorkedHours) },
+                { label: 'Turni', value: profile.totalShifts },
+              ]}
+            />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Upcoming Shifts Section */}
-          <div className="space-y-6">
-            <h3 className="px-4 pd-section-title flex items-center">
-              Prossimi turni
-            </h3>
-            <div className="space-y-4">
+            <SectionBlock title="Prossimi turni" card>
               {profile.upcomingShifts.length === 0 ? (
-                <div className="bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 py-12 text-center">
-                  <Calendar className="h-12 w-12 text-gray-200 mx-auto mb-4" />
-                  <p className="text-gray-400 font-black uppercase tracking-widest text-xs">Nessun turno in programma</p>
-                </div>
+                <EmptyState
+                  title="Nessun turno in programma"
+                  icon={<Calendar className="h-7 w-7" style={{ color: 'var(--pd-muted)' }} />}
+                />
               ) : (
                 profile.upcomingShifts.slice(0, 5).map((shift) => (
-                  <div key={shift.id} className="bg-white rounded-[2rem] p-5 shadow-soft border border-gray-50 flex items-center justify-between group hover:shadow-lg transition-all duration-300">
-                    <div className="flex items-center gap-5">
-                      <div className="w-12 h-12 bg-gray-50 rounded-2xl flex flex-col items-center justify-center font-black text-gray-400 group-hover:bg-orange-50 group-hover:text-orange-500 transition-colors">
-                        <span className="text-[10px] leading-none mb-1">{format(parseISO(shift.date), 'EEE', { locale: it }).substring(0,3).toUpperCase()}</span>
-                        <span className="text-lg leading-none">{format(parseISO(shift.date), 'd')}</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{getShiftTypeName(shift.shiftType)}</p>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                          {getRoleName(shift.role)} • {shift.startTime} - {shift.endTime}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-orange-500 transition-colors" />
-                  </div>
+                  <ListRow
+                    key={shift.id}
+                    title={getShiftTypeName(shift.shiftType)}
+                    subtitle={`${getRoleName(shift.role)} · ${shift.startTime}–${shift.endTime}`}
+                    meta={format(parseISO(shift.date), 'dd MMM', { locale: it })}
+                  />
                 ))
               )}
-            </div>
-          </div>
+            </SectionBlock>
 
-          {/* Recent Hours Section */}
-          <div className="space-y-6">
-            <h3 className="px-4 pd-section-title flex items-center">
-              Attività recente
-            </h3>
-            <div className="space-y-4">
+            <SectionBlock title="Attività recente" card>
               {profile.recentHours.length === 0 ? (
-                <div className="bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 py-12 text-center">
-                  <Clock className="h-12 w-12 text-gray-200 mx-auto mb-4" />
-                  <p className="text-gray-400 font-black uppercase tracking-widest text-xs">Ancora nessuna ora registrata</p>
-                </div>
+                <EmptyState
+                  title="Ancora nessuna ora registrata"
+                  icon={<Clock className="h-7 w-7" style={{ color: 'var(--pd-muted)' }} />}
+                />
               ) : (
                 profile.recentHours.map((hour) => (
-                  <div key={hour.id} className="bg-white rounded-[2rem] p-5 shadow-soft border border-gray-50 flex items-center justify-between group">
-                    <div className="flex items-center gap-5">
-                      <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center">
-                        <Star className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-gray-900 uppercase tracking-tight">
-                          {format(parseISO(hour.submittedAt), 'dd MMMM yyyy', { locale: it })}
-                        </p>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                          {getShiftTypeName(hour.shifts.shiftType)} • {getRoleName(hour.shifts.role)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="bg-gray-50 px-4 py-2 rounded-xl text-sm font-black text-gray-900">
-                      {formatDecimalHoursIt(hour.totalHours)}
-                    </div>
-                  </div>
+                  <ListRow
+                    key={hour.id}
+                    title={format(parseISO(hour.submittedAt), 'dd MMMM yyyy', { locale: it })}
+                    subtitle={`${getShiftTypeName(hour.shifts.shiftType)} · ${getRoleName(hour.shifts.role)}`}
+                    meta={formatDecimalHoursIt(hour.totalHours)}
+                  />
                 ))
               )}
-            </div>
-          </div>
-        </div>
+            </SectionBlock>
+          </>
+        ) : null}
+
+        {profileIsAdmin && !viewingOwnProfile ? (
+          <SectionBlock title="Account" card>
+            <ListRow title="Ruolo" subtitle="Amministratore" />
+            <ListRow title="Stato" subtitle={profile.isActive ? 'Attivo' : 'Non attivo'} />
+            <EmptyState
+              title="Nessun dato operativo"
+              description="Gli account admin non hanno ore o turni personali."
+            />
+          </SectionBlock>
+        ) : null}
       </div>
     </MainLayout>
-  )
-}
-
-function ProfileStatCard({ label, value, icon: Icon, color, description }: any) {
-  const colors: any = {
-    orange: 'bg-orange-50 text-orange-600 shadow-orange-100',
-    blue: 'bg-blue-50 text-blue-600 shadow-blue-100',
-    green: 'bg-green-50 text-green-600 shadow-green-100',
-    purple: 'bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] shadow-[var(--pd-shadow)]'
-  }
-  
-  return (
-    <div className="pd-card p-8 flex flex-col gap-6 group transition-all duration-500">
-      <div className="flex items-center justify-between">
-        <div className={cn("w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-lg transition-transform duration-500 group-hover:scale-110", colors[color])}>
-          <Icon className="h-8 w-8" />
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-          <p className="text-4xl font-black text-gray-900 tracking-tighter">{value}</p>
-        </div>
-      </div>
-      <div className="pt-6 border-t border-gray-50">
-        <p className="text-xs font-medium text-gray-400 italic">{description}</p>
-      </div>
-    </div>
   )
 }

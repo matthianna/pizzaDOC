@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { StaffPageHeader } from '@/components/layout/staff-page-header'
-import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Users, AlertCircle, FileText } from 'lucide-react'
+import { PageHeader } from '@/components/layout/page-header'
+import { StatStrip } from '@/components/ui/stat-strip'
+import { SectionBlock } from '@/components/ui/section-block'
+import { ListRow, EmptyState } from '@/components/ui/list-row'
+import { WeekNavigator } from '@/components/ui/week-navigator'
+import { Clock, Users, AlertCircle } from 'lucide-react'
 import { isPast } from 'date-fns'
-import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
+import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import {
   getWeekStart,
   getWeekDays,
@@ -52,11 +56,17 @@ interface Shift {
   }
 }
 
+const SUB_STATUS: Record<string, string> = {
+  PENDING: 'In attesa',
+  APPLIED: 'Candidature',
+  APPROVED: 'Approvato',
+  REJECTED: 'Rifiutato',
+  CANCELLED: 'Annullato',
+}
+
 export default function SchedulePage() {
   const { data: session } = useSession()
-  const [currentWeek, setCurrentWeek] = useState(() => {
-    return getWeekStart(new Date()) // Lunedì UTC normalizzato
-  })
+  const [currentWeek, setCurrentWeek] = useState(() => getWeekStart(new Date()))
   const [shifts, setShifts] = useState<Shift[]>([])
   const [substitutions, setSubstitutions] = useState<Substitution[]>([])
   const [loading, setLoading] = useState(true)
@@ -153,8 +163,8 @@ export default function SchedulePage() {
         setShowSubstitutionModal(false)
         setSelectedShift(null)
         setRequestNote('')
-        fetchMyShifts() // Refresh per vedere se il turno è ancora disponibile
-        fetchSubstitutions() // Refresh sostituzioni
+        fetchMyShifts()
+        fetchSubstitutions()
       } else {
         const error = await response.json()
         showToast(error.error || 'Errore nella creazione', 'error')
@@ -170,8 +180,6 @@ export default function SchedulePage() {
   const weekEnd = addWeekCalendarDays(currentWeek, 6)
   const days = getWeekDays(currentWeek)
 
-  // Raggruppa i turni per giorno
-  // dayOfWeek è già nel formato corretto: 0=Lunedì, 6=Domenica (come definito in date-utils.ts)
   const shiftsByDay = shifts.reduce((acc, shift) => {
     const day = shift.dayOfWeek
     if (!acc[day]) acc[day] = []
@@ -179,21 +187,15 @@ export default function SchedulePage() {
     return acc
   }, {} as Record<number, Shift[]>)
 
-  const getShiftTimes = (shiftType: ShiftType) => {
-    return shiftType === 'PRANZO' ? '11:30 - 14:00' : '18:00 - 22:00'
-  }
-
   const isShiftEnded = (shift: Shift) => {
     const now = new Date()
     const currentTime = now.getHours()
-    const shiftDate = addWeekCalendarDays(currentWeek, shift.dayOfWeek) // dayOfWeek è già corretto: 0=Lunedì
+    const shiftDate = addWeekCalendarDays(currentWeek, shift.dayOfWeek)
 
-    // Se il turno non è oggi, controlla se è passato
     if (utcCalendarDateKey(shiftDate) !== appTodayCalendarDateKey()) {
       return isPast(shiftDate)
     }
 
-    // Se è oggi, controlla l'orario
     return (shift.shiftType === 'PRANZO' && currentTime >= 14) ||
       (shift.shiftType === 'CENA' && currentTime >= 22)
   }
@@ -207,292 +209,142 @@ export default function SchedulePage() {
   }
 
   return (
-    <MainLayout>
-      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-        <StaffPageHeader
-          title="Il mio piano di lavoro"
-          subtitle="Visualizza i tuoi turni assegnati per la settimana"
+    <MainLayout contentWidth="4xl" title="Mio piano" subtitle="I tuoi turni della settimana">
+      <div className="pd-page pb-20">
+        <PageHeader
+          title="Mio piano"
+          subtitle="I tuoi turni della settimana"
         />
 
         <PersonalCalendarSubscribe />
 
-        <div className="pd-card p-4 sm:p-6 mb-6">
-          {/* Mobile View */}
-          <div className="flex sm:hidden items-center justify-between">
-            <button
-              onClick={goToPreviousWeek}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors active:scale-95"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
+        <WeekNavigator
+          label={`${formatDate(currentWeek)} – ${formatDate(weekEnd)}`}
+          hint={formatMonthYearIt(currentWeek)}
+          onPrev={goToPreviousWeek}
+          onNext={goToNextWeek}
+          onToday={goToCurrentWeek}
+          disabled={loading}
+        />
 
-            <div className="text-center" onClick={goToCurrentWeek}>
-              <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-1">
-                {formatMonthYearIt(currentWeek)}
-              </p>
-              <p className="text-xl font-black text-gray-900">
-                {currentWeek.getUTCDate()} - {weekEnd.getUTCDate()}
-              </p>
-            </div>
-
-            <button
-              onClick={goToNextWeek}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors active:scale-95"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
-          </div>
-
-          {/* Desktop View */}
-          <div className="hidden sm:flex items-center justify-between">
-            <button
-              onClick={goToPreviousWeek}
-              className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-            >
-              <ChevronLeft className="h-5 w-5 mr-1" />
-              Settimana precedente
-            </button>
-
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {formatDate(currentWeek)} - {formatDate(weekEnd)}
-              </h2>
-              <p className="text-sm font-medium text-orange-600 mt-1 uppercase tracking-wide">
-                {formatMonthYearIt(currentWeek)}
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={goToCurrentWeek}
-                className="px-4 py-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors font-bold"
-              >
-                Questa settimana
-              </button>
-              <button
-                onClick={goToNextWeek}
-                className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-              >
-                Settimana successiva
-                <ChevronRight className="h-5 w-5 ml-1" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Legend */}
-        <div className="pd-card p-4">
-          <div className="flex flex-wrap items-center gap-3 justify-center">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-amber-100 border-2 border-orange-300"></div>
-              <span className="text-sm font-medium text-gray-700">Pranzo</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-blue-100 border-2 border-blue-300"></div>
-              <span className="text-sm font-medium text-gray-700">Cena</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-gray-100 border-2 border-gray-300"></div>
-              <span className="text-sm font-medium text-gray-700">Turno Finito</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Schedule Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
-          {days.map((day, dayIndex) => {
-            const dayShifts = shiftsByDay[dayIndex] || []
-            const columnIsToday =
-              utcCalendarDateKey(day) === appTodayCalendarDateKey()
-
-            return (
-              <div key={dayIndex} className={cn('pd-card overflow-hidden flex flex-col transition-all duration-300', columnIsToday && 'ring-2')} style={columnIsToday ? { borderColor: 'var(--pd-accent)' } : undefined}>
-                <div className="px-3 py-3 text-center border-b" style={{ background: columnIsToday ? 'var(--pd-accent-soft)' : 'var(--pd-surface-muted)', borderColor: 'var(--pd-border)' }}>
-                  <div className="text-sm font-semibold" style={{ color: columnIsToday ? 'var(--pd-accent)' : 'var(--pd-muted)' }}>
-                    {shortWeekdayItFromDate(day)}
-                  </div>
-                  <div className="text-lg font-semibold">{String(day.getUTCDate()).padStart(2, '0')}</div>
-                  {columnIsToday && (
-                    <div className="text-[10px] font-semibold rounded-full px-2 py-0.5 inline-block mt-1" style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}>Oggi</div>
-                  )}
-                </div>
-
-                {/* Shifts Content */}
-                <div className="p-2 space-y-2 flex-1 min-h-[160px] bg-white">
-                  {loading ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
-                    </div>
-                  ) : dayShifts.length > 0 ? (
-                    <div className="space-y-2">
-                      {dayShifts.map((shift) => {
-                        const shiftDate = addWeekCalendarDays(currentWeek, shift.dayOfWeek)
-                        const [startHour, startMinute] = shift.startTime.split(':').map(Number)
-                        const shiftStartDateTime = new Date(shiftDate)
-                        shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
-
-                        const isFutureShift = !isPast(shiftStartDateTime)
-                        const shiftEnded = isShiftEnded(shift)
-                        const needsHours = needsHoursEntry(shift)
-
-                        return (
-                          <div
-                            key={shift.id}
-                            className={`rounded-lg border transition-all hover:shadow-md ${shiftEnded
-                              ? 'bg-gray-50 border-gray-200 opacity-75'
-                              : shift.shiftType === 'PRANZO'
-                                ? 'bg-amber-50/50 border-amber-200'
-                                : 'bg-blue-50/50 border-blue-200'
-                              }`}
-                          >
-                            {/* Header */}
-                            <div className={`px-2 py-1.5 border-b flex items-center justify-between ${shiftEnded
-                              ? 'border-gray-200'
-                              : shift.shiftType === 'PRANZO'
-                                ? 'border-amber-100'
-                                : 'border-blue-100'
-                              }`}>
-                              <div className="flex items-center space-x-1.5">
-                                <div className={`w-2 h-2 rounded-full ${shiftEnded ? 'bg-gray-400' :
-                                  shift.shiftType === 'PRANZO' ? 'bg-amber-500' : 'bg-blue-600'
-                                  }`}></div>
-                                <span className={`text-xs font-bold uppercase ${shiftEnded ? 'text-gray-600' : 'text-gray-900'
-                                  }`}>
-                                  {getShiftTypeName(shift.shiftType)}
-                                </span>
-                              </div>
-                              {shiftEnded && (
-                                <span className="text-[10px] font-bold text-gray-500 uppercase">Finito</span>
-                              )}
-                            </div>
-
-                            {/* Content */}
-                            <div className="p-2 space-y-2">
-                              {/* Time & Role */}
-                              <div className="text-center">
-                                <div className={`text-lg font-bold tracking-tight ${shiftEnded ? 'text-gray-600' : 'text-gray-900'
-                                  }`}>
-                                  {shift.startTime}
-                                </div>
-                                <div className="flex items-center justify-center mt-0.5">
-                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${shiftEnded
-                                    ? 'bg-gray-200 text-gray-600'
-                                    : 'bg-white border shadow-sm text-gray-700'
-                                    }`}>
-                                    {getRoleName(shift.role)}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Hours Status */}
-                              {shift.workedHours && (
-                                <div className={`p-1.5 rounded-md border text-center text-xs ${shift.workedHours.status === 'PENDING' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                                  shift.workedHours.status === 'APPROVED' ? 'bg-green-50 border-green-200 text-green-800' :
-                                    'bg-red-50 border-red-200 text-red-800'
-                                  }`}>
-                                  <div className="font-bold flex items-center justify-center gap-1">
-                                    {shift.workedHours.status === 'PENDING' && <Clock className="h-3 w-3" />}
-                                    {shift.workedHours.status === 'APPROVED' && <div className="h-1.5 w-1.5 rounded-full bg-green-500" />}
-                                    {shift.workedHours.status === 'REJECTED' && <AlertCircle className="h-3 w-3" />}
-                                    {formatDecimalHoursIt(shift.workedHours.totalHours)}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Need Hours Entry Alert */}
-                              {needsHours && (
-                                <a
-                                  href="/hours"
-                                  className="flex items-center justify-center w-full px-2 py-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-colors gap-1"
-                                >
-                                  <AlertCircle className="h-3 w-3" />
-                                  Ore da registrare
-                                </a>
-                              )}
-
-                              {/* Request Substitution Button / Status */}
-                              {isFutureShift && !shiftEnded && (() => {
-                                const existingSubstitution = substitutions.find(sub => sub.shiftId === shift.id)
-
-                                if (existingSubstitution) {
-                                  const statusConfig = {
-                                    PENDING: { text: 'In attesa', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: null },
-                                    APPLIED: { text: 'Candidature', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: null },
-                                    APPROVED: { text: 'Approvato', color: 'bg-green-50 text-green-700 border-green-200', icon: null },
-                                    REJECTED: { text: 'Rifiutato', color: 'bg-red-50 text-red-700 border-red-200', icon: null },
-                                    CANCELLED: { text: 'Annullato', color: 'bg-gray-50 text-gray-700 border-gray-200', icon: null }
-                                  }
-                                  const status = statusConfig[existingSubstitution.status] || statusConfig.PENDING
-
-                                  return (
-                                    <div className={`w-full text-xs py-1.5 border rounded-md flex items-center justify-center font-semibold ${status.color}`}>
-                                      {status.text}
-                                    </div>
-                                  )
-                                }
-
-                                return (
-                                  <button
-                                    onClick={() => openSubstitutionModal(shift)}
-                                    className={`w-full text-xs py-1.5 border rounded-md transition-all font-medium flex items-center justify-center gap-1 ${shift.shiftType === 'PRANZO'
-                                      ? 'text-amber-700 border-amber-200 bg-white hover:bg-amber-50'
-                                      : 'text-blue-700 border-blue-200 bg-white hover:bg-blue-50'
-                                      }`}
-                                  >
-                                    <Users className="h-3 w-3" />
-                                    Cerca Sostituto
-                                  </button>
-                                )
-                              })()}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                      <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-2">
-                        <Calendar className="h-6 w-6 text-gray-300" />
-                      </div>
-                      <p className="text-xs font-medium text-gray-400">Nessun turno</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Summary */}
         {shifts.length > 0 && (
-          <div className="pd-card p-4 sm:p-6">
-            <h3 className="pd-display text-xl font-semibold mb-4 text-center">
-              Riepilogo settimana
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:p-6">
-              <div className="text-center bg-white rounded-xl p-6 shadow-md border border-orange-200">
-                <div className="text-3xl font-bold text-orange-600 mb-1">
-                  {shifts.length}
-                </div>
-                <div className="text-sm font-semibold text-gray-700">Turni Totali</div>
-              </div>
-              <div className="text-center bg-white rounded-xl p-6 shadow-md border border-orange-200">
-                <div className="text-3xl font-bold text-amber-600 mb-1">
-                  {shifts.filter(s => s.shiftType === 'PRANZO').length}
-                </div>
-                <div className="text-sm font-semibold text-gray-700">Turni Pranzo</div>
-              </div>
-              <div className="text-center bg-white rounded-xl p-6 shadow-md border border-blue-200">
-                <div className="text-3xl font-bold text-blue-600 mb-1">
-                  {shifts.filter(s => s.shiftType === 'CENA').length}
-                </div>
-                <div className="text-sm font-semibold text-gray-700">Turni Cena</div>
-              </div>
-            </div>
+          <StatStrip
+            items={[
+              { label: 'Turni', value: shifts.length },
+              { label: 'Pranzo', value: shifts.filter(s => s.shiftType === 'PRANZO').length },
+              { label: 'Cena', value: shifts.filter(s => s.shiftType === 'CENA').length },
+            ]}
+          />
+        )}
+
+        {loading ? (
+          <div className="py-16 text-center text-sm" style={{ color: 'var(--pd-muted)' }}>
+            Caricamento turni…
+          </div>
+        ) : shifts.length === 0 ? (
+          <SectionBlock card>
+            <EmptyState
+              title="Nessun turno questa settimana"
+              description="Quando ti verranno assegnati turni, li vedrai qui giorno per giorno."
+            />
+          </SectionBlock>
+        ) : (
+          <div className="space-y-6">
+            {days.map((day, dayIndex) => {
+              const dayShifts = shiftsByDay[dayIndex] || []
+              if (dayShifts.length === 0) return null
+
+              const columnIsToday =
+                utcCalendarDateKey(day) === appTodayCalendarDateKey()
+
+              return (
+                <SectionBlock
+                  key={dayIndex}
+                  title={`${shortWeekdayItFromDate(day)} ${String(day.getUTCDate()).padStart(2, '0')}`}
+                  subtitle={columnIsToday ? 'Oggi' : formatMonthYearIt(day)}
+                  card
+                >
+                  {dayShifts.map((shift) => {
+                    const shiftDate = addWeekCalendarDays(currentWeek, shift.dayOfWeek)
+                    const [startHour, startMinute] = shift.startTime.split(':').map(Number)
+                    const shiftStartDateTime = new Date(shiftDate)
+                    shiftStartDateTime.setHours(startHour, startMinute, 0, 0)
+
+                    const isFutureShift = !isPast(shiftStartDateTime)
+                    const shiftEnded = isShiftEnded(shift)
+                    const needsHours = needsHoursEntry(shift)
+                    const existingSubstitution = substitutions.find(sub => sub.shiftId === shift.id)
+
+                    let meta: string = shift.startTime
+                    if (shiftEnded) meta = 'Finito'
+                    else if (shift.workedHours) {
+                      meta = formatDecimalHoursIt(shift.workedHours.totalHours)
+                    }
+
+                    return (
+                      <div key={shift.id}>
+                        <ListRow
+                          title={getShiftTypeName(shift.shiftType)}
+                          subtitle={`${getRoleName(shift.role)} · ${shift.startTime}`}
+                          meta={meta}
+                          highlight={columnIsToday && !shiftEnded}
+                          trailing={
+                            needsHours ? (
+                              <a
+                                href="/hours"
+                                className="text-xs font-semibold inline-flex items-center gap-1"
+                                style={{ color: 'var(--pd-warning)' }}
+                              >
+                                <AlertCircle className="h-3.5 w-3.5" />
+                                Ore
+                              </a>
+                            ) : shift.workedHours ? (
+                              <span
+                                className="text-[11px] font-medium"
+                                style={{ color: 'var(--pd-muted)' }}
+                              >
+                                {shift.workedHours.status === 'PENDING' && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Clock className="h-3 w-3" /> In attesa
+                                  </span>
+                                )}
+                                {shift.workedHours.status === 'APPROVED' && 'Approvato'}
+                                {shift.workedHours.status === 'REJECTED' && 'Rifiutato'}
+                              </span>
+                            ) : null
+                          }
+                        />
+                        {isFutureShift && !shiftEnded && (
+                          <div
+                            className="px-4 py-2 flex justify-end"
+                            style={{ borderBottom: '1px solid var(--pd-border)' }}
+                          >
+                            {existingSubstitution ? (
+                              <span className="text-xs font-medium" style={{ color: 'var(--pd-muted)' }}>
+                                Sostituzione: {SUB_STATUS[existingSubstitution.status] || 'In attesa'}
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openSubstitutionModal(shift)}
+                                className="text-xs font-semibold inline-flex items-center gap-1.5 pd-press"
+                                style={{ color: 'var(--pd-accent)' }}
+                              >
+                                <Users className="h-3.5 w-3.5" />
+                                Cerca sostituto
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </SectionBlock>
+              )
+            })}
           </div>
         )}
 
-        {/* Substitution Request Modal */}
         <Modal
           isOpen={showSubstitutionModal && !!selectedShift}
           onClose={() => {

@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { StaffPageHeader } from '@/components/layout/staff-page-header'
-import { Calendar, ChevronLeft, ChevronRight, Users, Check, X, Sparkles } from 'lucide-react'
+import { PageHeader } from '@/components/layout/page-header'
+import { StatStrip } from '@/components/ui/stat-strip'
+import { WeekNavigator } from '@/components/ui/week-navigator'
+import { EmptyState } from '@/components/ui/list-row'
+import { Users, Check, X, Ban } from 'lucide-react'
 import { addWeeks, subWeeks } from 'date-fns'
-import { cn, getDayName, getRoleName } from '@/lib/utils'
+import { getRoleName } from '@/lib/utils'
 import { getWeekStart, addWeekCalendarDays, formatDate } from '@/lib/date-utils'
 
 interface UserAvailability {
@@ -43,7 +46,7 @@ function holidayBlocksOverviewSlot(
 ): OverviewHoliday | null {
   const dayKey = utcDayKeyFromWeekIndex(weekStart, dayIdx)
   return (
-    holidays.find((h) => {
+    holidays.find(h => {
       const hk = new Date(h.date).toISOString().slice(0, 10)
       if (hk !== dayKey) return false
       if (h.closureType === 'FULL_DAY') return true
@@ -66,44 +69,49 @@ function AvailabilitySlotCell({
   if (holiday) {
     return (
       <div
-        className="flex flex-col items-center justify-center p-1 bg-orange-50 rounded-lg border border-orange-100"
+        className="flex flex-col items-center justify-center py-1"
         title={holiday.description || 'Locale chiuso / festivo'}
       >
-        <Sparkles className="h-4 w-4 text-orange-500" />
-        <span className="text-[8px] font-black text-orange-700 uppercase mt-0.5">Chiuso</span>
+        <Ban className="h-3.5 w-3.5" style={{ color: 'var(--pd-warning)' }} />
+        <span className="text-[9px] font-medium mt-0.5" style={{ color: 'var(--pd-warning)' }}>
+          Chiuso
+        </span>
       </div>
     )
   }
 
   if (isAbsent) {
     return (
-      <div className="flex items-center justify-center p-1 bg-red-50 rounded-lg" title="Assente">
-        <span className="text-[10px] font-black text-red-600">ABS</span>
+      <div className="flex items-center justify-center py-1" title="Assente">
+        <span className="text-[10px] font-semibold" style={{ color: 'var(--pd-danger)' }}>
+          ABS
+        </span>
       </div>
     )
   }
 
   if (isAvailable) {
     return (
-      <div className="flex items-center justify-center">
-        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm shadow-green-200 animate-in zoom-in duration-300">
-          <Check className="h-3.5 w-3.5 text-white stroke-[4]" />
+      <div className="flex items-center justify-center py-1">
+        <div
+          className="w-5 h-5 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--pd-success)' }}
+        >
+          <Check className="h-3 w-3" style={{ color: 'var(--pd-accent-fg)' }} strokeWidth={3} />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex items-center justify-center opacity-20">
-      <X className="h-4 w-4 text-gray-400" />
+    <div className="flex items-center justify-center py-1 opacity-30">
+      <X className="h-3.5 w-3.5" style={{ color: 'var(--pd-muted)' }} />
     </div>
   )
 }
 
 export default function AvailabilityOverviewPage() {
-  const [currentWeek, setCurrentWeek] = useState(() => {
-    return getWeekStart(new Date())
-  })
+  const [currentWeek, setCurrentWeek] = useState(() => getWeekStart(new Date()))
   const [usersAvailability, setUsersAvailability] = useState<UserAvailability[]>([])
   const [weekHolidays, setWeekHolidays] = useState<OverviewHoliday[]>([])
   const [loading, setLoading] = useState(true)
@@ -116,16 +124,15 @@ export default function AvailabilityOverviewPage() {
   const fetchAvailability = async () => {
     setLoading(true)
     try {
-      // ⚠️ Aggiungi timestamp per forzare bypass cache browser
       const timestamp = new Date().getTime()
       const response = await fetch(
         `/api/availability-overview?weekStart=${currentWeek.toISOString()}&_t=${timestamp}`,
         {
-          cache: 'no-store', // ⚠️ Disabilita cache browser
+          cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
+            Pragma: 'no-cache',
+          },
         }
       )
       if (response.ok) {
@@ -141,12 +148,10 @@ export default function AvailabilityOverviewPage() {
   }
 
   const goToPreviousWeek = () => {
-    // ⭐ USA getWeekStart per garantire normalizzazione UTC corretta
     setCurrentWeek(prev => getWeekStart(subWeeks(prev, 1)))
   }
 
   const goToNextWeek = () => {
-    // ⭐ USA getWeekStart per garantire normalizzazione UTC corretta
     setCurrentWeek(prev => getWeekStart(addWeeks(prev, 1)))
   }
 
@@ -154,165 +159,142 @@ export default function AvailabilityOverviewPage() {
     setCurrentWeek(getWeekStart(new Date()))
   }
 
-  const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
-  const shifts = ['PRANZO', 'CENA']
+  const days = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
 
-  const filteredUsers = selectedRole === 'ALL' 
-    ? usersAvailability 
-    : usersAvailability.filter(u => u.primaryRole === selectedRole)
+  const filteredUsers =
+    selectedRole === 'ALL'
+      ? usersAvailability
+      : usersAvailability.filter(u => u.primaryRole === selectedRole)
 
-  // Calcola statistiche
   const totalAvailabilities = filteredUsers.reduce((sum, user) => {
     return (
       sum +
-      user.availabilities.filter((a) => {
+      user.availabilities.filter(a => {
         if (!a.isAvailable) return false
-        const h = holidayBlocksOverviewSlot(
-          weekHolidays,
-          currentWeek,
-          a.dayOfWeek,
-          a.shiftType
-        )
+        const h = holidayBlocksOverviewSlot(weekHolidays, currentWeek, a.dayOfWeek, a.shiftType)
         return !h
       }).length
     )
   }, 0)
 
-  const totalSlots = filteredUsers.length * 7 * 2 // users * days * shifts
+  const totalSlots = filteredUsers.length * 7 * 2
   const availabilityPercentage = totalSlots > 0 ? (totalAvailabilities / totalSlots) * 100 : 0
 
   return (
-    <MainLayout>
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="pd-card p-6 sm:p-8">
-          <StaffPageHeader
-            title="Disponibilità utenti"
-            subtitle="Panoramica settimanale di tutta la squadra PizzaDOC."
-            action={
-              <div className="flex items-center gap-3">
-              <div className="bg-gray-100 p-1 rounded-2xl flex items-center">
-                <button
-                  onClick={goToPreviousWeek}
-                  className="p-3 text-gray-500 hover:text-orange-600 transition-all active:scale-90"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <div className="px-4 py-2 bg-white rounded-xl shadow-sm text-sm font-black text-gray-900 min-w-[180px] text-center">
-                  {formatDate(currentWeek)} — {formatDate(addWeekCalendarDays(currentWeek, 6))}
-                </div>
-                <button
-                  onClick={goToNextWeek}
-                  className="p-3 text-gray-500 hover:text-orange-600 transition-all active:scale-90"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </div>
-              <button
-                onClick={goToCurrentWeek}
-                className="px-5 py-3 rounded-2xl text-xs font-semibold transition-all"
-                style={{ background: 'var(--pd-accent-soft)', color: 'var(--pd-accent)' }}
-              >
-                Oggi
-              </button>
-              </div>
-            }
-          />
-        </div>
+    <MainLayout contentWidth="6xl" title="Disponibilità" subtitle="Panoramica squadra">
+      <div className="pd-page pb-20">
+        <PageHeader
+          title="Disponibilità utenti"
+          subtitle="Panoramica settimanale di tutta la squadra"
+          action={
+            <select
+              value={selectedRole}
+              onChange={e => setSelectedRole(e.target.value)}
+              className="text-sm font-semibold px-3 py-2"
+              style={{
+                background: 'var(--pd-surface)',
+                border: '1px solid var(--pd-border)',
+                borderRadius: 'var(--pd-radius-pill)',
+                color: 'var(--pd-text)',
+              }}
+            >
+              <option value="ALL">Tutti i ruoli</option>
+              <option value="FATTORINO">Fattorini</option>
+              <option value="CUCINA">Cucina</option>
+              <option value="SALA">Sala</option>
+              <option value="PIZZAIOLO">Pizzaioli</option>
+            </select>
+          }
+        />
 
-        {/* Filters & Quick Stats */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-1 pd-card p-6 flex flex-col justify-center">
-            <label className="text-xs font-semibold mb-3 px-1" style={{ color: 'var(--pd-muted)' }}>Filtra personale</label>
-            <div className="relative">
-              <select
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full pl-4 pr-10 py-3 bg-gray-50 border-gray-200 rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all appearance-none"
-              >
-                <option value="ALL">Tutti i Ruoli</option>
-                <option value="FATTORINO">Fattorini</option>
-                <option value="CUCINA">Cucina</option>
-                <option value="SALA">Sala</option>
-                <option value="PIZZAIOLO">Pizzaioli</option>
-              </select>
-              <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
-            </div>
-          </div>
+        <WeekNavigator
+          label={`${formatDate(currentWeek)} – ${formatDate(addWeekCalendarDays(currentWeek, 6))}`}
+          onPrev={goToPreviousWeek}
+          onNext={goToNextWeek}
+          onToday={goToCurrentWeek}
+          disabled={loading}
+        />
 
-          <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { label: 'Personale', value: filteredUsers.length, color: 'blue', icon: Users },
-              { label: 'Slot Coperti', value: totalAvailabilities, color: 'green', icon: Check },
-              { label: 'Tasso Copertura', value: `${availabilityPercentage.toFixed(1)}%`, color: 'orange', icon: Calendar }
-            ].map((stat, i) => (
-              <div key={i} className="pd-card p-6 flex items-center gap-4">
-                <div className={cn("p-3 rounded-2xl shadow-sm", `bg-${stat.color}-50 text-${stat.color}-600`)}>
-                  <stat.icon className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
-                  <p className="text-xl font-black text-gray-900">{stat.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <StatStrip
+          items={[
+            { label: 'Personale', value: filteredUsers.length },
+            { label: 'Slot coperti', value: totalAvailabilities },
+            { label: 'Copertura', value: `${availabilityPercentage.toFixed(0)}%` },
+          ]}
+        />
 
-        {/* Table Moderno */}
         <div className="pd-card overflow-hidden">
           {loading ? (
-            <div className="p-20 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-              <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Sincronizzazione dati...</p>
+            <div className="py-16 text-center text-sm" style={{ color: 'var(--pd-muted)' }}>
+              Caricamento…
             </div>
+          ) : filteredUsers.length === 0 ? (
+            <EmptyState title="Nessun membro trovato" icon={<Users className="h-8 w-8" />} />
           ) : (
-            <div className="overflow-x-auto scrollbar-hide">
-              <table className="min-w-full divide-y divide-gray-100">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50/50">
-                    <th className="sticky left-0 z-20 bg-gray-50/80 backdrop-blur-md px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest border-r border-gray-100/50 min-w-[180px]">
-                      Membro Squadra
+                  <tr style={{ borderBottom: '1px solid var(--pd-border)' }}>
+                    <th
+                      className="sticky left-0 z-20 px-4 py-3 text-left text-xs font-semibold min-w-[140px]"
+                      style={{
+                        color: 'var(--pd-muted)',
+                        background: 'var(--pd-surface)',
+                        borderRight: '1px solid var(--pd-border)',
+                      }}
+                    >
+                      Membro
                     </th>
                     {days.map((day, idx) => {
                       const dayKey = utcDayKeyFromWeekIndex(currentWeek, idx)
                       const onDay = weekHolidays.filter(
-                        (h) => new Date(h.date).toISOString().slice(0, 10) === dayKey
+                        h => new Date(h.date).toISOString().slice(0, 10) === dayKey
                       )
-                      const fullDay = onDay.some((h) => h.closureType === 'FULL_DAY')
-                      const partial = onDay.length > 0 && !fullDay
+                      const fullDay = onDay.some(h => h.closureType === 'FULL_DAY')
                       return (
-                      <th key={idx} colSpan={2} className={cn(
-                        "px-2 py-5 text-center text-[10px] font-black uppercase tracking-widest border-l border-gray-100/50",
-                        idx % 2 === 0 ? "bg-gray-50/30" : "bg-white",
-                        fullDay && "bg-orange-50/40"
-                      )}>
-                        <span className="block">{day}</span>
-                        {fullDay && (
-                          <span className="mt-1 inline-block text-[8px] font-black text-orange-600 normal-case tracking-tight">Chiuso</span>
-                        )}
-                        {partial && (
-                          <span className="mt-1 inline-block text-[8px] font-black text-amber-600 normal-case tracking-tight">Parziale</span>
-                        )}
-                      </th>
+                        <th
+                          key={idx}
+                          colSpan={2}
+                          className="px-1 py-3 text-center text-[11px] font-semibold"
+                          style={{
+                            color: fullDay ? 'var(--pd-warning)' : 'var(--pd-muted)',
+                            background: fullDay ? 'var(--pd-accent-soft)' : undefined,
+                          }}
+                        >
+                          {day}
+                          {fullDay && <span className="block text-[9px] font-medium">Chiuso</span>}
+                        </th>
                       )
                     })}
                   </tr>
-                  <tr className="bg-gray-50/30 border-b border-gray-100">
-                    <th className="sticky left-0 z-20 bg-gray-50/80 backdrop-blur-md border-r border-gray-100/50"></th>
+                  <tr style={{ borderBottom: '1px solid var(--pd-border)' }}>
+                    <th
+                      className="sticky left-0 z-20"
+                      style={{
+                        background: 'var(--pd-surface)',
+                        borderRight: '1px solid var(--pd-border)',
+                      }}
+                    />
                     {days.map((_, dayIdx) => (
                       <React.Fragment key={dayIdx}>
-                        <th className="px-1 py-2 text-center text-[9px] font-black text-gray-400 uppercase tracking-tighter border-l border-gray-100/50 bg-orange-50/20">
-                          Pranzo
+                        <th
+                          className="px-0.5 py-1.5 text-center text-[9px] font-medium"
+                          style={{ color: 'var(--pd-muted)' }}
+                        >
+                          P
                         </th>
-                        <th className="px-1 py-2 text-center text-[9px] font-black text-gray-400 uppercase tracking-tighter bg-blue-50/20">
-                          Cena
+                        <th
+                          className="px-0.5 py-1.5 text-center text-[9px] font-medium"
+                          style={{ color: 'var(--pd-muted)' }}
+                        >
+                          C
                         </th>
                       </React.Fragment>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {filteredUsers.map((user) => {
+                <tbody>
+                  {filteredUsers.map(user => {
                     const isAbsentOnDay = (dayIdx: number): boolean => {
                       const dayDate = addWeekCalendarDays(currentWeek, dayIdx)
                       const dNorm = Date.UTC(
@@ -320,7 +302,7 @@ export default function AvailabilityOverviewPage() {
                         dayDate.getUTCMonth(),
                         dayDate.getUTCDate()
                       )
-                      return user.absences.some((abs) => {
+                      return user.absences.some(abs => {
                         const s = new Date(abs.startDate)
                         const e = new Date(abs.endDate)
                         const sNorm = Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate())
@@ -330,35 +312,55 @@ export default function AvailabilityOverviewPage() {
                     }
 
                     return (
-                      <tr key={user.userId} className="hover:bg-gray-50/80 transition-colors group">
-                        <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50/80 px-6 py-4 whitespace-nowrap border-r border-gray-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-[10px] font-black text-orange-600 border border-orange-200">
-                              {user.username.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="text-sm font-black text-gray-900 leading-none mb-1">{user.username}</p>
-                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{getRoleName(user.primaryRole as any)}</p>
-                            </div>
-                          </div>
+                      <tr
+                        key={user.userId}
+                        style={{ borderBottom: '1px solid var(--pd-border)' }}
+                      >
+                        <td
+                          className="sticky left-0 z-10 px-4 py-3 whitespace-nowrap"
+                          style={{
+                            background: 'var(--pd-surface)',
+                            borderRight: '1px solid var(--pd-border)',
+                          }}
+                        >
+                          <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                            {user.username}
+                          </p>
+                          <p className="text-[11px]" style={{ color: 'var(--pd-muted)' }}>
+                            {getRoleName(user.primaryRole as any)}
+                          </p>
                         </td>
                         {days.map((_, dayIdx) => {
-                          const pranzoAvail = user.availabilities.find(a => a.dayOfWeek === dayIdx && a.shiftType === 'PRANZO')
-                          const cenaAvail = user.availabilities.find(a => a.dayOfWeek === dayIdx && a.shiftType === 'CENA')
+                          const pranzoAvail = user.availabilities.find(
+                            a => a.dayOfWeek === dayIdx && a.shiftType === 'PRANZO'
+                          )
+                          const cenaAvail = user.availabilities.find(
+                            a => a.dayOfWeek === dayIdx && a.shiftType === 'CENA'
+                          )
                           const isAbsent = isAbsentOnDay(dayIdx)
-                          const hPranzo = holidayBlocksOverviewSlot(weekHolidays, currentWeek, dayIdx, 'PRANZO')
-                          const hCena = holidayBlocksOverviewSlot(weekHolidays, currentWeek, dayIdx, 'CENA')
+                          const hPranzo = holidayBlocksOverviewSlot(
+                            weekHolidays,
+                            currentWeek,
+                            dayIdx,
+                            'PRANZO'
+                          )
+                          const hCena = holidayBlocksOverviewSlot(
+                            weekHolidays,
+                            currentWeek,
+                            dayIdx,
+                            'CENA'
+                          )
 
                           return (
                             <React.Fragment key={`${user.userId}-${dayIdx}`}>
-                              <td className="px-2 py-4 text-center border-l border-gray-50 relative group/cell">
+                              <td className="px-1 py-2 text-center">
                                 <AvailabilitySlotCell
                                   holiday={hPranzo}
                                   isAbsent={isAbsent}
                                   isAvailable={pranzoAvail?.isAvailable}
                                 />
                               </td>
-                              <td className="px-2 py-4 text-center relative group/cell">
+                              <td className="px-1 py-2 text-center">
                                 <AvailabilitySlotCell
                                   holiday={hCena}
                                   isAbsent={isAbsent}
@@ -373,50 +375,34 @@ export default function AvailabilityOverviewPage() {
                   })}
                 </tbody>
               </table>
-
-              {filteredUsers.length === 0 && (
-                <div className="text-center py-20 bg-gray-50/50">
-                  <div className="p-4 bg-white rounded-full w-fit mx-auto mb-4 shadow-sm border border-gray-100">
-                    <Users className="h-10 w-10 text-gray-200" />
-                  </div>
-                  <p className="text-gray-400 font-black uppercase tracking-widest text-sm">Nessun membro trovato</p>
-                </div>
-              )}
             </div>
           )}
         </div>
 
-        {/* Legend Moderna */}
-        <div className="pd-card p-6">
-          <div className="flex flex-wrap items-center gap-8 justify-center sm:justify-start">
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
-                <Check className="h-3.5 w-3.5 text-white stroke-[4]" />
-              </div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Disponibile</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
-                <X className="h-3.5 w-3.5 text-gray-300" />
-              </div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Chiuso / No</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="px-2 py-1 bg-red-50 text-red-600 rounded-lg border border-red-100">
-                <span className="text-[9px] font-black uppercase">ABS</span>
-              </div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">In Vacanza / Assente</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="p-1.5 bg-orange-50 rounded-lg border border-orange-100">
-                <Sparkles className="h-4 w-4 text-orange-500" />
-              </div>
-              <span className="text-xs font-medium" style={{ color: 'var(--pd-muted)' }}>Chiusura / festivo</span>
-            </div>
-          </div>
+        <div className="flex flex-wrap gap-4 text-xs px-1" style={{ color: 'var(--pd-muted)' }}>
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className="w-4 h-4 rounded-full inline-flex items-center justify-center"
+              style={{ background: 'var(--pd-success)' }}
+            >
+              <Check className="h-2.5 w-2.5" style={{ color: 'var(--pd-accent-fg)' }} strokeWidth={3} />
+            </span>
+            Disponibile
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <X className="h-3.5 w-3.5 opacity-40" /> Non disponibile
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span style={{ color: 'var(--pd-danger)' }} className="font-semibold">
+              ABS
+            </span>{' '}
+            Assente
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Ban className="h-3.5 w-3.5" style={{ color: 'var(--pd-warning)' }} /> Chiusura / festivo
+          </span>
         </div>
       </div>
     </MainLayout>
   )
 }
-

@@ -12,14 +12,28 @@ import Image from 'next/image'
 import { useHaptics } from '@/hooks/use-haptics'
 import { RefreshCw } from 'lucide-react'
 import { BadgeManager } from '../pwa/badge-manager'
-import { ThemeToggle } from '@/components/theme/theme-toggle'
+import { DocumentTitle } from '@/components/layout/document-title'
+import { cn } from '@/lib/utils'
 
 interface MainLayoutProps {
   children: React.ReactNode
   adminOnly?: boolean
+  /** Optional browser-tab title override (pages own visible PageHeader). */
+  title?: string
+  /** @deprecated unused — kept for call-site compatibility */
+  subtitle?: string
+  /** @deprecated unused — kept for call-site compatibility */
+  headerAction?: React.ReactNode
+  /** Content max width — staff default 4xl, admin tools 6xl */
+  contentWidth?: '4xl' | '6xl' | '7xl'
 }
 
-export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
+export function MainLayout({
+  children,
+  adminOnly = false,
+  title,
+  contentWidth = '4xl',
+}: MainLayoutProps) {
   const { data: session, status } = useSession()
   const router = useRouter()
   const pathname = usePathname()
@@ -101,43 +115,47 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
     return null
   }
 
+  const maxW =
+    contentWidth === '4xl' ? 'max-w-4xl' : contentWidth === '6xl' ? 'max-w-6xl' : 'max-w-7xl'
+
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden" style={{ background: 'var(--pd-bg)' }}>
+    <div className="min-h-dvh flex flex-col overflow-x-hidden pd-app-shell" style={{ background: 'var(--pd-bg)' }}>
+      <DocumentTitle override={title} />
       <BadgeManager />
       <Sidebar />
 
+      {/* Mobile top bar — logo + notifications only (theme toggle lives in sidebar) */}
       <div
-        className="lg:hidden fixed top-0 left-0 right-0 h-16 z-40 px-4 flex items-center justify-between border-b pt-safe"
+        className="lg:hidden fixed top-0 left-0 right-0 z-40 border-b pt-safe"
         style={{
           background: 'color-mix(in srgb, var(--pd-surface) 92%, transparent)',
           borderColor: 'var(--pd-border)',
           backdropFilter: 'blur(12px)',
         }}
       >
-        <div className="flex items-center gap-2 min-w-0 pl-12">
-          <Image
-            src="/logo-pizza-doc.png"
-            alt="Pizza D.O.C."
-            width={160}
-            height={40}
-            className="h-8 w-auto max-h-8 max-w-[min(160px,45vw)] object-contain object-left"
-            priority
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle compact />
+        <div className="h-14 px-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0 pl-12">
+            <Image
+              src="/logo-pizza-doc.png?v=3"
+              alt="Pizza D.O.C."
+              width={140}
+              height={36}
+              className="h-8 w-auto max-h-8 max-w-[min(160px,50vw)] object-contain object-left"
+              priority
+            />
+          </div>
           <NotificationBell />
         </div>
       </div>
 
       <div
-        className="flex-1 lg:pl-64"
+        className="flex-1 lg:pl-64 min-w-0"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         <main
-          className="relative py-6 pb-24 lg:pb-6 min-h-screen"
+          className="relative py-4 lg:py-6 pb-24 lg:pb-8 min-h-dvh"
           style={{
             transform: `translateY(${pullDistance}px)`,
             transition:
@@ -154,8 +172,8 @@ export function MainLayout({ children, adminOnly = false }: MainLayoutProps) {
             />
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:pl-8">
-            <div className="lg:hidden h-16 mb-4" />
+          <div className={cn(maxW, 'mx-auto lg:mx-0 w-full px-4 sm:px-6 lg:px-8')}>
+            <div className="lg:hidden h-14 mb-3" />
             <div key={pathname} className="animate-page-enter">
               {children}
             </div>

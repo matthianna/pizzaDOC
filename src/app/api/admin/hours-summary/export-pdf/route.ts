@@ -6,6 +6,14 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { shiftCalendarDateUtc } from '@/lib/date-utils'
 import { formatDecimalHoursIt } from '@/lib/format-hours-display'
+import {
+  PDF_BRAND,
+  PDF_COLORS,
+  pdfBaseStyles,
+  pdfDocHeader,
+  pdfDocFooter,
+  escapePdfHtml,
+} from '@/lib/pdf-fornace-styles'
 
 export async function GET(request: NextRequest) {
   try {
@@ -159,8 +167,8 @@ export async function GET(request: NextRequest) {
 }
 
 function generateHoursSummaryHTML(
-  summary: Record<string, any>, 
-  year: number, 
+  summary: Record<string, any>,
+  year: number,
   month: number | null,
   userId: string | null
 ): string {
@@ -169,240 +177,130 @@ function generateHoursSummaryHTML(
       case 'CUCINA': return 'Cucina'
       case 'FATTORINO': return 'Fattorino'
       case 'SALA': return 'Sala'
+      case 'PIZZAIOLO': return 'Pizzaiolo'
+      case 'ADMIN': return 'Admin'
       default: return role
     }
   }
 
   const getMonthName = (monthStr: string) => {
-    const [year, month] = monthStr.split('-')
-    const date = new Date(parseInt(year), parseInt(month) - 1)
+    const [y, m] = monthStr.split('-')
+    const date = new Date(parseInt(y), parseInt(m) - 1)
     return format(date, 'MMMM yyyy', { locale: it })
   }
 
   const totalHoursAllUsers = Object.values(summary).reduce((sum: number, user) => sum + user.yearlyTotal, 0)
   const totalUsers = Object.keys(summary).length
 
-  const periodText = month 
+  const periodText = month
     ? `${format(new Date(year, month - 1), 'MMMM yyyy', { locale: it })}`
     : `Anno ${year}`
 
-  const userText = userId && userId !== 'ALL' 
-    ? ` - ${Object.values(summary)[0]?.user?.username || 'Dipendente'}`
+  const userText = userId && userId !== 'ALL'
+    ? ` · ${Object.values(summary)[0]?.user?.username || 'Dipendente'}`
     : ''
+
+  const c = PDF_COLORS
+  const generatedAt = `Generato il ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: it })}`
 
   return `
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Riepilogo Ore Lavorate - ${periodText}</title>
+    <title>Riepilogo ore — ${escapePdfHtml(periodText)} — ${PDF_BRAND}</title>
     <style>
-        * { box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 30px;
-            font-size: 14px;
-            line-height: 1.5;
-            color: #1f2937;
-            background: white;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #f97316;
-        }
-        
-        .title {
-            font-size: 28px;
-            font-weight: 600;
-            color: #1f2937;
-            margin: 0 0 8px 0;
-        }
-        
-        .subtitle {
-            font-size: 16px;
-            color: #6b7280;
-            margin: 0;
-        }
-        
-        .summary-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-        
-        .stat-card {
-            background: #f8fafc;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .stat-number {
-            font-size: 32px;
-            font-weight: 700;
-            color: #f97316;
-            margin: 0 0 8px 0;
-        }
-        
-        .stat-label {
-            font-size: 14px;
-            color: #6b7280;
-            margin: 0;
-        }
-        
-        .user-section {
-            margin-bottom: 30px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        .user-header {
-            background: #f97316;
-            color: white;
-            padding: 16px 20px;
-        }
-        
-        .user-name {
-            font-size: 18px;
-            font-weight: 600;
-            margin: 0 0 4px 0;
-        }
-        
-        .user-role {
-            font-size: 14px;
-            opacity: 0.9;
-            margin: 0;
-        }
-        
-        .user-total {
-            float: right;
-            font-size: 24px;
-            font-weight: 700;
-        }
-        
+        ${pdfBaseStyles(`
+        body { padding: 8px; font-size: 12px; }
         .months-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            padding: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            padding: 14px;
         }
-        
         .month-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            overflow: hidden;
+            border: 1px solid ${c.border};
+            border-radius: 8px;
+            padding: 12px;
+            background: ${c.surface};
         }
-        
-        .month-header {
-            background: #f3f4f6;
-            padding: 12px 16px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
         .month-name {
             font-weight: 600;
-            color: #374151;
-            margin: 0 0 4px 0;
+            color: ${c.text};
+            margin-bottom: 4px;
+            text-transform: capitalize;
         }
-        
-        .month-stats {
-            font-size: 12px;
-            color: #6b7280;
-        }
-        
+        .month-stats { font-size: 11px; color: ${c.muted}; }
         .month-total {
+            margin-top: 8px;
+            font-family: Georgia, 'Times New Roman', serif;
             font-size: 18px;
-            font-weight: 700;
-            color: #f97316;
-            float: right;
+            font-weight: 600;
+            color: ${c.accent};
         }
-        
         .no-data {
             text-align: center;
-            padding: 40px;
-            color: #9ca3af;
-            font-style: italic;
+            padding: 40px 16px;
+            color: ${c.muted};
         }
-        
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            color: #9ca3af;
-            font-size: 12px;
-        }
-        
-        @media print {
-            body { padding: 20px; }
-            .months-grid { gap: 15px; }
-        }
+        .user-role { font-size: 11px; color: ${c.muted}; font-weight: 500; }
+        `)}
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1 class="title">🍕 PizzaDOC - Riepilogo Ore Lavorate</h1>
-        <p class="subtitle">${periodText}${userText}</p>
-    </div>
+    ${pdfDocHeader({
+      title: 'Riepilogo ore lavorate',
+      subtitle: `${periodText}${userText}`,
+    })}
 
-    <div class="summary-stats">
-        <div class="stat-card">
-            <div class="stat-number">${formatDecimalHoursIt(totalHoursAllUsers)}</div>
-            <div class="stat-label">Ore Totali</div>
+    <div class="stat-strip">
+        <div class="cell">
+            <div class="pd-display value">${formatDecimalHoursIt(totalHoursAllUsers)}</div>
+            <div class="label">Ore totali</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">${totalUsers}</div>
-            <div class="stat-label">Dipendenti</div>
+        <div class="cell">
+            <div class="pd-display value">${totalUsers}</div>
+            <div class="label">Dipendenti</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">${formatDecimalHoursIt(totalUsers > 0 ? totalHoursAllUsers / totalUsers : 0)}</div>
-            <div class="stat-label">Media per Dipendente</div>
+        <div class="cell">
+            <div class="pd-display value">${formatDecimalHoursIt(totalUsers > 0 ? totalHoursAllUsers / totalUsers : 0)}</div>
+            <div class="label">Media per persona</div>
         </div>
     </div>
 
     ${Object.keys(summary).length === 0 ? `
         <div class="no-data">
-            <h3>Nessun dato disponibile</h3>
+            <p class="pd-display" style="font-size:16px;margin-bottom:6px;">Nessun dato disponibile</p>
             <p>Non ci sono ore lavorate per il periodo selezionato.</p>
         </div>
     ` : Object.values(summary).map((userSummary) => `
-        <div class="user-section">
-            <div class="user-header">
-                <div class="user-name">${userSummary.user.username}</div>
-                <div class="user-role">${userSummary.user.primaryRole ? getRoleName(userSummary.user.primaryRole) : ''}</div>
-                <div class="user-total">${formatDecimalHoursIt(userSummary.yearlyTotal)}</div>
+        <section class="section-card">
+            <div class="section-card-head">
+                <div>
+                    <h3>${escapePdfHtml(userSummary.user.username)}</h3>
+                    <div class="user-role">${userSummary.user.primaryRole ? escapePdfHtml(getRoleName(userSummary.user.primaryRole)) : ''}</div>
+                </div>
+                <div class="meta">${formatDecimalHoursIt(userSummary.yearlyTotal)}</div>
             </div>
-            
             ${Object.keys(userSummary.monthlyHours).length === 0 ? `
-                <div style="padding: 20px; text-align: center; color: #9ca3af;">
+                <div class="section-card-body" style="color:${c.muted};text-align:center;">
                     Nessuna ora lavorata nel periodo
                 </div>
             ` : `
                 <div class="months-grid">
                     ${Object.entries(userSummary.monthlyHours).sort(([a], [b]) => a.localeCompare(b)).map(([monthKey, monthData]: [string, any]) => `
                         <div class="month-card">
-                            <div class="month-header">
-                                <div class="month-name">${getMonthName(monthKey)}</div>
-                                <div class="month-stats">${monthData.shiftsCount} turni lavorati</div>
-                                <div class="month-total">${formatDecimalHoursIt(monthData.totalHours)}</div>
-                            </div>
+                            <div class="month-name">${escapePdfHtml(getMonthName(monthKey))}</div>
+                            <div class="month-stats">${monthData.shiftsCount} turni</div>
+                            <div class="month-total">${formatDecimalHoursIt(monthData.totalHours)}</div>
                         </div>
                     `).join('')}
                 </div>
             `}
-        </div>
+        </section>
     `).join('')}
 
-    <div class="footer">
-        Generato il ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: it })} • PizzaDOC
-    </div>
+    ${pdfDocFooter(generatedAt)}
 </body>
 </html>
   `

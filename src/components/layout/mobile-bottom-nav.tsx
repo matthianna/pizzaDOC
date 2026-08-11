@@ -14,6 +14,10 @@ import {
   LayoutGrid,
   Menu,
   Bell,
+  X,
+  Shield,
+  Banknote,
+  CalendarDays,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
@@ -40,7 +44,7 @@ export function MobileBottomNav() {
     { name: 'Home', href: '/dashboard', icon: Home },
     { name: 'Settimana', href: '/weekly-plan', icon: Calendar },
     { name: 'Mio Piano', href: '/schedule', icon: LayoutGrid },
-    { name: 'Disponibilità', href: '/availability', icon: Calendar },
+    { name: 'Disponibilità', href: '/availability', icon: CalendarDays },
     { name: 'Altro', href: '#more', icon: Menu },
   ]
 
@@ -63,11 +67,13 @@ export function MobileBottomNav() {
 
   const adminMoreItems: NavItem[] = [
     { name: 'Gestione Ore', href: '/admin/hours', icon: Clock },
+    { name: 'Riepilogo Ore', href: '/admin/hours-summary', icon: Clock },
     { name: 'Notifiche', href: '/notifications', icon: Bell },
     { name: 'Sostituzioni', href: '/admin/substitutions', icon: ArrowLeftRight },
     { name: 'Assenze', href: '/admin/absences', icon: Calendar },
-    { name: 'Riepilogo Ore', href: '/admin/hours-summary', icon: Clock },
+    { name: 'Acconti', href: '/admin/advances', icon: Banknote },
     { name: 'Configurazioni', href: '/admin/settings', icon: Settings },
+    { name: 'Sistema', href: '/admin/system', icon: Shield },
     { name: 'Profilo', href: `/profile/${session.user.id}`, icon: User },
   ]
 
@@ -81,54 +87,67 @@ export function MobileBottomNav() {
   return (
     <>
       {showMore && (
-        <div
-          className="lg:hidden fixed inset-0 z-40"
-          style={{ background: 'rgba(0,0,0,0.4)' }}
-          onClick={() => setShowMore(false)}
-        />
-      )}
-
-      {showMore && (
-        <div
-          className="lg:hidden fixed bottom-20 left-4 right-4 z-50 p-2 animate-slide-up"
-          style={{
-            background: 'var(--pd-surface)',
-            borderRadius: 'var(--pd-radius-xl)',
-            boxShadow: 'var(--pd-shadow)',
-            border: '1px solid var(--pd-border)',
-          }}
-        >
-          <div className="grid grid-cols-3 gap-1">
-            {moreItems.map((item) => {
-              const isActive = pathname === item.href
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setShowMore(false)}
-                  className="flex flex-col items-center justify-center p-3 transition-colors"
-                  style={{
-                    borderRadius: 'var(--pd-radius)',
-                    background: isActive ? 'var(--pd-accent-soft)' : 'transparent',
-                    color: isActive ? 'var(--pd-accent)' : 'var(--pd-muted)',
-                  }}
-                >
-                  <div className="relative">
-                    <Icon className="h-6 w-6 mb-1" />
-                    {item.name === 'Notifiche' && unreadCount > 0 && (
-                      <span
-                        className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full"
-                        style={{ background: 'var(--pd-danger)', color: 'var(--pd-accent-fg)' }}
-                      >
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-center">{item.name}</span>
-                </Link>
-              )
-            })}
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label="Chiudi"
+            onClick={() => setShowMore(false)}
+          />
+          <div
+            className="relative p-5 pb-safe animate-slide-up max-h-[75dvh] overflow-y-auto"
+            style={{
+              background: 'var(--pd-surface)',
+              borderTopLeftRadius: 'var(--pd-radius-xl)',
+              borderTopRightRadius: 'var(--pd-radius-xl)',
+              border: '1px solid var(--pd-border)',
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <p className="pd-display text-lg font-semibold" style={{ color: 'var(--pd-text)' }}>
+                Altro
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowMore(false)}
+                className="p-2 rounded-full"
+                style={{ background: 'var(--pd-surface-muted)', color: 'var(--pd-muted)' }}
+                aria-label="Chiudi menu"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ul className="space-y-1">
+              {moreItems.map((item) => {
+                const isActive = pathname === item.href
+                const Icon = item.icon
+                return (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setShowMore(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium"
+                      style={{
+                        background: isActive ? 'var(--pd-accent-soft)' : 'var(--pd-surface-muted)',
+                        color: isActive ? 'var(--pd-accent)' : 'var(--pd-text)',
+                        borderRadius: 'var(--pd-radius)',
+                      }}
+                    >
+                      <Icon className="h-5 w-5 shrink-0" />
+                      <span className="flex-1">{item.name}</span>
+                      {item.name === 'Notifiche' && unreadCount > 0 && (
+                        <span
+                          className="min-w-5 h-5 px-1.5 flex items-center justify-center text-[10px] font-bold rounded-full"
+                          style={{ background: 'var(--pd-danger)', color: 'var(--pd-accent-fg)' }}
+                        >
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
         </div>
       )}

@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { BarChart3, User, Calendar, Clock, ChevronDown, ChevronRight, FileText, AlertCircle, TrendingUp, Users, Download } from 'lucide-react'
+import { PageHeader } from '@/components/layout/page-header'
+import { StatStrip } from '@/components/ui/stat-strip'
+import { SectionBlock } from '@/components/ui/section-block'
+import { EmptyState } from '@/components/ui/list-row'
+import { BarChart3, User, Calendar, Clock, ChevronDown, FileText, Download } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
@@ -13,25 +17,6 @@ import { useHaptics } from '@/hooks/use-haptics'
 import { shiftCalendarDateUtc } from '@/lib/date-utils'
 import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
-
-interface MissingHoursShift {
-  shiftId: string
-  dayOfWeek: number
-  shiftType: ShiftType
-  role: Role
-  startTime: string
-  endTime: string
-  weekStart: string
-  shiftDate: string
-  hoursStatus: 'REJECTED' | null
-}
-
-interface MissingHoursUser {
-  userId: string
-  username: string
-  primaryRole: Role
-  shifts: MissingHoursShift[]
-}
 
 interface User {
   id: string
@@ -78,11 +63,6 @@ export default function AdminHoursSummaryPage() {
   const [loading, setLoading] = useState(true)
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set())
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set())
-  
-  // Stati per "Ore Mancanti"
-  const [activeTab, setActiveTab] = useState<'summary' | 'missing'>('summary')
-  const [missingHours, setMissingHours] = useState<MissingHoursUser[]>([])
-  const [loadingMissing, setLoadingMissing] = useState(false)
 
   useEffect(() => {
     fetchUsers()
@@ -91,12 +71,6 @@ export default function AdminHoursSummaryPage() {
   useEffect(() => {
     fetchSummary()
   }, [selectedUserId, selectedYear, selectedMonth])
-
-  useEffect(() => {
-    if (activeTab === 'missing') {
-      fetchMissingHours()
-    }
-  }, [activeTab])
 
   const fetchUsers = async () => {
     try {
@@ -137,24 +111,6 @@ export default function AdminHoursSummaryPage() {
       console.error('Error fetching summary:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const fetchMissingHours = async () => {
-    setLoadingMissing(true)
-    try {
-      const response = await fetch(`/api/admin/hours-summary/missing`, {
-        cache: 'no-store',
-        credentials: 'include',
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setMissingHours(data.missingHours)
-      }
-    } catch (error) {
-      console.error('Error fetching missing hours:', error)
-    } finally {
-      setLoadingMissing(false)
     }
   }
 
@@ -287,7 +243,7 @@ export default function AdminHoursSummaryPage() {
   })
 
   const monthOptions = [
-    { value: null, label: 'Tutto l\'anno' },
+    { value: 0, label: 'Tutto l\'anno' },
     ...Array.from({ length: 12 }, (_, i) => ({
       value: i + 1,
       label: new Date(0, i).toLocaleDateString('it-IT', { month: 'long' })
@@ -299,88 +255,44 @@ export default function AdminHoursSummaryPage() {
   const { lightClick, success: successClick } = useHaptics()
 
   return (
-    <MainLayout adminOnly>
-      <div className="max-w-7xl mx-auto space-y-8 pb-20">
-        {/* Header Premium */}
-        <div className="relative overflow-hidden bg-[var(--pd-surface)] rounded-[2.5rem] p-8 shadow-[var(--pd-shadow)] border border-[var(--pd-border)]">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--pd-accent-soft)] rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
-          
-          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-[var(--pd-accent)] rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-[var(--pd-shadow)] transform -rotate-3">
-                <BarChart3 className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="pd-display text-2xl sm:text-3xl font-semibold text-[var(--pd-text)] tracking-tight leading-none">
-                  Analisi & Riepilogo Ore
-                </h1>
-                <p className="text-[var(--pd-muted)] mt-2 text-sm font-medium">
-                  Monitora le ore lavorate, esporta report e gestisci le mancanze.
-                </p>
-              </div>
-            </div>
+    <MainLayout adminOnly contentWidth="6xl">
+      <div className="pd-page pb-16">
+        <PageHeader
+          dense
+          title="Riepilogo ore"
+          subtitle="Monitora ore lavorate ed esporta report"
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                lightClick()
+                exportToPDF()
+              }}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold pd-press"
+              style={{
+                color: 'var(--pd-text)',
+                background: 'var(--pd-surface-muted)',
+                borderRadius: 'var(--pd-radius)',
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Esporta PDF
+            </button>
+          }
+        />
 
-            <div className="flex items-center gap-4">
-              {activeTab === 'summary' && (
-                <button
-                  onClick={() => {
-                    lightClick()
-                    exportToPDF()
-                  }}
-                  className="px-6 py-3 bg-white border-2 border-[var(--pd-border)] text-[var(--pd-text)] rounded-2xl text-xs font-black uppercase tracking-widest shadow-sm hover:shadow-md hover:border-[var(--pd-border)] transition-all active:scale-95 flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4 text-[var(--pd-accent)]" />
-                  Esporta PDF Generale
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <StatStrip
+          items={[
+            { label: 'Ore totali periodo', value: formatDecimalHoursIt(totalHoursAllUsers) },
+            { label: 'Collaboratori', value: summary.length },
+          ]}
+        />
 
-        {/* Custom Tabs */}
-        <div className="bg-[var(--pd-surface-muted)]/50 p-2 rounded-[2rem] flex gap-2 border border-[var(--pd-border)]/20">
-          <button
-            onClick={() => {
-              lightClick()
-              setActiveTab('summary')
-            }}
-            className={cn(
-              "flex-1 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest transition-all duration-300",
-              activeTab === 'summary' 
-                ? "bg-[var(--pd-surface)] text-[var(--pd-accent)] shadow-sm" 
-                : "text-[var(--pd-muted)] hover:text-[var(--pd-muted)]"
-            )}
-          >
-            📊 Riepilogo Mensile/Annuale
-          </button>
-          <button
-            onClick={() => {
-              lightClick()
-              setActiveTab('missing')
-            }}
-            className={cn(
-              "flex-1 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest transition-all duration-300 relative",
-              activeTab === 'missing' 
-                ? "bg-[var(--pd-surface)] text-[var(--pd-danger)] shadow-sm" 
-                : "text-[var(--pd-muted)] hover:text-[var(--pd-muted)]"
-            )}
-          >
-            ⚠️ Ore Mancanti
-            {missingHours.length > 0 && (
-              <span className="absolute top-3 right-4 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[10px]">
-                {missingHours.length}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Tab Content: Summary */}
-        {activeTab === 'summary' && (
-          <div className="space-y-8">
+        <div className="space-y-6">
             {/* Filters & Stats Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-3 bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <SectionBlock card>
+              <div className="p-4 sm:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <ReactSelect
                     label="Filtra Dipendente"
                     options={[
@@ -416,35 +328,20 @@ export default function AdminHoursSummaryPage() {
                     label="Mese"
                     options={monthOptions}
                     value={{
-                      value: selectedMonth,
+                      value: selectedMonth ?? 0,
                       label: selectedMonth 
                         ? new Date(0, selectedMonth - 1).toLocaleDateString('it-IT', { month: 'long' })
                         : 'Tutto l\'anno'
                     }}
                     onChange={(option) => {
                       lightClick()
-                      setSelectedMonth(option?.value as number | null)
+                      const v = option?.value as number | undefined
+                      setSelectedMonth(!v ? null : v)
                     }}
                   />
                 </div>
               </div>
-
-              {/* Total Hours Card */}
-              <div className="bg-[var(--pd-accent)] rounded-[2.5rem] p-8 shadow-[var(--pd-shadow)] text-[var(--pd-accent-fg)] flex flex-col justify-center">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Ore Totali Periodo</p>
-                <div className="flex items-end gap-2">
-                  <span className="text-4xl font-black leading-none normal-case">
-                    {formatDecimalHoursIt(totalHoursAllUsers)}
-                  </span>
-                </div>
-                <div className="mt-6 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                    <TrendingUp className="h-4 w-4" />
-                  </div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest">{summary.length} Dipendenti</p>
-                </div>
-              </div>
-            </div>
+            </SectionBlock>
 
             {/* User List */}
             <div className="space-y-4">
@@ -454,17 +351,19 @@ export default function AdminHoursSummaryPage() {
                   <TableSkeleton cols={4} rows={3} />
                 </div>
               ) : summary.length === 0 ? (
-                <div className="bg-[var(--pd-surface-muted)] rounded-[3rem] border-2 border-dashed border-[var(--pd-border)] py-20 text-center">
-                  <BarChart3 className="h-16 w-16 text-gray-200 mx-auto mb-6" />
-                  <p className="text-[var(--pd-muted)] font-black uppercase tracking-widest text-sm">Nessun dato trovato per questo periodo</p>
-                </div>
+                <SectionBlock card>
+                  <EmptyState
+                    title="Nessun dato trovato per questo periodo"
+                    icon={<BarChart3 className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
+                  />
+                </SectionBlock>
               ) : (
                 summary.map((userSummary) => (
-                  <div key={userSummary.user.id} className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden group/user transition-all duration-300">
+                  <div key={userSummary.user.id} className="bg-[var(--pd-surface)] rounded-[var(--pd-radius-lg)] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden group/user transition-all duration-300">
                     {/* User Header */}
                     <div 
                       className={cn(
-                        "p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 cursor-pointer transition-all duration-300",
+                        "p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer transition-all duration-300",
                         expandedUsers.has(userSummary.user.id) ? "bg-[var(--pd-accent-soft)]/30" : "hover:bg-[var(--pd-surface-muted)]/80"
                       )}
                       onClick={() => {
@@ -472,25 +371,25 @@ export default function AdminHoursSummaryPage() {
                         toggleUserExpand(userSummary.user.id)
                       }}
                     >
-                      <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-4">
                         <div className={cn(
-                          "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-md",
+                          "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
                           expandedUsers.has(userSummary.user.id) ? "bg-[var(--pd-accent)] text-[var(--pd-accent-fg)]" : "bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] group-hover/user:bg-[var(--pd-accent-soft)] group-hover/user:text-[var(--pd-accent)]"
                         )}>
-                          <User className="h-7 w-7" />
+                          <User className="h-5 w-5" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-black text-[var(--pd-text)] leading-none">{userSummary.user.username}</h3>
-                          <p className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-widest mt-2">
+                          <h3 className="text-sm font-semibold text-[var(--pd-text)] leading-none">{userSummary.user.username}</h3>
+                          <p className="text-[10px] font-bold text-[var(--pd-muted)] mt-1.5">
                             {userSummary.user.primaryRole ? getRoleName(userSummary.user.primaryRole) : 'Collaboratore'}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-6 self-end sm:self-auto">
+                      <div className="flex items-center gap-4 self-end sm:self-auto">
                         <div className="text-right">
-                          <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-1">Totale Ore</p>
-                          <p className="text-2xl font-black text-[var(--pd-text)] leading-none">{formatDecimalHoursIt(userSummary.yearlyTotal)}</p>
+                          <p className="text-[10px] font-semibold text-[var(--pd-muted)]  mb-1">Totale Ore</p>
+                          <p className="text-xl font-semibold text-[var(--pd-text)] leading-none">{formatDecimalHoursIt(userSummary.yearlyTotal)}</p>
                         </div>
                         <button
                           onClick={(e) => {
@@ -498,58 +397,56 @@ export default function AdminHoursSummaryPage() {
                             lightClick()
                             exportUserYearPDF(userSummary.user.id)
                           }}
-                          className="w-10 h-10 rounded-xl bg-white border border-[var(--pd-border)] text-[var(--pd-muted)] flex items-center justify-center hover:bg-[var(--pd-accent-soft)] hover:text-[var(--pd-accent)] hover:border-[var(--pd-border)] transition-all shadow-sm"
+                          className="w-9 h-9 rounded-xl bg-[var(--pd-surface)] border border-[var(--pd-border)] text-[var(--pd-muted)] flex items-center justify-center hover:bg-[var(--pd-accent-soft)] hover:text-[var(--pd-accent)] transition-all"
                           title="Esporta PDF Annuale"
                         >
-                          <FileText className="h-5 w-5" />
+                          <FileText className="h-4 w-4" />
                         </button>
                         <div className={cn(
-                          "w-10 h-10 rounded-xl bg-[var(--pd-surface-muted)] flex items-center justify-center text-[var(--pd-muted)] transition-all duration-300",
+                          "w-9 h-9 rounded-xl bg-[var(--pd-surface-muted)] flex items-center justify-center text-[var(--pd-muted)] transition-all duration-300",
                           expandedUsers.has(userSummary.user.id) && "bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] rotate-180"
                         )}>
-                          <ChevronDown className="h-5 w-5" />
+                          <ChevronDown className="h-4 w-4" />
                         </div>
                       </div>
                     </div>
 
                     {/* Breakdown List */}
                     {expandedUsers.has(userSummary.user.id) && (
-                      <div className="px-8 pb-8 space-y-4">
-                        <div className="h-px bg-[var(--pd-surface-muted)] w-full mb-6" />
-                        
+                      <div className="px-5 pb-5 space-y-3" style={{ borderTop: '1px solid var(--pd-border)' }}>
                         {userSummary.monthlyHours.length === 0 ? (
-                          <p className="text-center py-8 text-xs font-bold text-[var(--pd-muted)] uppercase tracking-widest">Nessun dato mensile disponibile</p>
+                          <p className="text-center py-8 text-xs font-bold text-[var(--pd-muted)] mt-3">Nessun dato mensile disponibile</p>
                         ) : (
                           userSummary.monthlyHours.map((month) => {
                             const monthKey = `${userSummary.user.id}-${month.month}`
                             const isMonthExpanded = expandedMonths.has(monthKey)
 
                             return (
-                              <div key={month.month} className="bg-[var(--pd-surface-muted)]/80 rounded-3xl border border-[var(--pd-border)] overflow-hidden">
+                              <div key={month.month} className="bg-[var(--pd-surface-muted)]/80 rounded-[var(--pd-radius-lg)] border border-[var(--pd-border)] overflow-hidden mt-3">
                                 <div 
                                   className={cn(
-                                    "p-5 flex items-center justify-between cursor-pointer transition-all",
-                                    isMonthExpanded ? "bg-[var(--pd-surface)] border-b border-[var(--pd-border)] shadow-sm" : "hover:bg-white/80"
+                                    "p-4 flex items-center justify-between cursor-pointer transition-all",
+                                    isMonthExpanded ? "bg-[var(--pd-surface)] border-b border-[var(--pd-border)]" : "hover:bg-[var(--pd-surface)]/80"
                                   )}
                                   onClick={() => {
                                     lightClick()
                                     toggleMonthExpand(monthKey)
                                   }}
                                 >
-                                  <div className="flex items-center gap-4">
+                                  <div className="flex items-center gap-3">
                                     <div className={cn(
                                       "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
-                                      isMonthExpanded ? "bg-[var(--pd-accent)] text-white shadow-lg shadow-[var(--pd-shadow)]" : "bg-[var(--pd-surface)] text-[var(--pd-accent)] shadow-sm"
+                                      isMonthExpanded ? "bg-[var(--pd-accent)] text-[var(--pd-accent-fg)]" : "bg-[var(--pd-surface)] text-[var(--pd-accent)]"
                                     )}>
                                       <Calendar className="h-4 w-4" />
                                     </div>
-                                    <span className="text-sm font-black text-[var(--pd-text)] uppercase tracking-tight">{getMonthName(month.month)}</span>
+                                    <span className="text-sm font-semibold text-[var(--pd-text)] uppercase tracking-tight">{getMonthName(month.month)}</span>
                                   </div>
 
-                                  <div className="flex items-center gap-4">
+                                  <div className="flex items-center gap-3">
                                     <div className="text-right hidden sm:block">
-                                      <p className="text-[9px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-0.5">Ore / Turni</p>
-                                      <p className="text-sm font-black text-[var(--pd-text)]">{formatDecimalHoursIt(month.totalHours)} <span className="text-[var(--pd-muted)]/50 font-medium">/</span> {month.shiftsCount}</p>
+                                      <p className="text-[9px] font-semibold text-[var(--pd-muted)]  mb-0.5">Ore / Turni</p>
+                                      <p className="text-sm font-semibold text-[var(--pd-text)]">{formatDecimalHoursIt(month.totalHours)} <span className="text-[var(--pd-muted)]/50 font-medium">/</span> {month.shiftsCount}</p>
                                     </div>
                                     <button
                                       onClick={(e) => {
@@ -557,7 +454,7 @@ export default function AdminHoursSummaryPage() {
                                         lightClick()
                                         exportUserMonthPDF(userSummary.user.id, month.month)
                                       }}
-                                      className="p-2 bg-white text-[var(--pd-muted)] rounded-lg border border-[var(--pd-border)] hover:bg-[var(--pd-accent-soft)] hover:text-[var(--pd-accent)] transition-all"
+                                      className="p-2 bg-[var(--pd-surface)] text-[var(--pd-muted)] rounded-lg border border-[var(--pd-border)] hover:bg-[var(--pd-accent-soft)] hover:text-[var(--pd-accent)] transition-all"
                                     >
                                       <FileText className="h-4 w-4" />
                                     </button>
@@ -565,7 +462,7 @@ export default function AdminHoursSummaryPage() {
                                 </div>
 
                                 {isMonthExpanded && (
-                                  <div className="p-4 bg-white/50 space-y-2">
+                                  <div className="p-3 space-y-2">
                                     {month.details.map((detail) => {
                                       const shiftDate = shiftCalendarDateUtc(
                                         detail.shift.schedules.weekStart,
@@ -573,19 +470,19 @@ export default function AdminHoursSummaryPage() {
                                       )
 
                                       return (
-                                        <div key={detail.id} className="flex items-center justify-between p-4 bg-[var(--pd-surface)] rounded-2xl border border-[var(--pd-border)] hover:border-[var(--pd-border)] transition-all shadow-sm">
-                                          <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-[var(--pd-surface-muted)] flex flex-col items-center justify-center font-black text-[var(--pd-muted)] border border-[var(--pd-border)]">
-                                              <span className="text-[8px] uppercase leading-none">{getDayName(detail.shift.dayOfWeek).substring(0, 3)}</span>
+                                        <div key={detail.id} className="flex items-center justify-between p-3 bg-[var(--pd-surface)] rounded-xl border border-[var(--pd-border)] transition-all">
+                                          <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-[var(--pd-surface-muted)] flex flex-col items-center justify-center font-semibold text-[var(--pd-muted)] border border-[var(--pd-border)]">
+                                              <span className="text-xs uppercase leading-none">{getDayName(detail.shift.dayOfWeek).substring(0, 3)}</span>
                                               <span className="text-sm leading-none mt-1">{shiftDate.getUTCDate()}</span>
                                             </div>
                                             <div>
-                                              <p className="text-xs font-black text-[var(--pd-text)] uppercase tracking-tight">{getShiftTypeName(detail.shift.shiftType)}</p>
-                                              <p className="text-[9px] text-[var(--pd-muted)] font-bold uppercase tracking-widest mt-1">{getRoleName(detail.shift.role)}</p>
+                                              <p className="text-xs font-semibold text-[var(--pd-text)] uppercase tracking-tight">{getShiftTypeName(detail.shift.shiftType)}</p>
+                                              <p className="text-[9px] text-[var(--pd-muted)] font-bold  mt-1">{getRoleName(detail.shift.role)}</p>
                                             </div>
                                           </div>
                                           <div className="text-right">
-                                            <p className="text-xs font-black text-[var(--pd-text)]">{detail.startTime} - {detail.endTime}</p>
+                                            <p className="text-xs font-semibold text-[var(--pd-text)]">{detail.startTime} - {detail.endTime}</p>
                                             <p className="text-[10px] font-bold text-[var(--pd-accent)] mt-1">{formatDecimalHoursIt(detail.totalHours)}</p>
                                           </div>
                                         </div>
@@ -603,87 +500,7 @@ export default function AdminHoursSummaryPage() {
                 ))
               )}
             </div>
-          </div>
-        )}
-
-        {/* Tab Content: Missing Hours */}
-        {activeTab === 'missing' && (
-          <div className="space-y-6">
-            <div className="bg-[var(--pd-surface)] rounded-[2.5rem] p-8 shadow-[var(--pd-shadow)] border border-[var(--pd-border)] flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-[var(--pd-danger)] rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-red-100">
-                  <AlertCircle className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-[var(--pd-text)] tracking-tight">Turni senza ore</h2>
-                  <p className="text-[var(--pd-muted)] mt-1 text-sm font-medium">Questi collaboratori non hanno ancora inviato le ore per i turni passati.</p>
-                </div>
-              </div>
-              <div className="bg-[var(--pd-danger-soft)] px-6 py-3 rounded-2xl border border-[var(--pd-border)]">
-                <p className="text-[10px] font-black text-[var(--pd-danger)] uppercase tracking-widest mb-1">Collaboratori</p>
-                <p className="text-2xl font-black text-[var(--pd-danger)] leading-none">{missingHours.length}</p>
-              </div>
-            </div>
-
-            {loadingMissing ? (
-              <div className="space-y-4">
-                <TableSkeleton cols={1} rows={4} />
-              </div>
-            ) : missingHours.length === 0 ? (
-              <div className="bg-[var(--pd-success-soft)] rounded-[3rem] border-2 border-dashed border-green-100 py-20 text-center">
-                <div className="w-20 h-20 bg-[var(--pd-surface)] rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                  <Clock className="h-10 w-10 text-green-400" />
-                </div>
-                <h3 className="text-[var(--pd-success)] font-black uppercase tracking-[0.2em] text-sm">Ottimo! Non ci sono ore mancanti.</h3>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {missingHours.map((userMissing) => (
-                  <div key={userMissing.userId} className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden group/missing transition-all duration-300">
-                    <div className="p-6 border-b border-[var(--pd-border)] bg-[var(--pd-surface-muted)]/50 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-red-600 text-white rounded-2xl flex items-center justify-center shadow-md">
-                          <User className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <h3 className="text-base font-black text-[var(--pd-text)] leading-tight">{userMissing.username}</h3>
-                          <p className="text-[10px] text-[var(--pd-muted)] font-bold uppercase tracking-widest mt-1">{getRoleName(userMissing.primaryRole)}</p>
-                        </div>
-                      </div>
-                      <span className="px-3 py-1.5 bg-red-100 text-[var(--pd-danger)] rounded-xl text-xs font-black">
-                        {userMissing.shifts.length} Turni
-                      </span>
-                    </div>
-                    <div className="p-6 space-y-3">
-                      {userMissing.shifts.map((shift) => (
-                        <div key={shift.shiftId} className={cn(
-                          "p-4 rounded-2xl border transition-all",
-                          shift.hoursStatus === 'REJECTED' ? "bg-[var(--pd-danger-soft)] border-[var(--pd-border)] shadow-sm" : "bg-[var(--pd-surface)] border-[var(--pd-border)]"
-                        )}>
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <Calendar className="h-4 w-4 text-[var(--pd-muted)]" />
-                              <span className="text-xs font-black text-[var(--pd-text)] uppercase tracking-tight">
-                                {getDayName(shift.dayOfWeek)} {format(parseISO(shift.shiftDate), 'dd/MM')}
-                              </span>
-                            </div>
-                            <span className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">{getShiftTypeName(shift.shiftType)}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-widest bg-[var(--pd-surface-muted)] px-2 py-1 rounded-lg">{getRoleName(shift.role)}</span>
-                            {shift.hoursStatus === 'REJECTED' && (
-                              <span className="px-2 py-1 bg-red-600 text-white text-[8px] font-black uppercase rounded-lg animate-pulse">Rifiutato</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        </div>
       </div>
     </MainLayout>
   )

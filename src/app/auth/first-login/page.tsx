@@ -8,7 +8,7 @@ import { Eye, EyeOff, Check, X } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
-import { cn } from '@/lib/utils'
+import { DocumentTitle } from '@/components/layout/document-title'
 
 const inputStyle: React.CSSProperties = {
   background: 'var(--pd-surface)',
@@ -111,6 +111,7 @@ export default function FirstLoginPage() {
 
   return (
     <div className="min-h-dvh flex flex-col relative overflow-hidden" style={{ background: 'var(--pd-bg)' }}>
+      <DocumentTitle />
       <div className="absolute inset-0 pointer-events-none" aria-hidden style={heroGlowStyle} />
 
       <div className="relative z-10 flex items-center justify-end px-4 sm:px-8 pt-safe py-4">
@@ -142,19 +143,9 @@ export default function FirstLoginPage() {
               Pizza D.O.C.
             </h1>
             <p className="mt-3 text-sm sm:text-base" style={{ color: 'var(--pd-muted)' }}>
-              Sistema di gestione del team
-            </p>
-          </div>
-
-          <div className="text-center mb-8">
-            <h2 className="pd-display text-2xl font-semibold tracking-tight">Benvenuto</h2>
-            {session?.user.username && (
-              <p className="mt-2 text-sm font-medium" style={{ color: 'var(--pd-accent)' }}>
-                Ciao, {session.user.username}
-              </p>
-            )}
-            <p className="mt-2 text-sm" style={{ color: 'var(--pd-muted)' }}>
-              Prima di iniziare, imposta la tua password personale
+              {session?.user.username
+                ? `Ciao, ${session.user.username} — imposta la tua password`
+                : 'Imposta la tua password personale'}
             </p>
           </div>
 
@@ -266,7 +257,7 @@ export default function FirstLoginPage() {
               </div>
               {confirmPassword.length > 0 && (
                 <div
-                  className={cn('flex items-center gap-2 px-0.5 text-xs font-medium')}
+                  className="flex items-center gap-2 px-0.5 text-xs font-medium"
                   style={{ color: passwordsMatch ? 'var(--pd-success)' : 'var(--pd-danger)' }}
                 >
                   {passwordsMatch ? (
@@ -294,23 +285,9 @@ export default function FirstLoginPage() {
             </Button>
           </form>
 
-          <div
-            className="mt-6 p-4 rounded-[var(--pd-radius)] flex items-start gap-3"
-            style={{
-              background: 'var(--pd-success-soft)',
-              border: '1px solid color-mix(in srgb, var(--pd-success) 25%, transparent)',
-            }}
-          >
-            <Check className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--pd-success)' }} />
-            <div>
-              <p className="text-xs font-semibold" style={{ color: 'var(--pd-success)' }}>
-                Accesso automatico
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
-                Dopo il cambio password, entrerai direttamente nel sistema.
-              </p>
-            </div>
-          </div>
+          <p className="mt-6 text-center text-xs" style={{ color: 'var(--pd-muted)' }}>
+            Dopo il cambio password entrerai automaticamente nel sistema.
+          </p>
 
           <p className="mt-10 text-center text-xs" style={{ color: 'var(--pd-muted)' }}>
             © {new Date().getFullYear()} Pizza D.O.C.

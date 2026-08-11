@@ -115,25 +115,26 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
     }
 
     const getNotificationIcon = (type: string) => {
+        const cls = 'h-4 w-4'
         switch (type) {
             case 'SCHEDULE_PUBLISHED':
             case 'SHIFT_ASSIGNED':
             case 'SHIFT_CHANGED':
             case 'SHIFT_REMOVED':
-                return <Calendar className="h-5 w-5 text-blue-500" />
+                return <Calendar className={cls} />
             case 'HOURS_APPROVED':
             case 'HOURS_REJECTED':
             case 'HOURS_REMINDER':
-                return <Clock className="h-5 w-5 text-orange-500" />
+                return <Clock className={cls} />
             case 'SUBSTITUTION_REQUEST':
             case 'SUBSTITUTION_APPLIED':
             case 'SUBSTITUTION_APPROVED':
             case 'SUBSTITUTION_REJECTED':
-                return <ArrowLeftRight className="h-5 w-5 text-[var(--pd-accent)]" />
+                return <ArrowLeftRight className={cls} />
             case 'AVAILABILITY_REMINDER':
-                return <AlertCircle className="h-5 w-5 text-yellow-500" />
+                return <AlertCircle className={cls} />
             default:
-                return <Bell className="h-5 w-5 text-gray-500" />
+                return <Bell className={cls} />
         }
     }
 
@@ -162,35 +163,61 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
             />
 
             {/* Panel */}
-            <div 
-                className="fixed w-[calc(100vw-2rem)] sm:w-96 max-h-[80vh] pd-card z-[9999] overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200"
+            <div
+                className="fixed w-[calc(100vw-2rem)] sm:w-96 max-h-[80vh] z-[9999] overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200"
                 style={{
                     top: panelPosition.top,
                     left: panelPosition.left,
-                    maxWidth: 'calc(100vw - 2rem)'
+                    maxWidth: 'calc(100vw - 2rem)',
+                    background: 'var(--pd-surface)',
+                    border: '1px solid var(--pd-border)',
+                    borderRadius: 'var(--pd-radius-lg)',
+                    boxShadow: 'var(--pd-shadow)',
                 }}
             >
                 {/* Header */}
                 <div
-                    className="flex items-center justify-between px-4 py-3"
-                    style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}
+                    className="flex items-center justify-between px-4 py-3 border-b"
+                    style={{
+                        background: 'var(--pd-surface)',
+                        borderColor: 'var(--pd-border)',
+                        color: 'var(--pd-text)',
+                    }}
                 >
-                    <h3 className="font-semibold flex items-center gap-2">
-                        <Bell className="h-5 w-5" />
+                    <h3 className="pd-display text-base font-semibold flex items-center gap-2">
+                        <Bell className="h-4 w-4" style={{ color: 'var(--pd-accent)' }} />
                         Notifiche
+                        {unreadCount > 0 ? (
+                            <span
+                                className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                                style={{
+                                    background: 'var(--pd-accent-soft)',
+                                    color: 'var(--pd-accent)',
+                                }}
+                            >
+                                {unreadCount}
+                            </span>
+                        ) : null}
                     </h3>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         {unreadCount > 0 && (
                             <button
+                                type="button"
                                 onClick={markAllAsRead}
-                                className="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded-full transition-colors"
+                                className="p-2 rounded-lg transition-colors"
+                                style={{ color: 'var(--pd-muted)' }}
+                                aria-label="Segna tutte come lette"
+                                title="Segna tutte come lette"
                             >
                                 <CheckCheck className="h-4 w-4" />
                             </button>
                         )}
                         <button
+                            type="button"
                             onClick={() => setIsOpen(false)}
-                            className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                            className="p-2 rounded-lg transition-colors"
+                            style={{ color: 'var(--pd-muted)', background: 'var(--pd-surface-muted)' }}
+                            aria-label="Chiudi"
                         >
                             <X className="h-4 w-4" />
                         </button>
@@ -201,22 +228,31 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
                 <div className="max-h-[60vh] overflow-y-auto">
                     {notifications.length === 0 && !loading ? (
                         <div className="py-12 text-center">
-                            <BellOff className="h-12 w-12 mx-auto mb-3" style={{ color: 'var(--pd-border)' }} />
+                            <BellOff className="h-10 w-10 mx-auto mb-3" style={{ color: 'var(--pd-muted)' }} />
                             <p className="text-sm" style={{ color: 'var(--pd-muted)' }}>Nessuna notifica</p>
                         </div>
                     ) : (
-                        <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
+                        <div className="pd-list">
                             {notifications.map(notification => (
                                 <button
                                     key={notification.id}
+                                    type="button"
+                                    data-list-row
                                     onClick={() => handleNotificationClick(notification)}
-                                    className="w-full text-left px-4 py-3 transition-colors flex gap-3 hover:opacity-90"
+                                    className="w-full text-left px-4 py-3 transition-colors flex gap-3"
                                     style={{
                                       background: !notification.isRead ? 'var(--pd-accent-soft)' : 'transparent',
-                                      borderColor: 'var(--pd-border)',
+                                      borderBottom: '1px solid var(--pd-border)',
                                     }}
                                 >
-                                    <div className="flex-shrink-0 mt-0.5">
+                                    <div
+                                      className="flex-shrink-0 mt-0.5 w-9 h-9 flex items-center justify-center"
+                                      style={{
+                                        background: 'var(--pd-surface-muted)',
+                                        borderRadius: 'var(--pd-radius)',
+                                        color: 'var(--pd-accent)',
+                                      }}
+                                    >
                                         {getNotificationIcon(notification.type)}
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -228,7 +264,7 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
                                                 {notification.title}
                                             </p>
                                             {!notification.isRead && (
-                                                <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: 'var(--pd-accent)' }} />
+                                                <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: 'var(--pd-accent)' }} />
                                             )}
                                         </div>
                                         <p className="text-sm line-clamp-2 mt-0.5" style={{ color: 'var(--pd-muted)' }}>
@@ -257,6 +293,7 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
                     {/* Load More */}
                     {hasMore && notifications.length > 0 && (
                         <button
+                            type="button"
                             onClick={() => fetchNotifications()}
                             disabled={loading}
                             className="w-full py-3 text-sm font-medium transition-colors disabled:opacity-50"
@@ -272,10 +309,10 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-gray-100 px-4 py-2">
+                <div className="border-t px-4 py-3" style={{ borderColor: 'var(--pd-border)' }}>
                     <a
                         href="/notifications"
-                        className="text-sm font-medium"
+                        className="text-sm font-semibold"
                         style={{ color: 'var(--pd-accent)' }}
                         onClick={() => setIsOpen(false)}
                     >
@@ -293,12 +330,16 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
             <button
                 ref={buttonRef}
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
+                className="relative p-2 rounded-[var(--pd-radius)] transition-colors"
+                style={{ color: 'var(--pd-text)' }}
                 aria-label="Notifiche"
             >
-                <Bell className={cn("h-6 w-6", iconClassName || "text-gray-600")} />
+                <Bell className={cn('h-5 w-5', iconClassName)} />
                 {unreadCount > 0 && (
-                    <span className="absolute top-0 right-0 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                    <span
+                      className="absolute top-0.5 right-0.5 flex items-center justify-center min-w-4 h-4 px-1 text-[10px] font-bold rounded-full"
+                      style={{ background: 'var(--pd-danger)', color: 'var(--pd-accent-fg)' }}
+                    >
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}

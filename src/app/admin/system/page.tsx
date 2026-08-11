@@ -2,14 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
+import { PageHeader } from '@/components/layout/page-header'
+import { SectionBlock } from '@/components/ui/section-block'
+import { StatStrip } from '@/components/ui/stat-strip'
+import { ListRow, EmptyState } from '@/components/ui/list-row'
 import {
-  Shield, Database, Activity, Download, Trash2,
-  AlertCircle, Clock, User, Filter, RefreshCw,
-  HardDrive, Calendar, TrendingUp, Bell
+  Activity,
+  Database,
+  Download,
+  Clock,
+  RefreshCw,
+  HardDrive,
+  TrendingUp,
+  Bell,
 } from 'lucide-react'
-import { format, formatDistanceToNow } from 'date-fns'
+import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { Select as ReactSelect } from '@/components/ui/react-select'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { cn } from '@/lib/utils'
 
@@ -39,10 +47,11 @@ interface SystemStats {
   databaseSize: string
 }
 
-export default function SystemAdminPage() {
-  const [activeTab, setActiveTab] = useState<'logs' | 'backups' | 'stats' | 'tasks'>('logs')
+type TabId = 'logs' | 'backups' | 'stats' | 'tasks'
 
-  // Audit Logs
+export default function SystemAdminPage() {
+  const [activeTab, setActiveTab] = useState<TabId>('logs')
+
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [logsLoading, setLogsLoading] = useState(true)
   const [logsTotal, setLogsTotal] = useState(0)
@@ -50,17 +59,18 @@ export default function SystemAdminPage() {
   const [filterAction, setFilterAction] = useState<string | null>(null)
   const [filterUser, setFilterUser] = useState<string | null>(null)
 
-  // Backups
   const [backups, setBackups] = useState<AuditLog[]>([])
   const [backupsLoading, setBackupsLoading] = useState(false)
   const [creatingBackup, setCreatingBackup] = useState(false)
 
-  // Stats
   const [stats, setStats] = useState<SystemStats | null>(null)
 
-  // Confirmation Modal
   const [showBackupConfirm, setShowBackupConfirm] = useState(false)
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false)
+
+  const [tasks, setTasks] = useState<any[]>([])
+  const [tasksLoading, setTasksLoading] = useState(false)
+  const [triggeringTask, setTriggeringTask] = useState<string | null>(null)
 
   useEffect(() => {
     if (activeTab === 'logs') fetchLogs()
@@ -92,7 +102,6 @@ export default function SystemAdminPage() {
   const fetchBackups = async () => {
     setBackupsLoading(true)
     try {
-      // Fetch backup history from audit logs
       const response = await fetch('/api/admin/audit-logs?action=DATABASE_BACKUP&limit=50')
       if (response.ok) {
         const data = await response.json()
@@ -104,11 +113,6 @@ export default function SystemAdminPage() {
       setBackupsLoading(false)
     }
   }
-
-  // Tasks/Reminders
-  const [tasks, setTasks] = useState<any[]>([])
-  const [tasksLoading, setTasksLoading] = useState(false)
-  const [triggeringTask, setTriggeringTask] = useState<string | null>(null)
 
   const fetchTasks = async () => {
     setTasksLoading(true)
@@ -136,20 +140,19 @@ export default function SystemAdminPage() {
 
       const data = await response.json()
       if (response.ok) {
-        alert(`✅ ${data.message}`)
+        alert(data.message)
       } else {
-        alert(`❌ Errore: ${data.error || 'Esecuzione fallita'}`)
+        alert(`Errore: ${data.error || 'Esecuzione fallita'}`)
       }
     } catch (error) {
       console.error('Error running task:', error)
-      alert('❌ Errore durante l\'esecuzione dell\'attività')
+      alert("Errore durante l'esecuzione dell'attività")
     } finally {
       setTriggeringTask(null)
     }
   }
 
   const fetchStats = async () => {
-    // Mock stats - implementare endpoint reale se necessario
     setStats({
       totalLogs: logsTotal,
       logsToday: 12,
@@ -163,513 +166,464 @@ export default function SystemAdminPage() {
   const createBackup = async () => {
     setCreatingBackup(true)
     try {
-      const response = await fetch('/api/admin/database/backup', {
-        method: 'POST'
-      })
+      const response = await fetch('/api/admin/database/backup', { method: 'POST' })
 
       if (response.ok) {
         const data = await response.json()
-        alert(`✅ Backup creato con successo!\n\nTimestamp: ${data.timestamp}\nTabelle: ${Object.keys(data.tables || {}).length}`)
+        alert(
+          `Backup creato con successo.\n\nTimestamp: ${data.timestamp}\nTabelle: ${Object.keys(data.tables || {}).length}`
+        )
         fetchBackups()
       } else {
         const error = await response.json()
-        alert(`❌ Errore: ${error.error}`)
+        alert(`Errore: ${error.error}`)
       }
     } catch (error) {
       console.error('Error creating backup:', error)
-      alert('❌ Errore durante la creazione del backup')
+      alert('Errore durante la creazione del backup')
     } finally {
       setCreatingBackup(false)
     }
   }
 
   const downloadBackup = () => {
-    // Trigger download
     window.open('/api/admin/database/backup?download=true', '_blank')
   }
 
-  const cleanupOldBackups = async () => {
-    try {
-      const response = await fetch('/api/admin/database/backup?days=30', {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        alert(`✅ Eliminati ${data.deletedCount} backup vecchi`)
-        fetchBackups()
-      }
-    } catch (error) {
-      console.error('Error cleaning backups:', error)
-      alert('❌ Errore durante la pulizia')
-    }
-  }
-
   const actionLabels: Record<string, string> = {
-    SCHEDULE_GENERATE: 'Piano Generato',
-    SCHEDULE_DELETE: 'Piano Eliminato',
-    SHIFT_ADD: 'Turno Aggiunto',
-    SHIFT_DELETE: 'Turno Eliminato',
-    SHIFT_EDIT: 'Turno Modificato',
-    HOURS_APPROVE: 'Ore Approvate',
-    HOURS_REJECT: 'Ore Rifiutate',
-    HOURS_EDIT: 'Ore Modificate',
-    USER_CREATE: 'Utente Creato',
-    USER_DELETE: 'Utente Eliminato',
-    DATABASE_BACKUP: 'Backup Creato',
-    ABSENCE_CREATE: 'Assenza Creata',
-    ABSENCE_EDIT: 'Assenza Modificata',
-    ABSENCE_DELETE: 'Assenza Eliminata',
-    ABSENCE_APPROVE: 'Assenza Approvata',
-    ABSENCE_REJECT: 'Assenza Rifiutata',
-    TASK_RUN: 'Task Eseguito',
+    SCHEDULE_GENERATE: 'Piano generato',
+    SCHEDULE_DELETE: 'Piano eliminato',
+    SHIFT_ADD: 'Turno aggiunto',
+    SHIFT_DELETE: 'Turno eliminato',
+    SHIFT_EDIT: 'Turno modificato',
+    HOURS_APPROVE: 'Ore approvate',
+    HOURS_REJECT: 'Ore rifiutate',
+    HOURS_EDIT: 'Ore modificate',
+    USER_CREATE: 'Utente creato',
+    USER_DELETE: 'Utente eliminato',
+    DATABASE_BACKUP: 'Backup creato',
+    ABSENCE_CREATE: 'Assenza creata',
+    ABSENCE_EDIT: 'Assenza modificata',
+    ABSENCE_DELETE: 'Assenza eliminata',
+    ABSENCE_APPROVE: 'Assenza approvata',
+    ABSENCE_REJECT: 'Assenza rifiutata',
+    TASK_RUN: 'Task eseguito',
   }
 
   const totalPages = Math.ceil(logsTotal / 20)
 
-  return (
-    <MainLayout adminOnly>
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header Moderno */}
-        <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8">
-          <div className="flex items-center gap-5">
-            <div className="p-4 bg-gray-900 rounded-2xl shadow-lg">
-              <Shield className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="pd-display text-3xl font-semibold text-[var(--pd-text)] tracking-tight">
-                Sistema e Sicurezza
-              </h1>
-              <p className="text-[var(--pd-muted)] font-medium mt-1">
-                Monitoraggio attività, gestione backup e configurazioni critiche.
-              </p>
-            </div>
-          </div>
-        </div>
+  const tabs: { id: TabId; label: string; icon: typeof Activity }[] = [
+    { id: 'logs', label: 'Audit log', icon: Activity },
+    { id: 'backups', label: 'Backup', icon: Database },
+    { id: 'stats', label: 'Statistiche', icon: TrendingUp },
+    { id: 'tasks', label: 'Promemoria', icon: Bell },
+  ]
 
-        {/* Tabs Moderne */}
-        <div className="bg-white/50 backdrop-blur-md rounded-2xl p-2 flex items-center gap-1 overflow-x-auto scrollbar-hide border border-[var(--pd-border)] shadow-sm">
-          {[
-            { id: 'logs', label: 'Audit Log', icon: Activity },
-            { id: 'backups', label: 'Backup Database', icon: Database },
-            { id: 'stats', label: 'Statistiche', icon: TrendingUp },
-            { id: 'tasks', label: 'Promemoria', icon: Bell }
-          ].map((tab) => (
+  return (
+    <MainLayout adminOnly contentWidth="6xl">
+      <div className="pd-page">
+        <PageHeader
+          dense
+          title="Sistema"
+          subtitle="Audit log, backup database e attività programmate"
+        />
+
+        <div
+          className="flex items-center gap-1 overflow-x-auto p-1"
+          style={{
+            background: 'var(--pd-surface-muted)',
+            borderRadius: 'var(--pd-radius-lg)',
+            border: '1px solid var(--pd-border)',
+          }}
+        >
+          {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-3 px-6 py-3 rounded-xl text-sm font-black transition-all whitespace-nowrap",
-                activeTab === tab.id
-                  ? "bg-[var(--pd-surface)] text-[var(--pd-accent)] shadow-md ring-1 ring-orange-100"
-                  : "text-[var(--pd-muted)] hover:bg-white/50 hover:text-[var(--pd-text)]"
+                'flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors',
+                activeTab === tab.id && 'shadow-sm'
               )}
+              style={{
+                borderRadius: 'var(--pd-radius)',
+                background: activeTab === tab.id ? 'var(--pd-surface)' : 'transparent',
+                color: activeTab === tab.id ? 'var(--pd-text)' : 'var(--pd-muted)',
+              }}
             >
-              <tab.icon className={cn("h-4 w-4", activeTab === tab.id ? "text-[var(--pd-accent)]" : "text-[var(--pd-muted)]")} />
+              <tab.icon className="h-4 w-4" />
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Tab Content Moderno */}
-        <div className="min-h-[500px]">
-          {/* AUDIT LOGS TAB */}
-          {activeTab === 'logs' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-6 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="relative flex-1 max-w-sm">
-                    <Filter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--pd-muted)]" />
-                    <select
-                      value={filterAction || ''}
-                      onChange={(e) => {
-                        setFilterAction(e.target.value || null)
-                        setLogsPage(1)
-                      }}
-                      className="w-full pl-11 pr-4 py-3 bg-[var(--pd-surface-muted)] border-[var(--pd-border)] rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[var(--pd-accent)] focus:border-[var(--pd-accent)] transition-all appearance-none"
-                    >
-                      <option value="">Tutte le azioni</option>
-                      {Object.entries(actionLabels).map(([key, label]) => (
-                        <option key={key} value={key}>{label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setFilterAction(null)
-                      setFilterUser(null)
-                      setLogsPage(1)
-                      fetchLogs()
-                    }}
-                    className="p-3 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] rounded-xl hover:bg-gray-200 transition-all"
-                    title="Reset filtri"
-                  >
-                    <RefreshCw className="h-5 w-5" />
-                  </button>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Totale Log</p>
-                  <p className="text-xl font-black text-[var(--pd-text)]">{logsTotal}</p>
-                </div>
+        {activeTab === 'logs' && (
+          <div className="space-y-4">
+            <SectionBlock
+              title="Filtri"
+              action={
+                <span className="text-sm tabular-nums" style={{ color: 'var(--pd-muted)' }}>
+                  {logsTotal} eventi
+                </span>
+              }
+              card
+            >
+              <div className="p-4 flex flex-wrap items-center gap-3">
+                <select
+                  value={filterAction || ''}
+                  onChange={(e) => {
+                    setFilterAction(e.target.value || null)
+                    setLogsPage(1)
+                  }}
+                  className="flex-1 min-w-[200px] px-3 py-2.5 text-sm border focus:outline-none focus:ring-2"
+                  style={{
+                    borderColor: 'var(--pd-border)',
+                    borderRadius: 'var(--pd-radius)',
+                    background: 'var(--pd-surface-muted)',
+                    color: 'var(--pd-text)',
+                  }}
+                >
+                  <option value="">Tutte le azioni</option>
+                  {Object.entries(actionLabels).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterAction(null)
+                    setFilterUser(null)
+                    setLogsPage(1)
+                    fetchLogs()
+                  }}
+                  className="p-2.5 transition-opacity hover:opacity-80"
+                  style={{
+                    background: 'var(--pd-surface-muted)',
+                    borderRadius: 'var(--pd-radius)',
+                    color: 'var(--pd-muted)',
+                  }}
+                  title="Azzera filtri"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
               </div>
+            </SectionBlock>
 
+            <SectionBlock card>
               {logsLoading ? (
-                <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-20 text-center">
-                  <RefreshCw className="h-10 w-10 text-[var(--pd-accent-fg)]/800 animate-spin mx-auto mb-4" />
-                  <p className="text-[var(--pd-muted)] font-bold uppercase tracking-widest text-xs">Caricamento log...</p>
-                </div>
+                <EmptyState title="Caricamento log…" />
               ) : logs.length === 0 ? (
-                <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-dashed border-[var(--pd-border-strong)] p-20 text-center">
-                  <Activity className="h-12 w-12 text-[var(--pd-muted)]/50 mx-auto mb-4" />
-                  <p className="text-[var(--pd-muted)] font-bold uppercase tracking-widest text-sm">Nessun log trovato</p>
-                </div>
+                <EmptyState
+                  title="Nessun log trovato"
+                  description="Prova a cambiare filtro o attendi nuove attività."
+                  icon={<Activity className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
+                />
               ) : (
-                <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden">
-                  <table className="min-w-full divide-y divide-gray-100">
-                    <thead>
-                      <tr className="bg-[var(--pd-surface-muted)]/80">
-                        <th className="px-6 py-4 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Data e Ora</th>
-                        <th className="px-6 py-4 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Utente</th>
-                        <th className="px-6 py-4 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Azione</th>
-                        <th className="px-6 py-4 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Descrizione</th>
-                        <th className="px-6 py-4 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Indirizzo IP</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {logs.map((log) => (
-                        <tr key={log.id} className="hover:bg-[var(--pd-surface-muted)]/80 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-[var(--pd-muted)]">
-                            {format(new Date(log.createdAt), 'dd MMM yy • HH:mm', { locale: it })}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-[var(--pd-accent-soft)] flex items-center justify-center text-[10px] font-black text-[var(--pd-accent)]">
-                                {log.userUsername.charAt(0).toUpperCase()}
-                              </div>
-                              <span className="text-xs font-black text-[var(--pd-text)]">{log.userUsername}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 py-1 rounded-md bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] text-[10px] font-black uppercase tracking-wider border border-[var(--pd-border)]">
-                              {actionLabels[log.action] || log.action}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-xs font-medium text-[var(--pd-muted)] max-w-md truncate">
-                            {log.description}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-[10px] font-mono text-[var(--pd-muted)]">
-                            {log.ipAddress || '0.0.0.0'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  
+                <>
+                  {logs.map(log => (
+                    <ListRow
+                      key={log.id}
+                      title={actionLabels[log.action] || log.action}
+                      subtitle={log.description}
+                      meta={format(new Date(log.createdAt), 'dd MMM yy · HH:mm', { locale: it })}
+                      leading={
+                        <div
+                          className="w-8 h-8 flex items-center justify-center text-xs font-semibold"
+                          style={{
+                            background: 'var(--pd-accent-soft)',
+                            color: 'var(--pd-accent)',
+                            borderRadius: '999px',
+                          }}
+                        >
+                          {log.userUsername.charAt(0).toUpperCase()}
+                        </div>
+                      }
+                      trailing={
+                        <span className="text-[11px] font-mono" style={{ color: 'var(--pd-muted)' }}>
+                          {log.userUsername} · {log.ipAddress || '—'}
+                        </span>
+                      }
+                    />
+                  ))}
                   {totalPages > 1 && (
-                    <div className="p-4 bg-[var(--pd-surface-muted)]/80 border-t border-[var(--pd-border)] flex items-center justify-between">
-                      <span className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">
+                    <div
+                      className="px-4 py-3 flex items-center justify-between gap-3"
+                      style={{ background: 'var(--pd-surface-muted)' }}
+                    >
+                      <span className="text-xs" style={{ color: 'var(--pd-muted)' }}>
                         Pagina {logsPage} di {totalPages}
                       </span>
                       <div className="flex gap-2">
                         <button
+                          type="button"
                           onClick={() => setLogsPage(p => Math.max(1, p - 1))}
                           disabled={logsPage === 1}
-                          className="px-4 py-2 bg-white border border-[var(--pd-border)] rounded-xl text-xs font-black uppercase tracking-widest text-[var(--pd-muted)] hover:bg-[var(--pd-surface-muted)] disabled:opacity-50 transition-all"
+                          className="px-3 py-1.5 text-xs font-medium border disabled:opacity-40"
+                          style={{
+                            borderColor: 'var(--pd-border)',
+                            borderRadius: 'var(--pd-radius)',
+                            background: 'var(--pd-surface)',
+                            color: 'var(--pd-text)',
+                          }}
                         >
                           Precedente
                         </button>
                         <button
+                          type="button"
                           onClick={() => setLogsPage(p => Math.min(totalPages, p + 1))}
                           disabled={logsPage === totalPages}
-                          className="px-4 py-2 bg-white border border-[var(--pd-border)] rounded-xl text-xs font-black uppercase tracking-widest text-[var(--pd-muted)] hover:bg-[var(--pd-surface-muted)] disabled:opacity-50 transition-all"
+                          className="px-3 py-1.5 text-xs font-medium border disabled:opacity-40"
+                          style={{
+                            borderColor: 'var(--pd-border)',
+                            borderRadius: 'var(--pd-radius)',
+                            background: 'var(--pd-surface)',
+                            color: 'var(--pd-text)',
+                          }}
                         >
                           Successiva
                         </button>
                       </div>
                     </div>
                   )}
-                </div>
+                </>
               )}
-            </div>
-          )}
+            </SectionBlock>
+          </div>
+        )}
 
-          {/* BACKUPS TAB */}
-          {activeTab === 'backups' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                  <h3 className="text-xl font-black text-[var(--pd-text)] tracking-tight">Storico Backup</h3>
-                  <p className="text-sm text-[var(--pd-muted)] font-medium mt-1">
-                    I backup vengono generati on-demand e scaricati direttamente. Cron automatico ogni giovedì alle 15:00.
-                  </p>
-                </div>
-                <div className="flex gap-3">
+        {activeTab === 'backups' && (
+          <div className="space-y-4">
+            <SectionBlock
+              title="Backup database"
+              subtitle="On-demand; cron automatico ogni giovedì alle 15:00"
+              action={
+                <div className="flex flex-wrap gap-2">
                   <button
+                    type="button"
                     onClick={downloadBackup}
-                    className="px-6 py-3 text-xs font-black uppercase tracking-widest text-[var(--pd-success)] bg-[var(--pd-success-soft)] rounded-2xl hover:bg-green-100 transition-all flex items-center gap-2"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border"
+                    style={{
+                      borderColor: 'var(--pd-border)',
+                      borderRadius: 'var(--pd-radius)',
+                      background: 'var(--pd-surface)',
+                      color: 'var(--pd-success)',
+                    }}
                   >
                     <Download className="h-4 w-4" />
-                    Scarica Backup
+                    Scarica
                   </button>
                   <button
+                    type="button"
                     onClick={() => setShowBackupConfirm(true)}
                     disabled={creatingBackup}
-                    className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black shadow-lg shadow-[var(--pd-shadow)] transition-all flex items-center gap-2 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm pd-btn-primary disabled:opacity-50"
                   >
-                    {creatingBackup ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-                    Crea Snapshot Ora
+                    {creatingBackup ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Database className="h-4 w-4" />
+                    )}
+                    Crea snapshot
                   </button>
                 </div>
-              </div>
+              }
+            >
+              {null}
+            </SectionBlock>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {backupsLoading ? (
-                  <div className="col-span-full bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-20 text-center">
-                    <RefreshCw className="h-10 w-10 text-[var(--pd-accent-fg)]/800 animate-spin mx-auto mb-4" />
-                    <p className="text-[var(--pd-muted)] font-bold uppercase tracking-widest text-xs">Ricerca backup...</p>
+            <SectionBlock card>
+              {backupsLoading ? (
+                <EmptyState title="Ricerca backup…" />
+              ) : backups.length === 0 ? (
+                <EmptyState
+                  title="Nessun backup in archivio"
+                  description="Usa «Crea snapshot» per generarne uno on-demand."
+                  icon={<Database className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
+                />
+              ) : (
+                backups.map(backup => {
+                  const metadata = backup.metadata as any
+                  const timestamp = metadata?.timestamp || backup.createdAt
+                  const tables = metadata?.tables || {}
+                  const tableCount = Object.keys(tables).length
+                  const totalRecords = Object.values(tables).reduce(
+                    (sum: number, count: any) => sum + (count || 0),
+                    0
+                  )
+
+                  return (
+                    <ListRow
+                      key={backup.id}
+                      title={`backup_${String(timestamp).replace(/[-:]/g, '')}`}
+                      subtitle={`${tableCount} tabelle · ${totalRecords.toLocaleString()} record · ${backup.userUsername}`}
+                      meta={format(new Date(backup.createdAt), 'dd MMM yyyy · HH:mm', { locale: it })}
+                      leading={
+                        <HardDrive className="h-5 w-5" style={{ color: 'var(--pd-muted)' }} />
+                      }
+                      trailing={
+                        <button
+                          type="button"
+                          onClick={() =>
+                            window.open('/api/admin/database/backup?download=true', '_blank')
+                          }
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium"
+                          style={{
+                            background: 'var(--pd-accent-soft)',
+                            color: 'var(--pd-accent)',
+                            borderRadius: 'var(--pd-radius)',
+                          }}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Scarica
+                        </button>
+                      }
+                    />
+                  )
+                })
+              )}
+            </SectionBlock>
+          </div>
+        )}
+
+        {activeTab === 'stats' && stats && (
+          <div className="space-y-4">
+            <StatStrip
+              columns={4}
+              items={[
+                { label: 'Eventi totali', value: stats.totalLogs },
+                { label: 'Eventi oggi', value: stats.logsToday },
+                { label: 'Backup archiviati', value: stats.backupsCount },
+                { label: 'Peso database', value: stats.databaseSize },
+              ]}
+            />
+
+            <SectionBlock title="Salute del sistema" subtitle="Indicatori di carico (indicativi)" card>
+              <div className="p-5 space-y-5">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color: 'var(--pd-muted)' }}>Carico database</span>
+                    <span className="font-semibold tabular-nums" style={{ color: 'var(--pd-text)' }}>
+                      12%
+                    </span>
                   </div>
-                ) : backups.length === 0 ? (
-                  <div className="col-span-full bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-dashed border-[var(--pd-border-strong)] p-20 text-center">
-                    <Database className="h-12 w-12 text-[var(--pd-muted)]/50 mx-auto mb-4" />
-                    <p className="text-[var(--pd-muted)] font-bold uppercase tracking-widest text-sm mb-2">Nessun backup in archivio</p>
-                    <p className="text-xs text-[var(--pd-muted)]">I backup vengono generati on-demand. Usa il pulsante sopra per crearne uno.</p>
+                  <div
+                    className="h-1.5 overflow-hidden"
+                    style={{ background: 'var(--pd-surface-muted)', borderRadius: '999px' }}
+                  >
+                    <div
+                      className="h-full w-[12%]"
+                      style={{ background: 'var(--pd-success)', borderRadius: '999px' }}
+                    />
                   </div>
-                ) : (
-                  backups.map((backup) => {
-                    const metadata = backup.metadata as any
-                    const timestamp = metadata?.timestamp || backup.createdAt
-                    const tables = metadata?.tables || {}
-                    const tableCount = Object.keys(tables).length
-                    const totalRecords = Object.values(tables).reduce((sum: number, count: any) => sum + (count || 0), 0)
-                    
-                    return (
-                      <div key={backup.id} className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-6 hover:shadow-xl transition-all group">
-                        <div className="flex items-center gap-4 mb-6">
-                          <div className="p-3 bg-[var(--pd-accent-soft)] rounded-2xl text-[var(--pd-accent)] transition-transform group-hover:rotate-12">
-                            <HardDrive className="h-6 w-6" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-sm font-black text-[var(--pd-text)] truncate">
-                              backup_{timestamp?.replace(/[-:]/g, '').replace('_', '_') || 'unknown'}
-                            </h4>
-                            <p className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-widest">
-                              JSON Export • {tableCount} tabelle • {totalRecords.toLocaleString()} record
-                            </p>
-                          </div>
-                        </div>
-                        <div className="space-y-3 pt-4 border-t border-[var(--pd-border)]">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-3 w-3 text-[var(--pd-muted)]/50" />
-                              <span className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-wider">
-                                {format(new Date(backup.createdAt), 'dd MMM yyyy • HH:mm', { locale: it })}
-                              </span>
-                            </div>
-                            <span className="px-2 py-1 bg-[var(--pd-success-soft)] text-[var(--pd-success)] text-[9px] font-black uppercase tracking-widest rounded-lg border border-green-100">
-                              Completato
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-bold text-[var(--pd-muted)] uppercase">Creato da:</span>
-                            <span className="text-[10px] font-black text-[var(--pd-muted)]">{backup.userUsername}</span>
-                          </div>
-                          <button
-                            onClick={() => window.open('/api/admin/database/backup?download=true', '_blank')}
-                            className="w-full mt-2 px-4 py-2 bg-[var(--pd-accent-soft)] hover:bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-[var(--pd-accent)]"
-                          >
-                            <Download className="h-3 w-3" />
-                            Scarica Backup
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color: 'var(--pd-muted)' }}>Utilizzo storage backup</span>
+                    <span className="font-semibold tabular-nums" style={{ color: 'var(--pd-text)' }}>
+                      45%
+                    </span>
+                  </div>
+                  <div
+                    className="h-1.5 overflow-hidden"
+                    style={{ background: 'var(--pd-surface-muted)', borderRadius: '999px' }}
+                  >
+                    <div
+                      className="h-full w-[45%]"
+                      style={{ background: 'var(--pd-accent)', borderRadius: '999px' }}
+                    />
+                  </div>
+                </div>
+                {stats.lastBackup && (
+                  <p className="text-xs flex items-center gap-2" style={{ color: 'var(--pd-muted)' }}>
+                    <Clock className="h-3.5 w-3.5" />
+                    Ultimo backup:{' '}
+                    {format(new Date(stats.lastBackup), "d MMMM yyyy 'alle' HH:mm", { locale: it })}
+                  </p>
                 )}
               </div>
-            </div>
-          )}
+            </SectionBlock>
+          </div>
+        )}
 
-          {/* STATS TAB */}
-          {activeTab === 'stats' && stats && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                  { label: 'Eventi Totali', value: stats.totalLogs, icon: Activity, color: 'orange' },
-                  { label: 'Eventi Oggi', value: stats.logsToday, icon: Clock, color: 'blue' },
-                  { label: 'Backup Archiviati', value: stats.backupsCount, icon: Database, color: 'green' },
-                  { label: 'Peso Database', value: stats.databaseSize, icon: HardDrive, tone: 'warning' as const }
-                ].map((stat, i) => {
-                  const toneClasses: Record<string, string> = {
-                    orange: 'bg-[var(--pd-accent-soft)] text-[var(--pd-accent)]',
-                    blue: 'bg-[var(--pd-accent-soft)] text-[var(--pd-accent)]',
-                    green: 'bg-[var(--pd-success-soft)] text-[var(--pd-success)]',
-                    warning: 'bg-[var(--pd-warning-soft)] text-[var(--pd-warning)]',
-                  }
-                  return (
-                  <div key={i} className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8">
-                    <div className={cn("p-3 rounded-2xl w-fit mb-4 shadow-sm", toneClasses[stat.tone ?? stat.color] ?? toneClasses.orange)}>
-                      <stat.icon className="h-6 w-6" />
-                    </div>
-                    <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-1">{stat.label}</p>
-                    <p className="text-3xl font-black text-[var(--pd-text)] tracking-tight">{stat.value}</p>
-                  </div>
-                  )
-                })}
-              </div>
-
-              <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-10 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-                  <Activity className="h-48 w-48" />
-                </div>
-                <div className="relative z-10">
-                  <h3 className="text-xl font-black text-[var(--pd-text)] tracking-tight mb-2">Salute del Sistema</h3>
-                  <p className="text-sm text-[var(--pd-muted)] font-medium mb-8">Tutti i nodi sono operativi. Tempo di attività 99.9%.</p>
-                  
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-end">
-                        <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Carico Database</p>
-                        <p className="text-xs font-black text-[var(--pd-text)]">12%</p>
-                      </div>
-                      <div className="h-2 bg-[var(--pd-surface-muted)] rounded-full overflow-hidden">
-                        <div className="h-full bg-[var(--pd-success)] w-[12%] rounded-full shadow-sm shadow-[var(--pd-shadow)]" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-end">
-                        <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Utilizzo Storage Backup</p>
-                        <p className="text-xs font-black text-[var(--pd-text)]">45%</p>
-                      </div>
-                      <div className="h-2 bg-[var(--pd-surface-muted)] rounded-full overflow-hidden">
-                        <div className="h-full bg-[var(--pd-accent)] w-[45%] rounded-full shadow-sm shadow-[var(--pd-shadow)]" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TASKS TAB */}
-          {activeTab === 'tasks' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-               <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                <div>
-                  <h3 className="text-xl font-black text-[var(--pd-text)] tracking-tight flex items-center gap-3">
-                    <Bell className="h-6 w-6 text-[var(--pd-accent)]" />
-                    Notifiche Automatiche
-                  </h3>
-                  <p className="text-sm text-[var(--pd-muted)] font-medium mt-1">
-                    Visualizza e gestisci le notifiche automatiche programmate per la squadra.
-                  </p>
-                </div>
+        {activeTab === 'tasks' && (
+          <div className="space-y-4">
+            <SectionBlock
+              title="Notifiche automatiche"
+              subtitle="Attività programmate e avvii manuali"
+              action={
                 <button
+                  type="button"
                   onClick={fetchTasks}
-                  className="p-4 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] rounded-2xl hover:bg-[var(--pd-surface-muted)] transition-all hover:rotate-180 duration-500"
+                  className="p-2.5 transition-opacity hover:opacity-80"
+                  style={{
+                    background: 'var(--pd-surface-muted)',
+                    borderRadius: 'var(--pd-radius)',
+                    color: 'var(--pd-muted)',
+                  }}
                 >
-                  <RefreshCw className={cn("h-6 w-6", tasksLoading ? 'animate-spin' : '')} />
+                  <RefreshCw className={cn('h-4 w-4', tasksLoading && 'animate-spin')} />
                 </button>
-              </div>
+              }
+            >
+              {null}
+            </SectionBlock>
 
+            <SectionBlock card>
               {tasksLoading && tasks.length === 0 ? (
-                <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-20 text-center">
-                  <RefreshCw className="h-10 w-10 text-[var(--pd-accent)] animate-spin mx-auto mb-4" />
-                  <p className="text-[var(--pd-muted)] font-bold uppercase tracking-widest text-xs">Caricamento task...</p>
-                </div>
+                <EmptyState title="Caricamento attività…" />
               ) : tasks.length === 0 ? (
-                <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-dashed border-[var(--pd-border-strong)] p-20 text-center">
-                  <Bell className="h-12 w-12 text-[var(--pd-muted)]/50 mx-auto mb-4" />
-                  <p className="text-[var(--pd-muted)] font-bold uppercase tracking-widest text-sm">Nessuna attività programmata</p>
-                </div>
+                <EmptyState
+                  title="Nessuna attività programmata"
+                  icon={<Bell className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
+                />
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {tasks.map((task: any) => (
-                    <div key={task.id} className="bg-[var(--pd-surface)] rounded-3xl p-8 border border-[var(--pd-border)] shadow-[var(--pd-shadow)] hover:shadow-xl transition-all group">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className={cn(
-                          "w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg transition-transform group-hover:scale-110",
-                          task.id.includes('reminder') ? "bg-[var(--pd-accent)] text-white shadow-[var(--pd-shadow)]" : "bg-[var(--pd-accent)] text-white shadow-[var(--pd-shadow)]"
-                        )}>
-                          {task.id.includes('reminder') ? (
-                            <Bell className="h-8 w-8" />
-                          ) : (
-                            <Clock className="h-8 w-8" />
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <span className={cn(
-                            "px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border",
-                            task.readable 
-                              ? "bg-[var(--pd-success-soft)] text-[var(--pd-success)] border-[var(--pd-border)]"
-                              : "bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] border-[var(--pd-border)]"
-                          )}>
-                            {task.readable ? 'Programmato' : 'Manuale'}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-8">
-                        <h4 className="text-xl font-black text-[var(--pd-text)] tracking-tight">{task.name}</h4>
-                        <p className="text-sm text-[var(--pd-muted)] font-medium mt-2 leading-relaxed">{task.description}</p>
-                      </div>
-
-                      {task.readable && (
-                        <div className="mt-6 p-4 bg-[var(--pd-surface-muted)] rounded-2xl border border-[var(--pd-border)]">
-                          <div className="flex items-center gap-3">
-                            <Clock className="h-5 w-5 text-[var(--pd-accent)] flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[10px] font-black text-[var(--pd-accent)] uppercase tracking-widest mb-1">Orario Programmato</p>
-                              <p className="text-sm font-black text-blue-900">{task.readable}</p>
-                              {task.nextRun && (
-                                <p className="text-xs text-[var(--pd-accent)] font-medium mt-1">
-                                  Prossima esecuzione: {format(new Date(task.nextRun), 'dd MMMM yyyy', { locale: it })} alle {format(new Date(task.nextRun), 'HH:mm', { locale: it })}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="mt-8 pt-6 border-t border-[var(--pd-border)] flex items-center justify-between gap-4">
-                        <code className="text-[10px] font-mono text-[var(--pd-muted)] bg-[var(--pd-surface-muted)] px-2 py-1 rounded-md flex-1 truncate">{task.path}</code>
-                        <button
-                          onClick={() => runTask(task.id)}
-                          disabled={triggeringTask === task.id}
-                          className={cn(
-                            "px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap",
-                            task.id.includes('reminder')
-                              ? "bg-[var(--pd-accent)] text-white shadow-[var(--pd-shadow)] hover:bg-[var(--pd-accent-hover)]"
-                              : "bg-[var(--pd-accent)] text-white shadow-[var(--pd-shadow)] hover:bg-[var(--pd-accent-hover)]"
-                          )}
-                        >
-                          {triggeringTask === task.id ? (
-                            <>
-                              <RefreshCw className="h-3 w-3 animate-spin" />
-                              <span>Esecuzione...</span>
-                            </>
-                          ) : (
-                            <span>Esegui Ora</span>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                tasks.map((task: any) => (
+                  <ListRow
+                    key={task.id}
+                    title={task.name}
+                    subtitle={
+                      task.readable
+                        ? `${task.description} · ${task.readable}${
+                            task.nextRun
+                              ? ` · prossima: ${format(new Date(task.nextRun), 'dd MMM yyyy HH:mm', { locale: it })}`
+                              : ''
+                          }`
+                        : task.description
+                    }
+                    meta={task.readable ? 'Programmato' : 'Manuale'}
+                    leading={
+                      task.id.includes('reminder') ? (
+                        <Bell className="h-5 w-5" style={{ color: 'var(--pd-accent)' }} />
+                      ) : (
+                        <Clock className="h-5 w-5" style={{ color: 'var(--pd-muted)' }} />
+                      )
+                    }
+                    trailing={
+                      <button
+                        type="button"
+                        onClick={() => runTask(task.id)}
+                        disabled={triggeringTask === task.id}
+                        className="px-3 py-1.5 text-xs font-semibold pd-btn-primary disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {triggeringTask === task.id ? 'Esecuzione…' : 'Esegui ora'}
+                      </button>
+                    }
+                  />
+                ))
               )}
-            </div>
-          )}
-        </div>
+            </SectionBlock>
+          </div>
+        )}
       </div>
 
-      {/* Backup Confirmation Modal */}
       <ConfirmationModal
         isOpen={showBackupConfirm}
         onClose={() => setShowBackupConfirm(false)}
         onConfirm={createBackup}
-        title="Crea Backup Database"
+        title="Crea backup database"
         description="Stai per creare un backup completo del database. Il backup includerà tutte le tabelle e i dati."
         confirmPhrase="CREA BACKUP"
-        confirmButtonText="Crea Backup"
+        confirmButtonText="Crea backup"
         isDangerous={false}
         metadata={
           <div className="text-sm space-y-1">
@@ -680,16 +634,15 @@ export default function SystemAdminPage() {
         }
       />
 
-      {/* Cleanup Confirmation Modal - No longer needed but kept for compatibility */}
       <ConfirmationModal
         isOpen={showCleanupConfirm}
         onClose={() => setShowCleanupConfirm(false)}
         onConfirm={() => {
-          alert('ℹ️ I backup sono ora in-memory e vengono scaricati direttamente. Non ci sono file da eliminare.')
+          alert('I backup sono on-demand e scaricati direttamente. Non ci sono file da eliminare.')
           setShowCleanupConfirm(false)
         }}
-        title="Info Pulizia Backup"
-        description="I backup sono ora generati on-demand e scaricati direttamente. Non vengono più salvati file sul server."
+        title="Info pulizia backup"
+        description="I backup sono generati on-demand e scaricati direttamente. Non vengono più salvati file sul server."
         confirmPhrase="OK"
         confirmButtonText="Capito"
         isDangerous={false}
@@ -703,4 +656,3 @@ export default function SystemAdminPage() {
     </MainLayout>
   )
 }
-

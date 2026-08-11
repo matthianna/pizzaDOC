@@ -24,7 +24,10 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Pizza D.O.C. — PizzaDOC",
+  title: {
+    default: 'Pizza D.O.C.',
+    template: '%s — Pizza D.O.C.',
+  },
   description: "Sistema di gestione piano di lavoro per pizzeria",
   manifest: '/manifest.json',
   appleWebApp: {

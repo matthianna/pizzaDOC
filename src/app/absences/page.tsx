@@ -1,29 +1,19 @@
 'use client'
 
-import { useState, useEffect, useMemo, type ElementType, type ReactNode } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { StaffPageHeader } from '@/components/layout/staff-page-header'
+import { PageHeader } from '@/components/layout/page-header'
+import { StatStrip } from '@/components/ui/stat-strip'
+import { SectionBlock } from '@/components/ui/section-block'
+import { ListRow, EmptyState } from '@/components/ui/list-row'
 import { Modal } from '@/components/ui/modal'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useHaptics } from '@/hooks/use-haptics'
-import {
-  Calendar,
-  Plus,
-  Edit2,
-  Trash2,
-  Info,
-  Clock,
-  CalendarDays,
-  ChevronDown,
-  Palmtree,
-  History,
-} from 'lucide-react'
+import { Plus, Edit2, Trash2, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
-import { shortWeekdayItFromDate } from '@/lib/date-utils'
 
 interface Absence {
   id: string
@@ -216,9 +206,11 @@ export default function AbsencesPage() {
     (sum, a) => sum + countAbsenceDays(a.startDate, a.endDate),
     0
   )
+  const programmedDays =
+    futureDays + activeAbsences.reduce((s, a) => s + countAbsenceDays(a.startDate, a.endDate), 0)
 
   return (
-    <MainLayout>
+    <MainLayout contentWidth="4xl" title="Assenze" subtitle="Vacanze e periodi di riposo">
       <ConfirmDialog
         isOpen={!!deleteId}
         title="Elimina assenza"
@@ -228,159 +220,138 @@ export default function AbsencesPage() {
         onConfirm={confirmDelete}
         onClose={() => setDeleteId(null)}
       />
-      <div className="max-w-6xl mx-auto space-y-8 pb-20">
-        <div className="pd-card p-6 sm:p-8">
-          <StaffPageHeader
-            title="Assenze e vacanze"
-            subtitle="Richiedi un periodo di riposo. Resta in attesa di approvazione dall'amministrazione."
-            action={
-              <button
-                onClick={() => {
-                  lightClick()
-                  setShowForm(true)
-                }}
-                className="px-6 py-3 pd-btn-primary rounded-2xl text-sm flex items-center gap-2 shrink-0"
-              >
-                <Plus className="h-4 w-4" />
-                Nuova assenza
-              </button>
-            }
+      <div className="pd-page pb-20">
+        <PageHeader
+          title="Assenze"
+          subtitle="Vacanze e periodi di riposo"
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                lightClick()
+                setShowForm(true)
+              }}
+              className="px-4 py-2.5 pd-btn-primary text-sm inline-flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Nuova assenza
+            </button>
+          }
+        />
+
+        {!loading && (
+          <StatStrip
+            items={[
+              { label: 'In corso', value: activeAbsences.length },
+              { label: 'Programmate', value: futureAbsences.length },
+              { label: 'Giorni', value: programmedDays },
+            ]}
           />
-        </div>
+        )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {loading ? (
-            <>
-              <Skeleton className="h-28 rounded-[2rem]" />
-              <Skeleton className="h-28 rounded-[2rem]" />
-              <Skeleton className="h-28 rounded-[2rem]" />
-            </>
-          ) : (
-            <>
-              <StatCard
-                label="In Corso"
-                value={activeAbsences.length}
-                icon={Clock}
-                color="green"
-              />
-              <StatCard
-                label="Programmate"
-                value={futureAbsences.length}
-                icon={CalendarDays}
-                color="blue"
-              />
-              <StatCard
-                label="Giorni Programmati"
-                value={futureDays + activeAbsences.reduce((s, a) => s + countAbsenceDays(a.startDate, a.endDate), 0)}
-                icon={Palmtree}
-                color="orange"
-              />
-            </>
-          )}
-        </div>
-
-        {/* Info Banner */}
-        <div className="bg-white rounded-[2rem] shadow-soft border border-blue-100 p-5 sm:p-6 flex items-start gap-4">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <Info className="h-5 w-5 text-blue-600" />
-          </div>
-          <div>
-            <p className="font-black text-blue-900 text-sm uppercase tracking-tight">Informazioni importanti</p>
-            <p className="text-blue-700/90 text-sm mt-1 font-medium leading-relaxed">
-              Le richieste restano in attesa finché un admin non le approva. Solo dopo l’approvazione
-              la disponibilità di quei giorni viene disabilitata. Le assenze approvate non si possono
-              modificare o eliminare da qui.
-            </p>
-          </div>
-        </div>
-
-        {/* Content */}
         {loading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-32 rounded-[2rem]" />
-            <Skeleton className="h-32 rounded-[2rem]" />
+          <div className="py-16 text-center text-sm" style={{ color: 'var(--pd-muted)' }}>
+            Caricamento…
           </div>
         ) : absences.length === 0 ? (
-          <div className="bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-100 py-20 text-center">
-            <CalendarDays className="h-16 w-16 text-gray-200 mx-auto mb-6" />
-            <p className="text-gray-400 font-black uppercase tracking-widest text-sm">Nessuna assenza programmata</p>
-            <p className="text-gray-500 text-sm font-medium mt-2">Clicca su &quot;Nuova Assenza&quot; per aggiungerne una</p>
-          </div>
+          <SectionBlock card>
+            <EmptyState
+              title="Nessuna assenza programmata"
+              description="Le richieste restano in attesa di approvazione dall'amministrazione prima di essere attive."
+              action={
+                <button
+                  type="button"
+                  onClick={() => setShowForm(true)}
+                  className="px-4 py-2 pd-btn-primary text-sm"
+                >
+                  Nuova assenza
+                </button>
+              }
+            />
+          </SectionBlock>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {activeAbsences.length > 0 && (
-              <AbsenceSection
-                title="In Corso"
+              <SectionBlock
+                title="In corso"
                 subtitle={`${activeAbsences.length} ${activeAbsences.length === 1 ? 'assenza attiva' : 'assenze attive'}`}
-                icon={Clock}
-                accent="green"
-                isExpanded
-                onToggle={() => {}}
-                hideToggle
+                card
               >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {activeAbsences.map(absence => (
-                    <AbsenceCard
-                      key={absence.id}
-                      absence={absence}
-                      status="active"
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </div>
-              </AbsenceSection>
+                {activeAbsences.map(absence => (
+                  <AbsenceRow
+                    key={absence.id}
+                    absence={absence}
+                    status="active"
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </SectionBlock>
             )}
 
             {futureAbsences.length > 0 && (
-              <AbsenceSection
+              <SectionBlock
                 title="Programmate"
-                subtitle={`${futureAbsences.length} ${futureAbsences.length === 1 ? 'assenza' : 'assenze'} · ${futureDays} giorni`}
-                icon={CalendarDays}
-                accent="blue"
-                isExpanded
-                onToggle={() => {}}
-                hideToggle={activeAbsences.length === 0 && futureAbsences.length <= 3}
+                subtitle={`${futureAbsences.length} · ${futureDays} giorni`}
+                card
               >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {futureAbsences.map(absence => (
-                    <AbsenceCard
-                      key={absence.id}
-                      absence={absence}
-                      status="future"
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </div>
-              </AbsenceSection>
+                {futureAbsences.map(absence => (
+                  <AbsenceRow
+                    key={absence.id}
+                    absence={absence}
+                    status="future"
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </SectionBlock>
             )}
 
             {pastAbsences.length > 0 && (
-              <AbsenceSection
-                title="Storico Assenze"
-                subtitle={`${pastAbsences.length} ${pastAbsences.length === 1 ? 'periodo' : 'periodi'} · ${pastDays} giorni totali`}
-                icon={History}
-                accent="gray"
-                isExpanded={showHistory}
-                onToggle={() => {
-                  lightClick()
-                  setShowHistory(prev => !prev)
+              <div
+                className="overflow-hidden"
+                style={{
+                  background: 'var(--pd-surface)',
+                  border: '1px solid var(--pd-border)',
+                  borderRadius: 'var(--pd-radius-lg)',
                 }}
               >
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {pastAbsences.map(absence => (
-                    <AbsenceCard
-                      key={absence.id}
-                      absence={absence}
-                      status="past"
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </div>
-              </AbsenceSection>
+                <button
+                  type="button"
+                  onClick={() => {
+                    lightClick()
+                    setShowHistory(prev => !prev)
+                  }}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left pd-press"
+                >
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                      Storico assenze
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
+                      {pastAbsences.length} {pastAbsences.length === 1 ? 'periodo' : 'periodi'} ·{' '}
+                      {pastDays} giorni
+                    </p>
+                  </div>
+                  <ChevronDown
+                    className={cn('h-4 w-4 transition-transform', showHistory && 'rotate-180')}
+                    style={{ color: 'var(--pd-muted)' }}
+                  />
+                </button>
+                {showHistory && (
+                  <div style={{ borderTop: '1px solid var(--pd-border)' }}>
+                    {pastAbsences.map(absence => (
+                      <AbsenceRow
+                        key={absence.id}
+                        absence={absence}
+                        status="past"
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -389,49 +360,71 @@ export default function AbsencesPage() {
           <Modal
             isOpen
             onClose={resetForm}
-            title={editingAbsence ? 'Modifica Assenza' : 'Nuova Assenza'}
-            subtitle={editingAbsence ? 'Aggiorna i dettagli' : 'Comunica il tuo periodo di assenza'}
+            title={editingAbsence ? 'Modifica assenza' : 'Nuova assenza'}
+            subtitle={
+              editingAbsence
+                ? 'Aggiorna i dettagli'
+                : "Resta in attesa di approvazione dall'amministrazione"
+            }
             headerIcon={editingAbsence ? <Edit2 className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
             maxWidth="md"
           >
-            <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                    Data Inizio
+            <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium px-0.5" style={{ color: 'var(--pd-muted)' }}>
+                    Data inizio
                   </label>
                   <input
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={e => setStartDate(e.target.value)}
                     min={format(new Date(), 'yyyy-MM-dd')}
                     required
-                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+                    className="w-full px-3 py-3 text-sm font-medium"
+                    style={{
+                      background: 'var(--pd-surface-muted)',
+                      border: '1px solid var(--pd-border)',
+                      borderRadius: 'var(--pd-radius)',
+                      color: 'var(--pd-text)',
+                    }}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                    Data Fine
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium px-0.5" style={{ color: 'var(--pd-muted)' }}>
+                    Data fine
                   </label>
                   <input
                     type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={e => setEndDate(e.target.value)}
                     min={startDate || format(new Date(), 'yyyy-MM-dd')}
                     required
-                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+                    className="w-full px-3 py-3 text-sm font-medium"
+                    style={{
+                      background: 'var(--pd-surface-muted)',
+                      border: '1px solid var(--pd-border)',
+                      borderRadius: 'var(--pd-radius)',
+                      color: 'var(--pd-text)',
+                    }}
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                  Motivo <span className="text-gray-300">(opzionale)</span>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium px-0.5" style={{ color: 'var(--pd-muted)' }}>
+                  Motivo <span style={{ opacity: 0.6 }}>(opzionale)</span>
                 </label>
                 <select
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all appearance-none"
+                  onChange={e => setReason(e.target.value)}
+                  className="w-full px-3 py-3 text-sm font-medium appearance-none"
+                  style={{
+                    background: 'var(--pd-surface-muted)',
+                    border: '1px solid var(--pd-border)',
+                    borderRadius: 'var(--pd-radius)',
+                    color: 'var(--pd-text)',
+                  }}
                 >
                   <option value="">Seleziona motivo...</option>
                   <option value="Vacanza">Vacanza</option>
@@ -441,36 +434,48 @@ export default function AbsencesPage() {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                  Note <span className="text-gray-300">(opzionale)</span>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium px-0.5" style={{ color: 'var(--pd-muted)' }}>
+                  Note <span style={{ opacity: 0.6 }}>(opzionale)</span>
                 </label>
                 <textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={e => setNotes(e.target.value)}
                   rows={3}
-                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all resize-none placeholder-gray-400"
+                  className="w-full px-3 py-3 text-sm font-medium resize-none"
+                  style={{
+                    background: 'var(--pd-surface-muted)',
+                    border: '1px solid var(--pd-border)',
+                    borderRadius: 'var(--pd-radius)',
+                    color: 'var(--pd-text)',
+                  }}
                   placeholder="Note aggiuntive..."
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 rounded-2xl transition-all"
+                  className="flex-1 py-3 text-sm font-semibold rounded-[var(--pd-radius)]"
+                  style={{ color: 'var(--pd-muted)', background: 'var(--pd-surface-muted)' }}
                 >
                   Annulla
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-[2] py-4 pd-btn-primary text-sm rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-[2] py-3 pd-btn-primary text-sm disabled:opacity-50 flex items-center justify-center"
                 >
                   {submitting ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    <div
+                      className="animate-spin rounded-full h-4 w-4 border-b-2"
+                      style={{ borderColor: 'var(--pd-accent-fg)' }}
+                    />
+                  ) : editingAbsence ? (
+                    'Salva modifiche'
                   ) : (
-                    editingAbsence ? 'Salva Modifiche' : 'Crea Assenza'
+                    'Crea assenza'
                   )}
                 </button>
               </div>
@@ -483,93 +488,7 @@ export default function AbsencesPage() {
   )
 }
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  color,
-}: {
-  label: string
-  value: number
-  icon: ElementType
-  color: 'orange' | 'blue' | 'green'
-}) {
-  const colors = {
-    orange: 'bg-orange-50 text-orange-600 shadow-orange-100',
-    blue: 'bg-blue-50 text-blue-600 shadow-blue-100',
-    green: 'bg-green-50 text-green-600 shadow-green-100',
-  }
-
-  return (
-    <div className="pd-card p-6 flex items-center gap-5">
-      <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg', colors[color])}>
-        <Icon className="h-7 w-7" />
-      </div>
-      <div>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-        <p className="text-2xl font-black text-gray-900 leading-none">{value}</p>
-      </div>
-    </div>
-  )
-}
-
-function AbsenceSection({
-  title,
-  subtitle,
-  icon: Icon,
-  accent,
-  isExpanded,
-  onToggle,
-  hideToggle,
-  children,
-}: {
-  title: string
-  subtitle: string
-  icon: ElementType
-  accent: 'green' | 'blue' | 'gray'
-  isExpanded: boolean
-  onToggle: () => void
-  hideToggle?: boolean
-  children: ReactNode
-}) {
-  const accentStyles = {
-    green: 'bg-green-50 text-green-600',
-    blue: 'bg-blue-50 text-blue-600',
-    gray: 'bg-gray-100 text-gray-500',
-  }
-
-  const Wrapper = hideToggle ? 'div' : 'button'
-
-  return (
-    <div className="pd-card overflow-hidden">
-      <Wrapper
-        type={hideToggle ? undefined : 'button'}
-        onClick={hideToggle ? undefined : onToggle}
-        className={cn(
-          'w-full px-5 sm:px-6 py-5 flex items-center justify-between gap-4 text-left',
-          !hideToggle && 'hover:bg-gray-50/80 transition-colors'
-        )}
-      >
-        <div className="flex items-center gap-4 min-w-0">
-          <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0', accentStyles[accent])}>
-            <Icon className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">{title}</h2>
-            <p className="text-xs text-gray-500 font-medium mt-0.5 truncate">{subtitle}</p>
-          </div>
-        </div>
-        {!hideToggle && (
-          <ChevronDown className={cn('h-5 w-5 text-gray-400 transition-transform flex-shrink-0', isExpanded && 'rotate-180')} />
-        )}
-      </Wrapper>
-
-      {isExpanded && <div className="px-4 sm:px-6 pb-6 pt-1">{children}</div>}
-    </div>
-  )
-}
-
-function AbsenceCard({
+function AbsenceRow({
   absence,
   status,
   onEdit,
@@ -585,130 +504,59 @@ function AbsenceCard({
   const daysDiff = countAbsenceDays(absence.startDate, absence.endDate)
   const isSingleDay = daysDiff === 1
 
-  const statusConfig = {
-    active: {
-      card: 'border-green-200/80 bg-gradient-to-br from-green-50/80 to-white',
-      header: 'bg-green-50/70 border-green-100',
-      badge: 'bg-green-500 text-white',
-      iconBg: 'bg-green-100 text-green-600',
-    },
-    future: {
-      card: 'border-blue-200/80 bg-gradient-to-br from-blue-50/80 to-white',
-      header: 'bg-blue-50/70 border-blue-100',
-      badge: 'bg-blue-500 text-white',
-      iconBg: 'bg-blue-100 text-blue-600',
-    },
-    past: {
-      card: 'border-gray-200/80 bg-gradient-to-br from-gray-50/60 to-white',
-      header: 'bg-gray-50/70 border-gray-100',
-      badge: 'bg-gray-400 text-white',
-      iconBg: 'bg-gray-100 text-gray-500',
-    },
-  }
+  const title = isSingleDay
+    ? format(startDate, 'dd MMM yyyy', { locale: it })
+    : `${format(startDate, 'dd/MM/yyyy', { locale: it })} – ${format(endDate, 'dd/MM/yyyy', { locale: it })}`
 
-  const config = statusConfig[status]
+  const statusLabel =
+    status === 'past' ? 'Conclusa' : status === 'active' ? 'In corso' : 'In programma'
 
   return (
-    <div className={cn('rounded-2xl border shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden', config.card)}>
-      <div className={cn('px-4 py-3 border-b flex items-start justify-between gap-3', config.header)}>
-        <div className="flex items-center gap-3 min-w-0">
-          {isSingleDay ? (
-            <div className="w-11 h-11 rounded-xl bg-white border border-white/80 shadow-sm flex flex-col items-center justify-center flex-shrink-0">
-              <span className="text-[9px] font-black text-gray-400 uppercase leading-none">
-                {shortWeekdayItFromDate(startDate).slice(0, 3)}
-              </span>
-              <span className="text-base font-black text-gray-900 leading-none mt-0.5">
-                {startDate.getDate()}
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div className="w-11 h-11 rounded-xl bg-white border border-white/80 shadow-sm flex flex-col items-center justify-center">
-                <span className="text-[9px] font-black text-gray-400 uppercase leading-none">
-                  {shortWeekdayItFromDate(startDate).slice(0, 3)}
-                </span>
-                <span className="text-base font-black text-gray-900 leading-none mt-0.5">
-                  {startDate.getDate()}
-                </span>
-              </div>
-              <span className="text-gray-300 font-black">→</span>
-              <div className="w-11 h-11 rounded-xl bg-white border border-white/80 shadow-sm flex flex-col items-center justify-center">
-                <span className="text-[9px] font-black text-gray-400 uppercase leading-none">
-                  {shortWeekdayItFromDate(endDate).slice(0, 3)}
-                </span>
-                <span className="text-base font-black text-gray-900 leading-none mt-0.5">
-                  {endDate.getDate()}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <div className="min-w-0">
-            <p className="text-sm font-black text-gray-900 tracking-tight truncate">
-              {format(startDate, 'dd/MM/yyyy', { locale: it })}
-              {!isSingleDay && (
-                <span className="text-gray-400 font-bold"> — {format(endDate, 'dd/MM/yyyy', { locale: it })}</span>
-              )}
-            </p>
-            {absence.reason && (
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest truncate mt-0.5">
-                {absence.reason}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <span className={cn('px-2.5 py-1 rounded-lg text-[10px] font-black uppercase flex-shrink-0', config.badge)}>
-          {daysDiff} {daysDiff === 1 ? 'giorno' : 'giorni'}
-        </span>
-      </div>
-
-      <div className="px-4 py-2 border-b border-black/5">
-        <span
-          className={cn(
-            'inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase',
-            absence.approved
-              ? 'bg-green-50 text-green-700 border border-green-100'
-              : 'bg-amber-50 text-amber-700 border border-amber-100'
-          )}
-        >
-          {absence.approved ? 'Approvata' : 'In attesa di approvazione'}
-        </span>
-      </div>
-
-      <div className="px-4 py-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', config.iconBg)}>
-            <Calendar className="h-4 w-4" />
-          </div>
-          {absence.notes ? (
-            <p className="text-xs text-gray-500 font-medium truncate italic">{absence.notes}</p>
-          ) : (
-            <p className="text-xs text-gray-400 font-medium">
-              {status === 'past' ? 'Periodo concluso' : status === 'active' ? 'Assenza in corso' : 'In programma'}
-            </p>
-          )}
-        </div>
-
-        {status !== 'past' && !absence.approved && (
-          <div className="flex gap-1.5 flex-shrink-0">
+    <ListRow
+      title={title}
+      subtitle={
+        [
+          absence.reason,
+          absence.notes,
+          absence.approved ? 'Approvata' : 'In attesa di approvazione',
+          statusLabel,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      }
+      meta={`${daysDiff} ${daysDiff === 1 ? 'giorno' : 'giorni'}`}
+      trailing={
+        status !== 'past' && !absence.approved ? (
+          <div className="flex gap-1">
             <button
+              type="button"
               onClick={() => onEdit(absence)}
-              className="p-2 bg-white border border-blue-100 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+              className="p-2 pd-press"
+              style={{
+                color: 'var(--pd-accent)',
+                background: 'var(--pd-accent-soft)',
+                borderRadius: 'var(--pd-radius)',
+              }}
               aria-label="Modifica assenza"
             >
               <Edit2 className="h-3.5 w-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => onDelete(absence.id)}
-              className="p-2 bg-white border border-red-100 text-red-600 hover:bg-red-50 rounded-xl transition-all"
+              className="p-2 pd-press"
+              style={{
+                color: 'var(--pd-danger)',
+                background: 'var(--pd-surface-muted)',
+                borderRadius: 'var(--pd-radius)',
+              }}
               aria-label="Elimina assenza"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
-        )}
-      </div>
-    </div>
+        ) : undefined
+      }
+    />
   )
 }

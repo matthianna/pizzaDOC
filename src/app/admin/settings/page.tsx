@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Cog6ToothIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
-import { Calendar, Check, ChevronRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/layout/page-header'
+import { SectionBlock } from '@/components/ui/section-block'
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { Check } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
+import { HolidaysPanel } from '@/components/admin/holidays-panel'
 
 interface Settings {
   scooter_count: string
@@ -45,7 +46,14 @@ export default function SettingsPage() {
   const [selectedShift, setSelectedShift] = useState<'PRANZO' | 'CENA'>('PRANZO')
   const [shiftLimitsOpen, setShiftLimitsOpen] = useState(false)
   const [startTimesOpen, setStartTimesOpen] = useState(false)
+  const [holidaysOpen, setHolidaysOpen] = useState(false)
   const { showToast, ToastContainer } = useToast()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#holidays') {
+      setHolidaysOpen(true)
+    }
+  }, [])
 
   const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
   const roles: Role[] = ['PIZZAIOLO', 'CUCINA', 'FATTORINO', 'SALA']
@@ -57,23 +65,20 @@ export default function SettingsPage() {
     SALA: 'Sala'
   }
 
-  // Orari disponibili per turno e ruolo
   const getAvailableStartTimes = (shiftType: 'PRANZO' | 'CENA', role: Role): string[] => {
     if (shiftType === 'PRANZO') {
       if (role === 'SALA' || role === 'FATTORINO') {
         return ['11:30', '12:00']
-      } else {
-        return ['11:00', '11:30']
       }
-    } else { // CENA
-      if (role === 'FATTORINO') {
-        return ['18:00', '18:30', '19:00']
-      } else if (role === 'SALA') {
-        return ['18:00', '18:30']
-      } else {
-        return ['17:00', '18:00', '18:30']
-      }
+      return ['11:00', '11:30']
     }
+    if (role === 'FATTORINO') {
+      return ['18:00', '18:30', '19:00']
+    }
+    if (role === 'SALA') {
+      return ['18:00', '18:30']
+    }
+    return ['17:00', '18:00', '18:30']
   }
 
   useEffect(() => {
@@ -88,7 +93,7 @@ export default function SettingsPage() {
         fetch('/api/admin/shift-limits'),
         fetch('/api/admin/start-time-distributions'),
       ])
-      
+
       if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json()
         setSettings({
@@ -117,24 +122,18 @@ export default function SettingsPage() {
     try {
       const response = await fetch('/api/admin/settings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          key,
-          value,
-          description
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value, description })
       })
 
       if (response.ok) {
-        showToast('✅ Impostazione salvata!', 'success')
+        showToast('Impostazione salvata', 'success')
       } else {
-        showToast('❌ Errore durante il salvataggio', 'error')
+        showToast('Errore durante il salvataggio', 'error')
       }
     } catch (error) {
       console.error('Error saving setting:', error)
-      showToast('❌ Errore durante il salvataggio', 'error')
+      showToast('Errore durante il salvataggio', 'error')
     } finally {
       setSaving('')
     }
@@ -142,35 +141,29 @@ export default function SettingsPage() {
 
   const updateShiftLimit = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA', role: Role, value: number) => {
     setShiftLimits(prev => {
-      const existing = prev.find(limit => 
-        limit.dayOfWeek === dayOfWeek && 
-        limit.shiftType === shiftType && 
+      const existing = prev.find(limit =>
+        limit.dayOfWeek === dayOfWeek &&
+        limit.shiftType === shiftType &&
         limit.role === role
       )
 
       if (existing) {
-        return prev.map(limit => 
-          limit.dayOfWeek === dayOfWeek && 
-          limit.shiftType === shiftType && 
+        return prev.map(limit =>
+          limit.dayOfWeek === dayOfWeek &&
+          limit.shiftType === shiftType &&
           limit.role === role
             ? { ...limit, requiredStaff: value }
             : limit
         )
-      } else {
-        return [...prev, {
-          dayOfWeek,
-          shiftType,
-          role,
-          requiredStaff: value
-        }]
       }
+      return [...prev, { dayOfWeek, shiftType, role, requiredStaff: value }]
     })
   }
 
   const getShiftLimit = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA', role: Role): number => {
-    const limit = shiftLimits.find(l => 
-      l.dayOfWeek === dayOfWeek && 
-      l.shiftType === shiftType && 
+    const limit = shiftLimits.find(l =>
+      l.dayOfWeek === dayOfWeek &&
+      l.shiftType === shiftType &&
       l.role === role
     )
     return limit?.requiredStaff ?? 0
@@ -180,70 +173,68 @@ export default function SettingsPage() {
     setSavingLimits(true)
     try {
       const allLimits: ShiftLimit[] = []
-      
+
       for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
         for (const shiftType of ['PRANZO', 'CENA'] as const) {
           for (const role of roles) {
-            const value = getShiftLimit(dayIndex, shiftType, role)
             allLimits.push({
               dayOfWeek: dayIndex,
               shiftType,
               role,
-              requiredStaff: value
+              requiredStaff: getShiftLimit(dayIndex, shiftType, role)
             })
           }
         }
       }
-      
+
       const response = await fetch('/api/admin/shift-limits', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ limits: allLimits })
       })
 
       if (response.ok) {
-        showToast('✅ Limiti salvati con successo!', 'success')
+        showToast('Limiti salvati', 'success')
         await fetchData()
       } else {
-        showToast('❌ Errore durante il salvataggio', 'error')
+        showToast('Errore durante il salvataggio', 'error')
       }
     } catch (error) {
       console.error('Error saving limits:', error)
-      showToast('❌ Errore durante il salvataggio', 'error')
+      showToast('Errore durante il salvataggio', 'error')
     } finally {
       setSavingLimits(false)
     }
   }
 
   const getRequiredStaff = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA', role: Role): number => {
-    const limit = shiftLimits.find(l => 
-      l.dayOfWeek === dayOfWeek && 
-      l.shiftType === shiftType && 
+    const limit = shiftLimits.find(l =>
+      l.dayOfWeek === dayOfWeek &&
+      l.shiftType === shiftType &&
       l.role === role
     )
     return limit?.requiredStaff ?? 0
   }
 
   const getDistributedCount = (dayOfWeek: number, shiftType: 'PRANZO' | 'CENA', role: Role): number => {
-    const roleDistributions = distributions.filter(d => 
-      d.dayOfWeek === dayOfWeek && 
-      d.shiftType === shiftType && 
-      d.role === role
-    )
-    return roleDistributions.reduce((sum, d) => sum + d.targetCount, 0)
+    return distributions
+      .filter(d =>
+        d.dayOfWeek === dayOfWeek &&
+        d.shiftType === shiftType &&
+        d.role === role
+      )
+      .reduce((sum, d) => sum + d.targetCount, 0)
   }
 
   const getTargetCount = (
-    dayOfWeek: number, 
-    shiftType: 'PRANZO' | 'CENA', 
-    role: Role, 
+    dayOfWeek: number,
+    shiftType: 'PRANZO' | 'CENA',
+    role: Role,
     startTime: string
   ): number => {
-    const dist = distributions.find(d => 
-      d.dayOfWeek === dayOfWeek && 
-      d.shiftType === shiftType && 
+    const dist = distributions.find(d =>
+      d.dayOfWeek === dayOfWeek &&
+      d.shiftType === shiftType &&
       d.role === role &&
       d.startTime === startTime
     )
@@ -251,53 +242,46 @@ export default function SettingsPage() {
   }
 
   const updateDistribution = (
-    dayOfWeek: number, 
-    shiftType: 'PRANZO' | 'CENA', 
-    role: Role, 
-    startTime: string, 
+    dayOfWeek: number,
+    shiftType: 'PRANZO' | 'CENA',
+    role: Role,
+    startTime: string,
     value: number
   ) => {
     const required = getRequiredStaff(dayOfWeek, shiftType, role)
-    
-    const otherDistributions = distributions.filter(d => 
-      d.dayOfWeek === dayOfWeek && 
-      d.shiftType === shiftType && 
-      d.role === role &&
-      d.startTime !== startTime
-    )
-    const otherTotal = otherDistributions.reduce((sum, d) => sum + d.targetCount, 0)
-    
+    const otherTotal = distributions
+      .filter(d =>
+        d.dayOfWeek === dayOfWeek &&
+        d.shiftType === shiftType &&
+        d.role === role &&
+        d.startTime !== startTime
+      )
+      .reduce((sum, d) => sum + d.targetCount, 0)
+
     if (otherTotal + value > required) {
-      showToast(`⚠️ Non puoi superare ${required} ${roleLabels[role].toLowerCase()}!`, 'error')
+      showToast(`Non puoi superare ${required} ${roleLabels[role].toLowerCase()}`, 'error')
       return
     }
 
     setDistributions(prev => {
-      const existing = prev.find(d => 
-        d.dayOfWeek === dayOfWeek && 
-        d.shiftType === shiftType && 
+      const existing = prev.find(d =>
+        d.dayOfWeek === dayOfWeek &&
+        d.shiftType === shiftType &&
         d.role === role &&
         d.startTime === startTime
       )
 
       if (existing) {
-        return prev.map(d => 
-          d.dayOfWeek === dayOfWeek && 
-          d.shiftType === shiftType && 
+        return prev.map(d =>
+          d.dayOfWeek === dayOfWeek &&
+          d.shiftType === shiftType &&
           d.role === role &&
           d.startTime === startTime
             ? { ...d, targetCount: value }
             : d
         )
-      } else {
-        return [...prev, {
-          dayOfWeek,
-          shiftType,
-          role,
-          startTime,
-          targetCount: value
-        }]
       }
+      return [...prev, { dayOfWeek, shiftType, role, startTime, targetCount: value }]
     })
   }
 
@@ -305,25 +289,23 @@ export default function SettingsPage() {
     setSavingDistributions(true)
     try {
       const allDistributions: StartTimeDistribution[] = []
-      
+
       for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
         for (const shiftType of ['PRANZO', 'CENA'] as const) {
           for (const role of roles) {
-            const availableTimes = getAvailableStartTimes(shiftType, role)
-            for (const startTime of availableTimes) {
-              const value = getTargetCount(dayIndex, shiftType, role, startTime)
+            for (const startTime of getAvailableStartTimes(shiftType, role)) {
               allDistributions.push({
                 dayOfWeek: dayIndex,
                 shiftType,
                 role,
                 startTime,
-                targetCount: value
+                targetCount: getTargetCount(dayIndex, shiftType, role, startTime)
               })
             }
           }
         }
       }
-      
+
       const responses = await Promise.all(
         allDistributions.map(dist =>
           fetch('/api/admin/start-time-distributions', {
@@ -334,63 +316,82 @@ export default function SettingsPage() {
         )
       )
 
-      const allSuccessful = responses.every(r => r.ok)
-      if (allSuccessful) {
-        showToast('✅ Orari salvati con successo!', 'success')
+      if (responses.every(r => r.ok)) {
+        showToast('Orari salvati', 'success')
         await fetchData()
       } else {
-        showToast('❌ Errore durante il salvataggio', 'error')
+        showToast('Errore durante il salvataggio', 'error')
       }
     } catch (error) {
       console.error('Error saving distributions:', error)
-      showToast('❌ Errore durante il salvataggio', 'error')
+      showToast('Errore durante il salvataggio', 'error')
     } finally {
       setSavingDistributions(false)
     }
   }
 
+  const shiftTabs = (
+    <div
+      className="inline-flex p-1 gap-0.5"
+      style={{
+        background: 'var(--pd-surface-muted)',
+        borderRadius: 'var(--pd-radius)',
+      }}
+    >
+      {([
+        { id: 'PRANZO' as const, label: 'Pranzo', hint: '11:00–14:00' },
+        { id: 'CENA' as const, label: 'Cena', hint: '17:00–22:00' },
+      ]).map(tab => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => setSelectedShift(tab.id)}
+          className={cn(
+            'px-4 py-2 text-sm font-medium transition-colors',
+            selectedShift === tab.id ? 'shadow-sm' : ''
+          )}
+          style={{
+            borderRadius: 'calc(var(--pd-radius) - 2px)',
+            background: selectedShift === tab.id ? 'var(--pd-surface)' : 'transparent',
+            color: selectedShift === tab.id ? 'var(--pd-text)' : 'var(--pd-muted)',
+          }}
+        >
+          {tab.label}
+          <span className="ml-2 text-xs" style={{ color: 'var(--pd-muted)' }}>{tab.hint}</span>
+        </button>
+      ))}
+    </div>
+  )
+
   if (loading) {
     return (
-      <MainLayout adminOnly>
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--pd-accent)]"></div>
+      <MainLayout adminOnly contentWidth="6xl">
+        <div className="pd-page">
+          <div className="flex items-center justify-center py-16">
+            <div
+              className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
+              style={{ borderColor: 'var(--pd-accent)', borderTopColor: 'transparent' }}
+            />
+          </div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout adminOnly>
-      <div className="space-y-6 max-w-7xl mx-auto">
-        {/* Header Premium */}
-        <div className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8">
-          <div className="flex items-center gap-5">
-            <div className="p-4 bg-[var(--pd-accent)] rounded-2xl shadow-xl shadow-[var(--pd-shadow)]">
-              <Cog6ToothIcon className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="pd-display text-3xl font-semibold text-[var(--pd-text)] tracking-tight">
-                Configurazioni Sistema
-              </h1>
-              <p className="text-[var(--pd-muted)] font-medium mt-1">
-                Gestisci le impostazioni generali del sistema
-              </p>
-            </div>
-          </div>
-        </div>
+    <MainLayout adminOnly contentWidth="6xl">
+      <div className="pd-page">
+        <PageHeader
+          dense
+          title="Configurazioni"
+          subtitle="Impostazioni generali, limiti personale e orari di inizio"
+        />
 
-        {/* Scooter Configuration */}
-        <div className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8 hover:shadow-xl transition-all">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-[var(--pd-accent-soft)] rounded-2xl flex items-center justify-center shadow-sm">
-                <span className="text-2xl">🛵</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-[var(--pd-text)]">Scooter Disponibili</h3>
-                <p className="text-sm text-[var(--pd-muted)] font-medium mt-0.5">Numero di scooter per le consegne</p>
-              </div>
-            </div>
+        <SectionBlock title="Scooter disponibili" subtitle="Numero di mezzi per le consegne" card>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5">
+            <p className="text-sm" style={{ color: 'var(--pd-muted)' }}>
+              Valore usato per la generazione dei turni fattorino
+            </p>
             <div className="flex items-center gap-3">
               <input
                 type="number"
@@ -398,355 +399,356 @@ export default function SettingsPage() {
                 max="20"
                 value={settings.scooter_count}
                 onChange={(e) => setSettings({ ...settings, scooter_count: e.target.value })}
-                className="w-24 h-12 text-center text-xl font-black border-2 border-[var(--pd-border)] rounded-2xl focus:border-[var(--pd-accent)] focus:ring-2 focus:ring-orange-100 transition-all"
+                className="w-20 h-10 text-center text-base font-semibold border focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: 'var(--pd-border)',
+                  borderRadius: 'var(--pd-radius)',
+                  background: 'var(--pd-surface-muted)',
+                  color: 'var(--pd-text)',
+                }}
               />
-              <Button
+              <button
+                type="button"
                 onClick={() => saveSetting('scooter_count', settings.scooter_count, 'Numero di scooter disponibili')}
-                isLoading={saving === 'scooter_count'}
-                className="bg-[var(--pd-accent)] hover:bg-[var(--pd-accent-hover)] px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--pd-shadow)]"
+                disabled={saving === 'scooter_count'}
+                className="px-4 py-2.5 text-sm pd-btn-primary disabled:opacity-50"
               >
-                {saving === 'scooter_count' ? 'Salvataggio...' : 'Salva'}
-              </Button>
+                {saving === 'scooter_count' ? 'Salvataggio…' : 'Salva'}
+              </button>
             </div>
           </div>
-        </div>
+        </SectionBlock>
 
-        {/* Holidays — link to dedicated page */}
-        <Link
-          href="/admin/holidays"
-          className="block bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8 hover:shadow-xl transition-all group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-[var(--pd-danger-soft)] rounded-2xl flex items-center justify-center shadow-sm">
-                <Calendar className="w-6 h-6 text-[var(--pd-danger)]" />
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-[var(--pd-text)]">Giorni di Chiusura</h3>
-                <p className="text-sm text-[var(--pd-muted)] font-medium mt-0.5">
-                  Gestisci i giorni festivi e le chiusure
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-[var(--pd-muted)] group-hover:text-[var(--pd-accent)] transition-colors" />
-          </div>
-        </Link>
-
-        {/* Shift Limits Configuration - Collapsible */}
-        <div className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden">
+        <SectionBlock card>
           <button
-            onClick={() => setShiftLimitsOpen(!shiftLimitsOpen)}
-            className="w-full px-8 py-6 flex items-center justify-between hover:bg-[var(--pd-surface-muted)]/80 transition-colors"
+            type="button"
+            onClick={() => setHolidaysOpen(!holidaysOpen)}
+            className="w-full px-4 sm:px-5 py-4 flex items-center justify-between text-left"
+            id="holidays"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-[var(--pd-accent-soft)] rounded-2xl flex items-center justify-center shadow-sm">
-                <span className="text-2xl">👥</span>
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-black text-[var(--pd-text)]">Limiti Personale per Turno</h3>
-                <p className="text-sm text-[var(--pd-muted)] font-medium">Configura il personale richiesto per ogni turno e ruolo</p>
-              </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                Giorni di chiusura
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
+                Festivi e chiusure aziendali
+              </p>
+            </div>
+            {holidaysOpen ? (
+              <ChevronUpIcon className="h-5 w-5" style={{ color: 'var(--pd-muted)' }} />
+            ) : (
+              <ChevronDownIcon className="h-5 w-5" style={{ color: 'var(--pd-muted)' }} />
+            )}
+          </button>
+
+          {holidaysOpen && (
+            <div style={{ borderTop: '1px solid var(--pd-border)' }}>
+              <HolidaysPanel />
+            </div>
+          )}
+        </SectionBlock>
+
+        <SectionBlock card>
+          <button
+            type="button"
+            onClick={() => setShiftLimitsOpen(!shiftLimitsOpen)}
+            className="w-full px-4 sm:px-5 py-4 flex items-center justify-between text-left"
+          >
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                Limiti personale per turno
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
+                Personale richiesto per giorno, turno e ruolo
+              </p>
             </div>
             {shiftLimitsOpen ? (
-              <ChevronUpIcon className="w-5 h-5 text-[var(--pd-muted)]" />
+              <ChevronUpIcon className="h-5 w-5" style={{ color: 'var(--pd-muted)' }} />
             ) : (
-              <ChevronDownIcon className="w-5 h-5 text-[var(--pd-muted)]" />
+              <ChevronDownIcon className="h-5 w-5" style={{ color: 'var(--pd-muted)' }} />
             )}
           </button>
 
           {shiftLimitsOpen && (
-            <div className="border-t border-[var(--pd-border)]">
-              <div className="px-8 py-6 border-b border-[var(--pd-border)]">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1"></div>
-                  <Button
-                    onClick={saveShiftLimits}
-                    isLoading={savingLimits}
-                    className="bg-[var(--pd-accent)] hover:bg-[var(--pd-accent-hover)] px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--pd-shadow)]"
-                    leftIcon={!savingLimits ? <Check className="w-4 h-4" /> : undefined}
-                  >
-                    💾 Salva Tutti i Limiti
-                  </Button>
-                </div>
-
-                <div className="mt-6 flex items-center justify-center">
-                  <div className="inline-flex items-center bg-[var(--pd-surface-muted)] rounded-2xl p-1 gap-1">
-                    <button
-                      onClick={() => setSelectedShift('PRANZO')}
-                      className={cn(
-                        "px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200",
-                        selectedShift === 'PRANZO'
-                          ? "bg-[var(--pd-surface)] text-[var(--pd-accent-hover)] shadow-sm"
-                          : "text-[var(--pd-muted)] hover:text-[var(--pd-text)]"
-                      )}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span>🍕</span>
-                        <span>PRANZO</span>
-                        <span className="text-xs text-[var(--pd-muted)]">11:00-14:00</span>
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => setSelectedShift('CENA')}
-                      className={cn(
-                        "px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200",
-                        selectedShift === 'CENA'
-                          ? "bg-[var(--pd-surface)] text-[var(--pd-accent)] shadow-sm"
-                          : "text-[var(--pd-muted)] hover:text-[var(--pd-text)]"
-                      )}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span>🍝</span>
-                        <span>CENA</span>
-                        <span className="text-xs text-[var(--pd-muted)]">17:00-22:00</span>
-                      </span>
-                    </button>
-                  </div>
-                </div>
+            <div style={{ borderTop: '1px solid var(--pd-border)' }}>
+              <div className="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {shiftTabs}
+                <button
+                  type="button"
+                  onClick={saveShiftLimits}
+                  disabled={savingLimits}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm pd-btn-primary disabled:opacity-50"
+                >
+                  {!savingLimits && <Check className="h-4 w-4" />}
+                  {savingLimits ? 'Salvataggio…' : 'Salva limiti'}
+                </button>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-[var(--pd-surface-muted)]">
+                <table className="min-w-full">
+                  <thead style={{ background: 'var(--pd-surface-muted)' }}>
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-black text-[var(--pd-muted)] uppercase tracking-wider w-40">
+                      <th
+                        className="px-4 py-3 text-left text-xs font-semibold w-36"
+                        style={{ color: 'var(--pd-muted)' }}
+                      >
                         Giorno
                       </th>
                       {roles.map(role => (
-                        <th key={role} className="px-6 py-4 text-center text-xs font-black text-[var(--pd-muted)] uppercase tracking-wider">
+                        <th
+                          key={role}
+                          className="px-4 py-3 text-center text-xs font-semibold"
+                          style={{ color: 'var(--pd-muted)' }}
+                        >
                           {roleLabels[role]}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="bg-[var(--pd-surface)] divide-y divide-gray-100">
+                  <tbody>
                     {days.map((day, dayIndex) => (
-                      <tr key={dayIndex} className="hover:bg-[var(--pd-surface-muted)] transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-bold text-[var(--pd-text)]">{day}</span>
+                      <tr key={dayIndex} style={{ borderTop: '1px solid var(--pd-border)' }}>
+                        <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--pd-text)' }}>
+                          {day}
                         </td>
-                        {roles.map(role => {
-                          const value = getShiftLimit(dayIndex, selectedShift, role)
-                          return (
-                            <td key={role} className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex justify-center">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  value={value}
-                                  onChange={(e) => updateShiftLimit(
-                                    dayIndex, 
-                                    selectedShift, 
-                                    role, 
+                        {roles.map(role => (
+                          <td key={role} className="px-4 py-3">
+                            <div className="flex justify-center">
+                              <input
+                                type="number"
+                                min="0"
+                                max="10"
+                                value={getShiftLimit(dayIndex, selectedShift, role)}
+                                onChange={(e) =>
+                                  updateShiftLimit(
+                                    dayIndex,
+                                    selectedShift,
+                                    role,
                                     parseInt(e.target.value) || 0
-                                  )}
-                                  className="w-20 h-12 text-center text-lg font-black border-2 border-[var(--pd-border)] rounded-xl hover:border-[var(--pd-accent)] focus:border-[var(--pd-accent)] focus:ring-2 focus:ring-orange-100 transition-all"
-                                  placeholder="0"
-                                />
-                              </div>
-                            </td>
-                          )
-                        })}
+                                  )
+                                }
+                                className="w-16 h-9 text-center text-sm font-semibold border focus:outline-none focus:ring-2"
+                                style={{
+                                  borderColor: 'var(--pd-border)',
+                                  borderRadius: 'var(--pd-radius)',
+                                  background: 'var(--pd-surface-muted)',
+                                  color: 'var(--pd-text)',
+                                }}
+                              />
+                            </div>
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              <div className="px-8 py-6 bg-[var(--pd-accent-soft)] border-t border-[var(--pd-border)]">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 mt-0.5">
-                    </div>
-                  <div className="flex-1">
-                    <h4 className="text-xs font-black text-blue-900 mb-2 uppercase tracking-widest">Come funziona:</h4>
-                    <ul className="text-xs text-[var(--pd-accent)] space-y-1">
-                      <li>• <strong>Personale Richiesto:</strong> Numero di persone necessarie per quel turno e ruolo</li>
-                      <li>• <strong>Valore 0:</strong> Nessun requisito per quella combinazione (verrà ignorata)</li>
-                      <li>• <strong>Generazione Automatica:</strong> L&apos;algoritmo userà questi valori per assegnare i turni</li>
-                    </ul>
-                  </div>
-                </div>
+              <div
+                className="px-4 sm:px-5 py-4 text-xs space-y-1"
+                style={{
+                  background: 'var(--pd-surface-muted)',
+                  borderTop: '1px solid var(--pd-border)',
+                  color: 'var(--pd-muted)',
+                }}
+              >
+                <p>
+                  <span className="font-semibold" style={{ color: 'var(--pd-text)' }}>Personale richiesto:</span>{' '}
+                  numero di persone necessarie per quel turno e ruolo.
+                </p>
+                <p>
+                  <span className="font-semibold" style={{ color: 'var(--pd-text)' }}>Valore 0:</span>{' '}
+                  nessun requisito (verrà ignorato).
+                </p>
               </div>
             </div>
           )}
-        </div>
+        </SectionBlock>
 
-        {/* Start Times Configuration - Collapsible */}
-        <div className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden">
+        <SectionBlock card>
           <button
+            type="button"
             onClick={() => setStartTimesOpen(!startTimesOpen)}
-            className="w-full px-8 py-6 flex items-center justify-between hover:bg-[var(--pd-surface-muted)]/80 transition-colors"
+            className="w-full px-4 sm:px-5 py-4 flex items-center justify-between text-left"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-[var(--pd-accent-soft)] rounded-2xl flex items-center justify-center shadow-sm">
-                <span className="text-2xl">⏰</span>
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-black text-[var(--pd-text)]">Orari di Inizio per Turno</h3>
-                <p className="text-sm text-[var(--pd-muted)] font-medium">Distribuisci il personale su orari diversi</p>
-              </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                Orari di inizio per turno
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
+                Distribuisci il personale su orari diversi
+              </p>
             </div>
             {startTimesOpen ? (
-              <ChevronUpIcon className="w-5 h-5 text-[var(--pd-muted)]" />
+              <ChevronUpIcon className="h-5 w-5" style={{ color: 'var(--pd-muted)' }} />
             ) : (
-              <ChevronDownIcon className="w-5 h-5 text-[var(--pd-muted)]" />
+              <ChevronDownIcon className="h-5 w-5" style={{ color: 'var(--pd-muted)' }} />
             )}
           </button>
 
           {startTimesOpen && (
-            <div className="border-t border-[var(--pd-border)]">
-              <div className="px-8 py-6 border-b border-[var(--pd-border)]">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1"></div>
-                  <Button
-                    onClick={saveDistributions}
-                    isLoading={savingDistributions}
-                    className="bg-[var(--pd-accent)] hover:bg-[var(--pd-accent-hover)] px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--pd-shadow)]"
-                    leftIcon={!savingDistributions ? <Check className="w-4 h-4" /> : undefined}
-                  >
-                    💾 Salva Tutti gli Orari
-                  </Button>
-                </div>
-
-                <div className="mt-6 flex items-center justify-center">
-                  <div className="inline-flex items-center bg-[var(--pd-surface-muted)] rounded-2xl p-1 gap-1">
-                    <button
-                      onClick={() => setSelectedShift('PRANZO')}
-                      className={cn(
-                        "px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200",
-                        selectedShift === 'PRANZO'
-                          ? "bg-[var(--pd-surface)] text-[var(--pd-accent-hover)] shadow-sm"
-                          : "text-[var(--pd-muted)] hover:text-[var(--pd-text)]"
-                      )}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span>🍕</span>
-                        <span>PRANZO</span>
-                        <span className="text-xs text-[var(--pd-muted)]">11:00-14:00</span>
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => setSelectedShift('CENA')}
-                      className={cn(
-                        "px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200",
-                        selectedShift === 'CENA'
-                          ? "bg-[var(--pd-surface)] text-[var(--pd-accent)] shadow-sm"
-                          : "text-[var(--pd-muted)] hover:text-[var(--pd-text)]"
-                      )}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span>🍝</span>
-                        <span>CENA</span>
-                        <span className="text-xs text-[var(--pd-muted)]">17:00-22:00</span>
-                      </span>
-                    </button>
-                  </div>
-                </div>
+            <div style={{ borderTop: '1px solid var(--pd-border)' }}>
+              <div className="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {shiftTabs}
+                <button
+                  type="button"
+                  onClick={saveDistributions}
+                  disabled={savingDistributions}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm pd-btn-primary disabled:opacity-50"
+                >
+                  {!savingDistributions && <Check className="h-4 w-4" />}
+                  {savingDistributions ? 'Salvataggio…' : 'Salva orari'}
+                </button>
               </div>
 
-              <div className="divide-y divide-gray-100">
+              <div>
                 {days.map((day, dayIndex) => {
-                  const hasRequirements = roles.some(role => getRequiredStaff(dayIndex, selectedShift, role) > 0)
-                  
+                  const hasRequirements = roles.some(
+                    role => getRequiredStaff(dayIndex, selectedShift, role) > 0
+                  )
+
                   if (!hasRequirements) {
                     return (
-                      <div key={dayIndex} className="p-6 bg-[var(--pd-surface-muted)]">
-                        <div className="flex items-center gap-3">
-                          <h4 className="text-sm font-bold text-[var(--pd-text)]">{day}</h4>
-                          <span className="text-xs text-[var(--pd-muted)] italic">Nessun personale richiesto per questo turno</span>
-                        </div>
+                      <div
+                        key={dayIndex}
+                        className="px-4 sm:px-5 py-3 flex items-center gap-3"
+                        style={{
+                          borderTop: '1px solid var(--pd-border)',
+                          background: 'var(--pd-surface-muted)',
+                        }}
+                      >
+                        <span className="text-sm font-medium" style={{ color: 'var(--pd-text)' }}>
+                          {day}
+                        </span>
+                        <span className="text-xs" style={{ color: 'var(--pd-muted)' }}>
+                          Nessun personale richiesto
+                        </span>
                       </div>
                     )
                   }
 
                   return (
-                    <div key={dayIndex} className="p-6 hover:bg-[var(--pd-surface-muted)] transition-colors">
-                      <h4 className="text-sm font-bold text-[var(--pd-text)] mb-4">{day}</h4>
-                      
+                    <div
+                      key={dayIndex}
+                      className="px-4 sm:px-5 py-4"
+                      style={{ borderTop: '1px solid var(--pd-border)' }}
+                    >
+                      <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--pd-text)' }}>
+                        {day}
+                      </h4>
                       <div className="overflow-x-auto">
                         <table className="min-w-full">
                           <thead>
-                            <tr className="border-b border-[var(--pd-border)]">
-                              <th className="px-4 py-3 text-left text-xs font-black text-[var(--pd-muted)] uppercase">
+                            <tr style={{ borderBottom: '1px solid var(--pd-border)' }}>
+                              <th
+                                className="px-3 py-2 text-left text-xs font-semibold"
+                                style={{ color: 'var(--pd-muted)' }}
+                              >
                                 Orario
                               </th>
                               {roles.map(role => {
                                 const required = getRequiredStaff(dayIndex, selectedShift, role)
                                 if (required === 0) return null
-                                
                                 const distributed = getDistributedCount(dayIndex, selectedShift, role)
                                 const isComplete = distributed === required
                                 const isOver = distributed > required
-                                
                                 return (
-                                  <th key={role} className="px-4 py-3 text-center">
+                                  <th key={role} className="px-3 py-2 text-center">
                                     <div className="flex flex-col items-center gap-1">
-                                      <span className="text-xs font-black text-[var(--pd-muted)] uppercase">{roleLabels[role]}</span>
-                                      <div className={cn(
-                                        "text-xs font-bold px-2 py-0.5 rounded-full",
-                                        isOver ? 'bg-red-100 text-[var(--pd-danger)]' :
-                                        isComplete ? 'bg-green-100 text-[var(--pd-success)]' : 
-                                        'bg-yellow-100 text-yellow-700'
-                                      )}>
+                                      <span className="text-xs font-semibold" style={{ color: 'var(--pd-muted)' }}>
+                                        {roleLabels[role]}
+                                      </span>
+                                      <span
+                                        className="text-[11px] font-semibold px-2 py-0.5 tabular-nums"
+                                        style={{
+                                          borderRadius: '999px',
+                                          background: isOver
+                                            ? 'var(--pd-danger-soft)'
+                                            : isComplete
+                                              ? 'var(--pd-success-soft)'
+                                              : 'var(--pd-warning-soft)',
+                                          color: isOver
+                                            ? 'var(--pd-danger)'
+                                            : isComplete
+                                              ? 'var(--pd-success)'
+                                              : 'var(--pd-warning)',
+                                        }}
+                                      >
                                         {distributed}/{required}
-                                      </div>
+                                      </span>
                                     </div>
                                   </th>
                                 )
                               })}
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {Array.from(new Set(
-                              roles.flatMap(role => getAvailableStartTimes(selectedShift, role))
-                            )).sort().map(startTime => (
-                              <tr key={startTime} className="hover:bg-[var(--pd-surface-muted)]">
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-[var(--pd-surface-muted)] text-[var(--pd-text)]">
-                                    {startTime}
-                                  </span>
-                                </td>
-                                {roles.map(role => {
-                                  const required = getRequiredStaff(dayIndex, selectedShift, role)
-                                  if (required === 0) return null
-                                  
-                                  const availableTimes = getAvailableStartTimes(selectedShift, role)
-                                  const isAvailable = availableTimes.includes(startTime)
-                                  const value = getTargetCount(dayIndex, selectedShift, role, startTime)
-                                  const distributed = getDistributedCount(dayIndex, selectedShift, role)
-                                  const remaining = Math.max(0, required - distributed)
-                                  
-                                  return (
-                                    <td key={role} className="px-4 py-3 whitespace-nowrap">
-                                      {isAvailable ? (
-                                        <div className="flex justify-center">
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            max={value + remaining}
-                                            value={value}
-                                            onChange={(e) => updateDistribution(
-                                              dayIndex,
-                                              selectedShift,
-                                              role,
-                                              startTime,
-                                              parseInt(e.target.value) || 0
-                                            )}
-                                            className="w-20 h-10 text-center text-sm font-bold border-2 border-[var(--pd-border)] rounded-xl hover:border-[var(--pd-accent)] focus:border-[var(--pd-accent)] focus:ring-2 focus:ring-[var(--pd-accent-soft)] transition-all"
-                                            placeholder="0"
-                                          />
-                                        </div>
-                                      ) : (
-                                        <div className="flex justify-center">
-                                          <span className="text-[var(--pd-muted)]/50">—</span>
-                                        </div>
-                                      )}
-                                    </td>
-                                  )
-                                })}
-                              </tr>
-                            ))}
+                          <tbody>
+                            {Array.from(
+                              new Set(
+                                roles.flatMap(role => getAvailableStartTimes(selectedShift, role))
+                              )
+                            )
+                              .sort()
+                              .map(startTime => (
+                                <tr key={startTime} style={{ borderTop: '1px solid var(--pd-border)' }}>
+                                  <td className="px-3 py-2.5">
+                                    <span
+                                      className="inline-block px-2.5 py-1 text-sm font-medium tabular-nums"
+                                      style={{
+                                        background: 'var(--pd-surface-muted)',
+                                        borderRadius: 'var(--pd-radius)',
+                                        color: 'var(--pd-text)',
+                                      }}
+                                    >
+                                      {startTime}
+                                    </span>
+                                  </td>
+                                  {roles.map(role => {
+                                    const required = getRequiredStaff(dayIndex, selectedShift, role)
+                                    if (required === 0) return null
+                                    const availableTimes = getAvailableStartTimes(selectedShift, role)
+                                    const isAvailable = availableTimes.includes(startTime)
+                                    const value = getTargetCount(dayIndex, selectedShift, role, startTime)
+                                    const distributed = getDistributedCount(dayIndex, selectedShift, role)
+                                    const remaining = Math.max(0, required - distributed)
+
+                                    return (
+                                      <td key={role} className="px-3 py-2.5">
+                                        {isAvailable ? (
+                                          <div className="flex justify-center">
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max={value + remaining}
+                                              value={value}
+                                              onChange={(e) =>
+                                                updateDistribution(
+                                                  dayIndex,
+                                                  selectedShift,
+                                                  role,
+                                                  startTime,
+                                                  parseInt(e.target.value) || 0
+                                                )
+                                              }
+                                              className="w-16 h-9 text-center text-sm font-semibold border focus:outline-none focus:ring-2"
+                                              style={{
+                                                borderColor: 'var(--pd-border)',
+                                                borderRadius: 'var(--pd-radius)',
+                                                background: 'var(--pd-surface-muted)',
+                                                color: 'var(--pd-text)',
+                                              }}
+                                            />
+                                          </div>
+                                        ) : (
+                                          <div className="flex justify-center text-sm" style={{ color: 'var(--pd-muted)' }}>
+                                            —
+                                          </div>
+                                        )}
+                                      </td>
+                                    )
+                                  })}
+                                </tr>
+                              ))}
                           </tbody>
                         </table>
                       </div>
@@ -755,23 +757,22 @@ export default function SettingsPage() {
                 })}
               </div>
 
-              <div className="px-8 py-6 bg-[var(--pd-accent-soft)] border-t border-[var(--pd-border)]">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 mt-0.5">
-                    </div>
-                  <div className="flex-1">
-                    <h4 className="text-xs font-black text-[var(--pd-text)] mb-2 uppercase tracking-widest">Come funziona:</h4>
-                    <ul className="text-xs text-[var(--pd-text)] space-y-1">
-                      <li>• <strong>Badge Colorato:</strong> Verde = completato, Giallo = mancanti, Rosso = troppi</li>
-                      <li>• <strong>Distribuzione:</strong> La somma degli orari deve essere uguale al personale richiesto</li>
-                      <li>• <strong>Limiti:</strong> Configurati in Limiti Personale per Turno (sopra)</li>
-                    </ul>
-                  </div>
-                </div>
+              <div
+                className="px-4 sm:px-5 py-4 text-xs space-y-1"
+                style={{
+                  background: 'var(--pd-surface-muted)',
+                  borderTop: '1px solid var(--pd-border)',
+                  color: 'var(--pd-muted)',
+                }}
+              >
+                <p>
+                  Verde = completo, giallo = mancanti, rosso = troppi. La somma degli orari deve
+                  coincidere con i limiti sopra.
+                </p>
               </div>
             </div>
           )}
-        </div>
+        </SectionBlock>
       </div>
 
       <ToastContainer />

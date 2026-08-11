@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { BellOff, Bell, Loader2 } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
+import { Button } from '@/components/ui/button'
 import { usePushNotifications } from './notification-bell'
 import { detectPushSetupGap, type PushSetupGap } from '@/lib/push-setup-status'
 
@@ -77,9 +78,7 @@ export function NotificationPermissionPrompt() {
     if (perm === 'granted') {
       const ok = await subscribe()
       if (ok) setOpen(false)
-      else {
-        setKind('subscribe')
-      }
+      else setKind('subscribe')
     } else if (perm === 'denied') {
       setKind('denied')
     }
@@ -93,16 +92,18 @@ export function NotificationPermissionPrompt() {
   if (!open) return null
 
   const titles: Record<PromptKind, string> = {
-    denied: 'Notifiche disattivate',
-    request: 'Attiva le notifiche',
-    subscribe: 'Completa l’iscrizione'
+    denied: 'Notifiche bloccate',
+    request: 'Resta aggiornato',
+    subscribe: 'Quasi fatto',
   }
 
   const subtitles: Record<PromptKind, string> = {
-    denied: 'Abilitale per non perdere aggiornamenti',
-    request: 'Ricevi avvisi su turni e messaggi importanti',
-    subscribe: 'Il permesso è ok, manca solo l’iscrizione push'
+    denied: 'Riattivale dalle impostazioni del dispositivo',
+    request: 'Avvisi su turni, sostituzioni e messaggi',
+    subscribe: 'Manca solo l’iscrizione push',
   }
+
+  const Icon = kind === 'denied' ? BellOff : Bell
 
   return (
     <Modal
@@ -112,68 +113,61 @@ export function NotificationPermissionPrompt() {
       subtitle={subtitles[kind]}
       maxWidth="sm"
       zIndex={MODAL_Z}
-      headerIcon={
-        kind === 'denied' ? <BellOff className="h-8 w-8" /> : <Bell className="h-8 w-8" />
-      }
     >
-      <div className="space-y-4 text-[15px] leading-relaxed" style={{ color: 'var(--pd-text)' }}>
-        {kind === 'request' && (
-          <>
-            <p style={{ color: 'var(--pd-muted)' }}>
-              PizzaDOC può inviarti notifiche quando sei nell’app installata o nel browser. Tocca il pulsante
-              qui sotto per consentire le notifiche, poi conferma nella finestra di sistema.
-            </p>
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={() => void onRequestPermission()}
-              className="w-full py-3 px-4 rounded-2xl pd-btn-primary text-sm disabled:opacity-60 flex items-center justify-center gap-2"
-            >
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-              Consenti notifiche
-            </button>
-          </>
-        )}
-
-        {kind === 'subscribe' && (
-          <>
-            <p style={{ color: 'var(--pd-muted)' }}>
-              Le notifiche sono consentite, ma l’iscrizione push non è ancora attiva. Completa l’attivazione per
-              ricevere gli avvisi anche quando l’app è in background.
-            </p>
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={() => void onSubscribeOnly()}
-              className="w-full py-3 px-4 rounded-2xl pd-btn-primary text-sm disabled:opacity-60 flex items-center justify-center gap-2"
-            >
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-              Attiva notifiche push
-            </button>
-          </>
-        )}
+      <div className="space-y-5">
+        <div className="flex items-start gap-3">
+          <div
+            className="shrink-0 w-11 h-11 flex items-center justify-center"
+            style={{
+              background: kind === 'denied' ? 'var(--pd-danger-soft)' : 'var(--pd-accent-soft)',
+              color: kind === 'denied' ? 'var(--pd-danger)' : 'var(--pd-accent)',
+              borderRadius: 'var(--pd-radius)',
+            }}
+          >
+            <Icon className="h-5 w-5" />
+          </div>
+          <p className="text-sm leading-relaxed pt-1" style={{ color: 'var(--pd-muted)' }}>
+            {kind === 'request' &&
+              'Consenti le notifiche per ricevere aggiornamenti anche quando l’app è chiusa. Conferma nella finestra di sistema dopo aver toccato il pulsante.'}
+            {kind === 'subscribe' &&
+              'Il permesso è già attivo. Completa l’iscrizione push per ricevere gli avvisi in background.'}
+            {kind === 'denied' &&
+              'Le notifiche sono disattivate per questo sito. Puoi riabilitarle così:'}
+          </p>
+        </div>
 
         {kind === 'denied' && (
-          <>
-            <p style={{ color: 'var(--pd-muted)' }}>
-              Hai bloccato le notifiche per questo sito. Per ricevere avvisi su turni, sostituzioni e messaggi
-              importanti, devi riattivarle dalle impostazioni del browser o del sistema.
+          <div
+            className="space-y-2.5 p-3.5 text-sm"
+            style={{
+              background: 'var(--pd-surface-muted)',
+              borderRadius: 'var(--pd-radius)',
+              border: '1px solid var(--pd-border)',
+              color: 'var(--pd-muted)',
+            }}
+          >
+            <p>
+              <span className="font-semibold" style={{ color: 'var(--pd-text)' }}>
+                Android · Chrome/Edge
+              </span>
+              <br />
+              Menu del sito → Impostazioni sito → Notifiche → Consenti
             </p>
-            <ul className="list-disc pl-5 space-y-2 text-sm" style={{ color: 'var(--pd-muted)' }}>
-              <li>
-                <strong style={{ color: 'var(--pd-text)' }}>Chrome / Edge (Android):</strong> menu del sito →
-                Impostazioni sito → Notifiche → Consenti.
-              </li>
-              <li>
-                <strong style={{ color: 'var(--pd-text)' }}>Safari / Web app (iOS):</strong> Impostazioni →
-                notifiche per PizzaDOC o per Safari → siti web.
-              </li>
-              <li>
-                <strong style={{ color: 'var(--pd-text)' }}>Desktop:</strong> icona del lucchetto nella barra
-                indirizzi → Impostazioni sito → Notifiche.
-              </li>
-            </ul>
-          </>
+            <p>
+              <span className="font-semibold" style={{ color: 'var(--pd-text)' }}>
+                iPhone · Safari / PWA
+              </span>
+              <br />
+              Impostazioni → Notifiche → Pizza D.O.C. (o Safari)
+            </p>
+            <p>
+              <span className="font-semibold" style={{ color: 'var(--pd-text)' }}>
+                Desktop
+              </span>
+              <br />
+              Icona lucchetto nella barra indirizzi → Notifiche
+            </p>
+          </div>
         )}
 
         {error && (
@@ -182,10 +176,48 @@ export function NotificationPermissionPrompt() {
           </p>
         )}
 
-        <p className="text-sm" style={{ color: 'var(--pd-muted)' }}>
-          Questo promemoria può comparire di nuovo quando torni sulla dashboard o sull’app finché le notifiche
-          push non sono attive.
-        </p>
+        <div className="flex flex-col gap-2 pt-1">
+          {kind === 'request' && (
+            <Button
+              type="button"
+              className="w-full"
+              disabled={isLoading}
+              isLoading={isLoading}
+              onClick={() => void onRequestPermission()}
+            >
+              Consenti notifiche
+            </Button>
+          )}
+          {kind === 'subscribe' && (
+            <Button
+              type="button"
+              className="w-full"
+              disabled={isLoading}
+              isLoading={isLoading}
+              onClick={() => void onSubscribeOnly()}
+            >
+              Attiva notifiche push
+            </Button>
+          )}
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="w-full py-2.5 text-sm font-semibold pd-press"
+            style={{
+              color: 'var(--pd-muted)',
+              background: 'var(--pd-surface-muted)',
+              borderRadius: 'var(--pd-radius)',
+            }}
+          >
+            {kind === 'denied' ? 'Ho capito' : 'Più tardi'}
+          </button>
+        </div>
+
+        {kind !== 'denied' && (
+          <p className="text-[11px] text-center leading-relaxed" style={{ color: 'var(--pd-muted)' }}>
+            Puoi attivarle in qualsiasi momento dalle impostazioni del browser.
+          </p>
+        )}
       </div>
     </Modal>
   )

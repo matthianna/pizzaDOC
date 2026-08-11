@@ -11,6 +11,14 @@ import {
   utcCalendarDateKey,
 } from '@/lib/date-utils'
 import { resolveScheduleForRequestedWeek } from '@/lib/resolve-schedule-for-week'
+import {
+  PDF_COLORS,
+  PDF_BRAND,
+  pdfBaseStyles,
+  pdfDocHeader,
+  pdfDocFooter,
+  escapePdfHtml,
+} from '@/lib/pdf-fornace-styles'
 import puppeteerCore from 'puppeteer-core'
 import chromium from '@sparticuz/chromium'
 
@@ -140,14 +148,6 @@ export async function GET(
   }
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
 function closureHintIt(closureType: string): string {
   switch (closureType) {
     case 'FULL_DAY':
@@ -184,7 +184,6 @@ function generateScheduleHTML(schedule: {
   const weekEnd = addWeekCalendarDays(weekStart, 6)
   const daysFull = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
 
-  // Group shifts by day, type, and role
   const shiftsByDayTypeRole: Record<number, Record<string, Record<string, Array<{
     startTime: string;
     user: { username: string };
@@ -206,11 +205,10 @@ function generateScheduleHTML(schedule: {
     }
   })
 
-  // Sort by start time
   for (let day = 0; day <= 6; day++) {
-    ['PRANZO', 'CENA'].forEach(shiftType => {
-      ['CUCINA', 'PIZZAIOLO', 'FATTORINO', 'SALA'].forEach(role => {
-        shiftsByDayTypeRole[day][shiftType][role].sort((a, b) => 
+    ;['PRANZO', 'CENA'].forEach(shiftType => {
+      ;['CUCINA', 'PIZZAIOLO', 'FATTORINO', 'SALA'].forEach(role => {
+        shiftsByDayTypeRole[day][shiftType][role].sort((a, b) =>
           a.startTime.localeCompare(b.startTime)
         )
       })
@@ -223,350 +221,246 @@ function generateScheduleHTML(schedule: {
 
   const roleLabels: Record<string, string> = {
     'CUCINA': 'Cucina',
-    'PIZZAIOLO': 'Pizzaiolo', 
+    'PIZZAIOLO': 'Pizzaiolo',
     'FATTORINO': 'Fattorino',
     'SALA': 'Sala'
   }
 
-  const roleColors: Record<string, string> = {
-    'CUCINA': '#ea580c',
-    'PIZZAIOLO': '#dc2626',
-    'FATTORINO': '#3b82f6',
-    'SALA': '#22c55e'
-  }
+  const c = PDF_COLORS
+  const generatedAt = `Generato il ${new Date().toLocaleString('it-IT')}`
 
   return `
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Piano Lavoro ${utcCalendarDateKey(weekStart)} — ${utcCalendarDateKey(weekEnd)}</title>
+    <title>Piano lavoro ${utcCalendarDateKey(weekStart)} — ${PDF_BRAND}</title>
     <style>
-        @page { size: A4 portrait; margin: 12mm; }
-        @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body { 
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            font-size: 10px;
-            color: #333;
-            background: #fff;
-            line-height: 1.3;
-        }
-        
-        .container { padding: 0; }
-        
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 3px solid #ea580c;
-        }
-        
-        .header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            color: #ea580c;
-            margin-bottom: 4px;
-            letter-spacing: -0.5px;
-        }
-        
-        .header .dates {
-            font-size: 12px;
-            color: #666;
-            font-weight: 500;
-        }
-        
-        /* Day Section */
+        ${pdfBaseStyles(`
+        body { font-size: 10px; }
+        .stat-strip { grid-template-columns: repeat(2, 1fr); margin-bottom: 14px; }
         .day-section {
             margin-bottom: 8px;
             page-break-inside: avoid;
+            border: 1px solid ${c.border};
+            border-radius: 10px;
+            overflow: hidden;
         }
-        
         .day-header {
             display: flex;
-            background: #1e293b;
-            color: white;
-            padding: 6px 12px;
-            font-weight: 700;
+            background: ${c.surfaceMuted};
+            color: ${c.text};
+            padding: 7px 12px;
+            font-weight: 600;
             font-size: 11px;
+            border-bottom: 1px solid ${c.border};
         }
-        
         .day-name {
             width: 100px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-family: Georgia, 'Times New Roman', serif;
         }
-        
         .shift-header {
             flex: 1;
             text-align: center;
             font-size: 10px;
+            color: ${c.muted};
+            font-weight: 600;
         }
-        
-        .day-content {
-            display: flex;
-            border: 1px solid #e5e7eb;
-            border-top: none;
-        }
-        
+        .day-content { display: flex; }
         .day-label {
             width: 100px;
-            background: #f8fafc;
+            background: ${c.surface};
             padding: 8px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border-right: 1px solid #e5e7eb;
+            border-right: 1px solid ${c.border};
         }
-        
         .day-label .date {
+            font-family: Georgia, 'Times New Roman', serif;
             font-size: 18px;
-            font-weight: 700;
-            color: #ea580c;
+            font-weight: 600;
+            color: ${c.accent};
         }
-        
         .day-label .month {
             font-size: 9px;
-            color: #64748b;
+            color: ${c.muted};
             text-transform: uppercase;
         }
-        
         .shift-column {
             flex: 1;
             padding: 6px 8px;
             min-height: 70px;
-            border-right: 1px solid #e5e7eb;
+            border-right: 1px solid ${c.border};
+            background: ${c.surface};
         }
-        
-        .shift-column:last-child {
-            border-right: none;
-        }
-        
-        .shift-column.pranzo {
-            background: #fffbeb;
-        }
-        
-        .shift-column.cena {
-            background: #f0f9ff;
-        }
-        
-        .role-group {
-            margin-bottom: 4px;
-        }
-        
-        .role-group:last-child {
-            margin-bottom: 0;
-        }
-        
+        .shift-column:last-child { border-right: none; }
+        .shift-column.pranzo { background: #fbf6ee; }
+        .shift-column.cena { background: #faf6f2; }
+        .role-group { margin-bottom: 4px; }
+        .role-group:last-child { margin-bottom: 0; }
         .role-label {
             font-size: 8px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            font-weight: 600;
             margin-bottom: 2px;
             padding: 2px 6px;
-            border-radius: 3px;
+            border-radius: 999px;
             display: inline-block;
+            background: ${c.accentSoft};
+            color: ${c.accent};
         }
-        
-        .role-label.cucina { background: #fed7aa; color: #9a3412; }
-        .role-label.pizzaiolo { background: #fecaca; color: #991b1b; }
-        .role-label.fattorino { background: #bfdbfe; color: #1e40af; }
-        .role-label.sala { background: #bbf7d0; color: #166534; }
-        
-        .workers {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 3px;
-            margin-left: 2px;
-        }
-        
+        .workers { display: flex; flex-wrap: wrap; gap: 3px; margin-left: 2px; }
         .worker {
             font-size: 9px;
-            color: #374151;
-            background: white;
+            color: ${c.text};
+            background: ${c.surface};
             padding: 2px 5px;
-            border-radius: 3px;
-            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            border: 1px solid ${c.border};
         }
-        
-        .worker .time {
-            color: #9ca3af;
-            font-size: 8px;
-            margin-left: 2px;
-        }
-        
+        .worker .time { color: ${c.muted}; font-size: 8px; margin-left: 2px; }
         .closed {
             display: flex;
             align-items: center;
             justify-content: center;
             height: 100%;
             min-height: 60px;
-            color: #dc2626;
-            font-weight: 700;
+            color: ${c.danger};
+            font-weight: 600;
             font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            background: #fef2f2;
-            border: 2px dashed #fca5a5;
-            border-radius: 6px;
+            background: ${c.dangerSoft};
+            border: 1px dashed #e8b4b4;
+            border-radius: 8px;
         }
-        
-        /* Footer */
-        .footer {
-            margin-top: 12px;
-            padding-top: 8px;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 9px;
-            color: #64748b;
+        .empty-slot {
+            color: ${c.muted};
+            font-style: italic;
+            text-align: center;
+            padding: 18px 8px;
         }
-        
-        .legend {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 2px;
-        }
-        
-        .stats {
-            text-align: right;
-        }
-        
-        .stats strong {
-            color: #1e293b;
-        }
-
         .festa-bar {
-            background: linear-gradient(90deg, #fef3c7, #fde68a);
-            border: 1px solid #f59e0b;
-            border-radius: 4px;
-            padding: 4px 8px;
-            margin: 0 0 6px 0;
+            background: ${c.warningSoft};
+            border-bottom: 1px solid ${c.border};
+            padding: 5px 10px;
             font-size: 9px;
-            font-weight: 700;
-            color: #92400e;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
+            font-weight: 600;
+            color: ${c.warning};
         }
         .festa-desc {
-            font-weight: 600;
-            text-transform: none;
-            color: #78350f;
+            font-weight: 500;
+            color: ${c.text};
             margin-top: 2px;
             display: block;
         }
+        `)}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🍕 Piano di Lavoro Settimanale</h1>
-            <div class="dates">${formatUtcWeekSubtitleIt(weekStart, weekEnd)}</div>
-        </div>
+    ${pdfDocHeader({
+      title: 'Piano di lavoro settimanale',
+      subtitle: formatUtcWeekSubtitleIt(weekStart, weekEnd),
+    })}
 
-        ${daysFull.map((dayName, dayIndex) => {
-          const dayDate = addWeekCalendarDays(weekStart, dayIndex)
-          const dayKey = utcCalendarDateKey(dayDate)
+    <div class="stat-strip">
+      <div class="cell">
+        <div class="pd-display value">${totalShifts}</div>
+        <div class="label">Turni</div>
+      </div>
+      <div class="cell">
+        <div class="pd-display value">${totalEmployees}</div>
+        <div class="label">Persone in servizio</div>
+      </div>
+    </div>
 
-          const dayHolidays = holidays.filter(
-            h => utcCalendarDateKey(normalizeDate(h.date)) === dayKey
-          )
+    ${daysFull.map((dayName, dayIndex) => {
+      const dayDate = addWeekCalendarDays(weekStart, dayIndex)
+      const dayKey = utcCalendarDateKey(dayDate)
 
-          const isPranzoHoliday = dayHolidays.some(
-            h => h.closureType === 'FULL_DAY' || h.closureType === 'PRANZO_ONLY'
-          )
-          const isCenaHoliday = dayHolidays.some(
-            h => h.closureType === 'FULL_DAY' || h.closureType === 'CENA_ONLY'
-          )
+      const dayHolidays = holidays.filter(
+        h => utcCalendarDateKey(normalizeDate(h.date)) === dayKey
+      )
 
-          const festaBlock =
-            dayHolidays.length > 0
-              ? `<div class="festa-bar">Festa${dayHolidays
-                  .map(h =>
-                    h.description
-                      ? `<span class="festa-desc">${escapeHtml(h.description)}${
-                          h.closureType === 'FULL_DAY'
-                            ? ' (tutto il giorno)'
-                            : h.closureType === 'PRANZO_ONLY'
-                              ? ' (solo pranzo)'
-                              : h.closureType === 'CENA_ONLY'
-                                ? ' (solo cena)'
-                                : ''
-                        }</span>`
-                      : `<span class="festa-desc">${closureHintIt(h.closureType)}</span>`
-                  )
-                  .join('')}</div>`
-              : ''
+      const isPranzoHoliday = dayHolidays.some(
+        h => h.closureType === 'FULL_DAY' || h.closureType === 'PRANZO_ONLY'
+      )
+      const isCenaHoliday = dayHolidays.some(
+        h => h.closureType === 'FULL_DAY' || h.closureType === 'CENA_ONLY'
+      )
 
-          const renderShift = (shiftType: string, isHoliday: boolean) => {
-            if (isHoliday) {
-              return '<div class="closed">Chiuso</div>'
-            }
+      const festaBlock =
+        dayHolidays.length > 0
+          ? `<div class="festa-bar">Festività${dayHolidays
+              .map(h =>
+                h.description
+                  ? `<span class="festa-desc">${escapePdfHtml(h.description)}${
+                      h.closureType === 'FULL_DAY'
+                        ? ' (tutto il giorno)'
+                        : h.closureType === 'PRANZO_ONLY'
+                          ? ' (solo pranzo)'
+                          : h.closureType === 'CENA_ONLY'
+                            ? ' (solo cena)'
+                            : ''
+                    }</span>`
+                  : `<span class="festa-desc">${escapePdfHtml(closureHintIt(h.closureType))}</span>`
+              )
+              .join('')}</div>`
+          : ''
 
-            const roles = ['CUCINA', 'PIZZAIOLO', 'FATTORINO', 'SALA']
-            const hasAnyWorkers = roles.some(r => 
-              shiftsByDayTypeRole[dayIndex][shiftType][r].length > 0
-            )
+      const renderShift = (shiftType: string, isHoliday: boolean) => {
+        if (isHoliday) {
+          return '<div class="closed">Chiuso</div>'
+        }
 
-            if (!hasAnyWorkers) {
-              return '<div style="color: #9ca3af; font-style: italic; text-align: center; padding: 20px;">—</div>'
-            }
+        const roles = ['CUCINA', 'PIZZAIOLO', 'FATTORINO', 'SALA']
+        const hasAnyWorkers = roles.some(r =>
+          shiftsByDayTypeRole[dayIndex][shiftType][r].length > 0
+        )
 
-            return roles.map(role => {
-              const workers = shiftsByDayTypeRole[dayIndex][shiftType][role]
-              if (workers.length === 0) return ''
-              
-              return `
-                <div class="role-group">
-                  <span class="role-label ${role.toLowerCase()}">${roleLabels[role]}</span>
-                  <div class="workers">
-                    ${workers.map(w => `<span class="worker">${w.user.username}<span class="time">${w.startTime}</span></span>`).join('')}
-                  </div>
-                </div>
-              `
-            }).join('')
-          }
+        if (!hasAnyWorkers) {
+          return '<div class="empty-slot">—</div>'
+        }
+
+        return roles.map(role => {
+          const workers = shiftsByDayTypeRole[dayIndex][shiftType][role]
+          if (workers.length === 0) return ''
 
           return `
-            <div class="day-section">
-              <div class="day-header">
-                <div class="day-name">${dayName}</div>
-                <div class="shift-header">☀️ Pranzo</div>
-                <div class="shift-header">🌙 Cena</div>
-              </div>
-              ${festaBlock}
-              <div class="day-content">
-                <div class="day-label">
-                  <div class="date">${dayDate.getUTCDate()}</div>
-                  <div class="month">${formatUtcMonthAbbrevIt(dayDate)}</div>
-                </div>
-                <div class="shift-column pranzo">
-                  ${renderShift('PRANZO', isPranzoHoliday)}
-                </div>
-                <div class="shift-column cena">
-                  ${renderShift('CENA', isCenaHoliday)}
-                </div>
+            <div class="role-group">
+              <span class="role-label">${roleLabels[role]}</span>
+              <div class="workers">
+                ${workers.map(w => `<span class="worker">${escapePdfHtml(w.user.username)}<span class="time">${escapePdfHtml(w.startTime)}</span></span>`).join('')}
               </div>
             </div>
           `
-        }).join('')}
-    </div>
+        }).join('')
+      }
+
+      return `
+        <div class="day-section">
+          <div class="day-header">
+            <div class="day-name">${dayName}</div>
+            <div class="shift-header">Pranzo</div>
+            <div class="shift-header">Cena</div>
+          </div>
+          ${festaBlock}
+          <div class="day-content">
+            <div class="day-label">
+              <div class="date">${dayDate.getUTCDate()}</div>
+              <div class="month">${formatUtcMonthAbbrevIt(dayDate)}</div>
+            </div>
+            <div class="shift-column pranzo">
+              ${renderShift('PRANZO', isPranzoHoliday)}
+            </div>
+            <div class="shift-column cena">
+              ${renderShift('CENA', isCenaHoliday)}
+            </div>
+          </div>
+        </div>
+      `
+    }).join('')}
+
+    ${pdfDocFooter(generatedAt)}
 </body>
 </html>
   `

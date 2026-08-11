@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
+import { DocumentTitle } from '@/components/layout/document-title'
 
 const inputStyle: React.CSSProperties = {
   background: 'var(--pd-surface)',
@@ -81,6 +82,7 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-dvh flex flex-col relative overflow-hidden" style={{ background: 'var(--pd-bg)' }}>
+      <DocumentTitle />
       <div className="absolute inset-0 pointer-events-none" aria-hidden style={heroGlowStyle} />
 
       <div className="relative z-10 flex items-center justify-end px-4 sm:px-8 pt-safe py-4">

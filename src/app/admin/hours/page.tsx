@@ -4,7 +4,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, User, Plus, Search } from 'lucide-react'
+import { PageHeader } from '@/components/layout/page-header'
+import { StatStrip } from '@/components/ui/stat-strip'
+import { SectionBlock } from '@/components/ui/section-block'
+import { EmptyState } from '@/components/ui/list-row'
+import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, User, Plus, Search, RefreshCw } from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { formatDate, shiftCalendarDateUtc } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
@@ -447,58 +451,43 @@ export default function AdminHoursPage() {
   }
 
   return (
-    <MainLayout adminOnly>
-      <div className="max-w-6xl mx-auto space-y-8 pb-20">
-        {/* Header con stile Premium */}
-        <div className="relative overflow-hidden bg-[var(--pd-surface)] rounded-[2.5rem] p-8 shadow-[var(--pd-shadow)] border border-[var(--pd-border)]">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--pd-accent-soft)] rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
-          
-          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-[var(--pd-accent)] rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-[var(--pd-shadow)] transform -rotate-3">
-                <Clock className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="pd-display text-2xl sm:text-3xl font-semibold text-[var(--pd-text)] tracking-tight leading-none">
-                  Gestione Ore Lavorate
-                </h1>
-                <p className="text-[var(--pd-muted)] mt-2 text-sm font-medium">
-                  Inserisci le ore per i turni, controlla le richieste in attesa e approva o rifiuta.
-                </p>
-              </div>
-            </div>
+    <MainLayout adminOnly contentWidth="6xl">
+      <div className="pd-page pb-16">
+        <PageHeader
+          dense
+          title="Ore lavorate"
+          subtitle="Revisiona, correggi e approva le ore dei turni"
+        />
 
-            {/* Quick Stats Summary */}
-            <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-[var(--pd-border)] pt-6 md:pt-0 md:pl-8">
-              <div className="text-center">
-                <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-1">Da revisionare</p>
-                <p className="text-3xl font-black text-[var(--pd-accent)] leading-none">{pendingCount}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-1">Ore Totali</p>
-                <p className="text-3xl font-black text-[var(--pd-text)] leading-none">{formatDecimalHoursIt(totalHours)}</p>
-              </div>
-            </div>
-          </div>
+        <StatStrip
+          items={[
+            { label: 'Da revisionare', value: pendingCount },
+            { label: 'Ore totali', value: formatDecimalHoursIt(totalHours) },
+          ]}
+        />
+
+        <div
+          className="px-4 py-3 text-sm"
+          style={{
+            background: 'var(--pd-accent-soft)',
+            border: '1px solid var(--pd-border)',
+            borderRadius: 'var(--pd-radius-lg)',
+            color: 'var(--pd-text)',
+          }}
+        >
+          Per correggere ore errate: filtra mese e stato, cerca il dipendente, apri la scheda e usa{' '}
+          <span className="font-semibold">Correggi ore</span>. Gli orari usano incrementi di 5 minuti.
         </div>
 
-        <div className="bg-[var(--pd-accent-soft)] rounded-[2rem] border border-[var(--pd-border)] p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white text-[var(--pd-accent)] flex items-center justify-center shadow-sm shrink-0">
-              <Edit2 className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="text-lg font-black text-[var(--pd-text)] tracking-tight">Correggere ore sbagliate</h2>
-              <p className="text-sm text-blue-900/70 font-semibold mt-1 leading-relaxed">
-                Seleziona mese e stato, cerca il dipendente, apri la sua scheda e premi <span className="font-black">Correggi ore</span>.
-                Scegli orari con il selettore (incrementi di 5 minuti). Dopo il salvataggio il totale viene ricalcolato e la modifica resta registrata nello storico.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters Section */}
-        <div className="bg-[var(--pd-surface)] rounded-[2rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-6">
+        <div
+          className="p-4"
+          style={{
+            background: 'var(--pd-surface)',
+            border: '1px solid var(--pd-border)',
+            borderRadius: 'var(--pd-radius-lg)',
+            boxShadow: 'var(--pd-shadow)',
+          }}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <ReactSelect
               label="Stato Approvazione"
@@ -555,42 +544,47 @@ export default function AdminHoursPage() {
         </div>
 
         {/* Turni senza ore (o rifiutate) */}
-        <div className="bg-[var(--pd-surface)] rounded-[2rem] shadow-[var(--pd-shadow)] border border-amber-100 p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-black text-[var(--pd-text)] tracking-tight">Turni senza ore registrate</h2>
-              <p className="text-sm text-[var(--pd-muted)] mt-1">
-                Inserisci start/fine effettivi per i turni passati ancora senza ore, oppure correggi quelle rifiutate.
-              </p>
-            </div>
+        <SectionBlock
+          title="Turni senza ore"
+          subtitle="Inserisci start/fine effettivi per i turni passati ancora senza ore, oppure correggi quelle rifiutate."
+          action={
             <button
               type="button"
               onClick={() => {
                 lightClick()
                 fetchMissingShifts()
               }}
-              className="shrink-0 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest bg-amber-50 text-amber-900 border border-[var(--pd-border)] hover:bg-amber-100 transition-all"
+              className="shrink-0 inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold pd-press"
+              style={{
+                color: 'var(--pd-text)',
+                background: 'var(--pd-surface-muted)',
+                borderRadius: 'var(--pd-radius)',
+              }}
             >
+              <RefreshCw className="h-4 w-4" />
               Aggiorna elenco
             </button>
-          </div>
+          }
+          card
+        >
           {missingLoading ? (
-            <CardSkeleton />
+            <div className="p-4">
+              <CardSkeleton />
+            </div>
           ) : missingByUser.length === 0 ? (
-            <p className="text-sm font-medium text-[var(--pd-muted)] text-center py-8">
-              Nessun turno passato in attesa di ore per i filtri del sistema.
-            </p>
+            <EmptyState
+              title="Nessun turno in attesa"
+              description="Nessun turno passato in attesa di ore per i filtri del sistema."
+              icon={<Clock className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
+            />
           ) : (
-            <div className="space-y-4">
+            <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
               {missingByUser.map((u) => (
-                <div
-                  key={u.userId}
-                  className="rounded-2xl border border-[var(--pd-border)] bg-[var(--pd-surface-muted)]/80 p-4 space-y-3"
-                >
+                <div key={u.userId} className="p-4 space-y-3">
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-[var(--pd-muted)]" />
-                    <span className="font-black text-[var(--pd-text)]">{u.username}</span>
-                    <span className="text-[10px] font-bold text-[var(--pd-muted)] uppercase">
+                    <User className="h-4 w-4" style={{ color: 'var(--pd-muted)' }} />
+                    <span className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>{u.username}</span>
+                    <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--pd-muted)' }}>
                       {getRoleName(u.primaryRole)}
                     </span>
                   </div>
@@ -600,9 +594,15 @@ export default function AdminHoursPage() {
                         key={row.shiftId}
                         type="button"
                         onClick={() => openCreateShiftModal(u, row)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[var(--pd-border)] text-xs font-bold text-[var(--pd-text)] hover:border-[var(--pd-accent)] hover:bg-[var(--pd-accent-soft)]/50 transition-all"
+                        className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold pd-press"
+                        style={{
+                          background: 'var(--pd-surface-muted)',
+                          border: '1px solid var(--pd-border)',
+                          borderRadius: 'var(--pd-radius)',
+                          color: 'var(--pd-text)',
+                        }}
                       >
-                        <Plus className="h-3.5 w-3.5 text-[var(--pd-accent)]" />
+                        <Plus className="h-3.5 w-3.5" style={{ color: 'var(--pd-accent)' }} />
                         {formatDate(shiftCalendarDateUtc(row.weekStart, row.dayOfWeek))} ·{' '}
                         {getShiftTypeName(row.shiftType)}
                         {row.hoursStatus === 'REJECTED' ? ' · Rifiutato' : ''}
@@ -613,18 +613,25 @@ export default function AdminHoursPage() {
               ))}
             </div>
           )}
-        </div>
+        </SectionBlock>
 
         {fetchError && (
-          <div className="rounded-[2rem] border border-[var(--pd-border)] bg-[var(--pd-danger-soft)] px-6 py-4 text-sm font-bold text-red-800">
+          <div
+            className="rounded-[var(--pd-radius-lg)] border px-6 py-4 text-sm font-bold"
+            style={{
+              borderColor: 'var(--pd-border)',
+              background: 'var(--pd-danger-soft)',
+              color: 'var(--pd-danger)',
+            }}
+          >
             {fetchError}
           </div>
         )}
 
         {/* Worked Hours List */}
         <div className="space-y-6">
-          <div className="bg-[var(--pd-surface)] rounded-[2rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-5">
-            <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest ml-1">
+          <div className="bg-[var(--pd-surface)] rounded-[var(--pd-radius-lg)] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-5">
+            <label className="text-[10px] font-semibold text-[var(--pd-muted)]  ml-1">
               Cerca dipendente
             </label>
             <div className="relative mt-3">
@@ -650,7 +657,7 @@ export default function AdminHoursPage() {
               const groupPendingCount = group.hours.filter(h => h.status === 'PENDING').length
               
               return (
-                <div key={group.user.id} className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden group/user transition-all duration-300">
+                <div key={group.user.id} className="bg-[var(--pd-surface)] rounded-[var(--pd-radius-lg)] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden group/user transition-all duration-300">
                   {/* User Group Header */}
                   <button
                     onClick={() => {
@@ -665,32 +672,32 @@ export default function AdminHoursPage() {
                     <div className="flex items-center gap-6">
                       <div className={cn(
                         "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300",
-                        isExpanded ? "bg-[var(--pd-accent)] text-white shadow-lg shadow-[var(--pd-shadow)]" : "bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] group-hover/user:bg-[var(--pd-accent-soft)] group-hover/user:text-[var(--pd-accent)]"
+                        isExpanded ? "bg-[var(--pd-accent)] text-[var(--pd-accent-fg)]" : "bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] group-hover/user:bg-[var(--pd-accent-soft)] group-hover/user:text-[var(--pd-accent)]"
                       )}>
                         <User className="h-7 w-7" />
                       </div>
                       <div>
                         <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-black text-[var(--pd-text)] leading-none">{group.user.username}</h3>
+                          <h3 className="text-lg font-semibold text-[var(--pd-text)] leading-none">{group.user.username}</h3>
                           {groupPendingCount > 0 && (
-                            <span className="px-2 py-1 bg-[var(--pd-accent)] text-white text-[10px] font-black uppercase rounded-full animate-pulse">
+                            <span className="px-2 py-1 bg-[var(--pd-accent)] text-[var(--pd-accent-fg)] text-[10px] font-semibold uppercase rounded-full animate-pulse">
                               {groupPendingCount} PENDING
                             </span>
                           )}
                         </div>
-                        <p className="text-xs font-bold text-[var(--pd-muted)] uppercase tracking-widest mt-2">{getRoleName(group.user.primaryRole)}</p>
+                        <p className="text-xs font-bold text-[var(--pd-muted)]  mt-2">{getRoleName(group.user.primaryRole)}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-8">
                       <div className="hidden sm:flex items-center gap-8">
                         <div className="text-right">
-                          <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-1">Turni</p>
-                          <p className="text-xl font-black text-[var(--pd-text)] leading-none">{group.hours.length}</p>
+                          <p className="text-[10px] font-semibold text-[var(--pd-muted)]  mb-1">Turni</p>
+                          <p className="text-xl font-semibold text-[var(--pd-text)] leading-none">{group.hours.length}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-1">Totali</p>
-                          <p className="text-xl font-black text-[var(--pd-accent)] leading-none">{formatDecimalHoursIt(group.totalHours)}</p>
+                          <p className="text-[10px] font-semibold text-[var(--pd-muted)]  mb-1">Totali</p>
+                          <p className="text-xl font-semibold text-[var(--pd-accent)] leading-none">{formatDecimalHoursIt(group.totalHours)}</p>
                         </div>
                       </div>
                       <div className={cn(
@@ -706,13 +713,13 @@ export default function AdminHoursPage() {
                   {isExpanded && (
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="bg-white">
+                        <thead style={{ background: 'var(--pd-surface-muted)' }}>
                           <tr>
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Giorno e Turno</th>
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Orario Lavorato</th>
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest text-center">Ore</th>
-                            <th className="px-8 py-4 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest text-center">Stato</th>
-                            <th className="px-8 py-4 text-right text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Azioni</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Giorno e Turno</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Orario Lavorato</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-semibold text-[var(--pd-muted)] text-center">Ore</th>
+                            <th className="px-4 py-3 text-left text-[10px] font-semibold text-[var(--pd-muted)] text-center">Stato</th>
+                            <th className="px-4 py-3 text-right text-[10px] font-semibold text-[var(--pd-muted)]">Azioni</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--pd-border)]">
@@ -721,42 +728,53 @@ export default function AdminHoursPage() {
                             const reviewedLabel = formatReviewedAtLabel(hours.status, hours.reviewedAt)
                             return (
                               <tr key={hours.id} className="hover:bg-[var(--pd-surface-muted)]/80 transition-colors group/row">
-                                <td className="px-8 py-5">
-                                  <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-[var(--pd-surface-muted)] flex flex-col items-center justify-center font-black text-[var(--pd-muted)] border border-[var(--pd-border)]">
-                                      <span className="text-[8px] uppercase leading-none">{getDayName(hours.shift.dayOfWeek).substring(0, 3)}</span>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-[var(--pd-surface-muted)] flex flex-col items-center justify-center font-semibold text-[var(--pd-muted)] border border-[var(--pd-border)]">
+                                      <span className="text-xs uppercase leading-none">{getDayName(hours.shift.dayOfWeek).substring(0, 3)}</span>
                                       <span className="text-sm leading-none mt-1">{format(shiftDate, 'd')}</span>
                                     </div>
                                     <div>
-                                      <p className="text-sm font-black text-[var(--pd-text)] leading-tight">
+                                      <p className="text-sm font-semibold text-[var(--pd-text)] leading-tight">
                                         {getShiftTypeName(hours.shift.shiftType)}
                                       </p>
-                                      <p className="text-[10px] text-[var(--pd-muted)] font-bold uppercase tracking-widest mt-1">
+                                      <p className="text-[10px] text-[var(--pd-muted)] font-bold mt-1">
                                         {getRoleName(hours.shift.role)}
                                       </p>
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-8 py-5">
+                                <td className="px-4 py-3">
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-bold text-[var(--pd-text)]">{hours.startTime}</span>
                                     <span className="text-[var(--pd-muted)]/50 text-xs">→</span>
                                     <span className="text-sm font-bold text-[var(--pd-text)]">{hours.endTime}</span>
                                   </div>
                                 </td>
-                                <td className="px-8 py-5 text-center">
-                                  <span className="inline-flex items-center px-3 py-1 bg-[var(--pd-surface-muted)] text-[var(--pd-text)] text-xs font-black rounded-lg">
+                                <td className="px-4 py-3 text-center">
+                                  <span className="inline-flex items-center px-3 py-1 bg-[var(--pd-surface-muted)] text-[var(--pd-text)] text-xs font-semibold rounded-lg">
                                     {formatDecimalHoursIt(hours.totalHours)}
                                   </span>
                                 </td>
-                                <td className="px-8 py-5 text-center">
+                                <td className="px-4 py-3 text-center">
                                   <div className="flex flex-col items-center gap-1">
-                                    <span className={cn(
-                                      "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                                      hours.status === 'PENDING' ? "bg-yellow-100 text-yellow-700" :
-                                      hours.status === 'APPROVED' ? "bg-green-100 text-[var(--pd-success)]" :
-                                      "bg-red-100 text-[var(--pd-danger)]"
-                                    )}>
+                                    <span
+                                      className="px-3 py-1 rounded-full text-[10px] font-semibold"
+                                      style={{
+                                        background:
+                                          hours.status === 'PENDING'
+                                            ? 'var(--pd-warning-soft)'
+                                            : hours.status === 'APPROVED'
+                                              ? 'var(--pd-success-soft)'
+                                              : 'var(--pd-danger-soft)',
+                                        color:
+                                          hours.status === 'PENDING'
+                                            ? 'var(--pd-warning)'
+                                            : hours.status === 'APPROVED'
+                                              ? 'var(--pd-success)'
+                                              : 'var(--pd-danger)',
+                                      }}
+                                    >
                                       {getStatusText(hours.status)}
                                     </span>
                                     {hours.status === 'REJECTED' && hours.rejectionReason && (
@@ -774,17 +792,17 @@ export default function AdminHoursPage() {
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-8 py-5 text-right">
+                                <td className="px-4 py-3 text-right">
                                   <div className="flex items-center justify-end gap-2">
                                     <button
                                       type="button"
                                       onClick={() => openEditModal(hours)}
-                                      className="inline-flex items-center gap-2 px-3 py-2 bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] hover:bg-[var(--pd-accent-hover)] hover:text-white rounded-xl transition-all active:scale-90"
+                                      className="inline-flex items-center gap-2 px-3 py-2 bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] hover:bg-[var(--pd-accent-hover)] hover:text-[var(--pd-accent-fg)] rounded-xl transition-all active:scale-90"
                                       title="Correggi ore"
                                       aria-label={`Correggi ore di ${hours.user.username}`}
                                     >
                                       <Edit2 className="h-4 w-4" />
-                                      <span className="hidden xl:inline text-[10px] font-black uppercase tracking-widest">
+                                      <span className="hidden xl:inline text-[10px] font-semibold">
                                         Correggi ore
                                       </span>
                                     </button>
@@ -792,7 +810,7 @@ export default function AdminHoursPage() {
                                       <>
                                         <button
                                           onClick={() => approveHours(hours.id)}
-                                          className="p-2 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] hover:bg-green-600 hover:text-white rounded-xl transition-all active:scale-90"
+                                          className="p-2 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] hover:bg-[var(--pd-success)] hover:text-[var(--pd-accent-fg)] rounded-xl transition-all active:scale-90"
                                           title="Approva"
                                         >
                                           <Check className="h-4 w-4" />
@@ -802,7 +820,7 @@ export default function AdminHoursPage() {
                                             lightClick()
                                             setRejectingId(hours.id)
                                           }}
-                                          className="p-2 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] hover:bg-red-600 hover:text-white rounded-xl transition-all active:scale-90"
+                                          className="p-2 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] hover:bg-[var(--pd-danger)] hover:text-[var(--pd-accent-fg)] rounded-xl transition-all active:scale-90"
                                           title="Rifiuta"
                                         >
                                           <X className="h-4 w-4" />
@@ -822,11 +840,11 @@ export default function AdminHoursPage() {
               )
             })
           ) : (
-            <div className="bg-[var(--pd-surface)] rounded-[3rem] border-2 border-dashed border-[var(--pd-border)] py-20 text-center">
+            <div className="bg-[var(--pd-surface)] rounded-[var(--pd-radius-lg)] border-2 border-dashed border-[var(--pd-border)] py-20 text-center">
               <div className="w-20 h-20 bg-[var(--pd-surface-muted)] rounded-full flex items-center justify-center mx-auto mb-6">
-                <Clock className="h-10 w-10 text-gray-200" />
+                <Clock className="h-10 w-10" style={{ color: 'var(--pd-muted)' }} />
               </div>
-              <h3 className="text-[var(--pd-muted)] font-black uppercase tracking-[0.2em] text-sm">
+              <h3 className="text-[var(--pd-muted)] font-semibold  text-sm">
                 {userGroups.length > 0
                   ? 'Nessun dipendente trovato con questa ricerca'
                   : 'Nessuna ora trovata per questi filtri'}
@@ -859,17 +877,17 @@ export default function AdminHoursPage() {
       >
         {(editingHours || creatingShift) && (
           <div className="space-y-8 pt-4">
-            <div className="grid grid-cols-2 gap-4 bg-[var(--pd-surface-muted)] rounded-[2rem] p-6">
+            <div className="grid grid-cols-2 gap-4 bg-[var(--pd-surface-muted)] rounded-[var(--pd-radius-lg)] p-6">
               <div>
-                <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-1">Orario turno pianificato</p>
-                <p className="text-xl font-black text-[var(--pd-text)]">
+                <p className="text-[10px] font-semibold text-[var(--pd-muted)]  mb-1">Orario turno pianificato</p>
+                <p className="text-xl font-semibold text-[var(--pd-text)]">
                   {(editingHours?.shift.startTime ?? creatingShift?.plannedStart) ?? '—'} -{' '}
                   {(editingHours?.shift.endTime ?? creatingShift?.plannedEnd) ?? '—'}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-1">Ruolo assegnato</p>
-                <p className="text-xl font-black text-[var(--pd-text)]">
+                <p className="text-[10px] font-semibold text-[var(--pd-muted)]  mb-1">Ruolo assegnato</p>
+                <p className="text-xl font-semibold text-[var(--pd-text)]">
                   {getRoleName((editingHours?.shift.role ?? creatingShift?.role)!)}
                 </p>
               </div>
@@ -880,7 +898,7 @@ export default function AdminHoursPage() {
                 <div className="space-y-3">
                   <label
                     htmlFor="admin-worked-start"
-                    className="text-xs font-black text-[var(--pd-muted)] uppercase tracking-widest ml-1"
+                    className="text-xs font-semibold text-[var(--pd-muted)]  ml-1"
                   >
                     Ora inizio effettiva (24h)
                   </label>
@@ -893,7 +911,7 @@ export default function AdminHoursPage() {
                         setHourModalError(null)
                         setEditStartTime(e.target.value)
                       }}
-                      className="w-full bg-[var(--pd-surface-muted)] border-2 border-[var(--pd-border)] rounded-[2rem] pl-6 pr-12 py-4 text-lg font-black text-[var(--pd-text)] focus:outline-none focus:border-[var(--pd-accent)] transition-all appearance-none cursor-pointer"
+                      className="w-full bg-[var(--pd-surface-muted)] border-2 border-[var(--pd-border)] rounded-[var(--pd-radius-lg)] pl-6 pr-12 py-4 text-lg font-semibold text-[var(--pd-text)] focus:outline-none focus:border-[var(--pd-accent)] transition-all appearance-none cursor-pointer"
                     >
                       <option value="">Seleziona…</option>
                       {adminWorkedStartSelectOptions.map((t) => (
@@ -911,7 +929,7 @@ export default function AdminHoursPage() {
                 <div className="space-y-3">
                   <label
                     htmlFor="admin-worked-end"
-                    className="text-xs font-black text-[var(--pd-muted)] uppercase tracking-widest ml-1"
+                    className="text-xs font-semibold text-[var(--pd-muted)]  ml-1"
                   >
                     Ora fine effettiva (24h)
                   </label>
@@ -925,7 +943,7 @@ export default function AdminHoursPage() {
                         setHourModalError(null)
                         setEditEndTime(e.target.value)
                       }}
-                      className="w-full bg-[var(--pd-surface-muted)] border-2 border-[var(--pd-border)] rounded-[2rem] pl-6 pr-12 py-4 text-lg font-black text-[var(--pd-text)] focus:outline-none focus:border-[var(--pd-accent)] transition-all appearance-none cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                      className="w-full bg-[var(--pd-surface-muted)] border-2 border-[var(--pd-border)] rounded-[var(--pd-radius-lg)] pl-6 pr-12 py-4 text-lg font-semibold text-[var(--pd-text)] focus:outline-none focus:border-[var(--pd-accent)] transition-all appearance-none cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <option value="">{editStartTime ? 'Seleziona…' : "Scegli prima l'inizio"}</option>
                       {adminWorkedEndSelectOptions.map((t) => (
@@ -946,9 +964,12 @@ export default function AdminHoursPage() {
             {editStartTime && editEndTime && hourModalPreview && (
               <>
                 {hourModalPreview.ok ? (
-                  <div className="bg-[var(--pd-accent)] rounded-[2rem] p-8 shadow-xl shadow-[var(--pd-shadow)] flex items-center justify-between text-white">
+                  <div
+                    className="rounded-[var(--pd-radius-lg)] p-8 flex items-center justify-between"
+                    style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}
+                  >
                     <div>
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
+                      <h4 className="text-[10px] font-semibold opacity-80">
                         Ricalcolo ore totali
                       </h4>
                       <p className="text-lg font-bold mt-1">
@@ -956,11 +977,14 @@ export default function AdminHoursPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-4xl font-black">{formatDecimalHoursIt(hourModalPreview.totalHours)}</p>
+                      <p className="text-4xl font-semibold">{formatDecimalHoursIt(hourModalPreview.totalHours)}</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-[2rem] border-2 border-[var(--pd-border)] bg-[var(--pd-danger-soft)] px-6 py-4 text-sm font-semibold text-red-800">
+                  <div
+                    className="rounded-[var(--pd-radius-lg)] border-2 px-6 py-4 text-sm font-semibold"
+                    style={{ borderColor: 'var(--pd-border)', background: 'var(--pd-danger-soft)', color: 'var(--pd-danger)' }}
+                  >
                     {hourModalPreview.error}
                   </div>
                 )}
@@ -968,7 +992,10 @@ export default function AdminHoursPage() {
             )}
 
             {hourModalError && (
-              <div className="rounded-[2rem] border-2 border-[var(--pd-border)] bg-[var(--pd-danger-soft)] px-6 py-4 text-sm font-semibold text-red-800">
+              <div
+                className="rounded-[var(--pd-radius-lg)] border-2 px-6 py-4 text-sm font-semibold"
+                style={{ borderColor: 'var(--pd-border)', background: 'var(--pd-danger-soft)', color: 'var(--pd-danger)' }}
+              >
                 {hourModalError}
               </div>
             )}
@@ -977,7 +1004,7 @@ export default function AdminHoursPage() {
               <button
                 type="button"
                 onClick={closeHourModal}
-                className="flex-1 py-4 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-all active:scale-95"
+                className="flex-1 py-4 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] rounded-2xl font-semibold text-xs hover:brightness-95 transition-all active:scale-95"
               >
                 Annulla
               </button>
@@ -985,7 +1012,7 @@ export default function AdminHoursPage() {
                 type="button"
                 onClick={saveHourModal}
                 disabled={!editStartTime || !editEndTime || !hourModalPreview?.ok}
-                className="flex-[2] py-4 bg-[var(--pd-accent)] text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-[var(--pd-shadow)] hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2"
+                className="flex-[2] py-4 pd-btn-primary text-xs disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <Check className="h-4 w-4" />
                 {creatingShift && !creatingShift.workedHoursId ? 'Salva ore' : 'Salva modifiche'}
@@ -1006,22 +1033,22 @@ export default function AdminHoursPage() {
         headerIcon={<X className="h-6 w-6" />}
       >
         <div className="space-y-6 pt-4">
-          <div className="bg-[var(--pd-danger-soft)] rounded-[1.5rem] p-5 border border-[var(--pd-border)]">
+          <div className="bg-[var(--pd-danger-soft)] rounded-[var(--pd-radius)] p-5 border border-[var(--pd-border)]">
             <div className="flex gap-4">
               <AlertCircle className="h-6 w-6 text-[var(--pd-danger)] flex-shrink-0" />
-              <p className="text-sm font-bold text-red-800 leading-tight">
+              <p className="text-sm font-bold leading-tight" style={{ color: 'var(--pd-danger)' }}>
                 Le ore resteranno rifiutate finché un amministratore non le corregge. Indica il motivo del rifiuto.
               </p>
             </div>
           </div>
 
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest ml-1">Motivo del rifiuto</label>
+            <label className="text-[10px] font-semibold text-[var(--pd-muted)]  ml-1">Motivo del rifiuto</label>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               rows={4}
-              className="w-full bg-[var(--pd-surface-muted)] border-2 border-[var(--pd-border)] rounded-[2rem] px-6 py-4 text-sm font-bold text-[var(--pd-text)] focus:outline-none focus:border-[var(--pd-accent)] transition-all resize-none"
+              className="w-full bg-[var(--pd-surface-muted)] border-2 border-[var(--pd-border)] rounded-[var(--pd-radius-lg)] px-6 py-4 text-sm font-bold text-[var(--pd-text)] focus:outline-none focus:border-[var(--pd-accent)] transition-all resize-none"
               placeholder="Esempio: L'orario di fine non corrisponde alla chiusura effettiva..."
             />
           </div>
@@ -1032,14 +1059,15 @@ export default function AdminHoursPage() {
                 setRejectingId(null)
                 setRejectReason('')
               }}
-              className="flex-1 py-4 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-all active:scale-95"
+              className="flex-1 py-4 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] rounded-2xl font-semibold text-xs hover:brightness-95 transition-all active:scale-95"
             >
               Annulla
             </button>
             <button
               onClick={() => rejectHours(rejectingId!, rejectReason)}
               disabled={!rejectReason.trim()}
-              className="flex-[2] py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-red-100 hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2"
+              className="flex-[2] py-4 rounded-2xl font-semibold text-xs hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{ background: 'var(--pd-danger)', color: 'var(--pd-accent-fg)' }}
             >
               <X className="h-4 w-4" />
               Rifiuta Ore

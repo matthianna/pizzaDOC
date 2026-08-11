@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { StaffPageHeader } from '@/components/layout/staff-page-header'
-import {
-    Calendar, Download, ChevronLeft, ChevronRight,
-    Loader2, Sparkles, Sun, Moon
-} from 'lucide-react'
+import { PageHeader } from '@/components/layout/page-header'
+import { SectionBlock } from '@/components/ui/section-block'
+import { ListRow } from '@/components/ui/list-row'
+import { WeekNavigator } from '@/components/ui/week-navigator'
+import { Download, Ban } from 'lucide-react'
 import {
   getWeekStart,
   addWeekCalendarDays,
@@ -19,506 +19,399 @@ import {
   ensureUtcMondayWeekStart,
 } from '@/lib/date-utils'
 import { normalizeDate } from '@/lib/normalize-date'
-import { getRoleName, cn } from '@/lib/utils'
+import { getRoleName } from '@/lib/utils'
 import { useHaptics } from '@/hooks/use-haptics'
-import { Button } from '@/components/ui/button'
 
 export default function WeeklyPlanPage() {
-    const { data: session } = useSession()
-    const isAdmin = session?.user?.roles?.includes('ADMIN') ?? false
-    const [currentWeek, setCurrentWeek] = useState(() => getWeekStart(new Date()))
-    const [data, setData] = useState<{ schedule: any, holidays: any[] } | null>(null)
-    const [loading, setLoading] = useState(true)
-    const { lightClick, mediumClick } = useHaptics()
-    const [activeTab, setActiveTab] = useState<'LIST' | 'GRID'>('LIST')
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.roles?.includes('ADMIN') ?? false
+  const [currentWeek, setCurrentWeek] = useState(() => getWeekStart(new Date()))
+  const [data, setData] = useState<{ schedule: any; holidays: any[] } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const { lightClick, mediumClick } = useHaptics()
+  const [activeTab, setActiveTab] = useState<'LIST' | 'GRID'>('LIST')
 
-    useEffect(() => {
-        fetchWeeklyPlan()
-    }, [currentWeek])
+  useEffect(() => {
+    fetchWeeklyPlan()
+  }, [currentWeek])
 
-    const fetchWeeklyPlan = async () => {
-        setLoading(true)
-        try {
-            const weekStartStr = currentWeek.toISOString()
-            const response = await fetch(
-                `/api/weekly-plan?weekStart=${encodeURIComponent(weekStartStr)}`,
-                { cache: 'no-store' }
-            )
-            if (response.ok) {
-                const jsonData = await response.json()
-                setData(jsonData)
-                const ws = jsonData.schedule?.weekStart
-                if (ws != null) {
-                    const normalized = ensureUtcMondayWeekStart(normalizeDate(ws))
-                    setCurrentWeek(prev =>
-                        prev.getTime() === normalized.getTime() ? prev : normalized
-                    )
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching weekly plan:', error)
-        } finally {
-            setLoading(false)
+  const fetchWeeklyPlan = async () => {
+    setLoading(true)
+    try {
+      const weekStartStr = currentWeek.toISOString()
+      const response = await fetch(
+        `/api/weekly-plan?weekStart=${encodeURIComponent(weekStartStr)}`,
+        { cache: 'no-store' }
+      )
+      if (response.ok) {
+        const jsonData = await response.json()
+        setData(jsonData)
+        const ws = jsonData.schedule?.weekStart
+        if (ws != null) {
+          const normalized = ensureUtcMondayWeekStart(normalizeDate(ws))
+          setCurrentWeek(prev =>
+            prev.getTime() === normalized.getTime() ? prev : normalized
+          )
         }
+      }
+    } catch (error) {
+      console.error('Error fetching weekly plan:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    const handleDownloadPDF = () => {
-        mediumClick()
-        const weekStartStr = encodeURIComponent(currentWeek.toISOString())
-        window.open(`/api/admin/schedule/${weekStartStr}/export-pdf`, '_blank')
+  const handleDownloadPDF = () => {
+    mediumClick()
+    const weekStartStr = encodeURIComponent(currentWeek.toISOString())
+    window.open(`/api/admin/schedule/${weekStartStr}/export-pdf`, '_blank')
+  }
+
+  const nextWeek = () => {
+    lightClick()
+    setCurrentWeek(prev => addWeekCalendarDays(prev, 7))
+  }
+
+  const prevWeek = () => {
+    lightClick()
+    setCurrentWeek(prev => addWeekCalendarDays(prev, -7))
+  }
+
+  const goToToday = () => {
+    lightClick()
+    setCurrentWeek(getWeekStart(new Date()))
+  }
+
+  const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+  const shortDays = ['LUN', 'MAR', 'MER', 'GIO', 'VEN', 'SAB', 'DOM']
+
+  const shiftsByDay: Record<number, Record<string, any[]>> = {}
+  if (data?.schedule?.shifts) {
+    for (let i = 0; i < 7; i++) {
+      shiftsByDay[i] = { PRANZO: [], CENA: [] }
     }
+    data.schedule.shifts.forEach((shift: any) => {
+      shiftsByDay[shift.dayOfWeek][shift.shiftType].push(shift)
+    })
+  }
 
-    const nextWeek = () => {
-        lightClick()
-        setCurrentWeek(prev => addWeekCalendarDays(prev, 7))
-    }
+  const isToday = (dayIndex: number) =>
+    utcCalendarDateKey(addWeekCalendarDays(currentWeek, dayIndex)) === appTodayCalendarDateKey()
 
-    const prevWeek = () => {
-        lightClick()
-        setCurrentWeek(prev => addWeekCalendarDays(prev, -7))
-    }
-
-    const goToToday = () => {
-        lightClick()
-        setCurrentWeek(getWeekStart(new Date()))
-    }
-
-    const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
-    const shortDays = ['LUN', 'MAR', 'MER', 'GIO', 'VEN', 'SAB', 'DOM']
-
-    // Raggruppa turni per giorno e tipo
-    const shiftsByDay: Record<number, Record<string, any[]>> = {}
-    if (data?.schedule?.shifts) {
-        for (let i = 0; i < 7; i++) {
-            shiftsByDay[i] = { 'PRANZO': [], 'CENA': [] }
-        }
-        data.schedule.shifts.forEach((shift: any) => {
-            shiftsByDay[shift.dayOfWeek][shift.shiftType].push(shift)
-        })
-    }
-
-    const isToday = (dayIndex: number) =>
-        utcCalendarDateKey(addWeekCalendarDays(currentWeek, dayIndex)) === appTodayCalendarDateKey()
-
-    const holidaysForDay = (dayIndex: number) => {
-        if (!data?.holidays?.length) return []
-        const slotKey = utcCalendarDateKey(addWeekCalendarDays(currentWeek, dayIndex))
-        return data.holidays.filter(
-            h => utcCalendarDateKey(normalizeDate(h.date)) === slotKey
-        )
-    }
-
-    const getRoleColor = (role: string) => {
-        switch (role) {
-            case 'PIZZAIOLO': return { bg: 'bg-red-500', text: 'text-red-600', light: 'bg-red-50', border: 'border-red-200' }
-            case 'CUCINA': return { bg: 'bg-amber-500', text: 'text-amber-600', light: 'bg-amber-50', border: 'border-amber-200' }
-            case 'SALA': return { bg: 'bg-emerald-500', text: 'text-emerald-600', light: 'bg-emerald-50', border: 'border-emerald-200' }
-            case 'FATTORINO': return { bg: 'bg-blue-500', text: 'text-blue-600', light: 'bg-blue-50', border: 'border-blue-200' }
-            default: return { bg: 'bg-gray-500', text: 'text-gray-600', light: 'bg-gray-50', border: 'border-gray-200' }
-        }
-    }
-
-    return (
-        <MainLayout>
-            <div className="max-w-6xl mx-auto space-y-6 pb-20">
-                <StaffPageHeader
-                    title="Piano settimanale"
-                    subtitle="Consulta i turni di tutta la squadra"
-                    action={
-                        <div className="flex items-center gap-3">
-                            {isAdmin && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleDownloadPDF}
-                                className="rounded-xl border-gray-200 font-bold text-gray-700 h-10 px-4 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600"
-                            >
-                                <Download className="h-4 w-4 mr-2" />
-                                PDF
-                            </Button>
-                            )}
-                            <div className="bg-gray-100 p-1 rounded-xl flex gap-1">
-                                <button
-                                    onClick={() => { lightClick(); setActiveTab('LIST') }}
-                                    className={cn(
-                                        "px-4 py-2 rounded-lg text-xs font-black transition-all",
-                                        activeTab === 'LIST' ? "bg-white text-orange-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                                    )}
-                                >LISTA</button>
-                                <button
-                                    onClick={() => { lightClick(); setActiveTab('GRID') }}
-                                    className={cn(
-                                        "px-4 py-2 rounded-lg text-xs font-black transition-all",
-                                        activeTab === 'GRID' ? "bg-white text-orange-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                                    )}
-                                >GRIGLIA</button>
-                            </div>
-                        </div>
-                    }
-                />
-
-                <div className="pd-card p-4 flex items-center justify-between">
-                    <button onClick={prevWeek} className="p-3 bg-gray-50 hover:bg-orange-50 text-gray-400 hover:text-orange-600 rounded-xl transition-all">
-                        <ChevronLeft className="h-5 w-5" />
-                    </button>
-
-                    <div className="flex flex-col items-center cursor-pointer group" onClick={goToToday}>
-                        <span className="text-xs font-medium" style={{ color: 'var(--pd-muted)' }}>Settimana selezionata</span>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="pd-display text-lg font-semibold">
-                                {formatDayMonthIt(currentWeek)}
-                            </span>
-                            <span className="text-gray-300">—</span>
-                            <span className="pd-display text-lg font-semibold">
-                                {formatDayMonthYearIt(addWeekCalendarDays(currentWeek, 6))}
-                            </span>
-                        </div>
-                    </div>
-
-                    <button onClick={nextWeek} className="p-3 bg-gray-50 hover:bg-orange-50 text-gray-400 hover:text-orange-600 rounded-xl transition-all">
-                        <ChevronRight className="h-5 w-5" />
-                    </button>
-                </div>
-
-                {loading ? (
-                    <div className="py-20 flex flex-col items-center justify-center gap-4">
-                        <Loader2 className="h-10 w-10 text-orange-500 animate-spin" />
-                        <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Caricamento piano...</p>
-                    </div>
-                ) : activeTab === 'LIST' ? (
-                    /* LIST VIEW */
-                    <div className="space-y-4">
-                        {days.map((dayName, index) => {
-                            const dayHolidays = holidaysForDay(index)
-                            const date = addWeekCalendarDays(currentWeek, index)
-                            const dayIsToday = isToday(index)
-                            const pranzoShifts = shiftsByDay[index]?.['PRANZO'] || []
-                            const cenaShifts = shiftsByDay[index]?.['CENA'] || []
-
-                            const isFullClosure = dayHolidays.some(h => h.closureType === 'FULL_DAY')
-                            const isPranzoClosure =
-                                isFullClosure || dayHolidays.some(h => h.closureType === 'PRANZO_ONLY')
-                            const isCenaClosure =
-                                isFullClosure || dayHolidays.some(h => h.closureType === 'CENA_ONLY')
-
-                            return (
-                                <div key={index} className={cn(
-                                    "bg-white rounded-3xl shadow-soft border overflow-hidden transition-all",
-                                    dayIsToday ? "border-orange-200 ring-2 ring-orange-100" : "border-gray-100"
-                                )}>
-                                    {/* Day Header */}
-                                    <div className={cn(
-                                        "px-6 py-4 flex items-center justify-between border-b",
-                                        dayIsToday ? "bg-orange-50 border-orange-100" : "bg-gray-50/50 border-gray-100"
-                                    )}>
-                                        <div className="flex items-center gap-4">
-                                            <div className={cn(
-                                                "w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black",
-                                                dayIsToday ? "bg-orange-500 text-white shadow-lg shadow-orange-200" : "bg-white text-gray-600 shadow-sm border border-gray-100"
-                                            )}>
-                                                <span className="text-[10px] uppercase leading-none">{shortDays[index]}</span>
-                                                <span className="text-lg leading-none mt-0.5">{date.getUTCDate()}</span>
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <h3 className="text-lg font-black text-gray-900 tracking-tight">{dayName}</h3>
-                                                <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">
-                                                    {formatMonthYearIt(date)}
-                                                </p>
-                                                {dayHolidays.length > 0 && (
-                                                    <HolidayHeaderNote holidays={dayHolidays} />
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col items-end gap-2 shrink-0">
-                                            {dayIsToday && (
-                                                <span className="px-4 py-1.5 bg-orange-500 text-white text-[10px] font-black rounded-full shadow-lg shadow-orange-200 uppercase tracking-widest">Oggi</span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Shifts */}
-                                    <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Pranzo */}
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <Sun className="h-4 w-4 text-amber-500" />
-                                                    <span className="text-xs font-black text-gray-500 uppercase tracking-widest">Pranzo</span>
-                                                </div>
-                                                {!isPranzoClosure && pranzoShifts.length > 0 && (
-                                                    <span className="text-[10px] font-bold text-gray-400">{pranzoShifts.length} Persone</span>
-                                                )}
-                                            </div>
-                                            {isPranzoClosure ? (
-                                                <ClosedBanner holidayName={dayHolidays.map(h => h.description).filter(Boolean).join(' · ') || undefined} />
-                                            ) : pranzoShifts.length > 0 ? (
-                                                <div className="space-y-2">
-                                                    {pranzoShifts.map((shift: any) => (
-                                                        <ShiftCard key={shift.id} shift={shift} getRoleColor={getRoleColor} />
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <EmptyShifts />
-                                            )}
-                                        </div>
-
-                                        {/* Cena */}
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <Moon className="h-4 w-4 text-[var(--pd-accent)]" />
-                                                    <span className="text-xs font-black text-gray-500 uppercase tracking-widest">Cena</span>
-                                                </div>
-                                                {!isCenaClosure && cenaShifts.length > 0 && (
-                                                    <span className="text-[10px] font-bold text-gray-400">{cenaShifts.length} Persone</span>
-                                                )}
-                                            </div>
-                                            {isCenaClosure ? (
-                                                <ClosedBanner holidayName={dayHolidays.map(h => h.description).filter(Boolean).join(' · ') || undefined} />
-                                            ) : cenaShifts.length > 0 ? (
-                                                <div className="space-y-2">
-                                                    {cenaShifts.map((shift: any) => (
-                                                        <ShiftCard key={shift.id} shift={shift} getRoleColor={getRoleColor} />
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <EmptyShifts />
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
-                ) : (
-                    /* GRID VIEW */
-                    <div className="bg-white rounded-3xl shadow-soft border border-gray-100 overflow-hidden">
-                        {/* Grid Header */}
-                        <div className="grid grid-cols-8 border-b border-gray-100">
-                            <div className="p-4 bg-gray-50 border-r border-gray-100">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Turno</span>
-                            </div>
-                            {days.map((day, idx) => {
-                                const date = addWeekCalendarDays(currentWeek, idx)
-                                const dayIsToday = isToday(idx)
-                                const gridHolidays = holidaysForDay(idx)
-                                return (
-                                    <div key={idx} className={cn(
-                                        "p-2 sm:p-3 text-center border-r border-gray-100 last:border-r-0",
-                                        dayIsToday ? "bg-orange-50" : "bg-gray-50"
-                                    )}>
-                                        <p className={cn(
-                                            "text-[10px] font-black uppercase tracking-widest",
-                                            dayIsToday ? "text-orange-600" : "text-gray-400"
-                                        )}>{shortDays[idx]}</p>
-                                        <p className={cn(
-                                            "text-lg font-black mt-0.5",
-                                            dayIsToday ? "text-orange-600" : "text-gray-900"
-                                        )}>{date.getUTCDate()}</p>
-                                        {gridHolidays.length > 0 && (
-                                            <div className="mt-1.5 flex flex-col items-center gap-0.5">
-                                                <span className="text-[8px] font-black uppercase tracking-wide text-amber-800 bg-amber-100 border border-amber-200/80 rounded-full px-1.5 py-0.5">Festa</span>
-                                                {gridHolidays.map((h, hi) =>
-                                                    h.description ? (
-                                                        <span key={hi} className="text-[8px] font-semibold text-gray-600 leading-tight line-clamp-2 px-0.5">
-                                                            {h.description}
-                                                        </span>
-                                                    ) : null
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-
-                        {/* Pranzo Row */}
-                        <div className="grid grid-cols-8 border-b border-gray-100">
-                            <div className="p-4 bg-amber-50 border-r border-gray-100 flex items-center gap-2">
-                                <Sun className="h-4 w-4 text-amber-600" />
-                                <span className="text-xs font-black text-amber-700 uppercase">Pranzo</span>
-                            </div>
-                            {days.map((_, idx) => {
-                                const gh = holidaysForDay(idx)
-                                const isFullClosure = gh.some(h => h.closureType === 'FULL_DAY')
-                                const isPranzoClosure = isFullClosure || gh.some(h => h.closureType === 'PRANZO_ONLY')
-                                const pranzoShifts = shiftsByDay[idx]?.['PRANZO'] || []
-                                const dayIsToday = isToday(idx)
-
-                                return (
-                                    <div key={idx} className={cn(
-                                        "p-2 border-r border-gray-100 last:border-r-0 min-h-[120px]",
-                                        dayIsToday ? "bg-orange-50/30" : ""
-                                    )}>
-                                        {isPranzoClosure ? (
-                                            <div className="h-full flex items-center justify-center">
-                                                <span className="text-[9px] font-bold text-red-500 uppercase">Chiuso</span>
-                                            </div>
-                                        ) : pranzoShifts.length > 0 ? (
-                                            <div className="space-y-1">
-                                                {pranzoShifts.map((shift: any) => (
-                                                    <GridShiftChip key={shift.id} shift={shift} getRoleColor={getRoleColor} />
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="h-full flex items-center justify-center">
-                                                <span className="text-[9px] text-gray-300">—</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-
-                        {/* Cena Row */}
-                        <div className="grid grid-cols-8">
-                            <div className="p-4 bg-[var(--pd-accent-soft)] border-r border-gray-100 flex items-center gap-2">
-                                <Moon className="h-4 w-4 text-[var(--pd-accent)]" />
-                                <span className="text-xs font-black text-[var(--pd-accent)] uppercase">Cena</span>
-                            </div>
-                            {days.map((_, idx) => {
-                                const gh = holidaysForDay(idx)
-                                const isFullClosure = gh.some(h => h.closureType === 'FULL_DAY')
-                                const isCenaClosure = isFullClosure || gh.some(h => h.closureType === 'CENA_ONLY')
-                                const cenaShifts = shiftsByDay[idx]?.['CENA'] || []
-                                const dayIsToday = isToday(idx)
-
-                                return (
-                                    <div key={idx} className={cn(
-                                        "p-2 border-r border-gray-100 last:border-r-0 min-h-[120px]",
-                                        dayIsToday ? "bg-orange-50/30" : ""
-                                    )}>
-                                        {isCenaClosure ? (
-                                            <div className="h-full flex items-center justify-center">
-                                                <span className="text-[9px] font-bold text-red-500 uppercase">Chiuso</span>
-                                            </div>
-                                        ) : cenaShifts.length > 0 ? (
-                                            <div className="space-y-1">
-                                                {cenaShifts.map((shift: any) => (
-                                                    <GridShiftChip key={shift.id} shift={shift} getRoleColor={getRoleColor} />
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="h-full flex items-center justify-center">
-                                                <span className="text-[9px] text-gray-300">—</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </div>
-                )}
-            </div>
-        </MainLayout>
+  const holidaysForDay = (dayIndex: number) => {
+    if (!data?.holidays?.length) return []
+    const slotKey = utcCalendarDateKey(addWeekCalendarDays(currentWeek, dayIndex))
+    return data.holidays.filter(
+      h => utcCalendarDateKey(normalizeDate(h.date)) === slotKey
     )
-}
+  }
 
-function ShiftCard({ shift, getRoleColor }: { shift: any, getRoleColor: (role: string) => any }) {
-    const colors = getRoleColor(shift.role)
-    return (
-        <div className={cn(
-            "flex items-center justify-between p-3 rounded-2xl border transition-all hover:shadow-md",
-            colors.light, colors.border
-        )}>
-            <div className="flex items-center gap-3">
-                <div className={cn(
-                    "w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs text-white shadow-sm",
-                    colors.bg
-                )}>
-                    {shift.user.username.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                    <p className="text-sm font-black text-gray-900 leading-tight">{shift.user.username}</p>
-                    <p className={cn("text-[10px] font-bold uppercase tracking-widest", colors.text)}>
-                        {getRoleName(shift.role)}
-                    </p>
-                </div>
-            </div>
-            <div className="px-3 py-1.5 bg-white rounded-lg text-xs font-black text-gray-700 shadow-sm border border-gray-100">
-                {shift.startTime}
-            </div>
-        </div>
-    )
-}
+  return (
+    <MainLayout contentWidth="6xl" title="Piano settimanale" subtitle="Turni di tutta la squadra">
+      <div className="pd-page pb-20">
+        <PageHeader
+          title="Piano settimanale"
+          subtitle="Consulta i turni di tutta la squadra"
+          action={
+            isAdmin ? (
+              <button
+                type="button"
+                onClick={handleDownloadPDF}
+                className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold pd-press"
+                style={{
+                  background: 'var(--pd-surface)',
+                  border: '1px solid var(--pd-border)',
+                  borderRadius: 'var(--pd-radius-pill)',
+                  color: 'var(--pd-text)',
+                }}
+              >
+                <Download className="h-4 w-4" />
+                PDF
+              </button>
+            ) : undefined
+          }
+        />
 
-function GridShiftChip({ shift, getRoleColor }: { shift: any, getRoleColor: (role: string) => any }) {
-    const colors = getRoleColor(shift.role)
-    return (
-        <div className={cn(
-            "px-2 py-1.5 rounded-lg border text-[10px] font-bold truncate",
-            colors.light, colors.border
-        )}>
-            <div className="flex items-center gap-1.5">
-                <div className={cn("w-4 h-4 rounded flex items-center justify-center text-white text-[8px] font-black", colors.bg)}>
-                    {shift.user.username.charAt(0).toUpperCase()}
-                </div>
-                <span className="truncate text-gray-700">{shift.user.username.split('.')[0]}</span>
-            </div>
-        </div>
-    )
-}
-
-function holidayClosureHintIt(closureType: string): string {
-    switch (closureType) {
-        case 'FULL_DAY':
-            return 'Chiusura: tutto il giorno'
-        case 'PRANZO_ONLY':
-            return 'Solo pranzo chiuso'
-        case 'CENA_ONLY':
-            return 'Solo cena chiusa'
-        default:
-            return ''
-    }
-}
-
-function HolidayHeaderNote({
-    holidays,
-}: {
-    holidays: Array<{ description?: string | null; closureType: string }>
-}) {
-    const hints = [...new Set(holidays.map(h => holidayClosureHintIt(h.closureType)))].filter(Boolean)
-    return (
-        <div className="mt-1.5 flex flex-col gap-0.5 max-w-md">
-            <span className="inline-flex items-center gap-1 w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-800 border border-amber-200/80">
-                <Sparkles className="h-3 w-3 shrink-0" />
-                Festa
-            </span>
-            {holidays.map((h, i) =>
-                h.description ? (
-                    <p key={i} className="text-[11px] font-semibold text-amber-900/90">
-                        {h.description}
-                    </p>
-                ) : null
-            )}
-            {hints.map((hint, i) => (
-                <p key={i} className="text-[9px] font-medium text-amber-700/80 uppercase tracking-wide">
-                    {hint}
-                </p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <WeekNavigator
+            label={`${formatDayMonthIt(currentWeek)} – ${formatDayMonthYearIt(addWeekCalendarDays(currentWeek, 6))}`}
+            onPrev={prevWeek}
+            onNext={nextWeek}
+            onToday={goToToday}
+            disabled={loading}
+            className="flex-1"
+          />
+          <div
+            className="inline-flex p-0.5 self-start sm:self-auto shrink-0"
+            style={{
+              background: 'var(--pd-surface-muted)',
+              borderRadius: 'var(--pd-radius-pill)',
+            }}
+          >
+            {(['LIST', 'GRID'] as const).map(tab => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  lightClick()
+                  setActiveTab(tab)
+                }}
+                className="px-3.5 py-1.5 text-xs font-semibold pd-press"
+                style={{
+                  borderRadius: 'var(--pd-radius-pill)',
+                  background: activeTab === tab ? 'var(--pd-surface)' : 'transparent',
+                  color: activeTab === tab ? 'var(--pd-text)' : 'var(--pd-muted)',
+                  boxShadow: activeTab === tab ? 'var(--pd-shadow)' : undefined,
+                }}
+              >
+                {tab === 'LIST' ? 'Lista' : 'Griglia'}
+              </button>
             ))}
+          </div>
         </div>
-    )
+
+        {loading ? (
+          <div className="py-16 text-center text-sm" style={{ color: 'var(--pd-muted)' }}>
+            Caricamento piano…
+          </div>
+        ) : activeTab === 'LIST' ? (
+          <div className="space-y-6">
+            {days.map((dayName, index) => {
+              const dayHolidays = holidaysForDay(index)
+              const date = addWeekCalendarDays(currentWeek, index)
+              const dayIsToday = isToday(index)
+              const pranzoShifts = shiftsByDay[index]?.PRANZO || []
+              const cenaShifts = shiftsByDay[index]?.CENA || []
+
+              const isFullClosure = dayHolidays.some(h => h.closureType === 'FULL_DAY')
+              const isPranzoClosure =
+                isFullClosure || dayHolidays.some(h => h.closureType === 'PRANZO_ONLY')
+              const isCenaClosure =
+                isFullClosure || dayHolidays.some(h => h.closureType === 'CENA_ONLY')
+
+              const holidayHint = dayHolidays
+                .map(h => h.description)
+                .filter(Boolean)
+                .join(' · ')
+
+              return (
+                <SectionBlock
+                  key={index}
+                  title={`${dayName} ${date.getUTCDate()}`}
+                  subtitle={
+                    dayIsToday
+                      ? `Oggi · ${formatMonthYearIt(date)}`
+                      : holidayHint
+                        ? `${formatMonthYearIt(date)} · ${holidayHint}`
+                        : formatMonthYearIt(date)
+                  }
+                  card
+                >
+                  <ShiftSlot
+                    label="Pranzo"
+                    closed={isPranzoClosure}
+                    holidayName={holidayHint || undefined}
+                    shifts={pranzoShifts}
+                  />
+                  <ShiftSlot
+                    label="Cena"
+                    closed={isCenaClosure}
+                    holidayName={holidayHint || undefined}
+                    shifts={cenaShifts}
+                  />
+                </SectionBlock>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="pd-card overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--pd-border)' }}>
+                  <th
+                    className="px-3 py-3 text-left text-xs font-semibold sticky left-0"
+                    style={{ color: 'var(--pd-muted)', background: 'var(--pd-surface)' }}
+                  >
+                    Turno
+                  </th>
+                  {days.map((_, idx) => {
+                    const date = addWeekCalendarDays(currentWeek, idx)
+                    const dayIsToday = isToday(idx)
+                    const gridHolidays = holidaysForDay(idx)
+                    return (
+                      <th
+                        key={idx}
+                        className="px-2 py-3 text-center min-w-[88px]"
+                        style={{
+                          background: dayIsToday ? 'var(--pd-accent-soft)' : 'var(--pd-surface)',
+                        }}
+                      >
+                        <p
+                          className="text-[11px] font-semibold"
+                          style={{ color: dayIsToday ? 'var(--pd-accent)' : 'var(--pd-muted)' }}
+                        >
+                          {shortDays[idx]}
+                        </p>
+                        <p
+                          className="pd-display text-lg font-semibold tabular-nums"
+                          style={{ color: dayIsToday ? 'var(--pd-accent)' : 'var(--pd-text)' }}
+                        >
+                          {date.getUTCDate()}
+                        </p>
+                        {gridHolidays.length > 0 && (
+                          <p className="text-[10px] mt-0.5" style={{ color: 'var(--pd-warning)' }}>
+                            Festa
+                          </p>
+                        )}
+                      </th>
+                    )
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {(['PRANZO', 'CENA'] as const).map(shiftType => (
+                  <tr key={shiftType} style={{ borderBottom: '1px solid var(--pd-border)' }}>
+                    <td
+                      className="px-3 py-3 text-xs font-semibold sticky left-0 align-top"
+                      style={{ color: 'var(--pd-text)', background: 'var(--pd-surface)' }}
+                    >
+                      {shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}
+                    </td>
+                    {days.map((_, idx) => {
+                      const gh = holidaysForDay(idx)
+                      const isFullClosure = gh.some(h => h.closureType === 'FULL_DAY')
+                      const isClosed =
+                        isFullClosure ||
+                        gh.some(h =>
+                          shiftType === 'PRANZO'
+                            ? h.closureType === 'PRANZO_ONLY'
+                            : h.closureType === 'CENA_ONLY'
+                        )
+                      const slotShifts = shiftsByDay[idx]?.[shiftType] || []
+                      const dayIsToday = isToday(idx)
+
+                      return (
+                        <td
+                          key={idx}
+                          className="px-1.5 py-2 align-top min-h-[100px]"
+                          style={{
+                            background: dayIsToday
+                              ? 'color-mix(in srgb, var(--pd-accent-soft) 50%, transparent)'
+                              : undefined,
+                          }}
+                        >
+                          {isClosed ? (
+                            <p className="text-[11px] text-center py-4" style={{ color: 'var(--pd-danger)' }}>
+                              Chiuso
+                            </p>
+                          ) : slotShifts.length > 0 ? (
+                            <div className="space-y-1">
+                              {slotShifts.map((shift: any) => (
+                                <div
+                                  key={shift.id}
+                                  className="px-2 py-1.5 text-[11px]"
+                                  style={{
+                                    background: 'var(--pd-surface-muted)',
+                                    borderRadius: 'var(--pd-radius)',
+                                  }}
+                                >
+                                  <p className="font-semibold truncate" style={{ color: 'var(--pd-text)' }}>
+                                    {shift.user.username.split('.')[0]}
+                                  </p>
+                                  <p className="truncate" style={{ color: 'var(--pd-muted)' }}>
+                                    {getRoleName(shift.role)}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-center py-4 text-xs" style={{ color: 'var(--pd-muted)' }}>
+                              —
+                            </p>
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </MainLayout>
+  )
 }
 
-function ClosedBanner({ holidayName }: { holidayName?: string }) {
-    return (
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Sparkles className="h-4 w-4 text-red-600" />
-            </div>
-            <div>
-                <p className="text-xs font-black text-red-600 uppercase tracking-widest">Chiuso</p>
-                {holidayName && <p className="text-[10px] font-medium text-red-400">{holidayName}</p>}
-            </div>
+function ShiftSlot({
+  label,
+  closed,
+  holidayName,
+  shifts,
+}: {
+  label: string
+  closed: boolean
+  holidayName?: string
+  shifts: any[]
+}) {
+  return (
+    <div>
+      <div
+        className="px-4 py-2 flex items-center justify-between"
+        style={{
+          background: 'var(--pd-surface-muted)',
+          borderBottom: '1px solid var(--pd-border)',
+        }}
+      >
+        <p className="text-xs font-semibold" style={{ color: 'var(--pd-muted)' }}>
+          {label}
+        </p>
+        {!closed && shifts.length > 0 && (
+          <p className="text-[11px]" style={{ color: 'var(--pd-muted)' }}>
+            {shifts.length} {shifts.length === 1 ? 'persona' : 'persone'}
+          </p>
+        )}
+      </div>
+      {closed ? (
+        <div className="px-4 py-4 flex items-center gap-2" style={{ borderBottom: '1px solid var(--pd-border)' }}>
+          <Ban className="h-4 w-4 shrink-0" style={{ color: 'var(--pd-danger)' }} />
+          <div>
+            <p className="text-sm font-semibold" style={{ color: 'var(--pd-danger)' }}>
+              Chiuso
+            </p>
+            {holidayName && (
+              <p className="text-xs" style={{ color: 'var(--pd-muted)' }}>
+                {holidayName}
+              </p>
+            )}
+          </div>
         </div>
-    )
-}
-
-function EmptyShifts() {
-    return (
-        <div className="h-20 flex items-center justify-center border-2 border-dashed border-gray-100 rounded-2xl">
-            <p className="text-xs font-medium text-gray-300">Nessun turno</p>
-        </div>
-    )
+      ) : shifts.length > 0 ? (
+        shifts.map((shift: any) => (
+          <ListRow
+            key={shift.id}
+            title={shift.user.username}
+            subtitle={getRoleName(shift.role)}
+            meta={shift.startTime}
+            leading={
+              <div
+                className="w-8 h-8 flex items-center justify-center text-xs font-semibold"
+                style={{
+                  background: 'var(--pd-accent-soft)',
+                  color: 'var(--pd-accent)',
+                  borderRadius: 'var(--pd-radius)',
+                }}
+              >
+                {shift.user.username.charAt(0).toUpperCase()}
+              </div>
+            }
+          />
+        ))
+      ) : (
+        <p className="py-2 px-4 text-xs" style={{ color: 'var(--pd-muted)' }}>
+          Nessun turno
+        </p>
+      )}
+    </div>
+  )
 }

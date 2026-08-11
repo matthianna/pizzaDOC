@@ -274,9 +274,12 @@ function SidebarContent({
 
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden">
-      <div className={cn('flex items-center gap-3 px-4 border-b', isMobile ? 'pt-5 pb-4' : 'py-5')} style={{ borderColor: 'var(--pd-border)' }}>
+      <div
+        className={cn('flex items-center gap-3 px-5 border-b', isMobile ? 'pt-5 pb-4' : 'py-6')}
+        style={{ borderColor: 'var(--pd-border)' }}
+      >
         <Image
-          src="/logo-pizza-doc.png"
+          src="/logo-pizza-doc.png?v=3"
           alt="Pizza D.O.C."
           width={40}
           height={40}
@@ -287,11 +290,11 @@ function SidebarContent({
           <p className="pd-display text-lg font-semibold leading-tight tracking-tight truncate">
             Pizza D.O.C.
           </p>
-          <p className="text-[11px]" style={{ color: 'var(--pd-muted)' }}>
+          <p className="text-[11px] truncate" style={{ color: 'var(--pd-muted)' }}>
             Gestione team
           </p>
         </div>
-        <NotificationBell />
+        {!isMobile ? <NotificationBell /> : null}
       </div>
 
       <div className="px-4 py-4">
@@ -303,7 +306,7 @@ function SidebarContent({
           }}
         >
           <div
-            className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold shrink-0"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold shrink-0"
             style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}
           >
             {session.user.username.charAt(0).toUpperCase()}

@@ -7,6 +7,14 @@ import { it } from 'date-fns/locale'
 import { shiftCalendarDateUtc, utcCalendarDateKey, formatDate, getDayOfWeek } from '@/lib/date-utils'
 import { getDayName } from '@/lib/utils'
 import { formatDecimalHoursIt } from '@/lib/format-hours-display'
+import {
+  PDF_BRAND,
+  PDF_COLORS,
+  pdfBaseStyles,
+  pdfDocHeader,
+  pdfDocFooter,
+  escapePdfHtml,
+} from '@/lib/pdf-fornace-styles'
 
 export async function GET(request: NextRequest) {
   try {
@@ -175,317 +183,154 @@ function generatePDFHtml(
     })
   })
 
+  const c = PDF_COLORS
+
   return `
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riepilogo Ore - ${user.username} - ${periodName}</title>
+    <title>Riepilogo ore — ${escapePdfHtml(user.username)} — ${escapePdfHtml(periodName)} — ${PDF_BRAND}</title>
     <style>
-        @media print {
-            body { margin: 0; }
-            .no-print { display: none; }
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
-            color: #1f2937;
-            background: white;
-            padding: 20px;
-        }
-        
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #f97316;
-        }
-        
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .logo {
-            width: 36px;
-            height: 36px;
-            background: #f97316;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            overflow: hidden;
-        }
-        
-        .logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 6px;
-        }
-        
-        .company-info h1 {
-            font-size: 16px;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 2px;
-        }
-        
-        .company-info p {
-            font-size: 10px;
-            color: #6b7280;
-        }
-        
-        .document-info {
-            text-align: right;
-        }
-        
-        .document-info h2 {
-            font-size: 14px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 4px;
-        }
-        
-        .document-info p {
-            font-size: 10px;
-            color: #6b7280;
-            margin-bottom: 2px;
-        }
-        
+        ${pdfBaseStyles(`
+        body { padding: 8px; font-size: 11px; }
         .employee-section {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
+            background: ${c.surfaceMuted};
+            border: 1px solid ${c.border};
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
         }
-        
         .employee-section h3 {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 8px;
+            color: ${c.muted};
+            margin-bottom: 10px;
         }
-        
         .employee-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 12px;
         }
-        
-        .employee-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
         .employee-item label {
+            display: block;
             font-size: 9px;
-            font-weight: 500;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            font-weight: 600;
+            color: ${c.muted};
             margin-bottom: 2px;
         }
-        
         .employee-item span {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 500;
-            color: #1f2937;
+            color: ${c.text};
         }
-        
-        .summary-section {
-            margin-bottom: 20px;
-        }
-        
-        .summary-grid {
-            display: flex;
-            gap: 12px;
-        }
-        
+        .summary-grid { display: flex; gap: 10px; margin-bottom: 18px; }
         .summary-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 10px 14px;
-            text-align: center;
             flex: 1;
+            border: 1px solid ${c.border};
+            border-radius: 10px;
+            padding: 12px 14px;
+            text-align: center;
+            background: ${c.surface};
         }
-        
         .summary-card.total {
-            border-color: #f97316;
-            background: #fff7ed;
+            border-color: ${c.accent};
+            background: ${c.accentSoft};
         }
-        
-        .summary-card.approved {
-            border-color: #10b981;
-            background: #ecfdf5;
-        }
-        
-        .summary-card.pending {
-            border-color: #f59e0b;
-            background: #fffbeb;
-        }
-        
-        .summary-card.rejected {
-            border-color: #ef4444;
-            background: #fef2f2;
-        }
-        
         .summary-card h4 {
             font-size: 9px;
-            font-weight: 500;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            font-weight: 600;
+            color: ${c.muted};
             margin-bottom: 4px;
         }
-        
         .summary-card .value {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 2px;
-        }
-        
-        .summary-card.total .value { color: #ea580c; }
-        .summary-card.approved .value { color: #059669; }
-        .summary-card.pending .value { color: #d97706; }
-        .summary-card.rejected .value { color: #dc2626; }
-        
-        .summary-card .unit {
-            font-size: 10px;
-            color: #6b7280;
-            font-weight: 500;
-        }
-        
-        .details-section h3 {
-            font-size: 16px;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 20px;
             font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 20px;
+            color: ${c.accent};
         }
-        
+        .details-section > h3 {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: ${c.text};
+            margin-bottom: 12px;
+        }
         .week-block {
-            margin-bottom: 24px;
+            margin-bottom: 14px;
             break-inside: avoid;
+            border: 1px solid ${c.border};
+            border-radius: 10px;
+            overflow: hidden;
         }
-        
         .week-header {
-            background: #1f2937;
-            color: white;
+            background: ${c.surfaceMuted};
+            color: ${c.text};
             padding: 8px 12px;
-            border-radius: 6px 6px 0 0;
             font-size: 11px;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            border-bottom: 1px solid ${c.border};
         }
-        
         .week-table {
             width: 100%;
             border-collapse: collapse;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-top: none;
-            border-radius: 0 0 6px 6px;
+            background: ${c.surface};
         }
-        
         .week-table th {
-            background: #f8fafc;
+            background: ${c.surface};
             padding: 8px 10px;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 600;
-            color: #374151;
+            color: ${c.muted};
             text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            border-bottom: 1px solid ${c.border};
         }
-        
         .week-table td {
             padding: 8px 10px;
             font-size: 11px;
-            color: #1f2937;
-            border-bottom: 1px solid #f1f5f9;
+            color: ${c.text};
+            border-bottom: 1px solid ${c.border};
         }
-        
-        .week-table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #e2e8f0;
-            text-align: center;
-            font-size: 10px;
-            color: #6b7280;
-        }
-        
+        .week-table tr:last-child td { border-bottom: none; }
         .no-data {
             text-align: center;
-            padding: 40px 20px;
-            color: #6b7280;
-            font-style: italic;
+            padding: 36px 16px;
+            color: ${c.muted};
         }
+        `)}
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo-section">
-            <div class="logo">
-                <img src="/logo-pizza-doc.png" alt="Pizza D.O.C." onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                <span style="display: none;">🍕</span>
-            </div>
-            <div class="company-info">
-                <h1>PizzaDOC</h1>
-                <p>Sistema di Gestione Piano di Lavoro</p>
-            </div>
-        </div>
-        <div class="document-info">
-            <h2>Riepilogo Ore Lavorate</h2>
-            <p><strong>Periodo:</strong> ${periodName}</p>
-            <p><strong>Generato il:</strong> ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: it })}</p>
-        </div>
-    </div>
+    ${pdfDocHeader({
+      title: 'Riepilogo ore lavorate',
+      subtitle: periodName,
+      lines: [`Generato il ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: it })}`],
+    })}
 
     <div class="employee-section">
-        <h3>Informazioni Dipendente</h3>
+        <h3>Dipendente</h3>
         <div class="employee-grid">
             <div class="employee-item">
-                <label>Nome Utente</label>
-                <span>${user.username}</span>
+                <label>Nome utente</label>
+                <span>${escapePdfHtml(user.username)}</span>
             </div>
             <div class="employee-item">
                 <label>Ruoli</label>
-                <span>${user.user_roles.map((ur: {role: string}) => {
+                <span>${escapePdfHtml(user.user_roles.map((ur: {role: string}) => {
                   const roleNames: Record<string, string> = {
                     'ADMIN': 'Amministratore',
-                    'FATTORINO': 'Fattorino', 
+                    'FATTORINO': 'Fattorino',
                     'CUCINA': 'Cucina',
-                    'SALA': 'Sala'
+                    'SALA': 'Sala',
+                    'PIZZAIOLO': 'Pizzaiolo',
                   }
                   return roleNames[ur.role] || ur.role
-                }).join(', ')}</span>
+                }).join(', '))}</span>
             </div>
             <div class="employee-item">
                 <label>Periodo</label>
-                <span>${periodName}</span>
+                <span>${escapePdfHtml(periodName)}</span>
             </div>
             <div class="employee-item">
                 <label>Stato</label>
@@ -494,26 +339,24 @@ function generatePDFHtml(
         </div>
     </div>
 
-    <div class="summary-section">
-        <div class="summary-grid">
-            <div class="summary-card total">
-                <h4>Ore Totali</h4>
-                <div class="value">${formatDecimalHoursIt(totalHours)}</div>
-            </div>
+    <div class="summary-grid">
+        <div class="summary-card total">
+            <h4>Ore totali</h4>
+            <div class="value">${formatDecimalHoursIt(totalHours)}</div>
         </div>
     </div>
 
     <div class="details-section">
-        <h3>Dettaglio Turni</h3>
-        
+        <h3>Dettaglio turni</h3>
+
         ${weeks.length === 0 ? `
             <div class="no-data">
-                Nessun turno lavorato nel periodo ${periodName}
+                Nessun turno lavorato nel periodo ${escapePdfHtml(periodName)}
             </div>
         ` : weeks.map(week => `
             <div class="week-block">
                 <div class="week-header">
-                    Settimana del ${format(week.weekStart, 'dd MMMM yyyy', { locale: it })}
+                    Settimana del ${escapePdfHtml(format(week.weekStart, 'dd MMMM yyyy', { locale: it }))}
                 </div>
                 <table class="week-table">
                     <thead>
@@ -535,16 +378,16 @@ function generatePDFHtml(
                           const roleNames: Record<string, string> = {
                             'ADMIN': 'Admin',
                             'FATTORINO': 'Fattorino',
-                            'CUCINA': 'Cucina', 
+                            'CUCINA': 'Cucina',
                             'SALA': 'Sala',
                             'PIZZAIOLO': 'Pizzaiolo'
                           }
                           return `
                             <tr>
-                                <td>${giornoTurno}</td>
+                                <td>${escapePdfHtml(giornoTurno)}</td>
                                 <td>${shift.shifts.shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}</td>
-                                <td>${roleNames[shift.shifts.role] || shift.shifts.role}</td>
-                                <td>${shift.startTime} - ${shift.endTime}</td>
+                                <td>${escapePdfHtml(roleNames[shift.shifts.role] || shift.shifts.role)}</td>
+                                <td>${escapePdfHtml(shift.startTime)} – ${escapePdfHtml(shift.endTime)}</td>
                                 <td>${formatDecimalHoursIt(shift.totalHours)}</td>
                             </tr>
                           `
@@ -555,18 +398,12 @@ function generatePDFHtml(
         `).join('')}
     </div>
 
-    <div class="footer">
-        <p>Documento generato automaticamente da PizzaDOC - Sistema di Gestione Piano di Lavoro</p>
-        <p>© ${new Date().getFullYear()} PizzaDOC. Tutti i diritti riservati.</p>
-    </div>
+    ${pdfDocFooter(`Generato il ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: it })}`)}
 
     <script>
-        // Auto-print quando aperto in nuova finestra
         if (window.opener) {
             window.onload = function() {
-                setTimeout(() => {
-                    window.print();
-                }, 500);
+                setTimeout(() => { window.print(); }, 500);
             }
         }
     </script>
