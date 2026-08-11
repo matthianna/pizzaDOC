@@ -97,7 +97,7 @@ export default function RootLayout({
           {children}
         </Providers>
 
-        {/* Service Worker Registration */}
+        {/* Service Worker Registration — check for updates so new deploys replace stale SW */}
         <Script id="sw-register" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
@@ -105,6 +105,17 @@ export default function RootLayout({
                 navigator.serviceWorker.register('/sw.js')
                   .then(function(registration) {
                     console.log('SW registered:', registration.scope);
+                    registration.update();
+                    setInterval(function() { registration.update(); }, 60 * 60 * 1000);
+                    registration.addEventListener('updatefound', function() {
+                      var nw = registration.installing;
+                      if (!nw) return;
+                      nw.addEventListener('statechange', function() {
+                        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                          console.log('SW updated — reload to get latest app');
+                        }
+                      });
+                    });
                   })
                   .catch(function(error) {
                     console.log('SW registration failed:', error);

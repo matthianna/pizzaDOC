@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
-    const status = searchParams.get('status') // 'past', 'active', 'future'
+    const status = searchParams.get('status') // 'past', 'active', 'future', 'pending'
 
     const today = normalizeDate(new Date())
 
@@ -38,6 +38,8 @@ export async function GET(request: NextRequest) {
       ]
     } else if (status === 'future') {
       whereClause.startDate = { gt: today }
+    } else if (status === 'pending') {
+      whereClause.approved = false
     }
 
     const absences = await withPrismaRetry(() =>

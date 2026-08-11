@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Plus, Edit, Trash2, DollarSign, Calendar, User, Info, AlertTriangle, RefreshCw, ChevronDown } from 'lucide-react'
+import { Plus, Edit, Trash2, DollarSign, User, Info, AlertTriangle, RefreshCw, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { getRoleName, cn } from '@/lib/utils'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { Modal } from '@/components/ui/modal'
+import { DatePicker } from '@/components/ui/date-picker'
 import { PageHeader } from '@/components/layout/page-header'
 import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
@@ -451,16 +452,13 @@ export default function AdvancesPage() {
             <label className="block text-xs font-semibold text-[var(--pd-muted)]  mb-3 px-0.5">
               Data <span className="text-[var(--pd-accent)]">*</span>
             </label>
-            <div className="relative">
-              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--pd-muted)] pointer-events-none" />
-              <input
-                type="date"
-                value={formDate}
-                onChange={(e) => setFormDate(e.target.value)}
-                disabled={submitting}
-                className="w-full border-2 border-[var(--pd-border)] rounded-2xl pl-12 pr-5 py-3.5 text-[var(--pd-text)] bg-[var(--pd-surface-muted)] font-bold focus:outline-none focus:ring-2 focus:ring-[var(--pd-accent)] focus:border-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all disabled:opacity-60"
-              />
-            </div>
+            <DatePicker
+              value={formDate}
+              onChange={setFormDate}
+              disabled={submitting}
+              required
+              className="[&_button]:rounded-2xl [&_button]:border-2 [&_button]:py-3.5 [&_button]:font-bold"
+            />
           </div>
 
           <div>

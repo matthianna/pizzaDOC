@@ -7,6 +7,7 @@ import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
 import { ListRow, EmptyState } from '@/components/ui/list-row'
 import { Modal } from '@/components/ui/modal'
+import { DatePicker } from '@/components/ui/date-picker'
 import { useToast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useHaptics } from '@/hooks/use-haptics'
@@ -383,38 +384,22 @@ export default function AbsencesPage() {
                   <label className="text-xs font-medium px-0.5" style={{ color: 'var(--pd-muted)' }}>
                     Data inizio
                   </label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={startDate}
-                    onChange={e => setStartDate(e.target.value)}
+                    onChange={setStartDate}
                     min={format(new Date(), 'yyyy-MM-dd')}
                     required
-                    className="w-full px-3 py-3 text-sm font-medium"
-                    style={{
-                      background: 'var(--pd-surface-muted)',
-                      border: '1px solid var(--pd-border)',
-                      borderRadius: 'var(--pd-radius)',
-                      color: 'var(--pd-text)',
-                    }}
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium px-0.5" style={{ color: 'var(--pd-muted)' }}>
                     Data fine
                   </label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={endDate}
-                    onChange={e => setEndDate(e.target.value)}
+                    onChange={setEndDate}
                     min={startDate || format(new Date(), 'yyyy-MM-dd')}
                     required
-                    className="w-full px-3 py-3 text-sm font-medium"
-                    style={{
-                      background: 'var(--pd-surface-muted)',
-                      border: '1px solid var(--pd-border)',
-                      borderRadius: 'var(--pd-radius)',
-                      color: 'var(--pd-text)',
-                    }}
                   />
                 </div>
               </div>

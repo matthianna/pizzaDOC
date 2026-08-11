@@ -408,50 +408,56 @@ function SidebarContent({
         </div>
       </div>
 
-      <nav className="flex-1 px-3 space-y-4 pb-4 overflow-y-auto custom-scrollbar min-h-0">
-        {!isUserAdmin && staffSections.map((s) => renderSection(s, regularItems))}
-        {isUserAdmin && (
-          <>
-            {renderSection('home', regularItems)}
-            {renderSection('pianificazione', adminItems)}
-            {renderSection('lavoro', regularItems)}
-            {adminSections.map((s) => renderSection(s, adminItems))}
-          </>
-        )}
-      </nav>
-
-      <div className="flex-shrink-0 p-4 space-y-2 border-t" style={{ borderColor: 'var(--pd-border)' }}>
-        <ThemeToggle className="w-full justify-center" />
-        <Link
-          href={`/profile/${session.user.id}`}
-          onClick={onItemClick}
-          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium transition-colors"
-          style={{
-            borderRadius: 'var(--pd-radius)',
-            background:
-              pathname === `/profile/${session.user.id}` ? 'var(--pd-accent-soft)' : 'transparent',
-            color:
-              pathname === `/profile/${session.user.id}` ? 'var(--pd-accent)' : 'var(--pd-text)',
-          }}
-        >
-          {pathname === `/profile/${session.user.id}` ? (
-            <UserCircleIconSolid className="h-5 w-5" />
-          ) : (
-            <UserCircleIcon className="h-5 w-5" />
+      {/* Scroll nav + footer together so the theme bar sits under the last item (no dead gap) */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
+        <nav className="px-3 space-y-4 pb-2">
+          {!isUserAdmin && staffSections.map((s) => renderSection(s, regularItems))}
+          {isUserAdmin && (
+            <>
+              {renderSection('home', regularItems)}
+              {renderSection('pianificazione', adminItems)}
+              {renderSection('lavoro', regularItems)}
+              {adminSections.map((s) => renderSection(s, adminItems))}
+            </>
           )}
-          Il mio profilo
-        </Link>
-        <button
-          type="button"
-          onClick={async () => {
-            await signOut({ callbackUrl: '/auth/signin', redirect: true })
-          }}
-          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium transition-colors"
-          style={{ borderRadius: 'var(--pd-radius)', color: 'var(--pd-danger)' }}
+        </nav>
+
+        <div
+          className="shrink-0 p-4 pt-3 space-y-2 border-t"
+          style={{ borderColor: 'var(--pd-border)' }}
         >
-          <ArrowRightOnRectangleIcon className="h-5 w-5" />
-          Esci
-        </button>
+          <ThemeToggle className="w-full justify-center" />
+          <Link
+            href={`/profile/${session.user.id}`}
+            onClick={onItemClick}
+            className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium transition-colors"
+            style={{
+              borderRadius: 'var(--pd-radius)',
+              background:
+                pathname === `/profile/${session.user.id}` ? 'var(--pd-accent-soft)' : 'transparent',
+              color:
+                pathname === `/profile/${session.user.id}` ? 'var(--pd-accent)' : 'var(--pd-text)',
+            }}
+          >
+            {pathname === `/profile/${session.user.id}` ? (
+              <UserCircleIconSolid className="h-5 w-5" />
+            ) : (
+              <UserCircleIcon className="h-5 w-5" />
+            )}
+            Il mio profilo
+          </Link>
+          <button
+            type="button"
+            onClick={async () => {
+              await signOut({ callbackUrl: '/auth/signin', redirect: true })
+            }}
+            className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium transition-colors"
+            style={{ borderRadius: 'var(--pd-radius)', color: 'var(--pd-danger)' }}
+          >
+            <ArrowRightOnRectangleIcon className="h-5 w-5" />
+            Esci
+          </button>
+        </div>
       </div>
     </div>
   )

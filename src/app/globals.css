@@ -836,3 +836,67 @@ textarea:focus-visible {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--pd-accent) 40%, transparent),
     0 12px 32px -10px color-mix(in srgb, var(--pd-accent) 65%, transparent);
 }
+/* ── Italian date picker (react-day-picker) ── */
+.pd-day-picker .rdp-root {
+  --rdp-accent-color: var(--pd-accent);
+  --rdp-accent-background-color: var(--pd-accent-soft);
+  --rdp-today-color: var(--pd-accent);
+  --rdp-selected-border: 2px solid var(--pd-accent);
+  --rdp-day-height: 2.25rem;
+  --rdp-day-width: 2.25rem;
+  --rdp-day_button-height: 2.25rem;
+  --rdp-day_button-width: 2.25rem;
+  --rdp-day_button-border-radius: var(--pd-radius-sm);
+  --rdp-nav_button-height: 2rem;
+  --rdp-nav_button-width: 2rem;
+  --rdp-nav-height: 2.25rem;
+  margin: 0;
+  color: var(--pd-text);
+  font-family: var(--font-pd-sans);
+}
+
+.pd-day-picker .rdp-month_caption {
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+
+.pd-day-picker .rdp-weekday {
+  color: var(--pd-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.pd-day-picker .rdp-day_button:hover:not([disabled]):not([aria-selected="true"]) {
+  background: var(--pd-surface-muted);
+}
+
+.pd-day-picker .rdp-selected .rdp-day_button {
+  background: var(--pd-accent) !important;
+  color: var(--pd-accent-fg) !important;
+  font-weight: 600;
+}
+
+.pd-day-picker .rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: var(--pd-accent);
+  font-weight: 700;
+}
+
+.pd-day-picker .rdp-disabled {
+  opacity: 0.35;
+}
+
+.pd-day-picker .rdp-button_previous,
+.pd-day-picker .rdp-button_next {
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius-sm);
+  background: var(--pd-surface-muted);
+  color: var(--pd-text);
+}
+
+.pd-day-picker .rdp-button_previous:hover,
+.pd-day-picker .rdp-button_next:hover {
+  background: var(--pd-accent-soft);
+  color: var(--pd-accent);
+}

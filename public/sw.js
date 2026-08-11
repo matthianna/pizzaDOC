@@ -1,185 +1,123 @@
 // PizzaDOC Service Worker
-// Version: 1.4.0 — Fornace theme + offline public
+// Version: 1.5.0 — never cache Next.js build assets / RSC (prevents post-deploy #130)
 
-const CACHE_NAME = 'pizzadoc-v1.4.0';
-const OFFLINE_URL = '/offline';
+const CACHE_NAME = 'pizzadoc-v1.5.0'
+const OFFLINE_URL = '/offline'
 
-// Static assets to cache immediately
+// Only cache true static shell assets (not hashed Next bundles or HTML app routes)
 const STATIC_ASSETS = [
-  '/',
-  '/dashboard',
   '/offline',
   '/manifest.json',
   '/logo.png',
   '/logo-pizza-doc.png',
   '/apple-touch-icon.png',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
-];
+  '/icons/icon-512x512.png',
+]
 
-// Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker v1.4.0...');
-
+  console.log('[SW] Installing service worker v1.5.0...')
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => {
-        console.log('[SW] Service worker installed');
-        return self.skipWaiting();
-      })
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
       .catch((error) => {
-        console.error('[SW] Cache addAll failed:', error);
+        console.error('[SW] Cache addAll failed:', error)
       })
-  );
-});
+  )
+})
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
-
+  console.log('[SW] Activating service worker v1.5.0...')
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
+    caches
+      .keys()
+      .then((cacheNames) =>
+        Promise.all(
           cacheNames
             .filter((name) => name !== CACHE_NAME)
             .map((name) => {
-              console.log('[SW] Deleting old cache:', name);
-              return caches.delete(name);
+              console.log('[SW] Deleting old cache:', name)
+              return caches.delete(name)
             })
-        );
-      })
-      .then(() => {
-        console.log('[SW] Service worker activated');
-        return self.clients.claim();
-      })
-  );
-});
+        )
+      )
+      .then(() => self.clients.claim())
+  )
+})
 
-// Fetch event - network first, fallback to cache
+function isNextBuildAsset(url) {
+  return (
+    url.pathname.startsWith('/_next/') ||
+    url.searchParams.has('_rsc') ||
+    url.pathname.includes('/_rsc')
+  )
+}
+
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
+  const { request } = event
+  const url = new URL(request.url)
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
-    return;
-  }
+  if (request.method !== 'GET') return
 
-  // Skip API requests (they need fresh data)
+  // Always network for API
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request)
-        .catch(() => {
-          // For API requests, return a generic error response when offline
-          return new Response(
-            JSON.stringify({ error: 'Offline', message: 'Connessione non disponibile' }),
-            {
-              status: 503,
-              statusText: 'Service Unavailable',
-              headers: { 'Content-Type': 'application/json' }
-            }
-          );
-        })
-    );
-    return;
+      fetch(request).catch(
+        () =>
+          new Response(JSON.stringify({ error: 'Offline', message: 'Connessione non disponibile' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          })
+      )
+    )
+    return
   }
 
-  // Skip auth requests
-  if (url.pathname.startsWith('/api/auth/') || url.pathname.startsWith('/auth/')) {
-    event.respondWith(fetch(request));
-    return;
+  // Always network for auth pages
+  if (url.pathname.startsWith('/auth/')) {
+    event.respondWith(fetch(request))
+    return
   }
 
-  // For navigation requests, use network first with offline fallback
+  // Never cache Next.js build / RSC — stale HTML+old chunks causes React #130 after deploys
+  if (isNextBuildAsset(url)) {
+    event.respondWith(fetch(request))
+    return
+  }
+
+  // Navigations: network-first; offline → offline page (do NOT serve stale app HTML)
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clone and cache successful responses
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => cache.put(request, responseClone));
-          }
-          return response;
-        })
-        .catch(() => {
-          // Try cache first, then offline page
-          return caches.match(request)
-            .then((cachedResponse) => {
-              if (cachedResponse) {
-                return cachedResponse;
-              }
-              return caches.match(OFFLINE_URL);
-            });
-        })
-    );
-    return;
-  }
-
-  // Next.js hashed bundles: network-first so new deploys are never stuck on old JS
-  if (url.pathname.startsWith('/_next/static/')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(request))
-    );
-    return;
-  }
-
-  // For other requests (assets), use cache first with network fallback
-  event.respondWith(
-    caches.match(request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          // Return cache but also fetch in background
-          event.waitUntil(
-            fetch(request)
-              .then((response) => {
-                if (response.ok) {
-                  caches.open(CACHE_NAME)
-                    .then((cache) => cache.put(request, response));
-                }
-              })
-              .catch(() => {
-                // Ignore network errors for background fetches
-              })
-          );
-          return cachedResponse;
-        }
-
-        return fetch(request)
-          .then((response) => {
-            // Cache successful responses
-            if (response.ok) {
-              const responseClone = response.clone();
-              caches.open(CACHE_NAME)
-                .then((cache) => cache.put(request, responseClone));
-            }
-            return response;
-          });
+      fetch(request).catch(async () => {
+        const offline = await caches.match(OFFLINE_URL)
+        return offline || new Response('Offline', { status: 503 })
       })
-  );
-});
+    )
+    return
+  }
 
-// Push Notifications
+  // Icons / manifest: cache-first
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached
+      return fetch(request).then((response) => {
+        if (response.ok && (url.pathname.startsWith('/icons/') || url.pathname === '/manifest.json')) {
+          const clone = response.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
+        }
+        return response
+      })
+    })
+  )
+})
+
 self.addEventListener('push', (event) => {
   if (!event.data) return
 
   try {
     const payload = event.data.json()
-
     const title = payload.title || 'PizzaDOC'
     const options = {
       body: payload.body || 'Nuova notifica',
@@ -188,63 +126,38 @@ self.addEventListener('push', (event) => {
       data: payload.data || {},
       tag: payload.tag,
       requireInteraction: payload.requireInteraction || false,
-      vibrate: [100, 50, 100]
+      vibrate: [100, 50, 100],
     }
 
-    // Attempt to set app badge
     if ('setAppBadge' in navigator) {
-      navigator.setAppBadge(1).catch(err => console.error('Error setting badge:', err));
+      navigator.setAppBadge(1).catch(() => {})
     }
 
-    event.waitUntil(
-      self.registration.showNotification(title, options)
-    )
+    event.waitUntil(self.registration.showNotification(title, options))
   } catch (error) {
     console.error('Error handling push event:', error)
   }
 })
 
-// Notification Click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  // Clear app badge when a notification is clicked
   if ('clearAppBadge' in navigator) {
-    navigator.clearAppBadge().catch(err => console.error('Error clearing badge:', err));
+    navigator.clearAppBadge().catch(() => {})
   }
 
   const urlToOpen = event.notification.data?.url || '/'
 
   event.waitUntil(
-    clients.matchAll({
-      type: 'window',
-      includeUncontrolled: true
-    }).then((windowClients) => {
-      // Check if there is already a window/tab open with the target URL
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i]
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
         if (client.url === urlToOpen && 'focus' in client) {
           return client.focus()
         }
       }
-      // If not, open a new window/tab
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen)
       }
     })
   )
 })
-
-// Background Sync (Placeholder for future implementation)
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-hours') {
-    // event.waitUntil(syncHours())
-  }
-})
-
-async function syncHours() {
-  // Get pending hours from IndexedDB and sync them
-  // This is a placeholder for future background sync implementation
-  console.log('[SW] Syncing hours...');
-}
-

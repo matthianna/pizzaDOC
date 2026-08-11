@@ -1,17 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, Edit, Trash2, Check, XCircle } from 'lucide-react'
+import { Calendar, Edit, Trash2, Check, XCircle, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Modal } from '@/components/ui/modal'
+import { DatePicker } from '@/components/ui/date-picker'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { PageHeader } from '@/components/layout/page-header'
 import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
 import { EmptyState } from '@/components/ui/list-row'
-import { getRoleName, formatUsername } from '@/lib/utils'
+import { getRoleName, formatUsername, cn } from '@/lib/utils'
 
 interface Absence {
   id: string
@@ -33,7 +34,7 @@ interface Absence {
 export default function AdminAbsencesPage() {
   const [absences, setAbsences] = useState<Absence[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'past' | 'active' | 'future'>('all')
+  const [filter, setFilter] = useState<'all' | 'pending' | 'past' | 'active' | 'future'>('pending')
   const [editingAbsence, setEditingAbsence] = useState<Absence | null>(null)
   const [deletingAbsence, setDeletingAbsence] = useState<Absence | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
@@ -44,10 +45,53 @@ export default function AdminAbsencesPage() {
     reason: '',
     notes: ''
   })
+  const [collapsedMonths, setCollapsedMonths] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     fetchAbsences()
   }, [filter])
+
+  useEffect(() => {
+    setCollapsedMonths({})
+  }, [filter])
+
+  const monthGroups = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; items: Absence[] }>()
+
+    const sorted = [...absences].sort((a, b) => {
+      return new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    })
+
+    for (const absence of sorted) {
+      const date = new Date(absence.startDate)
+      const key = format(date, 'yyyy-MM')
+      const label = format(date, 'MMMM yyyy', { locale: it })
+      const existing = map.get(key)
+      if (existing) {
+        existing.items.push(absence)
+      } else {
+        map.set(key, {
+          key,
+          label: label.charAt(0).toUpperCase() + label.slice(1),
+          items: [absence],
+        })
+      }
+    }
+
+    return Array.from(map.values())
+  }, [absences])
+
+  const isMonthCollapsed = (key: string, index: number) => {
+    if (key in collapsedMonths) return collapsedMonths[key]
+    return index > 0
+  }
+
+  const toggleMonth = (key: string, index: number) => {
+    setCollapsedMonths((prev) => {
+      const currentlyCollapsed = key in prev ? prev[key] : index > 0
+      return { ...prev, [key]: !currentlyCollapsed }
+    })
+  }
 
   const fetchAbsences = async () => {
     setLoading(true)
@@ -196,6 +240,7 @@ export default function AdminAbsencesPage() {
         >
           {(
             [
+              { value: 'pending', label: 'Da approvare' },
               { value: 'all', label: 'Tutte' },
               { value: 'active', label: 'In corso' },
               { value: 'future', label: 'Future' },
@@ -233,7 +278,15 @@ export default function AdminAbsencesPage() {
             loading
               ? 'Caricamento…'
               : `${absences.length} ${absences.length === 1 ? 'record' : 'record'} · ${
-                  filter === 'all' ? 'tutti i periodi' : filter === 'active' ? 'in corso' : filter === 'future' ? 'future' : 'passate'
+                  filter === 'pending'
+                    ? 'da approvare'
+                    : filter === 'all'
+                      ? 'tutti i periodi'
+                      : filter === 'active'
+                        ? 'in corso'
+                        : filter === 'future'
+                          ? 'future'
+                          : 'passate'
                 }`
           }
           card
@@ -247,28 +300,77 @@ export default function AdminAbsencesPage() {
             </div>
           ) : absences.length === 0 ? (
             <EmptyState
-              title="Nessuna assenza trovata"
+              title={
+                filter === 'pending' ? 'Niente da approvare' : 'Nessuna assenza trovata'
+              }
               description={
-                filter !== 'all'
-                  ? 'Prova a cambiare i filtri per vedere altre assenze'
-                  : 'Non ci sono assenze programmate'
+                filter === 'pending'
+                  ? 'Quando qualcuno richiede un’assenza, comparirà qui.'
+                  : filter !== 'all'
+                    ? 'Prova a cambiare i filtri per vedere altre assenze'
+                    : 'Non ci sono assenze programmate'
               }
               icon={<Calendar className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
             />
           ) : (
             <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
-              {absences.map((absence) => (
-                <AbsenceRow
-                  key={absence.id}
-                  absence={absence}
-                  isActive={isActive(absence)}
-                  isPast={isPast(absence)}
-                  onEdit={() => handleEdit(absence)}
-                  onDelete={() => setDeletingAbsence(absence)}
-                  onApprove={() => approveAbsence(absence.id)}
-                  onReject={() => setRejectingId(absence.id)}
-                />
-              ))}
+              {monthGroups.map((group, groupIndex) => {
+                const collapsed = isMonthCollapsed(group.key, groupIndex)
+                return (
+                  <div key={group.key}>
+                    <button
+                      type="button"
+                      onClick={() => toggleMonth(group.key, groupIndex)}
+                      className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left pd-press"
+                      style={{ background: 'var(--pd-surface-muted)' }}
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <p
+                          className="text-sm font-semibold capitalize"
+                          style={{ color: 'var(--pd-text)' }}
+                        >
+                          {group.label}
+                        </p>
+                        <span
+                          className="text-[11px] font-medium tabular-nums px-2 py-0.5"
+                          style={{
+                            color: 'var(--pd-muted)',
+                            background: 'var(--pd-surface)',
+                            borderRadius: 'var(--pd-radius-pill)',
+                            border: '1px solid var(--pd-border)',
+                          }}
+                        >
+                          {group.items.length}
+                        </span>
+                      </div>
+                      <ChevronDown
+                        className={cn(
+                          'h-4 w-4 shrink-0 transition-transform',
+                          !collapsed && 'rotate-180'
+                        )}
+                        style={{ color: 'var(--pd-muted)' }}
+                      />
+                    </button>
+
+                    {!collapsed && (
+                      <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
+                        {group.items.map((absence) => (
+                          <AbsenceRow
+                            key={absence.id}
+                            absence={absence}
+                            isActive={isActive(absence)}
+                            isPast={isPast(absence)}
+                            onEdit={() => handleEdit(absence)}
+                            onDelete={() => setDeletingAbsence(absence)}
+                            onApprove={() => approveAbsence(absence.id)}
+                            onReject={() => setRejectingId(absence.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </SectionBlock>
@@ -287,34 +389,19 @@ export default function AdminAbsencesPage() {
                   <label className="text-xs font-semibold" style={{ color: 'var(--pd-muted)' }}>
                     Data inizio
                   </label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={editForm.startDate}
-                    onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm font-medium border"
-                    style={{
-                      background: 'var(--pd-surface-muted)',
-                      borderColor: 'var(--pd-border)',
-                      borderRadius: 'var(--pd-radius)',
-                      color: 'var(--pd-text)',
-                    }}
+                    onChange={(startDate) => setEditForm({ ...editForm, startDate })}
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold" style={{ color: 'var(--pd-muted)' }}>
                     Data fine
                   </label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={editForm.endDate}
-                    onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm font-medium border"
-                    style={{
-                      background: 'var(--pd-surface-muted)',
-                      borderColor: 'var(--pd-border)',
-                      borderRadius: 'var(--pd-radius)',
-                      color: 'var(--pd-text)',
-                    }}
+                    onChange={(endDate) => setEditForm({ ...editForm, endDate })}
+                    min={editForm.startDate || undefined}
                   />
                 </div>
               </div>

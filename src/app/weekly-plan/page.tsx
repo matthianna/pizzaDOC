@@ -57,7 +57,7 @@ export default function WeeklyPlanPage() {
   const [data, setData] = useState<{ schedule: any; holidays: any[] } | null>(null)
   const [loading, setLoading] = useState(true)
   const { lightClick, mediumClick } = useHaptics()
-  const [activeTab, setActiveTab] = useState<'LIST' | 'GRID'>('LIST')
+  const [activeTab, setActiveTab] = useState<'LIST' | 'GRID'>('GRID')
 
   useEffect(() => {
     fetchWeeklyPlan()
@@ -441,6 +441,10 @@ export default function WeeklyPlanPage() {
                             <div className="space-y-1">
                               {slotShifts.map((shift: any) => {
                                 const tone = roleTone(shift.role)
+                                const start =
+                                  typeof shift.startTime === 'string'
+                                    ? shift.startTime.slice(0, 5)
+                                    : shift.startTime
                                 return (
                                   <div
                                     key={shift.id}
@@ -450,17 +454,27 @@ export default function WeeklyPlanPage() {
                                       borderRadius: 'var(--pd-radius)',
                                     }}
                                   >
+                                    <div className="flex items-start justify-between gap-1">
+                                      <p
+                                        className="font-semibold truncate text-[11px] leading-tight min-w-0"
+                                        style={{ color: 'var(--pd-text)' }}
+                                      >
+                                        {formatUsername(shift.user.username)}
+                                      </p>
+                                      {start ? (
+                                        <span
+                                          className="shrink-0 text-[10px] font-semibold tabular-nums leading-tight"
+                                          style={{ color: 'var(--pd-text)' }}
+                                        >
+                                          {start}
+                                        </span>
+                                      ) : null}
+                                    </div>
                                     <p
-                                      className="font-semibold truncate text-[11px] leading-tight"
-                                      style={{ color: 'var(--pd-text)' }}
-                                    >
-                                      {formatUsername(shift.user.username)}
-                                    </p>
-                                    <p
-                                      className="truncate text-[10px] mt-0.5 tabular-nums"
+                                      className="truncate text-[10px] mt-0.5"
                                       style={{ color: tone.color }}
                                     >
-                                      {getRoleName(shift.role)} · {shift.startTime}
+                                      {getRoleName(shift.role)}
                                     </p>
                                   </div>
                                 )

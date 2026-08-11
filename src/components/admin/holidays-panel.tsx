@@ -5,6 +5,7 @@ import { ListRow, EmptyState } from '@/components/ui/list-row'
 import { Plus, Edit, Trash2, Calendar, Check } from 'lucide-react'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { Modal } from '@/components/ui/modal'
+import { DatePicker } from '@/components/ui/date-picker'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -92,7 +93,7 @@ export function HolidaysPanel() {
   }
 
   const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: 6 }, (_, i) => currentYear - 3 + i)
+  const years = Array.from({ length: 4 }, (_, i) => currentYear - 1 + i)
 
   return (
     <>
@@ -321,13 +322,10 @@ function HolidayFormModal({
           <label className="text-xs font-semibold px-0.5" style={{ color: 'var(--pd-muted)' }}>
             Data chiusura
           </label>
-          <input
-            type="date"
+          <DatePicker
             required
             value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="w-full border px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2"
-            style={inputStyle}
+            onChange={(date) => setFormData({ ...formData, date })}
           />
         </div>
 

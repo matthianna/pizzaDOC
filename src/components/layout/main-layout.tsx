@@ -154,7 +154,7 @@ export function MainLayout({
             />
           </div>
 
-          <div className={cn(maxW, 'mx-auto lg:mx-0 w-full px-4 sm:px-6 lg:px-8')}>
+          <div className={cn(maxW, 'mx-auto w-full px-4 sm:px-6 lg:px-8')}>
             <div
               className="lg:hidden mb-3"
               style={{ height: 'calc(3.5rem + env(safe-area-inset-top))' }}

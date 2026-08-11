@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import {
   Users,
@@ -12,10 +12,11 @@ import {
   User,
   RefreshCw,
   Calendar,
+  ChevronDown,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
+import { getDayName, getRoleName, getShiftTypeName, cn, formatUsername } from '@/lib/utils'
 import { addWeekCalendarDays } from '@/lib/date-utils'
 import { Role, ShiftType, SubstitutionStatus } from '@prisma/client'
 import { Button } from '@/components/ui/button'
@@ -118,11 +119,62 @@ export default function AdminSubstitutionsPage() {
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [selectedSubstitution, setSelectedSubstitution] = useState<Substitution | null>(null)
   const [rejectReason, setRejectReason] = useState('')
+  /** Month keys (`yyyy-MM`) that are collapsed. Newest month starts expanded. */
+  const [collapsedMonths, setCollapsedMonths] = useState<Record<string, boolean>>({})
   const { showToast, ToastContainer } = useToast()
 
   useEffect(() => {
     fetchSubstitutions()
   }, [filterStatus])
+
+  useEffect(() => {
+    setCollapsedMonths({})
+  }, [filterStatus])
+
+  const getShiftDate = (shift: Shift) => {
+    const weekStart = new Date(shift.schedules.weekStart)
+    return addWeekCalendarDays(weekStart, shift.dayOfWeek)
+  }
+
+  const monthGroups = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; items: Substitution[] }>()
+
+    const sorted = [...substitutions].sort((a, b) => {
+      const da = getShiftDate(a.shifts).getTime()
+      const db = getShiftDate(b.shifts).getTime()
+      return db - da
+    })
+
+    for (const sub of sorted) {
+      const date = getShiftDate(sub.shifts)
+      const key = format(date, 'yyyy-MM')
+      const label = format(date, 'MMMM yyyy', { locale: it })
+      const existing = map.get(key)
+      if (existing) {
+        existing.items.push(sub)
+      } else {
+        map.set(key, {
+          key,
+          label: label.charAt(0).toUpperCase() + label.slice(1),
+          items: [sub],
+        })
+      }
+    }
+
+    return Array.from(map.values())
+  }, [substitutions])
+
+  const isMonthCollapsed = (key: string, index: number) => {
+    if (key in collapsedMonths) return collapsedMonths[key]
+    return index > 0
+  }
+
+  const toggleMonth = (key: string, index: number) => {
+    setCollapsedMonths((prev) => {
+      const currentlyCollapsed = key in prev ? prev[key] : index > 0
+      return { ...prev, [key]: !currentlyCollapsed }
+    })
+  }
 
   const fetchSubstitutions = async () => {
     setLoading(true)
@@ -198,11 +250,6 @@ export default function AdminSubstitutionsPage() {
     } finally {
       setProcessingId(null)
     }
-  }
-
-  const getShiftDate = (shift: Shift) => {
-    const weekStart = new Date(shift.schedules.weekStart)
-    return addWeekCalendarDays(weekStart, shift.dayOfWeek)
   }
 
   const actionableCount = substitutions.filter((s) => s.status === 'APPLIED').length
@@ -282,131 +329,184 @@ export default function AdminSubstitutionsPage() {
             />
           ) : (
             <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
-              {substitutions.map((substitution) => {
-                const shiftDate = getShiftDate(substitution.shifts)
-                const canApprove = substitution.status === 'APPLIED'
-                const canReject = ['PENDING', 'APPLIED'].includes(substitution.status)
-                const meta = STATUS_META[substitution.status]
-                const StatusIcon = meta.icon
-
+              {monthGroups.map((group, groupIndex) => {
+                const collapsed = isMonthCollapsed(group.key, groupIndex)
                 return (
-                  <div
-                    key={substitution.id}
-                    className="px-4 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4"
-                    style={{
-                      background:
-                        substitution.status === 'APPLIED'
-                          ? 'color-mix(in srgb, var(--pd-accent-soft) 50%, var(--pd-surface))'
-                          : 'transparent',
-                    }}
-                  >
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
-                          {getDayName(substitution.shifts.dayOfWeek)}{' '}
-                          {format(shiftDate, 'd MMM', { locale: it })} ·{' '}
-                          {getShiftTypeName(substitution.shifts.shiftType)}
+                  <div key={group.key}>
+                    <button
+                      type="button"
+                      onClick={() => toggleMonth(group.key, groupIndex)}
+                      className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left pd-press"
+                      style={{ background: 'var(--pd-surface-muted)' }}
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <p
+                          className="text-sm font-semibold capitalize"
+                          style={{ color: 'var(--pd-text)' }}
+                        >
+                          {group.label}
                         </p>
                         <span
-                          className="inline-flex px-2 py-0.5 text-[11px] font-medium"
+                          className="text-[11px] font-medium tabular-nums px-2 py-0.5"
                           style={{
-                            background: 'var(--pd-surface-muted)',
                             color: 'var(--pd-muted)',
+                            background: 'var(--pd-surface)',
                             borderRadius: 'var(--pd-radius-pill)',
+                            border: '1px solid var(--pd-border)',
                           }}
                         >
-                          {getRoleName(substitution.shifts.role)}
-                        </span>
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold"
-                          style={{
-                            background: meta.bg,
-                            color: meta.color,
-                            borderRadius: 'var(--pd-radius-pill)',
-                          }}
-                        >
-                          <StatusIcon className="h-3 w-3" />
-                          {meta.label}
+                          {group.items.length}
                         </span>
                       </div>
-
-                      <div
-                        className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
+                      <ChevronDown
+                        className={cn(
+                          'h-4 w-4 shrink-0 transition-transform',
+                          !collapsed && 'rotate-180'
+                        )}
                         style={{ color: 'var(--pd-muted)' }}
-                      >
-                        <span className="inline-flex items-center gap-1.5 tabular-nums" style={{ color: 'var(--pd-text)' }}>
-                          <Calendar className="h-3.5 w-3.5" style={{ color: 'var(--pd-muted)' }} />
-                          {substitution.shifts.startTime}–{substitution.shifts.endTime}
-                        </span>
-                        <span>
-                          Richiede <strong style={{ color: 'var(--pd-text)' }}>{substitution.requester.username}</strong>
-                        </span>
-                        <span>
-                          {substitution.substitute ? (
-                            <>
-                              Sostituto{' '}
-                              <strong style={{ color: 'var(--pd-text)' }}>
-                                {substitution.substitute.username}
-                              </strong>
-                            </>
-                          ) : (
-                            'In attesa di candidato'
-                          )}
-                        </span>
-                        <span className="tabular-nums">
-                          {format(parseISO(substitution.createdAt), 'dd MMM, HH:mm', { locale: it })}
-                        </span>
-                      </div>
+                      />
+                    </button>
 
-                      {substitution.requestNote ? (
-                        <p className="text-[11px] truncate" style={{ color: 'var(--pd-muted)' }}>
-                          Motivo: {substitution.requestNote}
-                        </p>
-                      ) : null}
+                    {!collapsed && (
+                      <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
+                        {group.items.map((substitution) => {
+                          const shiftDate = getShiftDate(substitution.shifts)
+                          const canApprove = substitution.status === 'APPLIED'
+                          const canReject = ['PENDING', 'APPLIED'].includes(substitution.status)
+                          const meta = STATUS_META[substitution.status]
+                          const StatusIcon = meta.icon
 
-                      {substitution.responseNote ? (
-                        <p className="text-[11px]" style={{ color: 'var(--pd-danger)' }}>
-                          Rifiuto: {substitution.responseNote}
-                        </p>
-                      ) : null}
-                    </div>
+                          return (
+                            <div
+                              key={substitution.id}
+                              className="px-4 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4"
+                              style={{
+                                background:
+                                  substitution.status === 'APPLIED'
+                                    ? 'color-mix(in srgb, var(--pd-accent-soft) 50%, var(--pd-surface))'
+                                    : 'transparent',
+                              }}
+                            >
+                              <div className="min-w-0 flex-1 space-y-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                                    {getDayName(substitution.shifts.dayOfWeek)}{' '}
+                                    {format(shiftDate, 'd MMM', { locale: it })} ·{' '}
+                                    {getShiftTypeName(substitution.shifts.shiftType)}
+                                  </p>
+                                  <span
+                                    className="inline-flex px-2 py-0.5 text-[11px] font-medium"
+                                    style={{
+                                      background: 'var(--pd-surface-muted)',
+                                      color: 'var(--pd-muted)',
+                                      borderRadius: 'var(--pd-radius-pill)',
+                                    }}
+                                  >
+                                    {getRoleName(substitution.shifts.role)}
+                                  </span>
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold"
+                                    style={{
+                                      background: meta.bg,
+                                      color: meta.color,
+                                      borderRadius: 'var(--pd-radius-pill)',
+                                    }}
+                                  >
+                                    <StatusIcon className="h-3 w-3" />
+                                    {meta.label}
+                                  </span>
+                                </div>
 
-                    {(canApprove || canReject) && (
-                      <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-center">
-                        {canReject && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedSubstitution(substitution)
-                              setShowRejectModal(true)
-                            }}
-                            disabled={processingId === substitution.id}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold pd-press disabled:opacity-50"
-                            style={{
-                              color: 'var(--pd-danger)',
-                              background: 'var(--pd-danger-soft)',
-                              borderRadius: 'var(--pd-radius)',
-                            }}
-                          >
-                            <XCircle className="h-3.5 w-3.5" />
-                            Rifiuta
-                          </button>
-                        )}
-                        {canApprove && (
-                          <button
-                            type="button"
-                            onClick={() => approveSubstitution(substitution.id)}
-                            disabled={processingId === substitution.id}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold pd-btn-primary disabled:opacity-50"
-                          >
-                            {processingId === substitution.id ? (
-                              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Check className="h-3.5 w-3.5" />
-                            )}
-                            Approva
-                          </button>
-                        )}
+                                <div
+                                  className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
+                                  style={{ color: 'var(--pd-muted)' }}
+                                >
+                                  <span
+                                    className="inline-flex items-center gap-1.5 tabular-nums"
+                                    style={{ color: 'var(--pd-text)' }}
+                                  >
+                                    <Calendar className="h-3.5 w-3.5" style={{ color: 'var(--pd-muted)' }} />
+                                    {substitution.shifts.startTime}–{substitution.shifts.endTime}
+                                  </span>
+                                  <span>
+                                    Richiede{' '}
+                                    <strong style={{ color: 'var(--pd-text)' }}>
+                                      {formatUsername(substitution.requester.username)}
+                                    </strong>
+                                  </span>
+                                  <span>
+                                    {substitution.substitute ? (
+                                      <>
+                                        Sostituto{' '}
+                                        <strong style={{ color: 'var(--pd-text)' }}>
+                                          {formatUsername(substitution.substitute.username)}
+                                        </strong>
+                                      </>
+                                    ) : (
+                                      'In attesa di candidato'
+                                    )}
+                                  </span>
+                                  <span className="tabular-nums">
+                                    {format(parseISO(substitution.createdAt), 'dd MMM, HH:mm', {
+                                      locale: it,
+                                    })}
+                                  </span>
+                                </div>
+
+                                {substitution.requestNote ? (
+                                  <p className="text-[11px] truncate" style={{ color: 'var(--pd-muted)' }}>
+                                    Motivo: {substitution.requestNote}
+                                  </p>
+                                ) : null}
+
+                                {substitution.responseNote ? (
+                                  <p className="text-[11px]" style={{ color: 'var(--pd-danger)' }}>
+                                    Rifiuto: {substitution.responseNote}
+                                  </p>
+                                ) : null}
+                              </div>
+
+                              {(canApprove || canReject) && (
+                                <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-center">
+                                  {canReject && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedSubstitution(substitution)
+                                        setShowRejectModal(true)
+                                      }}
+                                      disabled={processingId === substitution.id}
+                                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold pd-press disabled:opacity-50"
+                                      style={{
+                                        color: 'var(--pd-danger)',
+                                        background: 'var(--pd-danger-soft)',
+                                        borderRadius: 'var(--pd-radius)',
+                                      }}
+                                    >
+                                      <XCircle className="h-3.5 w-3.5" />
+                                      Rifiuta
+                                    </button>
+                                  )}
+                                  {canApprove && (
+                                    <button
+                                      type="button"
+                                      onClick={() => approveSubstitution(substitution.id)}
+                                      disabled={processingId === substitution.id}
+                                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold pd-btn-primary disabled:opacity-50"
+                                    >
+                                      {processingId === substitution.id ? (
+                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <Check className="h-3.5 w-3.5" />
+                                      )}
+                                      Approva
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
