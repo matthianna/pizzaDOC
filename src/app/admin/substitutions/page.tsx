@@ -93,6 +93,12 @@ const STATUS_META: Record<
     bg: 'var(--pd-surface-muted)',
     icon: AlertCircle,
   },
+  CANCELLED: {
+    label: 'Annullata',
+    color: 'var(--pd-muted)',
+    bg: 'var(--pd-surface-muted)',
+    icon: XCircle,
+  },
 }
 
 const FILTERS = [

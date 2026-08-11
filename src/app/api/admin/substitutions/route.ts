@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { expireSubstitutionsPastDeadline } from '@/lib/substitution-expiry'
+import { SubstitutionStatus } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,12 +18,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
-    // Build where clause
     const where: {
-      status?: string;
+      status?: SubstitutionStatus
     } = {}
     if (status && status !== 'ALL') {
-      where.status = status
+      where.status = status as SubstitutionStatus
     }
 
     const substitutions = await prisma.substitutions.findMany({
