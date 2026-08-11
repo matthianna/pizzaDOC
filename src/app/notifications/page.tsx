@@ -305,7 +305,6 @@ export default function NotificationsPage() {
               {notifications.map(notification => (
                 <ListRow
                   key={notification.id}
-                  as="button"
                   onClick={() => handleNotificationClick(notification)}
                   highlight={!notification.isRead}
                   leading={
@@ -328,7 +327,10 @@ export default function NotificationsPage() {
                   trailing={
                     <button
                       type="button"
-                      onClick={e => deleteNotification(e, notification.id)}
+                      onClick={e => {
+                        e.stopPropagation()
+                        deleteNotification(e, notification.id)
+                      }}
                       disabled={isDeleting === notification.id}
                       className="p-1.5 pd-press"
                       style={{ color: 'var(--pd-muted)' }}

@@ -7,6 +7,7 @@ import { it } from 'date-fns/locale'
 import { addWeekCalendarDays } from '@/lib/date-utils'
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
+import { logAuditAction } from '@/lib/audit-logger'
 
 export async function POST(
   request: NextRequest,
@@ -115,6 +116,26 @@ export async function POST(
     } catch (notificationError) {
       console.error('❌ Error sending push notifications:', notificationError)
     }
+
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'SUBSTITUTION_REJECT',
+      description: `Rifiutata sostituzione di ${updatedSubstitution.requester.username}${responseNote ? `: ${responseNote}` : ''}`,
+      metadata: {
+        substitutionId,
+        shiftId: updatedSubstitution.shiftId,
+        requesterId: updatedSubstitution.requesterId,
+        requesterUsername: updatedSubstitution.requester.username,
+        substituteId: substitution.substituteId,
+        previousStatus: substitution.status,
+        responseNote: responseNote || null,
+        dayOfWeek: updatedSubstitution.shifts.dayOfWeek,
+        shiftType: updatedSubstitution.shifts.shiftType,
+        role: updatedSubstitution.shifts.role,
+        weekStart: updatedSubstitution.shifts.schedules.weekStart,
+      },
+    })
 
     return NextResponse.json({
       success: true,

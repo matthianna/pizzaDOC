@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { useToast } from '@/components/ui/toast'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { PersonalCalendarSubscribe } from '@/components/schedule/personal-calendar-subscribe'
 
 interface Substitution {
@@ -205,7 +206,7 @@ export default function SchedulePage() {
   }
 
   if (!session) {
-    return <div>Caricamento...</div>
+    return <LoadingSpinner fullScreen text="Caricamento..." />
   }
 
   return (

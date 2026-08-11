@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -12,17 +14,18 @@ import {
   Settings,
   Users,
   LayoutGrid,
-  Menu,
+  MoreHorizontal,
   Bell,
   X,
   Shield,
   Banknote,
   CalendarDays,
+  ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
-import { useState } from 'react'
 import { useNotifications } from '../notifications/notification-provider'
+import { useHaptics } from '@/hooks/use-haptics'
 
 interface NavItem {
   name: string
@@ -34,9 +37,28 @@ export function MobileBottomNav() {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [showMore, setShowMore] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { unreadCount } = useNotifications()
+  const { lightClick } = useHaptics()
 
-  if (!session) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    setShowMore(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!showMore) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [showMore])
+
+  if (!session || !mounted) return null
 
   const isUserAdmin = isAdmin(session)
 
@@ -44,16 +66,16 @@ export function MobileBottomNav() {
     { name: 'Home', href: '/dashboard', icon: Home },
     { name: 'Settimana', href: '/weekly-plan', icon: Calendar },
     { name: 'Mio Piano', href: '/schedule', icon: LayoutGrid },
-    { name: 'Disponibilità', href: '/availability', icon: CalendarDays },
-    { name: 'Altro', href: '#more', icon: Menu },
+    { name: 'Disponib.', href: '/availability', icon: CalendarDays },
+    { name: 'Altro', href: '#more', icon: MoreHorizontal },
   ]
 
   const adminNav: NavItem[] = [
     { name: 'Home', href: '/dashboard', icon: Home },
-    { name: 'Settimana', href: '/weekly-plan', icon: Calendar },
-    { name: 'Mio Piano', href: '/admin/schedule', icon: LayoutGrid },
+    { name: 'Piano', href: '/admin/schedule', icon: LayoutGrid },
+    { name: 'Assenze', href: '/admin/absences', icon: Calendar },
     { name: 'Utenti', href: '/admin/users', icon: Users },
-    { name: 'Altro', href: '#more', icon: Menu },
+    { name: 'Altro', href: '#more', icon: MoreHorizontal },
   ]
 
   const employeeMoreItems: NavItem[] = [
@@ -61,13 +83,13 @@ export function MobileBottomNav() {
     { name: 'Notifiche', href: '/notifications', icon: Bell },
     { name: 'Sostituzioni', href: '/substitution-requests', icon: ArrowLeftRight },
     { name: 'Assenze', href: '/absences', icon: Calendar },
-    { name: 'Disponibilità Utenti', href: '/availability-overview', icon: Users },
+    { name: 'Disponibilità utenti', href: '/availability-overview', icon: Users },
     { name: 'Profilo', href: `/profile/${session.user.id}`, icon: User },
   ]
 
   const adminMoreItems: NavItem[] = [
-    { name: 'Gestione Ore', href: '/admin/hours', icon: Clock },
-    { name: 'Riepilogo Ore', href: '/admin/hours-summary', icon: Clock },
+    { name: 'Inserimento ore', href: '/admin/hours', icon: Clock },
+    { name: 'Resoconto ore', href: '/admin/hours-summary', icon: Clock },
     { name: 'Notifiche', href: '/notifications', icon: Bell },
     { name: 'Sostituzioni', href: '/admin/substitutions', icon: ArrowLeftRight },
     { name: 'Assenze', href: '/admin/absences', icon: Calendar },
@@ -84,40 +106,60 @@ export function MobileBottomNav() {
       ? moreItemsRaw
       : moreItemsRaw.filter((item) => item.href !== '/hours')
 
-  return (
+  return createPortal(
     <>
       {showMore && (
-        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+        <div className="lg:hidden fixed inset-0 z-[100000] flex flex-col justify-end">
           <button
             type="button"
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0"
+            style={{ background: 'rgba(28, 25, 23, 0.4)' }}
             aria-label="Chiudi"
-            onClick={() => setShowMore(false)}
+            onClick={() => {
+              lightClick()
+              setShowMore(false)
+            }}
           />
           <div
-            className="relative p-5 pb-safe animate-slide-up max-h-[75dvh] overflow-y-auto"
+            className="relative mx-3 mb-3 overflow-hidden animate-slide-up max-h-[min(75dvh,32rem)] flex flex-col"
             style={{
-              background: 'var(--pd-surface)',
-              borderTopLeftRadius: 'var(--pd-radius-xl)',
-              borderTopRightRadius: 'var(--pd-radius-xl)',
+              backgroundColor: 'var(--pd-surface)',
+              borderRadius: 'var(--pd-radius-xl)',
               border: '1px solid var(--pd-border)',
+              boxShadow: 'var(--pd-shadow)',
+              marginBottom: 'calc(5.25rem + env(safe-area-inset-bottom))',
             }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <p className="pd-display text-lg font-semibold" style={{ color: 'var(--pd-text)' }}>
-                Altro
-              </p>
+            <div
+              className="flex items-center justify-between px-5 py-4 shrink-0"
+              style={{ borderBottom: '1px solid var(--pd-border)' }}
+            >
+              <div>
+                <p className="pd-display text-lg font-semibold" style={{ color: 'var(--pd-text)' }}>
+                  Altro
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
+                  Scorciatoie e impostazioni
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={() => setShowMore(false)}
-                className="p-2 rounded-full"
-                style={{ background: 'var(--pd-surface-muted)', color: 'var(--pd-muted)' }}
+                onClick={() => {
+                  lightClick()
+                  setShowMore(false)
+                }}
+                className="p-2.5 pd-press"
+                style={{
+                  background: 'var(--pd-surface-muted)',
+                  color: 'var(--pd-muted)',
+                  borderRadius: 'var(--pd-radius)',
+                }}
                 aria-label="Chiudi menu"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <ul className="space-y-1">
+            <ul className="overflow-y-auto custom-scrollbar p-2 pb-safe space-y-0.5">
               {moreItems.map((item) => {
                 const isActive = pathname === item.href
                 const Icon = item.icon
@@ -125,23 +167,37 @@ export function MobileBottomNav() {
                   <li key={item.name}>
                     <Link
                       href={item.href}
-                      onClick={() => setShowMore(false)}
-                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium"
+                      onClick={() => {
+                        lightClick()
+                        setShowMore(false)
+                      }}
+                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-medium pd-press"
                       style={{
-                        background: isActive ? 'var(--pd-accent-soft)' : 'var(--pd-surface-muted)',
+                        background: isActive ? 'var(--pd-accent-soft)' : 'transparent',
                         color: isActive ? 'var(--pd-accent)' : 'var(--pd-text)',
                         borderRadius: 'var(--pd-radius)',
                       }}
                     >
-                      <Icon className="h-5 w-5 shrink-0" />
-                      <span className="flex-1">{item.name}</span>
-                      {item.name === 'Notifiche' && unreadCount > 0 && (
+                      <span
+                        className="flex h-9 w-9 items-center justify-center shrink-0"
+                        style={{
+                          background: isActive ? 'var(--pd-surface)' : 'var(--pd-surface-muted)',
+                          borderRadius: 'var(--pd-radius)',
+                          color: isActive ? 'var(--pd-accent)' : 'var(--pd-muted)',
+                        }}
+                      >
+                        <Icon className="h-4.5 w-4.5 h-[18px] w-[18px]" />
+                      </span>
+                      <span className="flex-1 truncate">{item.name}</span>
+                      {item.name === 'Notifiche' && unreadCount > 0 ? (
                         <span
                           className="min-w-5 h-5 px-1.5 flex items-center justify-center text-[10px] font-bold rounded-full"
                           style={{ background: 'var(--pd-danger)', color: 'var(--pd-accent-fg)' }}
                         >
                           {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
+                      ) : (
+                        <ChevronRight className="h-4 w-4 shrink-0 opacity-40" />
                       )}
                     </Link>
                   </li>
@@ -153,14 +209,24 @@ export function MobileBottomNav() {
       )}
 
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t pb-safe"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[90] pointer-events-none"
         style={{
-          background: 'color-mix(in srgb, var(--pd-surface) 94%, transparent)',
-          borderColor: 'var(--pd-border)',
-          backdropFilter: 'blur(14px)',
+          paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+          paddingLeft: '0.75rem',
+          paddingRight: '0.75rem',
         }}
       >
-        <div className="flex items-center justify-around h-16">
+        <div
+          className="pointer-events-auto flex items-stretch gap-0.5 px-1.5 py-1.5"
+          style={{
+            background: 'color-mix(in srgb, var(--pd-surface) 92%, transparent)',
+            border: '1px solid var(--pd-border)',
+            borderRadius: '1.25rem',
+            boxShadow: '0 8px 28px -12px rgba(28, 25, 23, 0.28)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+          }}
+        >
           {navigation.map((item) => {
             const isActive =
               item.href === '#more'
@@ -173,38 +239,45 @@ export function MobileBottomNav() {
                 key={item.name}
                 href={item.href}
                 onClick={(e) => {
+                  lightClick()
                   if (item.href === '#more') {
                     e.preventDefault()
-                    setShowMore(!showMore)
+                    setShowMore((v) => !v)
                   } else {
                     setShowMore(false)
                   }
                 }}
-                className="flex flex-col items-center justify-center flex-1 h-full transition-all active:scale-95"
+                className="relative flex flex-1 flex-col items-center justify-center gap-0.5 min-w-0 py-1.5 px-0.5 pd-press"
                 style={{ color: isActive ? 'var(--pd-accent)' : 'var(--pd-muted)' }}
+                aria-current={isActive ? 'page' : undefined}
               >
-                <div
-                  className={cn(
-                    'relative flex items-center justify-center w-12 h-7 transition-all',
-                    isActive && 'scale-105'
-                  )}
+                <span
+                  className="relative flex items-center justify-center h-8 w-8"
                   style={{
-                    borderRadius: 'var(--pd-radius)',
+                    borderRadius: '999px',
                     background: isActive ? 'var(--pd-accent-soft)' : 'transparent',
                   }}
                 >
-                  <Icon className="h-5 w-5" strokeWidth={isActive ? 2.4 : 2} />
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.35 : 1.9} />
                   {item.name === 'Altro' && unreadCount > 0 && (
                     <span
-                      className="absolute top-1 right-2 w-2.5 h-2.5 rounded-full border-2"
+                      className="absolute -top-0.5 -right-0.5 min-w-[0.95rem] h-[0.95rem] px-0.5 flex items-center justify-center text-[8px] font-bold rounded-full border-2"
                       style={{
                         background: 'var(--pd-danger)',
+                        color: 'var(--pd-accent-fg)',
                         borderColor: 'var(--pd-surface)',
                       }}
-                    />
+                    >
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
                   )}
-                </div>
-                <span className={cn('text-[10px] mt-0.5 font-medium', isActive && 'font-semibold')}>
+                </span>
+                <span
+                  className={cn(
+                    'text-[10px] leading-tight truncate max-w-full px-0.5',
+                    isActive ? 'font-semibold' : 'font-medium'
+                  )}
+                >
                   {item.name}
                 </span>
               </Link>
@@ -212,6 +285,7 @@ export function MobileBottomNav() {
           })}
         </div>
       </nav>
-    </>
+    </>,
+    document.body
   )
 }

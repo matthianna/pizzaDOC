@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { getRoleName } from '@/lib/utils'
+import { getRoleName, formatUsername } from '@/lib/utils'
 import type { Role } from '@prisma/client'
 import { useHaptics } from '@/hooks/use-haptics'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -270,7 +270,7 @@ export default function DashboardPage() {
 
   const hour = new Date().getHours()
   const greeting = hour < 17 ? 'Buongiorno' : 'Buonasera'
-  const firstName = session?.user.username ?? ''
+  const displayName = formatUsername(session?.user.username)
 
   const myTodayShifts: TodayShift[] = []
   if (todayShifts && session?.user.id) {
@@ -360,7 +360,7 @@ export default function DashboardPage() {
             {greeting}
           </p>
           <h2 className="pd-display text-2xl sm:text-3xl font-semibold tracking-tight mt-0.5">
-            {firstName}
+            {displayName}
           </h2>
           <p className="mt-2 text-sm" style={{ color: 'var(--pd-muted)' }}>
             {shiftSummary}
@@ -521,7 +521,7 @@ export default function DashboardPage() {
                                   }
                                   title={
                                     <>
-                                      {s.user.username}
+                                      {formatUsername(s.user.username)}
                                       {isMe && (
                                         <span
                                           className="ml-2 text-[10px] font-bold uppercase tracking-wider"

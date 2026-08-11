@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { getRoleName, getShiftTypeName } from '@/lib/utils'
+import { getRoleName, getShiftTypeName, formatUsername } from '@/lib/utils'
 import { useParams } from 'next/navigation'
 import { Role, ShiftType, TransportType } from '@prisma/client'
 import { formatDecimalHoursIt } from '@/lib/format-hours-display'
@@ -124,26 +124,38 @@ export default function ProfilePage() {
   return (
     <MainLayout
       contentWidth="4xl"
-      title={viewingOwnProfile ? 'Il mio profilo' : profile.username}
+      title={viewingOwnProfile ? 'Il mio profilo' : formatUsername(profile.username)}
       subtitle={profileIsAdmin ? 'Amministratore' : getRoleName(profile.primaryRole)}
     >
       <div className="pd-page pb-20">
         <PageHeader
-          title={viewingOwnProfile ? (profileIsAdmin ? 'Account amministratore' : 'Il mio profilo') : profile.username}
+          title={
+            viewingOwnProfile
+              ? profileIsAdmin
+                ? 'Account amministratore'
+                : 'Il mio profilo'
+              : formatUsername(profile.username)
+          }
           subtitle={
-            profileIsAdmin
-              ? [
-                  'Amministratore',
-                  profile.isActive ? 'Attivo' : 'Non attivo',
-                  viewingOwnProfile ? 'Gestione Pizza D.O.C.' : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')
-              : [
+            viewingOwnProfile && !profileIsAdmin
+              ? `${formatUsername(profile.username)} · ${[
                   getRoleName(profile.primaryRole),
                   ...profile.secondaryRoles.map((r) => getRoleName(r)),
                   profile.isActive ? 'Attivo' : 'Non attivo',
-                ].join(' · ')
+                ].join(' · ')}`
+              : profileIsAdmin
+                ? [
+                    'Amministratore',
+                    profile.isActive ? 'Attivo' : 'Non attivo',
+                    viewingOwnProfile ? 'Gestione Pizza D.O.C.' : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
+                : [
+                    getRoleName(profile.primaryRole),
+                    ...profile.secondaryRoles.map((r) => getRoleName(r)),
+                    profile.isActive ? 'Attivo' : 'Non attivo',
+                  ].join(' · ')
           }
           action={
             profileIsAdmin ? (
@@ -224,19 +236,47 @@ export default function ProfilePage() {
               ]}
             />
 
-            <SectionBlock title="Prossimi turni" card>
+            <SectionBlock
+              title="Prossimi turni"
+              subtitle={
+                profile.upcomingShifts.length > 0
+                  ? `${profile.upcomingShifts.length} in programma`
+                  : undefined
+              }
+              action={
+                viewingOwnProfile ? (
+                  <Link href="/schedule" className="text-xs font-semibold" style={{ color: 'var(--pd-accent)' }}>
+                    Mio piano →
+                  </Link>
+                ) : undefined
+              }
+              card
+            >
               {profile.upcomingShifts.length === 0 ? (
                 <EmptyState
                   title="Nessun turno in programma"
+                  description="I turni futuri assegnati compariranno qui."
                   icon={<Calendar className="h-7 w-7" style={{ color: 'var(--pd-muted)' }} />}
                 />
               ) : (
-                profile.upcomingShifts.slice(0, 5).map((shift) => (
+                profile.upcomingShifts.slice(0, 8).map((shift) => (
                   <ListRow
                     key={shift.id}
-                    title={getShiftTypeName(shift.shiftType)}
+                    title={`${format(parseISO(shift.date), 'EEE d MMM', { locale: it })} · ${getShiftTypeName(shift.shiftType)}`}
                     subtitle={`${getRoleName(shift.role)} · ${shift.startTime}–${shift.endTime}`}
-                    meta={format(parseISO(shift.date), 'dd MMM', { locale: it })}
+                    meta={format(parseISO(shift.date), 'dd/MM', { locale: it })}
+                    leading={
+                      <div
+                        className="w-9 h-9 flex items-center justify-center"
+                        style={{
+                          background: 'var(--pd-accent-soft)',
+                          color: 'var(--pd-accent)',
+                          borderRadius: 'var(--pd-radius)',
+                        }}
+                      >
+                        <Calendar className="h-4 w-4" />
+                      </div>
+                    }
                   />
                 ))
               )}

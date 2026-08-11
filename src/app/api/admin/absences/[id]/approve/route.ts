@@ -55,12 +55,17 @@ export async function POST(
 
     await logAuditAction({
       userId: session.user.id,
+      userUsername: session.user.username,
       action: 'ABSENCE_APPROVE',
-      tableName: 'absences',
-      recordId: id,
-      changes: {
-        approved: true,
-        approvedBy: session.user.id,
+      description: `Approvata assenza di ${absence.user.username}: ${format(new Date(absence.startDate), 'dd/MM/yyyy', { locale: it })} – ${format(new Date(absence.endDate), 'dd/MM/yyyy', { locale: it })}`,
+      metadata: {
+        absenceId: id,
+        targetUserId: absence.userId,
+        targetUsername: absence.user.username,
+        startDate: absence.startDate,
+        endDate: absence.endDate,
+        before: { approved: absence.approved },
+        after: { approved: true, approvedBy: session.user.id },
       },
     })
 

@@ -32,6 +32,9 @@ export async function PUT(
       where: { id },
       select: {
         status: true,
+        startTime: true,
+        endTime: true,
+        totalHours: true,
         shifts: { select: { shiftType: true } },
       },
     })
@@ -100,9 +103,19 @@ export async function PUT(
       metadata: {
         workedHoursId: updatedHours.id,
         userId: updatedHours.userId,
-        startTime,
-        endTime,
-        totalHours,
+        targetUsername: updatedHours.user.username,
+        before: {
+          startTime: existing.startTime,
+          endTime: existing.endTime,
+          totalHours: existing.totalHours,
+          status: existing.status,
+        },
+        after: {
+          startTime,
+          endTime,
+          totalHours,
+          status: shouldApproveOnSave ? 'APPROVED' : existing.status,
+        },
         ...(existing.status === 'REJECTED' ? { fromRejected: true } : {}),
         ...(existing.status === 'PENDING' ? { fromPending: true } : {}),
       },

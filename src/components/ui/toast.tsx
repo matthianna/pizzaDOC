@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { CheckCircle, XCircle, Info, AlertCircle, X } from 'lucide-react'
 
 interface ToastProps {
@@ -10,7 +11,7 @@ interface ToastProps {
   onClose?: () => void
 }
 
-export function Toast({ message, type = 'info', duration = 4000, onClose }: ToastProps) {
+function ToastCard({ message, type = 'info', duration = 4000, onClose }: ToastProps) {
   const [isVisible, setIsVisible] = useState(true)
 
   useEffect(() => {
@@ -69,32 +70,24 @@ export function Toast({ message, type = 'info', duration = 4000, onClose }: Toas
   if (!isVisible) return null
 
   return (
-    <div className={`fixed top-4 right-4 z-50 transform transition-all duration-300 ${
-      isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
-    }`}>
-      <div
-        className="flex items-center p-4 rounded-lg border shadow-lg max-w-sm"
-        style={getStyles()}
-      >
-        <div className="flex-shrink-0">
-          {getIcon()}
-        </div>
+    <div
+      className={`transform transition-all duration-300 ${
+        isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+      }`}
+    >
+      <div className="flex items-center p-4 rounded-lg border shadow-lg max-w-sm" style={getStyles()}>
+        <div className="flex-shrink-0">{getIcon()}</div>
         <div className="ml-3 flex-1">
           <p className="text-sm font-medium">{message}</p>
         </div>
         <button
+          type="button"
           onClick={() => {
             setIsVisible(false)
             setTimeout(() => onClose?.(), 300)
           }}
           className="ml-4 flex-shrink-0 rounded-md p-1 transition-colors"
           style={{ color: 'var(--pd-muted)' }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--pd-surface-muted)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent'
-          }}
         >
           <X className="h-4 w-4" />
         </button>
@@ -103,30 +96,65 @@ export function Toast({ message, type = 'info', duration = 4000, onClose }: Toas
   )
 }
 
+/** Standalone toast (portaled). Prefer useToast().ToastContainer in pages. */
+export function Toast(props: ToastProps) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  if (!mounted) return null
+  return createPortal(
+    <div
+      className="fixed z-[100050]"
+      style={{
+        top: 'max(1rem, env(safe-area-inset-top))',
+        right: 'max(1rem, env(safe-area-inset-right))',
+      }}
+    >
+      <ToastCard {...props} />
+    </div>,
+    document.body
+  )
+}
+
 export function useToast() {
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: ToastProps['type'] }>>([])
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const showToast = (message: string, type: ToastProps['type'] = 'info') => {
     const id = Math.random().toString(36).substr(2, 9)
-    setToasts(prev => [...prev, { id, message, type }])
+    setToasts((prev) => [...prev, { id, message, type }])
   }
 
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id))
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
   }
 
-  const ToastContainer = () => (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
-      {toasts.map(toast => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-        />
-      ))}
-    </div>
-  )
+  const ToastContainer = () => {
+    if (!mounted || toasts.length === 0) return null
+
+    return createPortal(
+      <div
+        className="fixed z-[100050] space-y-2"
+        style={{
+          top: 'max(1rem, env(safe-area-inset-top))',
+          right: 'max(1rem, env(safe-area-inset-right))',
+        }}
+      >
+        {toasts.map((toast) => (
+          <ToastCard
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
+      </div>,
+      document.body
+    )
+  }
 
   return { showToast, ToastContainer }
 }

@@ -3,33 +3,33 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { logAuditAction } from '@/lib/audit-logger'
 
 // GET /api/admin/settings - Get all system settings
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const settings = await prisma.SystemSettings.findMany({
-      orderBy: { key: 'asc' }
+      orderBy: { key: 'asc' },
     })
 
-    // Convert to key-value object for easier use
-    const settingsObj = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value
-      return acc
-    }, {} as Record<string, string>)
+    const settingsObj = settings.reduce(
+      (acc, setting) => {
+        acc[setting.key] = setting.value
+        return acc
+      },
+      {} as Record<string, string>
+    )
 
     return NextResponse.json(settingsObj)
   } catch (error) {
     console.error('Error fetching settings:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -37,7 +37,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -46,35 +46,44 @@ export async function POST(request: NextRequest) {
     const { key, value, description } = body
 
     if (!key || value === undefined) {
-      return NextResponse.json(
-        { error: 'Key and value are required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Key and value are required' }, { status: 400 })
     }
 
+    const previous = await prisma.SystemSettings.findUnique({ where: { key } })
     const now = new Date()
     const setting = await prisma.SystemSettings.upsert({
       where: { key },
-      update: { 
+      update: {
         value: value.toString(),
         description,
-        updatedAt: now
+        updatedAt: now,
       },
-      create: { 
+      create: {
         id: crypto.randomUUID(),
         key,
         value: value.toString(),
         description,
-        updatedAt: now
-      }
+        updatedAt: now,
+      },
+    })
+
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'SETTINGS_CHANGE',
+      description: `Impostazione «${key}»: ${previous?.value ?? '—'} → ${value}`,
+      metadata: {
+        settingKey: key,
+        key,
+        oldValue: previous?.value ?? null,
+        newValue: value.toString(),
+        description: description ?? null,
+      },
     })
 
     return NextResponse.json(setting)
   } catch (error) {
     console.error('Error updating setting:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

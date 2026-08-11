@@ -7,6 +7,7 @@ import { it } from 'date-fns/locale'
 import { addWeekCalendarDays } from '@/lib/date-utils'
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
+import { logAuditAction } from '@/lib/audit-logger'
 
 export async function POST(
   request: NextRequest,
@@ -139,6 +140,26 @@ export async function POST(
     } catch (notificationError) {
       console.error('❌ Error sending push notifications:', notificationError)
     }
+
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'SUBSTITUTION_APPROVE',
+      description: `Approvata sostituzione: ${result.requester.username} → ${result.substitute?.username ?? '—'} (${format(addWeekCalendarDays(new Date(result.shifts.schedules.weekStart), result.shifts.dayOfWeek), 'dd/MM/yyyy', { locale: it })} ${result.shifts.shiftType})`,
+      metadata: {
+        substitutionId,
+        shiftId: result.shiftId,
+        requesterId: result.requesterId,
+        requesterUsername: result.requester.username,
+        substituteId: result.substituteId,
+        substituteUsername: result.substitute?.username,
+        previousStatus: substitution.status,
+        dayOfWeek: result.shifts.dayOfWeek,
+        shiftType: result.shifts.shiftType,
+        role: result.shifts.role,
+        weekStart: result.shifts.schedules.weekStart,
+      },
+    })
 
     return NextResponse.json({
       success: true,

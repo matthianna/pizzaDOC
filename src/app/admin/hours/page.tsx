@@ -9,7 +9,7 @@ import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
 import { EmptyState } from '@/components/ui/list-row'
 import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, User, Plus, Search, RefreshCw } from 'lucide-react'
-import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
+import { getDayName, getRoleName, getShiftTypeName, formatUsername } from '@/lib/utils'
 import { formatDate, shiftCalendarDateUtc } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Select as ReactSelect } from '@/components/ui/react-select'
@@ -455,7 +455,7 @@ export default function AdminHoursPage() {
       <div className="pd-page pb-16">
         <PageHeader
           dense
-          title="Ore lavorate"
+          title="Inserimento ore"
           subtitle="Revisiona, correggi e approva le ore dei turni"
         />
 
@@ -583,7 +583,7 @@ export default function AdminHoursPage() {
                 <div key={u.userId} className="p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4" style={{ color: 'var(--pd-muted)' }} />
-                    <span className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>{u.username}</span>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>{formatUsername(u.username)}</span>
                     <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--pd-muted)' }}>
                       {getRoleName(u.primaryRole)}
                     </span>
@@ -678,7 +678,7 @@ export default function AdminHoursPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-semibold text-[var(--pd-text)] leading-none">{group.user.username}</h3>
+                          <h3 className="text-lg font-semibold text-[var(--pd-text)] leading-none">{formatUsername(group.user.username)}</h3>
                           {groupPendingCount > 0 && (
                             <span className="px-2 py-1 bg-[var(--pd-accent)] text-[var(--pd-accent-fg)] text-[10px] font-semibold uppercase rounded-full animate-pulse">
                               {groupPendingCount} PENDING

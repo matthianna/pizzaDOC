@@ -49,3 +49,16 @@ export function getTransportName(transport: string): string {
   }
   return transportNames[transport] || transport
 }
+
+/**
+ * Format login username `name.surname` → `Name Surname`.
+ * Single-token usernames (e.g. `giulia`) → `Giulia`.
+ */
+export function formatUsername(username: string | null | undefined): string {
+  if (!username) return ''
+  return username
+    .split('.')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+}

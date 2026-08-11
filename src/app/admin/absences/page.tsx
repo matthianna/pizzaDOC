@@ -10,8 +10,8 @@ import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { PageHeader } from '@/components/layout/page-header'
 import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
-import { EmptyState, ListRow } from '@/components/ui/list-row'
-import { cn } from '@/lib/utils'
+import { EmptyState } from '@/components/ui/list-row'
+import { getRoleName, formatUsername } from '@/lib/utils'
 
 interface Absence {
   id: string
@@ -187,11 +187,11 @@ export default function AdminAbsencesPage() {
         />
 
         <div
-          className="flex flex-wrap gap-2 p-2"
+          className="inline-flex p-1 gap-0.5 overflow-x-auto max-w-full"
           style={{
-            background: 'var(--pd-surface)',
+            background: 'var(--pd-surface-muted)',
+            borderRadius: 'var(--pd-radius-pill)',
             border: '1px solid var(--pd-border)',
-            borderRadius: 'var(--pd-radius-lg)',
           }}
         >
           {(
@@ -206,14 +206,12 @@ export default function AdminAbsencesPage() {
               key={f.value}
               type="button"
               onClick={() => setFilter(f.value)}
-              className={cn(
-                'px-3 py-2 text-sm font-semibold pd-press',
-                filter === f.value ? '' : 'opacity-70'
-              )}
+              className="px-3.5 py-1.5 text-xs font-semibold pd-press whitespace-nowrap"
               style={{
-                background: filter === f.value ? 'var(--pd-accent-soft)' : 'transparent',
-                color: filter === f.value ? 'var(--pd-accent)' : 'var(--pd-muted)',
-                borderRadius: 'var(--pd-radius)',
+                borderRadius: 'var(--pd-radius-pill)',
+                background: filter === f.value ? 'var(--pd-surface)' : 'transparent',
+                color: filter === f.value ? 'var(--pd-text)' : 'var(--pd-muted)',
+                boxShadow: filter === f.value ? 'var(--pd-shadow)' : undefined,
               }}
             >
               {f.label}
@@ -229,12 +227,22 @@ export default function AdminAbsencesPage() {
           ]}
         />
 
-        <SectionBlock title="Elenco assenze" card>
+        <SectionBlock
+          title="Elenco assenze"
+          subtitle={
+            loading
+              ? 'Caricamento…'
+              : `${absences.length} ${absences.length === 1 ? 'record' : 'record'} · ${
+                  filter === 'all' ? 'tutti i periodi' : filter === 'active' ? 'in corso' : filter === 'future' ? 'future' : 'passate'
+                }`
+          }
+          card
+        >
           {loading ? (
-            <div className="py-16 flex justify-center">
+            <div className="py-12 flex justify-center">
               <div
-                className="animate-spin rounded-full h-8 w-8 border-b-2"
-                style={{ borderColor: 'var(--pd-accent)' }}
+                className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent"
+                style={{ borderColor: 'var(--pd-accent)', borderTopColor: 'transparent' }}
               />
             </div>
           ) : absences.length === 0 ? (
@@ -248,7 +256,7 @@ export default function AdminAbsencesPage() {
               icon={<Calendar className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
             />
           ) : (
-            <div>
+            <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
               {absences.map((absence) => (
                 <AbsenceRow
                   key={absence.id}
@@ -270,7 +278,7 @@ export default function AdminAbsencesPage() {
             isOpen={true}
             onClose={() => setEditingAbsence(null)}
             title="Modifica assenza"
-            subtitle={editingAbsence.user.username}
+            subtitle={formatUsername(editingAbsence.user.username)}
             maxWidth="md"
           >
             <div className="space-y-4 pt-2">
@@ -373,7 +381,7 @@ export default function AdminAbsencesPage() {
             onClose={() => setDeletingAbsence(null)}
             onConfirm={handleDelete}
             title="Elimina assenza"
-            description={`Sei sicuro di voler eliminare l'assenza di ${deletingAbsence.user.username}?`}
+            description={`Sei sicuro di voler eliminare l'assenza di ${formatUsername(deletingAbsence.user.username)}?`}
             confirmPhrase="ELIMINA"
             confirmButtonText="Conferma eliminazione"
             isDangerous={true}
@@ -472,71 +480,128 @@ function AbsenceRow({
   const endDate = new Date(absence.endDate)
   const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
-  const statusLabel = !absence.approved
-    ? 'In attesa'
+  const status: { label: string; color: string; bg: string } = !absence.approved
+    ? { label: 'In attesa', color: 'var(--pd-warning)', bg: 'var(--pd-warning-soft)' }
     : isActive
-      ? 'In corso'
+      ? { label: 'In corso', color: 'var(--pd-accent)', bg: 'var(--pd-accent-soft)' }
       : isPast
-        ? 'Passata'
-        : 'Approvata'
+        ? { label: 'Passata', color: 'var(--pd-muted)', bg: 'var(--pd-surface-muted)' }
+        : { label: 'Approvata', color: 'var(--pd-success)', bg: 'var(--pd-success-soft)' }
 
-  const subtitleParts = [
-    absence.user.primaryRole,
-    `${format(startDate, 'dd/MM/yyyy', { locale: it })} – ${format(endDate, 'dd/MM/yyyy', { locale: it })}`,
-    `${daysDiff} ${daysDiff === 1 ? 'giorno' : 'giorni'}`,
-  ]
-  if (absence.reason) subtitleParts.push(absence.reason)
+  const roleLabel = getRoleName(absence.user.primaryRole) || '—'
 
   return (
-    <ListRow
-      highlight={!absence.approved}
-      title={absence.user.username}
-      subtitle={subtitleParts.join(' · ')}
-      meta={statusLabel}
-      trailing={
-        <div className="flex items-center gap-1">
-          {!absence.approved && (
-            <>
-              <button
-                type="button"
-                onClick={onApprove}
-                className="p-2 pd-press"
-                title="Approva"
-                style={{ color: 'var(--pd-success)', borderRadius: 'var(--pd-radius-sm)' }}
-              >
-                <Check className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={onReject}
-                className="p-2 pd-press"
-                title="Rifiuta"
-                style={{ color: 'var(--pd-danger)', borderRadius: 'var(--pd-radius-sm)' }}
-              >
-                <XCircle className="h-4 w-4" />
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={onEdit}
-            className="p-2 pd-press"
-            title="Modifica"
-            style={{ color: 'var(--pd-muted)', borderRadius: 'var(--pd-radius-sm)' }}
+    <div
+      className="px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4"
+      style={{
+        background: !absence.approved
+          ? 'color-mix(in srgb, var(--pd-warning-soft) 55%, var(--pd-surface))'
+          : 'transparent',
+      }}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold truncate" style={{ color: 'var(--pd-text)' }}>
+            {formatUsername(absence.user.username)}
+          </p>
+          <span
+            className="inline-flex px-2 py-0.5 text-[11px] font-medium"
+            style={{
+              background: 'var(--pd-surface-muted)',
+              color: 'var(--pd-muted)',
+              borderRadius: 'var(--pd-radius-pill)',
+            }}
           >
-            <Edit className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="p-2 pd-press"
-            title="Elimina"
-            style={{ color: 'var(--pd-danger)', borderRadius: 'var(--pd-radius-sm)' }}
+            {roleLabel}
+          </span>
+          <span
+            className="inline-flex px-2 py-0.5 text-[11px] font-semibold"
+            style={{
+              background: status.bg,
+              color: status.color,
+              borderRadius: 'var(--pd-radius-pill)',
+            }}
           >
-            <Trash2 className="h-4 w-4" />
-          </button>
+            {status.label}
+          </span>
         </div>
-      }
-    />
+
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs" style={{ color: 'var(--pd-muted)' }}>
+          <span className="inline-flex items-center gap-1.5 tabular-nums" style={{ color: 'var(--pd-text)' }}>
+            <Calendar className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--pd-muted)' }} />
+            {format(startDate, 'd MMM', { locale: it })}
+            {daysDiff > 1 ? ` – ${format(endDate, 'd MMM yyyy', { locale: it })}` : ` ${format(startDate, 'yyyy')}`}
+          </span>
+          <span className="tabular-nums">
+            {daysDiff} {daysDiff === 1 ? 'giorno' : 'giorni'}
+          </span>
+          {absence.reason ? <span className="truncate max-w-[16rem]">{absence.reason}</span> : null}
+        </div>
+        {absence.notes ? (
+          <p className="mt-1 text-[11px] truncate" style={{ color: 'var(--pd-muted)' }}>
+            Note: {absence.notes}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-center">
+        {!absence.approved && (
+          <>
+            <button
+              type="button"
+              onClick={onApprove}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold pd-press"
+              style={{
+                color: 'var(--pd-success)',
+                background: 'var(--pd-success-soft)',
+                borderRadius: 'var(--pd-radius)',
+              }}
+            >
+              <Check className="h-3.5 w-3.5" />
+              Approva
+            </button>
+            <button
+              type="button"
+              onClick={onReject}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold pd-press"
+              style={{
+                color: 'var(--pd-danger)',
+                background: 'var(--pd-danger-soft)',
+                borderRadius: 'var(--pd-radius)',
+              }}
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              Rifiuta
+            </button>
+          </>
+        )}
+        <button
+          type="button"
+          onClick={onEdit}
+          className="p-2 pd-press"
+          title="Modifica"
+          style={{
+            color: 'var(--pd-muted)',
+            background: 'var(--pd-surface-muted)',
+            borderRadius: 'var(--pd-radius)',
+          }}
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="p-2 pd-press"
+          title="Elimina"
+          style={{
+            color: 'var(--pd-danger)',
+            background: 'var(--pd-danger-soft)',
+            borderRadius: 'var(--pd-radius)',
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   )
 }

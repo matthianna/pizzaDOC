@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { parseISO } from 'date-fns'
-import { addWeekCalendarDays } from '@/lib/date-utils'
+import {
+  addWeekCalendarDays,
+  getWeekStart,
+  shiftCalendarDateUtc,
+  utcCalendarDateKey,
+  appTodayCalendarDateKey,
+} from '@/lib/date-utils'
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
@@ -44,11 +49,10 @@ export async function GET(
       return NextResponse.json({ error: 'Utente non trovato' }, { status: 404 })
     }
 
-    // Calcola ore totali
     const workedHours = await prisma.worked_hours.findMany({
-      where: { 
+      where: {
         userId: requestedUserId,
-        status: 'APPROVED'
+        status: 'APPROVED',
       },
       select: {
         id: true,
@@ -68,18 +72,24 @@ export async function GET(
       take: 10,
     })
 
-    const totalWorkedHours = workedHours.reduce((sum, wh) => sum + wh.totalHours, 0)
+    const totalWorkedAgg = await prisma.worked_hours.aggregate({
+      where: { userId: requestedUserId, status: 'APPROVED' },
+      _sum: { totalHours: true },
+      _count: { id: true },
+    })
 
-    // Prossimi turni
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const totalWorkedHours = totalWorkedAgg._sum.totalHours ?? 0
+
+    // Include current week: weekStart is Monday — never filter weekStart >= today
+    const fromWeek = addWeekCalendarDays(getWeekStart(new Date()), -7)
+    const todayKey = appTodayCalendarDateKey()
 
     const upcomingShifts = await prisma.shifts.findMany({
       where: {
         userId: requestedUserId,
         schedules: {
           weekStart: {
-            gte: today,
+            gte: fromWeek,
           },
         },
       },
@@ -96,34 +106,39 @@ export async function GET(
           },
         },
       },
-      orderBy: {
-        schedules: {
-          weekStart: 'asc',
-        },
-      },
-      take: 10,
+      orderBy: [
+        { schedules: { weekStart: 'asc' } },
+        { dayOfWeek: 'asc' },
+        { shiftType: 'asc' },
+      ],
+      take: 40,
     })
 
-    const upcomingShiftsWithDate = upcomingShifts.map((shift) => {
-      const weekStart = shift.schedules.weekStart instanceof Date 
-        ? shift.schedules.weekStart 
-        : new Date(shift.schedules.weekStart)
-      const shiftDate = addWeekCalendarDays(weekStart, shift.dayOfWeek)
-      return {
-        id: shift.id,
-        dayOfWeek: shift.dayOfWeek,
-        shiftType: shift.shiftType,
-        startTime: shift.startTime,
-        endTime: shift.endTime,
-        role: shift.role,
-        date: shiftDate.toISOString(),
-      }
-    }).filter(shift => new Date(shift.date) >= today)
+    const upcomingShiftsWithDate = upcomingShifts
+      .map((shift) => {
+        const weekStart =
+          shift.schedules.weekStart instanceof Date
+            ? shift.schedules.weekStart
+            : new Date(shift.schedules.weekStart)
+        const shiftDate = shiftCalendarDateUtc(weekStart, shift.dayOfWeek)
+        return {
+          id: shift.id,
+          dayOfWeek: shift.dayOfWeek,
+          shiftType: shift.shiftType,
+          startTime: shift.startTime,
+          endTime: shift.endTime,
+          role: shift.role,
+          date: shiftDate.toISOString(),
+          _dateKey: utcCalendarDateKey(shiftDate),
+        }
+      })
+      .filter((shift) => shift._dateKey >= todayKey)
+      .slice(0, 10)
+      .map(({ _dateKey, ...rest }) => rest)
 
-    // Estrai i ruoli secondari dal campo user_roles
     const secondaryRoles = user.user_roles
-      .map(ur => ur.role)
-      .filter(role => role !== user.primaryRole)
+      .map((ur) => ur.role)
+      .filter((role) => role !== user.primaryRole)
 
     return NextResponse.json({
       id: user.id,
@@ -133,7 +148,7 @@ export async function GET(
       primaryTransport: user.primaryTransport,
       isActive: user.isActive,
       totalWorkedHours,
-      totalShifts: workedHours.length,
+      totalShifts: totalWorkedAgg._count.id,
       upcomingShifts: upcomingShiftsWithDate,
       recentHours: workedHours,
     })
@@ -142,4 +157,3 @@ export async function GET(
     return NextResponse.json({ error: 'Errore nel recupero del profilo' }, { status: 500 })
   }
 }
-

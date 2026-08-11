@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, type JSX } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { PageHeader } from '@/components/layout/page-header'
 import { StatStrip } from '@/components/ui/stat-strip'
@@ -86,6 +87,7 @@ function getCurrentMonthData(months: HistoryMonth[]) {
 
 export default function HoursPage() {
   const { data: session } = useSession()
+  const router = useRouter()
   const [currentWeek, setCurrentWeek] = useState(() => getWeekStart(new Date()))
   const [shifts, setShifts] = useState<ShiftWithHours[]>([])
   const [loading, setLoading] = useState(true)
@@ -103,6 +105,12 @@ export default function HoursPage() {
       fetchHistory(selectedYear)
     }
   }, [session?.user?.id, currentWeek])
+
+  useEffect(() => {
+    if (session && session.user.trackHours === false) {
+      router.replace('/dashboard')
+    }
+  }, [session, router])
 
   useEffect(() => {
     if (historyData?.months.length) {
@@ -268,6 +276,10 @@ export default function HoursPage() {
 
   if (!session) return null
 
+  if (session.user.trackHours === false) {
+    return null
+  }
+
   const stripItems = showHistory && historyData
     ? [
         { label: `Ore ${selectedYear}`, value: formatDecimalHoursIt(historyData.totalYearHours) },
@@ -377,7 +389,7 @@ export default function HoursPage() {
         {showHistory && (
           <div className="space-y-4">
             <SectionBlock
-              title={`Riepilogo ${selectedYear}`}
+              title={`Resoconto ${selectedYear}`}
               subtitle={
                 historyData && historyData.totalYearShifts > 0
                   ? `${formatDecimalHoursIt(historyData.totalYearHours)} su ${historyData.totalYearShifts} turni approvati`

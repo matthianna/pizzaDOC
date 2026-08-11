@@ -2,9 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Users, Check, Clock, AlertCircle, CheckCircle, XCircle, User, RefreshCw } from 'lucide-react'
+import {
+  Users,
+  Check,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  User,
+  RefreshCw,
+  Calendar,
+} from 'lucide-react'
 import { format, parseISO } from 'date-fns'
-import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
+import { it } from 'date-fns/locale'
+import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 import { addWeekCalendarDays } from '@/lib/date-utils'
 import { Role, ShiftType, SubstitutionStatus } from '@prisma/client'
 import { Button } from '@/components/ui/button'
@@ -48,9 +59,54 @@ interface Substitution {
   substitute?: User
 }
 
+const STATUS_META: Record<
+  SubstitutionStatus,
+  { label: string; color: string; bg: string; icon: typeof Clock }
+> = {
+  PENDING: {
+    label: 'In attesa candidati',
+    color: 'var(--pd-warning)',
+    bg: 'var(--pd-warning-soft)',
+    icon: Clock,
+  },
+  APPLIED: {
+    label: 'Da approvare',
+    color: 'var(--pd-accent)',
+    bg: 'var(--pd-accent-soft)',
+    icon: User,
+  },
+  APPROVED: {
+    label: 'Approvata',
+    color: 'var(--pd-success)',
+    bg: 'var(--pd-success-soft)',
+    icon: CheckCircle,
+  },
+  REJECTED: {
+    label: 'Rifiutata',
+    color: 'var(--pd-danger)',
+    bg: 'var(--pd-danger-soft)',
+    icon: XCircle,
+  },
+  EXPIRED: {
+    label: 'Scaduta',
+    color: 'var(--pd-muted)',
+    bg: 'var(--pd-surface-muted)',
+    icon: AlertCircle,
+  },
+}
+
+const FILTERS = [
+  { value: 'APPLIED' as const, label: 'Da approvare' },
+  { value: 'PENDING' as const, label: 'In attesa' },
+  { value: 'ALL' as const, label: 'Tutti' },
+  { value: 'APPROVED' as const, label: 'Approvate' },
+  { value: 'REJECTED' as const, label: 'Rifiutate' },
+  { value: 'EXPIRED' as const, label: 'Scadute' },
+]
+
 export default function AdminSubstitutionsPage() {
   const [substitutions, setSubstitutions] = useState<Substitution[]>([])
-  const [filterStatus, setFilterStatus] = useState<SubstitutionStatus | 'ALL'>('ALL')
+  const [filterStatus, setFilterStatus] = useState<SubstitutionStatus | 'ALL'>('APPLIED')
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [showRejectModal, setShowRejectModal] = useState(false)
@@ -95,7 +151,7 @@ export default function AdminSubstitutionsPage() {
         fetchSubstitutions()
       } else {
         const error = await response.json()
-        showToast(error.error || 'Errore nell\'approvazione', 'error')
+        showToast(error.error || "Errore nell'approvazione", 'error')
       }
     } catch (error) {
       console.error('Error approving substitution:', error)
@@ -116,7 +172,7 @@ export default function AdminSubstitutionsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          responseNote: rejectReason.trim() || null
+          responseNote: rejectReason.trim() || null,
         }),
       })
 
@@ -140,80 +196,37 @@ export default function AdminSubstitutionsPage() {
 
   const getShiftDate = (shift: Shift) => {
     const weekStart = new Date(shift.schedules.weekStart)
-    // dayOfWeek è già nel formato corretto: 0=Lunedì, 1=Martedì, ..., 6=Domenica
     return addWeekCalendarDays(weekStart, shift.dayOfWeek)
   }
 
-  const getStatusIcon = (status: SubstitutionStatus) => {
-    switch (status) {
-      case 'PENDING':
-        return <Clock className="h-4 w-4 text-[var(--pd-warning)]" />
-      case 'APPLIED':
-        return <User className="h-4 w-4 text-[var(--pd-accent)]" />
-      case 'APPROVED':
-        return <CheckCircle className="h-4 w-4 text-[var(--pd-success)]" />
-      case 'REJECTED':
-        return <XCircle className="h-4 w-4 text-[var(--pd-danger)]" />
-      case 'EXPIRED':
-        return <AlertCircle className="h-4 w-4 text-[var(--pd-muted)]" />
-    }
-  }
-
-  const getStatusText = (status: SubstitutionStatus) => {
-    switch (status) {
-      case 'PENDING':
-        return 'In attesa candidati'
-      case 'APPLIED':
-        return 'Da approvare'
-      case 'APPROVED':
-        return 'Approvata'
-      case 'REJECTED':
-        return 'Rifiutata'
-      case 'EXPIRED':
-        return 'Scaduta'
-    }
-  }
-
-
-  const pendingCount = substitutions.filter(s => s.status === 'APPLIED').length
+  const actionableCount = substitutions.filter((s) => s.status === 'APPLIED').length
+  const filterLabel = FILTERS.find((f) => f.value === filterStatus)?.label ?? 'Tutti'
 
   return (
     <MainLayout adminOnly contentWidth="6xl">
       <ToastContainer />
       <div className="pd-page pb-16">
-        <PageHeader
-          dense
-          title="Sostituzioni"
-          subtitle="Approva o rifiuta i cambi turno"
-        />
+        <PageHeader dense title="Sostituzioni" subtitle="Approva o rifiuta i cambi turno" />
 
         <div
-          className="flex flex-wrap gap-1 p-2 overflow-x-auto"
+          className="inline-flex p-1 gap-0.5 overflow-x-auto max-w-full"
           style={{
-            background: 'var(--pd-surface)',
+            background: 'var(--pd-surface-muted)',
+            borderRadius: 'var(--pd-radius-pill)',
             border: '1px solid var(--pd-border)',
-            borderRadius: 'var(--pd-radius-lg)',
           }}
         >
-          {(
-            [
-              { value: 'ALL', label: 'Tutti' },
-              { value: 'PENDING', label: 'In attesa' },
-              { value: 'APPLIED', label: 'Da approvare' },
-              { value: 'APPROVED', label: 'Approvate' },
-              { value: 'REJECTED', label: 'Rifiutate' },
-              { value: 'EXPIRED', label: 'Scadute' },
-            ] as const
-          ).map((filter) => (
+          {FILTERS.map((filter) => (
             <button
               key={filter.value}
               type="button"
-              onClick={() => setFilterStatus(filter.value as SubstitutionStatus | 'ALL')}
-              className="px-3 py-2 text-sm font-semibold whitespace-nowrap pd-press"
+              onClick={() => setFilterStatus(filter.value)}
+              className="px-3.5 py-1.5 text-xs font-semibold pd-press whitespace-nowrap"
               style={{
-                background: filterStatus === filter.value ? 'var(--pd-accent-soft)' : 'transparent',
-                color: filterStatus === filter.value ? 'var(--pd-accent)' : 'var(--pd-muted)',
-                borderRadius: 'var(--pd-radius)',
+                borderRadius: 'var(--pd-radius-pill)',
+                background: filterStatus === filter.value ? 'var(--pd-surface)' : 'transparent',
+                color: filterStatus === filter.value ? 'var(--pd-text)' : 'var(--pd-muted)',
+                boxShadow: filterStatus === filter.value ? 'var(--pd-shadow)' : undefined,
               }}
             >
               {filter.label}
@@ -223,26 +236,42 @@ export default function AdminSubstitutionsPage() {
 
         <StatStrip
           items={[
-            { label: 'Richieste', value: loading ? '—' : substitutions.length },
-            { label: 'Da approvare', value: loading ? '—' : pendingCount },
+            { label: filterLabel, value: loading ? '—' : substitutions.length },
+            {
+              label: 'Da approvare',
+              value: loading ? '—' : filterStatus === 'APPLIED' ? substitutions.length : actionableCount,
+            },
           ]}
         />
 
-        <SectionBlock title="Richieste" card>
+        <SectionBlock
+          title="Richieste"
+          subtitle={
+            loading
+              ? 'Caricamento…'
+              : `${substitutions.length} ${substitutions.length === 1 ? 'richiesta' : 'richieste'} · ${filterLabel.toLowerCase()}`
+          }
+          card
+        >
           {loading ? (
-            <div className="py-16 text-center">
+            <div className="py-12 flex justify-center">
               <div
-                className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-3"
-                style={{ borderColor: 'var(--pd-accent)' }}
+                className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent"
+                style={{ borderColor: 'var(--pd-accent)', borderTopColor: 'transparent' }}
               />
-              <p className="text-sm" style={{ color: 'var(--pd-muted)' }}>
-                Caricamento richieste...
-              </p>
             </div>
           ) : substitutions.length === 0 ? (
             <EmptyState
-              title="Nessuna sostituzione trovata"
-              description="Non ci sono richieste per il filtro selezionato."
+              title={
+                filterStatus === 'APPLIED'
+                  ? 'Niente da approvare'
+                  : 'Nessuna sostituzione trovata'
+              }
+              description={
+                filterStatus === 'APPLIED'
+                  ? 'Quando un collega si candida, la richiesta comparirà qui.'
+                  : 'Non ci sono richieste per il filtro selezionato.'
+              }
               icon={<Users className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
             />
           ) : (
@@ -251,87 +280,93 @@ export default function AdminSubstitutionsPage() {
                 const shiftDate = getShiftDate(substitution.shifts)
                 const canApprove = substitution.status === 'APPLIED'
                 const canReject = ['PENDING', 'APPLIED'].includes(substitution.status)
+                const meta = STATUS_META[substitution.status]
+                const StatusIcon = meta.icon
 
                 return (
                   <div
                     key={substitution.id}
-                    className="p-4 sm:p-5 space-y-4 transition-colors hover:bg-[var(--pd-surface-muted)]/40"
+                    className="px-4 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4"
+                    style={{
+                      background:
+                        substitution.status === 'APPLIED'
+                          ? 'color-mix(in srgb, var(--pd-accent-soft) 50%, var(--pd-surface))'
+                          : 'transparent',
+                    }}
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
-                          {getDayName(substitution.shifts.dayOfWeek)} {format(shiftDate, 'd MMM')} ·{' '}
+                          {getDayName(substitution.shifts.dayOfWeek)}{' '}
+                          {format(shiftDate, 'd MMM', { locale: it })} ·{' '}
                           {getShiftTypeName(substitution.shifts.shiftType)}
                         </p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
-                          {substitution.shifts.startTime}–{substitution.shifts.endTime} ·{' '}
-                          {getRoleName(substitution.shifts.role)} ·{' '}
-                          {format(parseISO(substitution.createdAt), 'dd MMM, HH:mm')}
-                        </p>
+                        <span
+                          className="inline-flex px-2 py-0.5 text-[11px] font-medium"
+                          style={{
+                            background: 'var(--pd-surface-muted)',
+                            color: 'var(--pd-muted)',
+                            borderRadius: 'var(--pd-radius-pill)',
+                          }}
+                        >
+                          {getRoleName(substitution.shifts.role)}
+                        </span>
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold"
+                          style={{
+                            background: meta.bg,
+                            color: meta.color,
+                            borderRadius: 'var(--pd-radius-pill)',
+                          }}
+                        >
+                          <StatusIcon className="h-3 w-3" />
+                          {meta.label}
+                        </span>
                       </div>
-                      <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold"
-                        style={{
-                          borderRadius: 'var(--pd-radius-sm)',
-                          border: '1px solid var(--pd-border)',
-                          background:
-                            substitution.status === 'APPLIED'
-                              ? 'var(--pd-accent-soft)'
-                              : substitution.status === 'APPROVED'
-                                ? 'var(--pd-success-soft)'
-                                : substitution.status === 'REJECTED'
-                                  ? 'var(--pd-danger-soft)'
-                                  : 'var(--pd-surface-muted)',
-                          color:
-                            substitution.status === 'APPLIED'
-                              ? 'var(--pd-accent)'
-                              : substitution.status === 'APPROVED'
-                                ? 'var(--pd-success)'
-                                : substitution.status === 'REJECTED'
-                                  ? 'var(--pd-danger)'
-                                  : 'var(--pd-muted)',
-                        }}
-                      >
-                        {getStatusIcon(substitution.status)}
-                        {getStatusText(substitution.status)}
-                      </span>
-                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-xs font-semibold mb-1" style={{ color: 'var(--pd-muted)' }}>
-                          Richiedente
-                        </p>
-                        <p className="font-semibold" style={{ color: 'var(--pd-text)' }}>
-                          {substitution.requester.username}
-                        </p>
-                        {substitution.requestNote && (
-                          <p className="text-xs mt-1" style={{ color: 'var(--pd-muted)' }}>
-                            {substitution.requestNote}
-                          </p>
-                        )}
+                      <div
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
+                        style={{ color: 'var(--pd-muted)' }}
+                      >
+                        <span className="inline-flex items-center gap-1.5 tabular-nums" style={{ color: 'var(--pd-text)' }}>
+                          <Calendar className="h-3.5 w-3.5" style={{ color: 'var(--pd-muted)' }} />
+                          {substitution.shifts.startTime}–{substitution.shifts.endTime}
+                        </span>
+                        <span>
+                          Richiede <strong style={{ color: 'var(--pd-text)' }}>{substitution.requester.username}</strong>
+                        </span>
+                        <span>
+                          {substitution.substitute ? (
+                            <>
+                              Sostituto{' '}
+                              <strong style={{ color: 'var(--pd-text)' }}>
+                                {substitution.substitute.username}
+                              </strong>
+                            </>
+                          ) : (
+                            'In attesa di candidato'
+                          )}
+                        </span>
+                        <span className="tabular-nums">
+                          {format(parseISO(substitution.createdAt), 'dd MMM, HH:mm', { locale: it })}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold mb-1" style={{ color: 'var(--pd-muted)' }}>
-                          Sostituto
+
+                      {substitution.requestNote ? (
+                        <p className="text-[11px] truncate" style={{ color: 'var(--pd-muted)' }}>
+                          Motivo: {substitution.requestNote}
                         </p>
-                        {substitution.substitute ? (
-                          <p className="font-semibold" style={{ color: 'var(--pd-text)' }}>
-                            {substitution.substitute.username}
-                          </p>
-                        ) : (
-                          <p className="text-xs" style={{ color: 'var(--pd-muted)' }}>
-                            In attesa di un candidato
-                          </p>
-                        )}
-                      </div>
+                      ) : null}
+
+                      {substitution.responseNote ? (
+                        <p className="text-[11px]" style={{ color: 'var(--pd-danger)' }}>
+                          Rifiuto: {substitution.responseNote}
+                        </p>
+                      ) : null}
                     </div>
 
                     {(canApprove || canReject) && (
-                      <div
-                        className="flex flex-wrap justify-end gap-2 pt-3"
-                        style={{ borderTop: '1px solid var(--pd-border)' }}
-                      >
+                      <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-center">
                         {canReject && (
                           <button
                             type="button"
@@ -340,13 +375,14 @@ export default function AdminSubstitutionsPage() {
                               setShowRejectModal(true)
                             }}
                             disabled={processingId === substitution.id}
-                            className="px-4 py-2 text-sm font-semibold pd-press disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold pd-press disabled:opacity-50"
                             style={{
                               color: 'var(--pd-danger)',
                               background: 'var(--pd-danger-soft)',
                               borderRadius: 'var(--pd-radius)',
                             }}
                           >
+                            <XCircle className="h-3.5 w-3.5" />
                             Rifiuta
                           </button>
                         )}
@@ -355,37 +391,16 @@ export default function AdminSubstitutionsPage() {
                             type="button"
                             onClick={() => approveSubstitution(substitution.id)}
                             disabled={processingId === substitution.id}
-                            className="pd-btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold pd-btn-primary disabled:opacity-50"
                           >
                             {processingId === substitution.id ? (
                               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                             ) : (
                               <Check className="h-3.5 w-3.5" />
                             )}
-                            {processingId === substitution.id ? 'Approvazione...' : 'Approva'}
+                            Approva
                           </button>
                         )}
-                      </div>
-                    )}
-
-                    {substitution.responseNote && (
-                      <div
-                        className="flex items-start gap-2 px-3 py-2.5"
-                        style={{
-                          background: 'var(--pd-danger-soft)',
-                          borderRadius: 'var(--pd-radius)',
-                          border: '1px solid var(--pd-border)',
-                        }}
-                      >
-                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'var(--pd-danger)' }} />
-                        <div>
-                          <p className="text-xs font-semibold" style={{ color: 'var(--pd-danger)' }}>
-                            Motivo del rifiuto
-                          </p>
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--pd-text)' }}>
-                            {substitution.responseNote}
-                          </p>
-                        </div>
                       </div>
                     )}
                   </div>
@@ -470,7 +485,6 @@ export default function AdminSubstitutionsPage() {
           )}
         </Modal>
       </div>
-
     </MainLayout>
   )
 }

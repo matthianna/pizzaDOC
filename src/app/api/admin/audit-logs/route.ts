@@ -1,25 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getAuditLogs } from '@/lib/audit-logger'
+import { getAuditLogs, getAuditStats } from '@/lib/audit-logger'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
-    
+
+    if (searchParams.get('stats') === '1') {
+      const stats = await getAuditStats()
+      return NextResponse.json(stats)
+    }
+
     const filters = {
       userId: searchParams.get('userId') || undefined,
-      action: searchParams.get('action') as any || undefined,
-      startDate: searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined,
-      endDate: searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined,
+      action: (searchParams.get('action') as any) || undefined,
+      startDate: searchParams.get('startDate')
+        ? new Date(searchParams.get('startDate')!)
+        : undefined,
+      endDate: searchParams.get('endDate')
+        ? new Date(searchParams.get('endDate')!)
+        : undefined,
       limit: parseInt(searchParams.get('limit') || '50'),
-      offset: parseInt(searchParams.get('offset') || '0')
+      offset: parseInt(searchParams.get('offset') || '0'),
     }
 
     const { logs, total } = await getAuditLogs(filters)
@@ -28,7 +37,7 @@ export async function GET(request: NextRequest) {
       logs,
       total,
       page: Math.floor(filters.offset / filters.limit) + 1,
-      totalPages: Math.ceil(total / filters.limit)
+      totalPages: Math.ceil(total / filters.limit),
     })
   } catch (error: any) {
     console.error('Error fetching audit logs:', error)

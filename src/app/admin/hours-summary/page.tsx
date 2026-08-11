@@ -259,7 +259,7 @@ export default function AdminHoursSummaryPage() {
       <div className="pd-page pb-16">
         <PageHeader
           dense
-          title="Riepilogo ore"
+          title="Resoconto ore"
           subtitle="Monitora ore lavorate ed esporta report"
           action={
             <button

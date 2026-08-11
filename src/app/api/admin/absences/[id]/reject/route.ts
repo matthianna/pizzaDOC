@@ -10,7 +10,7 @@ import { it } from 'date-fns/locale'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -19,7 +19,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { reason } = body
 
@@ -52,19 +52,19 @@ export async function POST(
       where: { id }
     })
 
-    // Log audit action with rejection reason
     await logAuditAction({
       userId: session.user.id,
+      userUsername: session.user.username,
       action: 'ABSENCE_REJECT',
-      tableName: 'absences',
-      recordId: id,
-      changes: {
-        userId: absence.userId,
-        username: absence.user.username,
+      description: `Rifiutata assenza di ${absence.user.username}: ${format(new Date(absence.startDate), 'dd/MM/yyyy', { locale: it })} – ${format(new Date(absence.endDate), 'dd/MM/yyyy', { locale: it })}. Motivo: ${reason}`,
+      metadata: {
+        absenceId: id,
+        targetUserId: absence.userId,
+        targetUsername: absence.user.username,
         startDate: absence.startDate,
         endDate: absence.endDate,
-        rejectionReason: reason
-      }
+        rejectionReason: reason,
+      },
     })
 
     // 🔔 Notify user

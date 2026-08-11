@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logAuditAction } from '@/lib/audit-logger'
+import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session || !session.user.roles.includes('ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -14,49 +16,61 @@ export async function POST(request: NextRequest) {
     const { shiftId, reason } = await request.json()
 
     if (!shiftId) {
-      return NextResponse.json(
-        { error: 'Missing shiftId' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing shiftId' }, { status: 400 })
     }
 
-    // Get shift data before deleting (to get username)
     const shift = await prisma.shifts.findUnique({
       where: { id: shiftId },
       include: {
         user: {
           select: {
-            username: true
-          }
-        }
-      }
+            username: true,
+          },
+        },
+        schedules: {
+          select: {
+            weekStart: true,
+          },
+        },
+      },
     })
 
-    // Idempotente: doppie richieste (es. rete/client) non devono sembrare un errore
     if (!shift) {
       return NextResponse.json({
         success: true,
-        alreadyRemoved: true
+        alreadyRemoved: true,
       })
     }
 
-    // Delete the shift
     await prisma.shifts.delete({
-      where: { id: shiftId }
+      where: { id: shiftId },
     })
 
-    // Optionally log the removal reason
-    console.log(`Shift ${shiftId} removed by ${session.user.username}. User: ${shift.user.username}. Reason: ${reason || 'N/A'}`)
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'SHIFT_DELETE',
+      description: `Rimosso turno di ${shift.user.username}: ${getDayName(shift.dayOfWeek)} ${getShiftTypeName(shift.shiftType)} · ${getRoleName(shift.role)}${reason ? ` (${reason})` : ''}`,
+      metadata: {
+        shiftId,
+        targetUserId: shift.userId,
+        targetUsername: shift.user.username,
+        dayOfWeek: shift.dayOfWeek,
+        shiftType: shift.shiftType,
+        role: shift.role,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        weekStart: shift.schedules.weekStart,
+        reason: reason || null,
+      },
+    })
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      username: shift.user.username
+      username: shift.user.username,
     })
   } catch (error) {
     console.error('Error removing staff:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

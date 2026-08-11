@@ -1,25 +1,33 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { PageHeader } from '@/components/layout/page-header'
 import { SectionBlock } from '@/components/ui/section-block'
-import { StatStrip } from '@/components/ui/stat-strip'
-import { ListRow, EmptyState } from '@/components/ui/list-row'
+import { EmptyState } from '@/components/ui/list-row'
 import {
   Activity,
   Database,
   Download,
-  Clock,
   RefreshCw,
   HardDrive,
-  TrendingUp,
-  Bell,
+  ChevronDown,
+  MapPin,
+  Monitor,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { cn } from '@/lib/utils'
+import {
+  AUDIT_ACTION_LABELS,
+  AUDIT_TONE_STYLE,
+  formatAuditMetaValue,
+  getAuditActionTone,
+  labelAuditMetaKey,
+} from '@/lib/audit-labels'
+import { useToast } from '@/components/ui/toast'
+import { ListRow } from '@/components/ui/list-row'
 
 interface AuditLog {
   id: string
@@ -29,7 +37,7 @@ interface AuditLog {
   description: string
   ipAddress: string | null
   userAgent: string | null
-  metadata: any
+  metadata: Record<string, unknown> | null
   createdAt: string
   user: {
     id: string
@@ -38,53 +46,220 @@ interface AuditLog {
   }
 }
 
-interface SystemStats {
-  totalLogs: number
-  logsToday: number
-  logsThisWeek: number
-  backupsCount: number
-  lastBackup: string | null
-  databaseSize: string
+type TabId = 'logs' | 'backups'
+
+const PAGE_SIZE = 30
+
+function metaEntries(metadata: Record<string, unknown> | null | undefined) {
+  if (!metadata || typeof metadata !== 'object') return []
+  return Object.entries(metadata).filter(
+    ([key, value]) =>
+      value !== undefined &&
+      value !== null &&
+      key !== 'errors' &&
+      !(typeof value === 'object' && !Array.isArray(value) && Object.keys(value as object).length === 0)
+  )
 }
 
-type TabId = 'logs' | 'backups' | 'stats' | 'tasks'
+function DiffBlock({
+  label,
+  value,
+}: {
+  label: string
+  value: unknown
+}) {
+  if (value === undefined || value === null) return null
+  const entries =
+    typeof value === 'object' && !Array.isArray(value)
+      ? Object.entries(value as Record<string, unknown>)
+      : null
+
+  return (
+    <div
+      className="rounded-lg p-3 space-y-1.5 min-w-0"
+      style={{ background: 'var(--pd-surface-muted)', border: '1px solid var(--pd-border)' }}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--pd-muted)' }}>
+        {label}
+      </p>
+      {entries ? (
+        <dl className="space-y-1">
+          {entries.map(([k, v]) => (
+            <div key={k} className="flex justify-between gap-3 text-xs">
+              <dt style={{ color: 'var(--pd-muted)' }}>{labelAuditMetaKey(k)}</dt>
+              <dd className="font-medium text-right tabular-nums break-all" style={{ color: 'var(--pd-text)' }}>
+                {formatAuditMetaValue(v)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="text-xs font-medium break-all" style={{ color: 'var(--pd-text)' }}>
+          {formatAuditMetaValue(value)}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function AuditLogRow({ log }: { log: AuditLog }) {
+  const [open, setOpen] = useState(false)
+  const tone = getAuditActionTone(log.action)
+  const toneStyle = AUDIT_TONE_STYLE[tone]
+  const label = AUDIT_ACTION_LABELS[log.action] || log.action
+  const metadata = log.metadata || {}
+  const before = metadata.before
+  const after = metadata.after
+  const otherEntries = metaEntries(metadata).filter(([k]) => k !== 'before' && k !== 'after' && k !== 'tables')
+
+  return (
+    <div style={{ borderBottom: '1px solid var(--pd-border)' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full text-left px-4 py-3.5 flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4 pd-press"
+      >
+        <div
+          className="w-9 h-9 shrink-0 flex items-center justify-center text-xs font-semibold"
+          style={{
+            background: toneStyle.bg,
+            color: toneStyle.color,
+            borderRadius: '999px',
+          }}
+        >
+          {log.userUsername.charAt(0).toUpperCase()}
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="inline-flex px-2 py-0.5 text-[11px] font-semibold"
+              style={{
+                background: toneStyle.bg,
+                color: toneStyle.color,
+                borderRadius: 'var(--pd-radius-pill)',
+              }}
+            >
+              {label}
+            </span>
+            <span className="text-[11px] tabular-nums" style={{ color: 'var(--pd-muted)' }}>
+              {format(new Date(log.createdAt), "EEE d MMM yyyy · HH:mm", { locale: it })}
+            </span>
+          </div>
+          <p
+            className={cn('text-sm font-medium', !open && 'line-clamp-2')}
+            style={{ color: 'var(--pd-text)' }}
+          >
+            {log.description}
+          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'var(--pd-muted)' }}>
+            <span>
+              Autore <strong style={{ color: 'var(--pd-text)' }}>{log.userUsername}</strong>
+            </span>
+            {log.ipAddress ? (
+              <span className="inline-flex items-center gap-1 font-mono">
+                <MapPin className="h-3 w-3" />
+                {log.ipAddress}
+              </span>
+            ) : null}
+            {(metadata.targetUsername || metadata.username) ? (
+              <span>
+                Oggetto{' '}
+                <strong style={{ color: 'var(--pd-text)' }}>
+                  {String(metadata.targetUsername || metadata.username)}
+                </strong>
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <ChevronDown
+          className={cn('h-4 w-4 shrink-0 mt-1 transition-transform self-end sm:self-start', open && 'rotate-180')}
+          style={{ color: 'var(--pd-muted)' }}
+        />
+      </button>
+
+      {open ? (
+        <div className="px-4 pb-4 pl-[3.75rem] space-y-3">
+          {(before !== undefined || after !== undefined) && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <DiffBlock label="Prima" value={before} />
+              <DiffBlock label="Dopo" value={after} />
+            </div>
+          )}
+
+          {otherEntries.length > 0 ? (
+            <div
+              className="rounded-lg overflow-hidden"
+              style={{ border: '1px solid var(--pd-border)' }}
+            >
+              <div
+                className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide"
+                style={{ background: 'var(--pd-surface-muted)', color: 'var(--pd-muted)' }}
+              >
+                Dettagli
+              </div>
+              <dl className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
+                {otherEntries.map(([key, value]) => (
+                  <div key={key} className="px-3 py-2 flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 text-xs">
+                    <dt className="shrink-0" style={{ color: 'var(--pd-muted)' }}>
+                      {labelAuditMetaKey(key)}
+                    </dt>
+                    <dd
+                      className="font-medium sm:text-right break-all font-mono text-[11px] sm:text-xs"
+                      style={{ color: 'var(--pd-text)' }}
+                    >
+                      {formatAuditMetaValue(value)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
+
+          {log.userAgent ? (
+            <p className="text-[11px] flex items-start gap-1.5" style={{ color: 'var(--pd-muted)' }}>
+              <Monitor className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              <span className="break-all">{log.userAgent}</span>
+            </p>
+          ) : null}
+
+          <p className="text-[10px] font-mono" style={{ color: 'var(--pd-muted)' }}>
+            ID evento {log.id}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
 
 export default function SystemAdminPage() {
   const [activeTab, setActiveTab] = useState<TabId>('logs')
+  const { showToast, ToastContainer } = useToast()
 
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [logsLoading, setLogsLoading] = useState(true)
   const [logsTotal, setLogsTotal] = useState(0)
   const [logsPage, setLogsPage] = useState(1)
   const [filterAction, setFilterAction] = useState<string | null>(null)
-  const [filterUser, setFilterUser] = useState<string | null>(null)
 
   const [backups, setBackups] = useState<AuditLog[]>([])
   const [backupsLoading, setBackupsLoading] = useState(false)
   const [creatingBackup, setCreatingBackup] = useState(false)
 
-  const [stats, setStats] = useState<SystemStats | null>(null)
-
   const [showBackupConfirm, setShowBackupConfirm] = useState(false)
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false)
-
-  const [tasks, setTasks] = useState<any[]>([])
-  const [tasksLoading, setTasksLoading] = useState(false)
-  const [triggeringTask, setTriggeringTask] = useState<string | null>(null)
 
   useEffect(() => {
     if (activeTab === 'logs') fetchLogs()
     if (activeTab === 'backups') fetchBackups()
-    if (activeTab === 'stats') fetchStats()
-    if (activeTab === 'tasks') fetchTasks()
-  }, [activeTab, logsPage, filterAction, filterUser])
+  }, [activeTab, logsPage, filterAction])
 
   const fetchLogs = async () => {
     setLogsLoading(true)
     try {
-      let url = `/api/admin/audit-logs?limit=20&offset=${(logsPage - 1) * 20}`
+      let url = `/api/admin/audit-logs?limit=${PAGE_SIZE}&offset=${(logsPage - 1) * PAGE_SIZE}`
       if (filterAction) url += `&action=${filterAction}`
-      if (filterUser) url += `&userId=${filterUser}`
 
       const response = await fetch(url)
       if (response.ok) {
@@ -94,6 +269,7 @@ export default function SystemAdminPage() {
       }
     } catch (error) {
       console.error('Error fetching logs:', error)
+      showToast('Errore nel caricamento dei log', 'error')
     } finally {
       setLogsLoading(false)
     }
@@ -114,55 +290,6 @@ export default function SystemAdminPage() {
     }
   }
 
-  const fetchTasks = async () => {
-    setTasksLoading(true)
-    try {
-      const response = await fetch('/api/admin/system/tasks')
-      if (response.ok) {
-        const data = await response.json()
-        setTasks(data.tasks)
-      }
-    } catch (error) {
-      console.error('Error fetching tasks:', error)
-    } finally {
-      setTasksLoading(false)
-    }
-  }
-
-  const runTask = async (taskId: string) => {
-    setTriggeringTask(taskId)
-    try {
-      const response = await fetch('/api/admin/system/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId })
-      })
-
-      const data = await response.json()
-      if (response.ok) {
-        alert(data.message)
-      } else {
-        alert(`Errore: ${data.error || 'Esecuzione fallita'}`)
-      }
-    } catch (error) {
-      console.error('Error running task:', error)
-      alert("Errore durante l'esecuzione dell'attività")
-    } finally {
-      setTriggeringTask(null)
-    }
-  }
-
-  const fetchStats = async () => {
-    setStats({
-      totalLogs: logsTotal,
-      logsToday: 12,
-      logsThisWeek: 45,
-      backupsCount: backups.length,
-      lastBackup: backups[0]?.createdAt || null,
-      databaseSize: '12.5 MB'
-    })
-  }
-
   const createBackup = async () => {
     setCreatingBackup(true)
     try {
@@ -170,17 +297,18 @@ export default function SystemAdminPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(
-          `Backup creato con successo.\n\nTimestamp: ${data.timestamp}\nTabelle: ${Object.keys(data.tables || {}).length}`
+        showToast(
+          `Backup creato · ${Object.keys(data.tables || {}).length} tabelle`,
+          'success'
         )
         fetchBackups()
       } else {
         const error = await response.json()
-        alert(`Errore: ${error.error}`)
+        showToast(error.error || 'Errore backup', 'error')
       }
     } catch (error) {
       console.error('Error creating backup:', error)
-      alert('Errore durante la creazione del backup')
+      showToast('Errore durante la creazione del backup', 'error')
     } finally {
       setCreatingBackup(false)
     }
@@ -190,68 +318,51 @@ export default function SystemAdminPage() {
     window.open('/api/admin/database/backup?download=true', '_blank')
   }
 
-  const actionLabels: Record<string, string> = {
-    SCHEDULE_GENERATE: 'Piano generato',
-    SCHEDULE_DELETE: 'Piano eliminato',
-    SHIFT_ADD: 'Turno aggiunto',
-    SHIFT_DELETE: 'Turno eliminato',
-    SHIFT_EDIT: 'Turno modificato',
-    HOURS_APPROVE: 'Ore approvate',
-    HOURS_REJECT: 'Ore rifiutate',
-    HOURS_EDIT: 'Ore modificate',
-    USER_CREATE: 'Utente creato',
-    USER_DELETE: 'Utente eliminato',
-    DATABASE_BACKUP: 'Backup creato',
-    ABSENCE_CREATE: 'Assenza creata',
-    ABSENCE_EDIT: 'Assenza modificata',
-    ABSENCE_DELETE: 'Assenza eliminata',
-    ABSENCE_APPROVE: 'Assenza approvata',
-    ABSENCE_REJECT: 'Assenza rifiutata',
-    TASK_RUN: 'Task eseguito',
-  }
+  const totalPages = Math.ceil(logsTotal / PAGE_SIZE)
 
-  const totalPages = Math.ceil(logsTotal / 20)
+  const filterOptions = useMemo(
+    () =>
+      Object.entries(AUDIT_ACTION_LABELS).sort((a, b) => a[1].localeCompare(b[1], 'it')),
+    []
+  )
 
   const tabs: { id: TabId; label: string; icon: typeof Activity }[] = [
     { id: 'logs', label: 'Audit log', icon: Activity },
     { id: 'backups', label: 'Backup', icon: Database },
-    { id: 'stats', label: 'Statistiche', icon: TrendingUp },
-    { id: 'tasks', label: 'Promemoria', icon: Bell },
   ]
 
   return (
     <MainLayout adminOnly contentWidth="6xl">
-      <div className="pd-page">
+      <ToastContainer />
+      <div className="pd-page pb-16">
         <PageHeader
           dense
           title="Sistema"
-          subtitle="Audit log, backup database e attività programmate"
+          subtitle="Audit log e backup database"
         />
 
         <div
-          className="flex items-center gap-1 overflow-x-auto p-1"
+          className="inline-flex p-1 gap-0.5 overflow-x-auto max-w-full"
           style={{
             background: 'var(--pd-surface-muted)',
-            borderRadius: 'var(--pd-radius-lg)',
+            borderRadius: 'var(--pd-radius-pill)',
             border: '1px solid var(--pd-border)',
           }}
         >
-          {tabs.map(tab => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors',
-                activeTab === tab.id && 'shadow-sm'
-              )}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold pd-press whitespace-nowrap"
               style={{
-                borderRadius: 'var(--pd-radius)',
+                borderRadius: 'var(--pd-radius-pill)',
                 background: activeTab === tab.id ? 'var(--pd-surface)' : 'transparent',
                 color: activeTab === tab.id ? 'var(--pd-text)' : 'var(--pd-muted)',
+                boxShadow: activeTab === tab.id ? 'var(--pd-shadow)' : undefined,
               }}
             >
-              <tab.icon className="h-4 w-4" />
+              <tab.icon className="h-3.5 w-3.5" />
               {tab.label}
             </button>
           ))}
@@ -259,59 +370,62 @@ export default function SystemAdminPage() {
 
         {activeTab === 'logs' && (
           <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={filterAction || ''}
+                onChange={(e) => {
+                  setFilterAction(e.target.value || null)
+                  setLogsPage(1)
+                }}
+                className="flex-1 min-w-[200px] px-3 py-2 text-sm border focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: 'var(--pd-border)',
+                  borderRadius: 'var(--pd-radius)',
+                  background: 'var(--pd-surface)',
+                  color: 'var(--pd-text)',
+                }}
+              >
+                <option value="">Tutte le azioni</option>
+                {filterOptions.map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => fetchLogs()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold"
+                style={{
+                  background: 'var(--pd-surface-muted)',
+                  borderRadius: 'var(--pd-radius)',
+                  color: 'var(--pd-muted)',
+                }}
+              >
+                <RefreshCw className={cn('h-3.5 w-3.5', logsLoading && 'animate-spin')} />
+                Aggiorna
+              </button>
+              <span className="text-xs tabular-nums ml-auto" style={{ color: 'var(--pd-muted)' }}>
+                {logsTotal.toLocaleString('it-IT')} eventi
+              </span>
+            </div>
+
             <SectionBlock
-              title="Filtri"
-              action={
-                <span className="text-sm tabular-nums" style={{ color: 'var(--pd-muted)' }}>
-                  {logsTotal} eventi
-                </span>
+              title="Eventi"
+              subtitle={
+                filterAction
+                  ? AUDIT_ACTION_LABELS[filterAction] || filterAction
+                  : 'Tocca una riga per vedere i dettagli'
               }
               card
             >
-              <div className="p-4 flex flex-wrap items-center gap-3">
-                <select
-                  value={filterAction || ''}
-                  onChange={(e) => {
-                    setFilterAction(e.target.value || null)
-                    setLogsPage(1)
-                  }}
-                  className="flex-1 min-w-[200px] px-3 py-2.5 text-sm border focus:outline-none focus:ring-2"
-                  style={{
-                    borderColor: 'var(--pd-border)',
-                    borderRadius: 'var(--pd-radius)',
-                    background: 'var(--pd-surface-muted)',
-                    color: 'var(--pd-text)',
-                  }}
-                >
-                  <option value="">Tutte le azioni</option>
-                  {Object.entries(actionLabels).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterAction(null)
-                    setFilterUser(null)
-                    setLogsPage(1)
-                    fetchLogs()
-                  }}
-                  className="p-2.5 transition-opacity hover:opacity-80"
-                  style={{
-                    background: 'var(--pd-surface-muted)',
-                    borderRadius: 'var(--pd-radius)',
-                    color: 'var(--pd-muted)',
-                  }}
-                  title="Azzera filtri"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </button>
-              </div>
-            </SectionBlock>
-
-            <SectionBlock card>
               {logsLoading ? (
-                <EmptyState title="Caricamento log…" />
+                <div className="py-12 flex justify-center">
+                  <div
+                    className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent"
+                    style={{ borderColor: 'var(--pd-accent)', borderTopColor: 'transparent' }}
+                  />
+                </div>
               ) : logs.length === 0 ? (
                 <EmptyState
                   title="Nessun log trovato"
@@ -320,30 +434,8 @@ export default function SystemAdminPage() {
                 />
               ) : (
                 <>
-                  {logs.map(log => (
-                    <ListRow
-                      key={log.id}
-                      title={actionLabels[log.action] || log.action}
-                      subtitle={log.description}
-                      meta={format(new Date(log.createdAt), 'dd MMM yy · HH:mm', { locale: it })}
-                      leading={
-                        <div
-                          className="w-8 h-8 flex items-center justify-center text-xs font-semibold"
-                          style={{
-                            background: 'var(--pd-accent-soft)',
-                            color: 'var(--pd-accent)',
-                            borderRadius: '999px',
-                          }}
-                        >
-                          {log.userUsername.charAt(0).toUpperCase()}
-                        </div>
-                      }
-                      trailing={
-                        <span className="text-[11px] font-mono" style={{ color: 'var(--pd-muted)' }}>
-                          {log.userUsername} · {log.ipAddress || '—'}
-                        </span>
-                      }
-                    />
+                  {logs.map((log) => (
+                    <AuditLogRow key={log.id} log={log} />
                   ))}
                   {totalPages > 1 && (
                     <div
@@ -356,7 +448,7 @@ export default function SystemAdminPage() {
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => setLogsPage(p => Math.max(1, p - 1))}
+                          onClick={() => setLogsPage((p) => Math.max(1, p - 1))}
                           disabled={logsPage === 1}
                           className="px-3 py-1.5 text-xs font-medium border disabled:opacity-40"
                           style={{
@@ -370,7 +462,7 @@ export default function SystemAdminPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setLogsPage(p => Math.min(totalPages, p + 1))}
+                          onClick={() => setLogsPage((p) => Math.min(totalPages, p + 1))}
                           disabled={logsPage === totalPages}
                           className="px-3 py-1.5 text-xs font-medium border disabled:opacity-40"
                           style={{
@@ -395,7 +487,7 @@ export default function SystemAdminPage() {
           <div className="space-y-4">
             <SectionBlock
               title="Backup database"
-              subtitle="On-demand; cron automatico ogni giovedì alle 15:00"
+              subtitle="On-demand · cron automatico ogni giovedì alle 15:00"
               action={
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -441,8 +533,8 @@ export default function SystemAdminPage() {
                   icon={<Database className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
                 />
               ) : (
-                backups.map(backup => {
-                  const metadata = backup.metadata as any
+                backups.map((backup) => {
+                  const metadata = (backup.metadata || {}) as Record<string, any>
                   const timestamp = metadata?.timestamp || backup.createdAt
                   const tables = metadata?.tables || {}
                   const tableCount = Object.keys(tables).length
@@ -484,136 +576,6 @@ export default function SystemAdminPage() {
             </SectionBlock>
           </div>
         )}
-
-        {activeTab === 'stats' && stats && (
-          <div className="space-y-4">
-            <StatStrip
-              columns={4}
-              items={[
-                { label: 'Eventi totali', value: stats.totalLogs },
-                { label: 'Eventi oggi', value: stats.logsToday },
-                { label: 'Backup archiviati', value: stats.backupsCount },
-                { label: 'Peso database', value: stats.databaseSize },
-              ]}
-            />
-
-            <SectionBlock title="Salute del sistema" subtitle="Indicatori di carico (indicativi)" card>
-              <div className="p-5 space-y-5">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span style={{ color: 'var(--pd-muted)' }}>Carico database</span>
-                    <span className="font-semibold tabular-nums" style={{ color: 'var(--pd-text)' }}>
-                      12%
-                    </span>
-                  </div>
-                  <div
-                    className="h-1.5 overflow-hidden"
-                    style={{ background: 'var(--pd-surface-muted)', borderRadius: '999px' }}
-                  >
-                    <div
-                      className="h-full w-[12%]"
-                      style={{ background: 'var(--pd-success)', borderRadius: '999px' }}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span style={{ color: 'var(--pd-muted)' }}>Utilizzo storage backup</span>
-                    <span className="font-semibold tabular-nums" style={{ color: 'var(--pd-text)' }}>
-                      45%
-                    </span>
-                  </div>
-                  <div
-                    className="h-1.5 overflow-hidden"
-                    style={{ background: 'var(--pd-surface-muted)', borderRadius: '999px' }}
-                  >
-                    <div
-                      className="h-full w-[45%]"
-                      style={{ background: 'var(--pd-accent)', borderRadius: '999px' }}
-                    />
-                  </div>
-                </div>
-                {stats.lastBackup && (
-                  <p className="text-xs flex items-center gap-2" style={{ color: 'var(--pd-muted)' }}>
-                    <Clock className="h-3.5 w-3.5" />
-                    Ultimo backup:{' '}
-                    {format(new Date(stats.lastBackup), "d MMMM yyyy 'alle' HH:mm", { locale: it })}
-                  </p>
-                )}
-              </div>
-            </SectionBlock>
-          </div>
-        )}
-
-        {activeTab === 'tasks' && (
-          <div className="space-y-4">
-            <SectionBlock
-              title="Notifiche automatiche"
-              subtitle="Attività programmate e avvii manuali"
-              action={
-                <button
-                  type="button"
-                  onClick={fetchTasks}
-                  className="p-2.5 transition-opacity hover:opacity-80"
-                  style={{
-                    background: 'var(--pd-surface-muted)',
-                    borderRadius: 'var(--pd-radius)',
-                    color: 'var(--pd-muted)',
-                  }}
-                >
-                  <RefreshCw className={cn('h-4 w-4', tasksLoading && 'animate-spin')} />
-                </button>
-              }
-            >
-              {null}
-            </SectionBlock>
-
-            <SectionBlock card>
-              {tasksLoading && tasks.length === 0 ? (
-                <EmptyState title="Caricamento attività…" />
-              ) : tasks.length === 0 ? (
-                <EmptyState
-                  title="Nessuna attività programmata"
-                  icon={<Bell className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
-                />
-              ) : (
-                tasks.map((task: any) => (
-                  <ListRow
-                    key={task.id}
-                    title={task.name}
-                    subtitle={
-                      task.readable
-                        ? `${task.description} · ${task.readable}${
-                            task.nextRun
-                              ? ` · prossima: ${format(new Date(task.nextRun), 'dd MMM yyyy HH:mm', { locale: it })}`
-                              : ''
-                          }`
-                        : task.description
-                    }
-                    meta={task.readable ? 'Programmato' : 'Manuale'}
-                    leading={
-                      task.id.includes('reminder') ? (
-                        <Bell className="h-5 w-5" style={{ color: 'var(--pd-accent)' }} />
-                      ) : (
-                        <Clock className="h-5 w-5" style={{ color: 'var(--pd-muted)' }} />
-                      )
-                    }
-                    trailing={
-                      <button
-                        type="button"
-                        onClick={() => runTask(task.id)}
-                        disabled={triggeringTask === task.id}
-                        className="px-3 py-1.5 text-xs font-semibold pd-btn-primary disabled:opacity-50 whitespace-nowrap"
-                      >
-                        {triggeringTask === task.id ? 'Esecuzione…' : 'Esegui ora'}
-                      </button>
-                    }
-                  />
-                ))
-              )}
-            </SectionBlock>
-          </div>
-        )}
       </div>
 
       <ConfirmationModal
@@ -627,9 +589,15 @@ export default function SystemAdminPage() {
         isDangerous={false}
         metadata={
           <div className="text-sm space-y-1">
-            <p><strong>Database:</strong> PostgreSQL (Neon)</p>
-            <p><strong>Formato:</strong> JSON esportato via Prisma</p>
-            <p><strong>Include:</strong> Utenti, turni, ore, assenze, ecc.</p>
+            <p>
+              <strong>Database:</strong> PostgreSQL (Neon)
+            </p>
+            <p>
+              <strong>Formato:</strong> JSON esportato via Prisma
+            </p>
+            <p>
+              <strong>Include:</strong> Utenti, turni, ore, assenze, ecc.
+            </p>
           </div>
         }
       />
@@ -638,7 +606,7 @@ export default function SystemAdminPage() {
         isOpen={showCleanupConfirm}
         onClose={() => setShowCleanupConfirm(false)}
         onConfirm={() => {
-          alert('I backup sono on-demand e scaricati direttamente. Non ci sono file da eliminare.')
+          showToast('I backup sono on-demand: non ci sono file da eliminare.', 'info')
           setShowCleanupConfirm(false)
         }}
         title="Info pulizia backup"
@@ -648,8 +616,12 @@ export default function SystemAdminPage() {
         isDangerous={false}
         metadata={
           <div className="text-sm space-y-1">
-            <p><strong>Sistema:</strong> Backup on-demand</p>
-            <p><strong>Storico:</strong> Visibile nei log di audit</p>
+            <p>
+              <strong>Sistema:</strong> Backup on-demand
+            </p>
+            <p>
+              <strong>Storico:</strong> Visibile nei log di audit
+            </p>
           </div>
         }
       />

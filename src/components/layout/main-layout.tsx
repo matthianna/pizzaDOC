@@ -7,8 +7,6 @@ import { Sidebar } from './sidebar'
 import { MobileBottomNav } from './mobile-bottom-nav'
 import { LoadingSpinner } from '../ui/loading-spinner'
 import { isAdmin } from '@/lib/auth-utils'
-import { NotificationBell } from '../notifications/notification-bell'
-import Image from 'next/image'
 import { useHaptics } from '@/hooks/use-haptics'
 import { RefreshCw } from 'lucide-react'
 import { BadgeManager } from '../pwa/badge-manager'
@@ -119,48 +117,32 @@ export function MainLayout({
     contentWidth === '4xl' ? 'max-w-4xl' : contentWidth === '6xl' ? 'max-w-6xl' : 'max-w-7xl'
 
   return (
-    <div className="min-h-dvh flex flex-col overflow-x-hidden pd-app-shell" style={{ background: 'var(--pd-bg)' }}>
+    <>
       <DocumentTitle override={title} />
       <BadgeManager />
       <Sidebar />
-
-      {/* Mobile top bar — logo + notifications only (theme toggle lives in sidebar) */}
-      <div
-        className="lg:hidden fixed top-0 left-0 right-0 z-40 border-b pt-safe"
-        style={{
-          background: 'color-mix(in srgb, var(--pd-surface) 92%, transparent)',
-          borderColor: 'var(--pd-border)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
-        <div className="h-14 px-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0 pl-12">
-            <Image
-              src="/logo-pizza-doc.png?v=3"
-              alt="Pizza D.O.C."
-              width={140}
-              height={36}
-              className="h-8 w-auto max-h-8 max-w-[min(160px,50vw)] object-contain object-left"
-              priority
-            />
-          </div>
-          <NotificationBell />
-        </div>
-      </div>
+      <MobileBottomNav />
 
       <div
-        className="flex-1 lg:pl-64 min-w-0"
+        className="min-h-dvh pd-app-shell lg:pl-64"
+        style={{ background: 'var(--pd-bg)' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         <main
-          className="relative py-4 lg:py-6 pb-24 lg:pb-8 min-h-dvh"
-          style={{
-            transform: `translateY(${pullDistance}px)`,
-            transition:
-              pullDistance === 0 || isRefreshing ? 'transform 0.3s cubic-bezier(0,0,0.2,1)' : 'none',
-          }}
+          className="relative py-4 lg:py-6 pb-28 lg:pb-8 min-h-dvh overflow-x-hidden"
+          style={
+            pullDistance > 0 || isRefreshing
+              ? {
+                  transform: `translateY(${pullDistance}px)`,
+                  transition:
+                    pullDistance === 0 || isRefreshing
+                      ? 'transform 0.3s cubic-bezier(0,0,0.2,1)'
+                      : 'none',
+                }
+              : undefined
+          }
         >
           <div
             className={`pull-indicator transition-opacity duration-200 ${pullDistance > 20 ? 'opacity-100' : 'opacity-0'} ${pullDistance >= 60 ? 'pulling' : ''} ${isRefreshing ? 'refreshing' : ''}`}
@@ -173,14 +155,17 @@ export function MainLayout({
           </div>
 
           <div className={cn(maxW, 'mx-auto lg:mx-0 w-full px-4 sm:px-6 lg:px-8')}>
-            <div className="lg:hidden h-14 mb-3" />
+            <div
+              className="lg:hidden mb-3"
+              style={{ height: 'calc(3.5rem + env(safe-area-inset-top))' }}
+              aria-hidden
+            />
             <div key={pathname} className="animate-page-enter">
               {children}
             </div>
           </div>
         </main>
       </div>
-      <MobileBottomNav />
-    </div>
+    </>
   )
 }

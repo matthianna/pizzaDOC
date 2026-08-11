@@ -26,7 +26,9 @@ export function ListRow({
   className,
   as = 'div',
 }: ListRowProps) {
-  const interactive = Boolean(onClick) || as === 'button'
+  // Never nest buttons: if trailing actions exist, force a div row.
+  const resolvedAs = as === 'button' && trailing ? 'div' : as
+  const interactive = Boolean(onClick) || resolvedAs === 'button'
   const style = {
     background: highlight ? 'var(--pd-accent-soft)' : 'transparent',
     borderBottom: '1px solid var(--pd-border)',
@@ -34,6 +36,7 @@ export function ListRow({
   const rowClass = cn(
     'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
     interactive && 'hover:opacity-95 active:scale-[0.995]',
+    interactive && resolvedAs !== 'button' && 'cursor-pointer',
     className
   )
 
@@ -61,7 +64,7 @@ export function ListRow({
     </>
   )
 
-  if (as === 'button') {
+  if (resolvedAs === 'button') {
     return (
       <button type="button" data-list-row onClick={onClick} className={rowClass} style={style}>
         {body}
@@ -69,7 +72,7 @@ export function ListRow({
     )
   }
 
-  if (as === 'li') {
+  if (resolvedAs === 'li') {
     return (
       <li data-list-row className={rowClass} style={style} onClick={onClick}>
         {body}
@@ -78,7 +81,24 @@ export function ListRow({
   }
 
   return (
-    <div data-list-row className={rowClass} style={style} onClick={onClick}>
+    <div
+      data-list-row
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onClick()
+              }
+            }
+          : undefined
+      }
+      className={rowClass}
+      style={style}
+      onClick={onClick}
+    >
       {body}
     </div>
   )

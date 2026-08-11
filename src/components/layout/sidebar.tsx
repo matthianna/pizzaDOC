@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -18,7 +19,6 @@ import {
   PresentationChartLineIcon,
   ShieldCheckIcon,
   BanknotesIcon,
-  BellIcon,
   ChevronDownIcon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
@@ -34,12 +34,10 @@ import {
   PresentationChartLineIcon as PresentationChartLineIconSolid,
   ShieldCheckIcon as ShieldCheckIconSolid,
   BanknotesIcon as BanknotesIconSolid,
-  BellIcon as BellIconSolid,
   UserCircleIcon as UserCircleIconSolid,
 } from '@heroicons/react/24/solid'
-import { cn, getRoleName } from '@/lib/utils'
+import { cn, getRoleName, formatUsername } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
-import { NotificationBell } from '../notifications/notification-bell'
 import { useHaptics } from '@/hooks/use-haptics'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 
@@ -60,7 +58,7 @@ const SECTION_LABELS: Record<string, string> = {
   sostituzioni: 'Sostituzioni',
   personale: 'Personale',
   pianificazione: 'Pianificazione',
-  'admin-ore': 'Ore lavorate',
+  'admin-ore': 'Gestione ore',
   sistema: 'Sistema',
 }
 
@@ -68,7 +66,25 @@ export function Sidebar() {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { lightClick } = useHaptics()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!sidebarOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [sidebarOpen])
+
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
 
   if (!session) return null
 
@@ -76,26 +92,23 @@ export function Sidebar() {
 
   const navigation: NavItem[] = [
     { name: 'Home', href: '/dashboard', icon: HomeIcon, iconSolid: HomeIconSolid, adminOnly: false, section: 'home' },
-    { name: 'Notifiche', href: '/notifications', icon: BellIcon, iconSolid: BellIconSolid, adminOnly: false, section: 'home' },
+    { name: 'Piano Settimanale', href: '/weekly-plan', icon: CalendarIcon, iconSolid: CalendarIconSolid, adminOnly: false, hideForAdmin: true, section: 'home' },
     { name: 'Disponibilità', href: '/availability', icon: CalendarIcon, iconSolid: CalendarIconSolid, adminOnly: false, hideForAdmin: true, section: 'lavoro' },
     { name: 'Mio Piano', href: '/schedule', icon: ChartBarIcon, iconSolid: ChartBarIconSolid, adminOnly: false, hideForAdmin: true, section: 'lavoro' },
-    { name: 'Piano Settimanale', href: '/weekly-plan', icon: CalendarIcon, iconSolid: CalendarIconSolid, adminOnly: false, section: 'lavoro' },
     { name: 'Disponibilità Utenti', href: '/availability-overview', icon: UsersIcon, iconSolid: UsersIconSolid, adminOnly: false, hideForAdmin: true, section: 'lavoro' },
     { name: 'Le mie ore', href: '/hours', icon: ClockIcon, iconSolid: ClockIconSolid, adminOnly: false, hideForAdmin: true, section: 'ore' },
     { name: 'Assenze', href: '/absences', icon: CalendarIcon, iconSolid: CalendarIconSolid, adminOnly: false, hideForAdmin: true, section: 'ore' },
     { name: 'Sostituzioni', href: '/substitution-requests', icon: UserPlusIcon, iconSolid: UserPlusIconSolid, adminOnly: false, hideForAdmin: true, section: 'sostituzioni' },
     { name: 'Gestione Utenti', href: '/admin/users', icon: UsersIcon, iconSolid: UsersIconSolid, adminOnly: true, section: 'personale' },
     { name: 'Disponibilità Utenti', href: '/availability-overview', icon: UsersIcon, iconSolid: UsersIconSolid, adminOnly: true, section: 'personale' },
+    { name: 'Acconti', href: '/admin/advances', icon: BanknotesIcon, iconSolid: BanknotesIconSolid, adminOnly: true, section: 'personale' },
     { name: 'Piano Lavoro', href: '/admin/schedule', icon: ChartBarIcon, iconSolid: ChartBarIconSolid, adminOnly: true, section: 'pianificazione' },
     { name: 'Assenze', href: '/admin/absences', icon: CalendarIcon, iconSolid: CalendarIconSolid, adminOnly: true, section: 'pianificazione' },
     { name: 'Sostituzioni', href: '/admin/substitutions', icon: UserPlusIcon, iconSolid: UserPlusIconSolid, adminOnly: true, section: 'pianificazione' },
-    { name: 'Gestione Ore', href: '/admin/hours', icon: ClockIcon, iconSolid: ClockIconSolid, adminOnly: true, section: 'admin-ore' },
-    { name: 'Riepilogo Ore', href: '/admin/hours-summary', icon: PresentationChartLineIcon, iconSolid: PresentationChartLineIconSolid, adminOnly: true, section: 'admin-ore' },
-    { name: 'Acconti', href: '/admin/advances', icon: BanknotesIcon, iconSolid: BanknotesIconSolid, adminOnly: true, section: 'admin-ore' },
+    { name: 'Inserimento ore', href: '/admin/hours', icon: ClockIcon, iconSolid: ClockIconSolid, adminOnly: true, section: 'admin-ore' },
+    { name: 'Resoconto ore', href: '/admin/hours-summary', icon: PresentationChartLineIcon, iconSolid: PresentationChartLineIconSolid, adminOnly: true, section: 'admin-ore' },
     { name: 'Configurazioni', href: '/admin/settings', icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid, adminOnly: true, section: 'sistema' },
     { name: 'Sistema e Sicurezza', href: '/admin/system', icon: ShieldCheckIcon, iconSolid: ShieldCheckIconSolid, adminOnly: true, section: 'sistema' },
-    { name: 'Centro Notifiche', href: '/admin/notifications/all', icon: BellIcon, iconSolid: BellIconSolid, adminOnly: true, section: 'sistema' },
-    { name: 'Invia Broadcast', href: '/admin/notifications', icon: BellIcon, iconSolid: BellIconSolid, adminOnly: true, section: 'sistema' },
   ]
 
   const visibleNavigation = navigation.filter((item) => {
@@ -108,87 +121,154 @@ export function Sidebar() {
   const regularItems = visibleNavigation.filter((item) => !item.adminOnly)
   const adminItems = visibleNavigation.filter((item) => item.adminOnly)
 
-  return (
-    <>
-      <div className="lg:hidden fixed top-0 left-0 z-50 p-2 sm:p-4 pt-safe">
+  const closeSidebar = () => {
+    lightClick()
+    setSidebarOpen(false)
+  }
+
+  const mobileDrawer =
+    mounted &&
+    sidebarOpen &&
+    createPortal(
+      <div className="lg:hidden fixed inset-0 z-[100000]" role="dialog" aria-modal="true">
         <button
           type="button"
-          className="rounded-xl p-3 inline-flex items-center justify-center transition-all active:scale-95"
+          aria-label="Chiudi menu"
+          className="absolute inset-0"
+          style={{ background: 'rgba(0, 0, 0, 0.45)' }}
+          onClick={closeSidebar}
+        />
+        <div
+          className="absolute inset-y-0 left-0 flex w-[min(20rem,88vw)] flex-col shadow-2xl"
           style={{
-            color: 'var(--pd-muted)',
-            background: 'var(--pd-surface)',
-            border: '1px solid var(--pd-border)',
-            boxShadow: 'var(--pd-shadow)',
-          }}
-          onClick={() => {
-            lightClick()
-            setSidebarOpen(true)
+            backgroundColor: 'var(--pd-surface)',
+            borderRight: '1px solid var(--pd-border)',
           }}
         >
-          <span className="sr-only">Apri menu</span>
-          <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-        </button>
-      </div>
-
-      {sidebarOpen && (
-        <div className="lg:hidden">
-          <div className="fixed inset-0 flex z-50">
-            <div
-              className="fixed inset-0 bg-black/40"
-              onClick={() => {
-                lightClick()
-                setSidebarOpen(false)
-              }}
-            />
-            <div
-              className="relative flex-1 flex flex-col max-w-xs w-full shadow-2xl"
-              style={{ background: 'var(--pd-surface)' }}
-            >
-              <div className="absolute top-0 right-0 -mr-14 pt-safe mt-5">
-                <button
-                  type="button"
-                  className="flex items-center justify-center h-11 w-11 rounded-xl active:scale-95"
-                  style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}
-                  onClick={() => {
-                    lightClick()
-                    setSidebarOpen(false)
-                  }}
-                >
-                  <span className="sr-only">Chiudi menu</span>
-                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                </button>
-              </div>
-              <div className="flex-1 flex flex-col h-0 pt-safe pb-safe">
-                <SidebarContent
-                  regularItems={regularItems}
-                  adminItems={adminItems}
-                  pathname={pathname}
-                  session={session}
-                  isUserAdmin={isUserAdmin}
-                  isMobile
-                  onItemClick={() => setSidebarOpen(false)}
-                />
+          <div
+            className="flex items-center justify-between gap-2 px-4 border-b shrink-0"
+            style={{
+              borderColor: 'var(--pd-border)',
+              paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
+            }}
+          >
+            <div className="flex items-center gap-3 min-w-0 py-3">
+              <Image
+                src="/logo-pizza-doc.png?v=3"
+                alt="Pizza D.O.C."
+                width={36}
+                height={36}
+                className="rounded-lg object-contain shrink-0"
+                priority
+              />
+              <div className="min-w-0">
+                <p className="pd-display text-base font-semibold leading-tight truncate">Pizza D.O.C.</p>
+                <p className="text-[11px] truncate" style={{ color: 'var(--pd-muted)' }}>
+                  Gestione team
+                </p>
               </div>
             </div>
+            <button
+              type="button"
+              className="flex items-center justify-center h-10 w-10 shrink-0 active:scale-95"
+              style={{
+                background: 'var(--pd-surface-muted)',
+                borderRadius: 'var(--pd-radius)',
+                color: 'var(--pd-text)',
+              }}
+              onClick={closeSidebar}
+            >
+              <span className="sr-only">Chiudi menu</span>
+              <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col pb-safe">
+            <SidebarContent
+              regularItems={regularItems}
+              adminItems={adminItems}
+              pathname={pathname}
+              session={session}
+              isUserAdmin={isUserAdmin}
+              isMobile
+              hideBrandHeader
+              onItemClick={() => setSidebarOpen(false)}
+            />
           </div>
         </div>
-      )}
+      </div>,
+      document.body
+    )
 
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 z-30">
-        <div
-          className="flex flex-col flex-grow border-r"
-          style={{ background: 'var(--pd-surface)', borderColor: 'var(--pd-border)' }}
-        >
-          <SidebarContent
-            regularItems={regularItems}
-            adminItems={adminItems}
-            pathname={pathname}
-            session={session}
-            isUserAdmin={isUserAdmin}
-            isMobile={false}
+  const desktopSidebar =
+    mounted &&
+    createPortal(
+      <aside
+        className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 z-[90]"
+        style={{
+          backgroundColor: 'var(--pd-surface)',
+          borderRight: '1px solid var(--pd-border)',
+        }}
+      >
+        <SidebarContent
+          regularItems={regularItems}
+          adminItems={adminItems}
+          pathname={pathname}
+          session={session}
+          isUserAdmin={isUserAdmin}
+          isMobile={false}
+        />
+      </aside>,
+      document.body
+    )
+
+  const mobileHeader =
+    mounted &&
+    createPortal(
+      <div
+        className="lg:hidden fixed top-0 left-0 right-0 z-[95] border-b"
+        style={{
+          background: 'color-mix(in srgb, var(--pd-surface) 94%, transparent)',
+          borderColor: 'var(--pd-border)',
+          backdropFilter: 'blur(12px)',
+          paddingTop: 'env(safe-area-inset-top)',
+        }}
+      >
+        <div className="h-14 px-3 sm:px-4 flex items-center gap-2">
+          <button
+            type="button"
+            className="rounded-xl p-2.5 inline-flex items-center justify-center shrink-0 active:scale-95"
+            style={{
+              color: 'var(--pd-muted)',
+              backgroundColor: 'var(--pd-surface-muted)',
+              border: '1px solid var(--pd-border)',
+            }}
+            onClick={() => {
+              lightClick()
+              setSidebarOpen(true)
+            }}
+          >
+            <span className="sr-only">Apri menu</span>
+            <Bars3Icon className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <Image
+            src="/logo-pizza-doc.png?v=3"
+            alt="Pizza D.O.C."
+            width={140}
+            height={36}
+            className="h-8 w-auto max-h-8 max-w-[min(150px,46vw)] object-contain object-left"
+            priority
           />
         </div>
-      </div>
+      </div>,
+      document.body
+    )
+
+  return (
+    <>
+      {mobileHeader}
+      {mobileDrawer}
+      {desktopSidebar}
     </>
   )
 }
@@ -228,6 +308,7 @@ function SidebarContent({
   session,
   isUserAdmin,
   isMobile,
+  hideBrandHeader = false,
   onItemClick,
 }: {
   regularItems: NavItem[]
@@ -236,6 +317,7 @@ function SidebarContent({
   session: { user: { id: string; username: string; primaryRole: string } }
   isUserAdmin: boolean
   isMobile: boolean
+  hideBrandHeader?: boolean
   onItemClick?: () => void
 }) {
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
@@ -263,41 +345,47 @@ function SidebarContent({
         </button>
         {!isCollapsed &&
           sectionItems.map((item) => (
-            <NavLink key={`${item.section}-${item.name}-${item.href}`} item={item} pathname={pathname} onItemClick={onItemClick} />
+            <NavLink
+              key={`${item.section}-${item.name}-${item.href}`}
+              item={item}
+              pathname={pathname}
+              onItemClick={onItemClick}
+            />
           ))}
       </div>
     )
   }
 
   const staffSections = ['home', 'lavoro', 'ore', 'sostituzioni']
-  const adminSections = ['personale', 'pianificazione', 'admin-ore', 'sistema']
+  const adminSections = ['personale', 'admin-ore', 'sistema']
 
   return (
-    <div className="flex flex-col h-screen max-h-screen overflow-hidden">
-      <div
-        className={cn('flex items-center gap-3 px-5 border-b', isMobile ? 'pt-5 pb-4' : 'py-6')}
-        style={{ borderColor: 'var(--pd-border)' }}
-      >
-        <Image
-          src="/logo-pizza-doc.png?v=3"
-          alt="Pizza D.O.C."
-          width={40}
-          height={40}
-          className="rounded-lg object-contain shrink-0"
-          priority
-        />
-        <div className="min-w-0 flex-1">
-          <p className="pd-display text-lg font-semibold leading-tight tracking-tight truncate">
-            Pizza D.O.C.
-          </p>
-          <p className="text-[11px] truncate" style={{ color: 'var(--pd-muted)' }}>
-            Gestione team
-          </p>
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      {!hideBrandHeader && (
+        <div
+          className={cn('flex items-center gap-3 px-5 border-b', isMobile ? 'pt-5 pb-4' : 'py-6')}
+          style={{ borderColor: 'var(--pd-border)' }}
+        >
+          <Image
+            src="/logo-pizza-doc.png?v=3"
+            alt="Pizza D.O.C."
+            width={40}
+            height={40}
+            className="rounded-lg object-contain shrink-0"
+            priority
+          />
+          <div className="min-w-0 flex-1">
+            <p className="pd-display text-lg font-semibold leading-tight tracking-tight truncate">
+              Pizza D.O.C.
+            </p>
+            <p className="text-[11px] truncate" style={{ color: 'var(--pd-muted)' }}>
+              Gestione team
+            </p>
+          </div>
         </div>
-        {!isMobile ? <NotificationBell /> : null}
-      </div>
+      )}
 
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 shrink-0">
         <div
           className="flex items-center gap-3 p-3"
           style={{
@@ -312,7 +400,7 @@ function SidebarContent({
             {session.user.username.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">{session.user.username}</p>
+            <p className="text-sm font-semibold truncate">{formatUsername(session.user.username)}</p>
             <p className="text-[11px] font-medium mt-0.5" style={{ color: 'var(--pd-accent)' }}>
               {getRoleName(session.user.primaryRole)}
             </p>
@@ -325,6 +413,7 @@ function SidebarContent({
         {isUserAdmin && (
           <>
             {renderSection('home', regularItems)}
+            {renderSection('pianificazione', adminItems)}
             {renderSection('lavoro', regularItems)}
             {adminSections.map((s) => renderSection(s, adminItems))}
           </>

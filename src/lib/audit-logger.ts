@@ -89,3 +89,43 @@ export async function getAuditLogs(filters?: {
   return { logs, total }
 }
 
+/**
+ * Contatori aggregati per la dashboard Sistema.
+ */
+export async function getAuditStats() {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfWeek = new Date(startOfToday)
+  startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)) // lunedì
+
+  const [total, today, thisWeek, backupsCount, lastBackup, topActions] = await Promise.all([
+    prisma.audit_logs.count(),
+    prisma.audit_logs.count({ where: { createdAt: { gte: startOfToday } } }),
+    prisma.audit_logs.count({ where: { createdAt: { gte: startOfWeek } } }),
+    prisma.audit_logs.count({ where: { action: 'DATABASE_BACKUP' } }),
+    prisma.audit_logs.findFirst({
+      where: { action: 'DATABASE_BACKUP' },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    }),
+    prisma.audit_logs.groupBy({
+      by: ['action'],
+      _count: { action: true },
+      orderBy: { _count: { action: 'desc' } },
+      take: 8,
+    }),
+  ])
+
+  return {
+    total,
+    today,
+    thisWeek,
+    backupsCount,
+    lastBackup: lastBackup?.createdAt ?? null,
+    topActions: topActions.map((row) => ({
+      action: row.action,
+      count: row._count.action,
+    })),
+  }
+}
+

@@ -38,20 +38,26 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [loading, setLoading] = useState(false)
     const [hasMore, setHasMore] = useState(true)
+    const notificationsRef = useRef(0)
 
     const fetchNotifications = useCallback(async (reset = false) => {
         if (!session?.user?.id) return
 
         setLoading(true)
         try {
-            const offset = reset ? 0 : notifications.length
+            const offset = reset ? 0 : notificationsRef.current
             const response = await fetch(`/api/notifications?limit=10&offset=${offset}`)
             if (response.ok) {
                 const data = await response.json()
                 if (reset) {
                     setNotifications(data.notifications)
+                    notificationsRef.current = data.notifications.length
                 } else {
-                    setNotifications(prev => [...prev, ...data.notifications])
+                    setNotifications(prev => {
+                        const next = [...prev, ...data.notifications]
+                        notificationsRef.current = next.length
+                        return next
+                    })
                 }
                 setUnreadCount(data.unreadCount)
                 setHasMore(data.notifications.length === 10)
@@ -61,12 +67,13 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
         } finally {
             setLoading(false)
         }
-    }, [session?.user?.id, notifications.length, setUnreadCount])
+    }, [session?.user?.id, setUnreadCount])
 
-    // Initial fetch
+    // Load when panel opens
     useEffect(() => {
         if (session?.user?.id && isOpen) {
-            fetchNotifications(true)
+            notificationsRef.current = 0
+            void fetchNotifications(true)
         }
     }, [session?.user?.id, isOpen, fetchNotifications])
 
@@ -141,15 +148,27 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
     const buttonRef = useRef<HTMLButtonElement>(null)
     const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 })
 
-    // Update panel position when opening
+    // Update panel position when opening / resizing
     useEffect(() => {
-        if (isOpen && buttonRef.current) {
+        if (!isOpen || !buttonRef.current) return
+
+        const update = () => {
+            if (!buttonRef.current) return
             const rect = buttonRef.current.getBoundingClientRect()
+            const panelWidth = Math.min(384, window.innerWidth - 32)
+            const left = Math.min(
+                Math.max(16, rect.right - panelWidth),
+                window.innerWidth - panelWidth - 16
+            )
             setPanelPosition({
                 top: rect.bottom + 8,
-                left: Math.max(16, Math.min(rect.left, window.innerWidth - 400))
+                left,
             })
         }
+
+        update()
+        window.addEventListener('resize', update)
+        return () => window.removeEventListener('resize', update)
     }, [isOpen])
 
     if (!session?.user?.id) return null

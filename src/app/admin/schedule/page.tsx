@@ -3,14 +3,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { addWeeks, subWeeks } from 'date-fns'
 import { MainLayout } from '@/components/layout/main-layout'
-import { Calendar, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, Edit, Bell, Check } from 'lucide-react'
+import { Calendar, Play, Download, Trash2, AlertTriangle, UserPlus, Car, Bike, UserMinus, Clock, Edit, Bell } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-header'
 import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
 import { EmptyState } from '@/components/ui/list-row'
 import { WeekNavigator } from '@/components/ui/week-navigator'
 import { getNextWeekStart, getWeekDays, formatDate, getDayOfWeek, getWeekStart, addWeekCalendarDays } from '@/lib/date-utils'
-import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
+import { getDayName, getRoleName, getShiftTypeName, cn, formatUsername } from '@/lib/utils'
 import { Role, ShiftType, TransportType } from '@prisma/client'
 import { AddShiftModal } from '@/components/admin/add-shift-modal'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
@@ -675,42 +675,36 @@ export default function AdminSchedulePage() {
           ]}
         />
 
-        {missingAvailability.length > 0 ? (
+        {missingAvailability.length > 0 && (
           <div
-            className="px-4 py-3 flex flex-col sm:flex-row sm:items-start gap-3"
+            className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
             style={{
-              background: 'var(--pd-warning-soft, #fffbeb)',
+              background: 'var(--pd-surface)',
               border: '1px solid var(--pd-border)',
               borderRadius: 'var(--pd-radius-lg)',
+              boxShadow: 'var(--pd-shadow)',
             }}
           >
-            <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: 'var(--pd-warning)' }} />
-            <div className="min-w-0">
+            <div className="flex items-center gap-2 shrink-0">
+              <AlertTriangle className="h-4 w-4" style={{ color: 'var(--pd-warning)' }} />
               <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
-                Disponibilità mancanti ({missingAvailability.length})
-              </p>
-              <p className="text-xs mt-1" style={{ color: 'var(--pd-muted)' }}>
-                {missingAvailability.join(', ')}
+                {missingAvailability.length}{' '}
+                {missingAvailability.length === 1
+                  ? 'disponibilità mancante'
+                  : 'disponibilità mancanti'}
               </p>
             </div>
-          </div>
-        ) : (
-          <div
-            className="px-4 py-3 flex items-center gap-3"
-            style={{
-              background: 'var(--pd-success-soft)',
-              border: '1px solid var(--pd-border)',
-              borderRadius: 'var(--pd-radius-lg)',
-            }}
-          >
-            <Check className="h-5 w-5 shrink-0" style={{ color: 'var(--pd-success)' }} />
-            <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
-              Tutte le disponibilità sono state inserite
+            <p className="text-xs sm:text-sm min-w-0 truncate" style={{ color: 'var(--pd-muted)' }}>
+              {missingAvailability.join(' · ')}
             </p>
           </div>
         )}
 
-        <SectionBlock title="Matrice settimanale" card>
+        <SectionBlock
+          title="Matrice settimanale"
+          subtitle="Pranzo e cena per ruolo · tocca un collaboratore per modificare"
+          card
+        >
           {loading ? (
             <div className="p-8 space-y-6">
               <Skeleton className="h-10 w-48" />
@@ -718,27 +712,33 @@ export default function AdminSchedulePage() {
             </div>
           ) : schedule ? (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse min-w-[720px]">
+              <table className="w-full border-collapse min-w-[780px]">
                 <thead>
-                  <tr style={{ background: 'var(--pd-surface-muted)' }}>
+                  <tr>
                     <th
-                      className="px-4 py-3 text-left text-xs font-semibold w-[140px]"
-                      style={{ color: 'var(--pd-muted)', borderBottom: '1px solid var(--pd-border)' }}
+                      className="sticky left-0 z-[1] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide w-[128px]"
+                      style={{
+                        color: 'var(--pd-muted)',
+                        background: 'var(--pd-surface-muted)',
+                        borderBottom: '1px solid var(--pd-border)',
+                      }}
                     >
                       Giorno
                     </th>
-                    <th
-                      className="px-4 py-3 text-left text-xs font-semibold"
-                      style={{ color: 'var(--pd-muted)', borderBottom: '1px solid var(--pd-border)' }}
-                    >
-                      Pranzo
-                    </th>
-                    <th
-                      className="px-4 py-3 text-left text-xs font-semibold"
-                      style={{ color: 'var(--pd-muted)', borderBottom: '1px solid var(--pd-border)' }}
-                    >
-                      Cena
-                    </th>
+                    {(['PRANZO', 'CENA'] as const).map((slot) => (
+                      <th
+                        key={slot}
+                        className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide"
+                        style={{
+                          color: 'var(--pd-muted)',
+                          background: 'var(--pd-surface-muted)',
+                          borderBottom: '1px solid var(--pd-border)',
+                          borderLeft: '1px solid var(--pd-border)',
+                        }}
+                      >
+                        {slot === 'PRANZO' ? 'Pranzo' : 'Cena'}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -753,25 +753,40 @@ export default function AdminSchedulePage() {
                         dayHolidays.map((h) => h.description?.trim()).filter(Boolean) as string[]
                       ),
                     ]
+                    const dayAssigned =
+                      pranzoCrew.length +
+                      cenaCrew.length
 
                     return (
                       <tr
-                        key={index}
+                        key={`${dayOfWeek}-${index}`}
                         style={{
-                          background: isFullClosureDay ? 'var(--pd-accent-soft)' : undefined,
+                          background: isFullClosureDay
+                            ? 'color-mix(in srgb, var(--pd-danger-soft) 55%, var(--pd-surface))'
+                            : index % 2 === 0
+                              ? 'var(--pd-surface)'
+                              : 'color-mix(in srgb, var(--pd-surface-muted) 45%, var(--pd-surface))',
                           borderBottom: '1px solid var(--pd-border)',
                         }}
                       >
                         <td
-                          className="px-4 py-4 align-top"
-                          style={{ borderRight: '1px solid var(--pd-border)' }}
+                          className="sticky left-0 z-[1] px-4 py-4 align-top"
+                          style={{
+                            background: 'inherit',
+                            borderRight: '1px solid var(--pd-border)',
+                          }}
                         >
                           <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
                             {getDayName(dayOfWeek)}
                           </p>
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
+                          <p className="text-xs mt-0.5 tabular-nums" style={{ color: 'var(--pd-muted)' }}>
                             {formatDate(day)}
                           </p>
+                          {!isFullClosureDay && dayAssigned > 0 && (
+                            <p className="text-[11px] mt-2 tabular-nums" style={{ color: 'var(--pd-muted)' }}>
+                              {dayAssigned} in servizio
+                            </p>
+                          )}
                           {holidayBadges.length > 0 && (
                             <div className="flex flex-col gap-1 mt-2">
                               {holidayBadges.map((label) => (
@@ -779,10 +794,8 @@ export default function AdminSchedulePage() {
                                   key={label}
                                   className="inline-flex self-start px-2 py-0.5 text-[11px] font-medium"
                                   style={{
-                                    background: isFullClosureDay
-                                      ? 'var(--pd-surface)'
-                                      : 'var(--pd-surface-muted)',
-                                    color: 'var(--pd-text)',
+                                    background: 'var(--pd-surface)',
+                                    color: 'var(--pd-danger)',
                                     borderRadius: 'var(--pd-radius-sm)',
                                     border: '1px solid var(--pd-border)',
                                   }}
@@ -798,7 +811,10 @@ export default function AdminSchedulePage() {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-4 align-top">
+                        <td
+                          className="px-3 py-3 align-top"
+                          style={{ borderLeft: '1px solid var(--pd-border)' }}
+                        >
                           <ShiftCrew
                             shifts={pranzoCrew}
                             day={day}
@@ -813,7 +829,10 @@ export default function AdminSchedulePage() {
                             onQuickAdd={handleQuickAdd}
                           />
                         </td>
-                        <td className="px-4 py-4 align-top">
+                        <td
+                          className="px-3 py-3 align-top"
+                          style={{ borderLeft: '1px solid var(--pd-border)' }}
+                        >
                           <ShiftCrew
                             shifts={cenaCrew}
                             day={day}
@@ -889,7 +908,7 @@ export default function AdminSchedulePage() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-sm" style={{ color: 'var(--pd-danger)' }}>
-                    {selectedShift.user.username}
+                    {formatUsername(selectedShift.user.username)}
                   </h4>
                   <p className="text-xs text-[var(--pd-danger)] font-medium">Sarà rimosso dal turno</p>
                 </div>
@@ -968,7 +987,7 @@ export default function AdminSchedulePage() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-sm" style={{ color: 'var(--pd-text)' }}>
-                    {editingShift.user.username}
+                    {formatUsername(editingShift.user.username)}
                   </h4>
                   <p className="text-xs text-[var(--pd-accent)] font-medium">Modifica orario di inizio</p>
                 </div>
@@ -1058,7 +1077,7 @@ export default function AdminSchedulePage() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-[var(--pd-text)] text-sm ">
-                    {editingRoleShift.user.username}
+                    {formatUsername(editingRoleShift.user.username)}
                   </h4>
                   <p className="text-xs text-[var(--pd-accent)] font-medium">Cambia ruolo per questo turno</p>
                 </div>
@@ -1199,13 +1218,12 @@ function ShiftCrew({
   day,
   dayOfWeek,
   shiftType,
-  gaps,
   shiftLimits,
   holidays,
   onRemoveShift,
   onEditTime,
   onEditRole,
-  onQuickAdd
+  onQuickAdd,
 }: {
   shifts: ScheduleShift[]
   day: Date
@@ -1219,121 +1237,154 @@ function ShiftCrew({
   onEditRole?: (shift: ScheduleShift) => void
   onQuickAdd?: (dayOfWeek: number, shiftType: ShiftType, role: Role) => void
 }) {
-  // Check if this day/shift is a holiday
-  const isHoliday = holidays.some(h => {
+  const isHoliday = holidays.some((h) => {
     const holidayDate = new Date(h.date).toISOString().split('T')[0]
     const currentDate = day.toISOString().split('T')[0]
-    return holidayDate === currentDate && (
-      h.closureType === 'FULL_DAY' ||
-      (h.closureType === 'PRANZO_ONLY' && shiftType === 'PRANZO') ||
-      (h.closureType === 'CENA_ONLY' && shiftType === 'CENA')
+    return (
+      holidayDate === currentDate &&
+      (h.closureType === 'FULL_DAY' ||
+        (h.closureType === 'PRANZO_ONLY' && shiftType === 'PRANZO') ||
+        (h.closureType === 'CENA_ONLY' && shiftType === 'CENA'))
     )
   })
 
   if (isHoliday) {
     return (
-      <div className="flex items-center justify-center py-2">
-        <span
-          className="inline-flex items-center px-2.5 py-1 text-xs font-semibold"
-          style={{
-            background: 'var(--pd-danger-soft)',
-            color: 'var(--pd-danger)',
-            borderRadius: 'var(--pd-radius-sm)',
-            border: '1px solid var(--pd-border)',
-          }}
-        >
-          Chiuso
-        </span>
+      <div
+        className="flex items-center justify-center py-6 text-xs font-semibold"
+        style={{
+          color: 'var(--pd-danger)',
+          background: 'var(--pd-danger-soft)',
+          borderRadius: 'var(--pd-radius)',
+          border: '1px dashed color-mix(in srgb, var(--pd-danger) 35%, transparent)',
+        }}
+      >
+        Chiuso
       </div>
     )
   }
 
-  // Group by role
-  const byRole = shifts.reduce((acc, shift) => {
-    if (!acc[shift.role]) acc[shift.role] = []
-    acc[shift.role].push(shift)
-    return acc
-  }, {} as Record<Role, ScheduleShift[]>)
+  const byRole = shifts.reduce(
+    (acc, shift) => {
+      if (!acc[shift.role]) acc[shift.role] = []
+      acc[shift.role].push(shift)
+      return acc
+    },
+    {} as Record<Role, ScheduleShift[]>
+  )
 
-  // Get all roles that should be displayed (configured + assigned)
+  const roleOrder: Role[] = ['PIZZAIOLO', 'CUCINA', 'FATTORINO', 'SALA']
   const allRoles = new Set<Role>()
 
-  // Add roles from shift limits
-  shiftLimits.forEach(limit => {
+  shiftLimits.forEach((limit) => {
     if (limit.dayOfWeek === dayOfWeek && limit.shiftType === shiftType && limit.requiredStaff > 0) {
       allRoles.add(limit.role as Role)
     }
   })
+  shifts.forEach((shift) => allRoles.add(shift.role))
 
-  // Add roles from assigned shifts
-  shifts.forEach(shift => allRoles.add(shift.role))
+  const orderedRoles = roleOrder.filter((r) => allRoles.has(r))
 
-  if (allRoles.size === 0) {
-    return <span className="text-[var(--pd-muted)] text-sm">Nessuno assegnato</span>
+  if (orderedRoles.length === 0) {
+    return (
+      <p className="text-sm py-4 text-center" style={{ color: 'var(--pd-muted)' }}>
+        Nessun requisito
+      </p>
+    )
   }
 
   return (
-    <div className="space-y-2">
-      {Array.from(allRoles).map((role) => {
+    <div className="space-y-3">
+      {orderedRoles.map((role) => {
         const roleShifts = byRole[role] || []
-        const limit = shiftLimits.find(l =>
-          l.dayOfWeek === dayOfWeek &&
-          l.shiftType === shiftType &&
-          l.role === role
+        const limit = shiftLimits.find(
+          (l) => l.dayOfWeek === dayOfWeek && l.shiftType === shiftType && l.role === role
         )
-        const gap = gaps.find(g =>
-          g.dayOfWeek === dayOfWeek &&
-          g.shiftType === shiftType &&
-          g.role === role
-        )
-
         const required = limit?.requiredStaff || 0
         const assigned = roleShifts.length
         const missing = Math.max(0, required - assigned)
+        const fillPct = required > 0 ? Math.min(100, Math.round((assigned / required) * 100)) : 100
+        const complete = missing === 0 && required > 0
 
         return (
-          <div key={role}>
-            <div className="flex items-center justify-between mb-1 group/role">
-              <div className="flex items-center gap-2">
-                <div className="text-xs font-medium text-[var(--pd-text)]">
-                  {getRoleName(role)} ({assigned}/{required})
-                </div>
+          <div
+            key={role}
+            className="rounded-[var(--pd-radius)] p-2.5"
+            style={{
+              background: 'var(--pd-surface)',
+              border: `1px solid ${
+                missing > 0
+                  ? 'color-mix(in srgb, var(--pd-danger) 28%, var(--pd-border))'
+                  : 'var(--pd-border)'
+              }`,
+            }}
+          >
+            <div className="flex items-center justify-between gap-2 mb-2 group/role">
+              <div className="flex items-center gap-2 min-w-0">
+                <p className="text-xs font-semibold truncate" style={{ color: 'var(--pd-text)' }}>
+                  {getRoleName(role)}
+                </p>
+                <span
+                  className="text-[11px] font-medium tabular-nums shrink-0"
+                  style={{ color: complete ? 'var(--pd-success)' : 'var(--pd-muted)' }}
+                >
+                  {assigned}/{required || '—'}
+                </span>
                 {onQuickAdd && (
                   <button
+                    type="button"
                     onClick={() => onQuickAdd(dayOfWeek, shiftType, role)}
-                    className="inline-flex items-center justify-center w-5 h-5 md:w-4 md:h-4 rounded-full bg-[var(--pd-accent)] text-white hover:bg-[var(--pd-accent-hover)] transition-all opacity-100 md:opacity-0 md:group-hover/role:opacity-100"
+                    className="inline-flex items-center justify-center w-5 h-5 rounded-full transition-opacity opacity-100 md:opacity-0 md:group-hover/role:opacity-100"
+                    style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}
                     title={`Aggiungi ${getRoleName(role)}`}
                   >
-                    <UserPlus className="h-3 w-3 md:h-2.5 md:w-2.5" />
+                    <UserPlus className="h-3 w-3" />
                   </button>
                 )}
               </div>
-              {missing > 0 && (
-                <span className="text-xs font-medium text-[var(--pd-danger)] bg-[var(--pd-danger-soft)] px-2 py-0.5 rounded">
-                  -{missing}
-                </span>
+              {required > 0 && (
+                <div
+                  className="h-1 w-14 rounded-full overflow-hidden shrink-0"
+                  style={{ background: 'var(--pd-surface-muted)' }}
+                  title={`${fillPct}% copertura`}
+                >
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${fillPct}%`,
+                      background: complete ? 'var(--pd-success)' : 'var(--pd-warning)',
+                    }}
+                  />
+                </div>
               )}
             </div>
-            <div className="flex flex-wrap gap-1">
+
+            <div className="flex flex-wrap gap-1.5">
               {roleShifts.map((shift) => {
                 const transportIcon = getTransportIcon(shift.user, shift.role)
                 return (
                   <div
                     key={shift.id}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--pd-accent-soft)] text-[var(--pd-accent-hover)] group relative"
+                    className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 text-xs font-medium group relative"
+                    style={{
+                      background: 'var(--pd-surface-muted)',
+                      color: 'var(--pd-text)',
+                      borderRadius: 'var(--pd-radius-pill)',
+                      border: '1px solid var(--pd-border)',
+                    }}
                   >
-                    <span className="flex items-center gap-1">
-                      {shift.user.username}
-                      {transportIcon}
-                      <span className="text-xs text-[var(--pd-accent)] ml-1">
-                        {shift.startTime}
-                      </span>
+                    <span className="truncate max-w-[7.5rem]">{formatUsername(shift.user.username)}</span>
+                    {transportIcon}
+                    <span className="tabular-nums" style={{ color: 'var(--pd-muted)' }}>
+                      {shift.startTime}
                     </span>
-                    <div className="flex items-center gap-1 ml-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <span className="flex items-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       {onEditTime && (
                         <button
+                          type="button"
                           onClick={() => onEditTime(shift)}
-                          className="text-[var(--pd-accent)] hover:text-[var(--pd-accent)] p-1"
+                          className="p-1"
+                          style={{ color: 'var(--pd-muted)' }}
                           title="Modifica orari"
                         >
                           <Clock className="h-3 w-3" />
@@ -1341,8 +1392,10 @@ function ShiftCrew({
                       )}
                       {onEditRole && (
                         <button
+                          type="button"
                           onClick={() => onEditRole(shift)}
-                          className="text-[var(--pd-accent)] hover:text-[var(--pd-text)] p-1"
+                          className="p-1"
+                          style={{ color: 'var(--pd-muted)' }}
                           title="Modifica ruolo"
                         >
                           <Edit className="h-3 w-3" />
@@ -1350,24 +1403,38 @@ function ShiftCrew({
                       )}
                       {onRemoveShift && (
                         <button
+                          type="button"
                           onClick={() => onRemoveShift(shift)}
-                          className="text-[var(--pd-danger)] hover:opacity-70 p-1"
+                          className="p-1"
+                          style={{ color: 'var(--pd-danger)' }}
                           title="Rimuovi dal turno"
                         >
                           <UserMinus className="h-3 w-3" />
                         </button>
                       )}
-                    </div>
+                    </span>
                   </div>
                 )
               })}
-              {missing > 0 && (
-                <div className="inline-flex items-center gap-1">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--pd-danger-soft)] text-[var(--pd-danger)] border border-[var(--pd-border)] border-dashed">
-                    Mancano {missing}
-                  </span>
-                </div>
-              )}
+
+              {Array.from({ length: missing }).map((_, i) => (
+                <button
+                  key={`gap-${role}-${i}`}
+                  type="button"
+                  onClick={() => onQuickAdd?.(dayOfWeek, shiftType, role)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium pd-press"
+                  style={{
+                    color: 'var(--pd-danger)',
+                    background: 'transparent',
+                    borderRadius: 'var(--pd-radius-pill)',
+                    border: '1px dashed color-mix(in srgb, var(--pd-danger) 45%, var(--pd-border))',
+                  }}
+                  title={`Aggiungi ${getRoleName(role)}`}
+                >
+                  <UserPlus className="h-3 w-3" />
+                  Slot libero
+                </button>
+              ))}
             </div>
           </div>
         )

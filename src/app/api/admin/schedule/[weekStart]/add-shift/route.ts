@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { normalizeDate } from '@/lib/normalize-date'
+import { logAuditAction } from '@/lib/audit-logger'
+import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
 
 export async function POST(
   request: NextRequest,
@@ -109,6 +111,24 @@ export async function POST(
           }
         }
       }
+    })
+
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: session.user.username,
+      action: 'SHIFT_ADD',
+      description: `Aggiunto turno: ${user.username} · ${getDayName(dayOfWeek)} ${getShiftTypeName(shiftType as 'PRANZO' | 'CENA')} · ${getRoleName(role)} (${startTime}–${endTime})`,
+      metadata: {
+        shiftId: newShift.id,
+        weekStart: weekStart.toISOString?.() ?? String(weekStart),
+        targetUserId: userId,
+        targetUsername: user.username,
+        dayOfWeek,
+        shiftType,
+        role,
+        startTime,
+        endTime,
+      },
     })
 
     return NextResponse.json({
