@@ -116,10 +116,10 @@ export function NotificationPermissionPrompt() {
         kind === 'denied' ? <BellOff className="h-8 w-8" /> : <Bell className="h-8 w-8" />
       }
     >
-      <div className="space-y-4 text-gray-700 text-[15px] leading-relaxed">
+      <div className="space-y-4 text-[15px] leading-relaxed" style={{ color: 'var(--pd-text)' }}>
         {kind === 'request' && (
           <>
-            <p>
+            <p style={{ color: 'var(--pd-muted)' }}>
               PizzaDOC può inviarti notifiche quando sei nell’app installata o nel browser. Tocca il pulsante
               qui sotto per consentire le notifiche, poi conferma nella finestra di sistema.
             </p>
@@ -127,7 +127,7 @@ export function NotificationPermissionPrompt() {
               type="button"
               disabled={isLoading}
               onClick={() => void onRequestPermission()}
-              className="w-full py-3 px-4 rounded-2xl bg-orange-600 text-white font-black text-sm uppercase tracking-wide shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-2xl pd-btn-primary text-sm disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
               Consenti notifiche
@@ -137,7 +137,7 @@ export function NotificationPermissionPrompt() {
 
         {kind === 'subscribe' && (
           <>
-            <p>
+            <p style={{ color: 'var(--pd-muted)' }}>
               Le notifiche sono consentite, ma l’iscrizione push non è ancora attiva. Completa l’attivazione per
               ricevere gli avvisi anche quando l’app è in background.
             </p>
@@ -145,7 +145,7 @@ export function NotificationPermissionPrompt() {
               type="button"
               disabled={isLoading}
               onClick={() => void onSubscribeOnly()}
-              className="w-full py-3 px-4 rounded-2xl bg-orange-600 text-white font-black text-sm uppercase tracking-wide shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-2xl pd-btn-primary text-sm disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
               Attiva notifiche push
@@ -155,34 +155,34 @@ export function NotificationPermissionPrompt() {
 
         {kind === 'denied' && (
           <>
-            <p>
+            <p style={{ color: 'var(--pd-muted)' }}>
               Hai bloccato le notifiche per questo sito. Per ricevere avvisi su turni, sostituzioni e messaggi
               importanti, devi riattivarle dalle impostazioni del browser o del sistema.
             </p>
-            <ul className="list-disc pl-5 space-y-2 text-sm text-gray-600">
+            <ul className="list-disc pl-5 space-y-2 text-sm" style={{ color: 'var(--pd-muted)' }}>
               <li>
-                <strong className="text-gray-800">Chrome / Edge (Android):</strong> menu del sito → Impostazioni
-                sito → Notifiche → Consenti.
+                <strong style={{ color: 'var(--pd-text)' }}>Chrome / Edge (Android):</strong> menu del sito →
+                Impostazioni sito → Notifiche → Consenti.
               </li>
               <li>
-                <strong className="text-gray-800">Safari / Web app (iOS):</strong> Impostazioni → notifiche per
-                PizzaDOC o per Safari → siti web.
+                <strong style={{ color: 'var(--pd-text)' }}>Safari / Web app (iOS):</strong> Impostazioni →
+                notifiche per PizzaDOC o per Safari → siti web.
               </li>
               <li>
-                <strong className="text-gray-800">Desktop:</strong> icona del lucchetto nella barra indirizzi →
-                Impostazioni sito → Notifiche.
+                <strong style={{ color: 'var(--pd-text)' }}>Desktop:</strong> icona del lucchetto nella barra
+                indirizzi → Impostazioni sito → Notifiche.
               </li>
             </ul>
           </>
         )}
 
         {error && (
-          <p className="text-sm text-red-600 font-semibold" role="alert">
+          <p className="text-sm font-semibold" role="alert" style={{ color: 'var(--pd-danger)' }}>
             {error}
           </p>
         )}
 
-        <p className="text-sm text-gray-500">
+        <p className="text-sm" style={{ color: 'var(--pd-muted)' }}>
           Questo promemoria può comparire di nuovo quando torni sulla dashboard o sull’app finché le notifiche
           push non sono attive.
         </p>

@@ -289,8 +289,8 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
     return (
       <Modal isOpen={true} onClose={onClose} title="Caricamento..." maxWidth="md">
         <div className="flex flex-col items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mb-4"></div>
-          <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Preparazione turni...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--pd-accent)] mb-4"></div>
+          <p className="text-[var(--pd-muted)] font-bold uppercase tracking-widest text-xs">Preparazione turni...</p>
         </div>
       </Modal>
     )
@@ -308,7 +308,7 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
       <form onSubmit={handleSubmit} className="space-y-8 pt-4">
         {/* Dipendente */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+          <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] px-1 flex items-center gap-2">
             <User className="h-3 w-3" /> Dipendente
           </label>
           <div className="relative group">
@@ -316,7 +316,7 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
               required
               value={selectedUserId}
               onChange={(e) => setSelectedUserId(e.target.value)}
-              className="w-full pl-5 pr-12 py-4 bg-gray-50 border-gray-100 border-2 rounded-[1.5rem] text-sm font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all appearance-none"
+              className="w-full pl-5 pr-12 py-4 bg-[var(--pd-surface-muted)] border-[var(--pd-border)] border-2 rounded-[1.5rem] text-sm font-black text-[var(--pd-text)] focus:outline-none focus:ring-2 focus:ring-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all appearance-none"
             >
               <option value="">Seleziona collaboratore...</option>
               {sortedUsers.map(user => {
@@ -324,49 +324,48 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
                 const available = isUserAvailable(user)
                 return (
                   <option key={user.id} value={user.id} disabled={alreadyAssigned}>
-                    {available ? '✅ ' : alreadyAssigned ? '🔒 ' : '⛔ '}
                     {user.username} ({getRoleName(user.primaryRole)}) 
                     {alreadyAssigned ? ' - Già assegnato' : available ? ' - Disponibile' : ' - Non disp.'}
                   </option>
                 )
               })}
             </select>
-            <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+            <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--pd-muted)] rotate-90" />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Giorno */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+            <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] px-1 flex items-center gap-2">
               <Calendar className="h-3 w-3" /> Giorno
             </label>
             <div className="relative group">
               <select
                 value={selectedDay}
                 onChange={(e) => setSelectedDay(Number(e.target.value))}
-                className="w-full pl-5 pr-12 py-4 bg-gray-50 border-gray-100 border-2 rounded-[1.5rem] text-sm font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all appearance-none"
+                className="w-full pl-5 pr-12 py-4 bg-[var(--pd-surface-muted)] border-[var(--pd-border)] border-2 rounded-[1.5rem] text-sm font-black text-[var(--pd-text)] focus:outline-none focus:ring-2 focus:ring-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all appearance-none"
               >
                 {days.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
-              <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+              <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--pd-muted)] rotate-90" />
             </div>
           </div>
 
           {/* Turno */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+            <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] px-1 flex items-center gap-2">
               <Clock className="h-3 w-3" /> Turno
             </label>
             <div className="relative group">
               <select
                 value={selectedShiftType}
                 onChange={(e) => setSelectedShiftType(e.target.value)}
-                className="w-full pl-5 pr-12 py-4 bg-gray-50 border-gray-100 border-2 rounded-[1.5rem] text-sm font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all appearance-none"
+                className="w-full pl-5 pr-12 py-4 bg-[var(--pd-surface-muted)] border-[var(--pd-border)] border-2 rounded-[1.5rem] text-sm font-black text-[var(--pd-text)] focus:outline-none focus:ring-2 focus:ring-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all appearance-none"
               >
                 {shiftTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
-              <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+              <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--pd-muted)] rotate-90" />
             </div>
           </div>
         </div>
@@ -374,7 +373,7 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Ruolo */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+            <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] px-1 flex items-center gap-2">
               <ShieldCheck className="h-3 w-3" /> Ruolo
             </label>
             <div className="relative group">
@@ -383,20 +382,20 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
                 disabled={!selectedUserId}
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full pl-5 pr-12 py-4 bg-gray-50 border-gray-100 border-2 rounded-[1.5rem] text-sm font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all appearance-none disabled:opacity-50"
+                className="w-full pl-5 pr-12 py-4 bg-[var(--pd-surface-muted)] border-[var(--pd-border)] border-2 rounded-[1.5rem] text-sm font-black text-[var(--pd-text)] focus:outline-none focus:ring-2 focus:ring-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all appearance-none disabled:opacity-50"
               >
                 <option value="">Seleziona ruolo...</option>
                 {availableRoles.map(role => (
                   <option key={role} value={role}>{getRoleName(role)}</option>
                 ))}
               </select>
-              <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+              <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--pd-muted)] rotate-90" />
             </div>
           </div>
 
           {/* Orario Inizio */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1 flex items-center gap-2">
+            <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] px-1 flex items-center gap-2">
               <Clock className="h-3 w-3" /> Orario Inizio
             </label>
             <div className="relative group">
@@ -405,29 +404,29 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
                 disabled={!selectedRole}
                 value={selectedStartTime}
                 onChange={(e) => setSelectedStartTime(e.target.value)}
-                className="w-full pl-5 pr-12 py-4 bg-gray-50 border-gray-100 border-2 rounded-[1.5rem] text-sm font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all appearance-none disabled:opacity-50"
+                className="w-full pl-5 pr-12 py-4 bg-[var(--pd-surface-muted)] border-[var(--pd-border)] border-2 rounded-[1.5rem] text-sm font-black text-[var(--pd-text)] focus:outline-none focus:ring-2 focus:ring-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all appearance-none disabled:opacity-50"
               >
                 <option value="">Scegli orario...</option>
                 {getAvailableStartTimes(selectedShiftType, selectedRole).map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
-              <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+              <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--pd-muted)] rotate-90" />
             </div>
           </div>
         </div>
 
         {/* Selected User Info Display */}
         {selectedUser && (
-          <div className="bg-orange-50 rounded-[1.5rem] p-5 border border-orange-100 flex items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-orange-600 shadow-sm border border-orange-100 font-black text-lg">
+          <div className="bg-[var(--pd-accent-soft)] rounded-[1.5rem] p-5 border border-[var(--pd-border)] flex items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
+            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[var(--pd-accent)] shadow-sm border border-[var(--pd-border)] font-black text-lg">
               {selectedUser.username.charAt(0).toUpperCase()}
             </div>
             <div>
               <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest leading-none mb-1">Qualifiche Attive</p>
               <div className="flex flex-wrap gap-1.5">
                 {selectedUser.availableRoles.map(role => (
-                  <span key={role} className="text-[9px] font-black uppercase px-2 py-0.5 bg-orange-100 text-orange-700 rounded-lg border border-orange-200">
+                  <span key={role} className="text-[9px] font-black uppercase px-2 py-0.5 bg-[var(--pd-accent-soft)] text-[var(--pd-accent-hover)] rounded-lg border border-[var(--pd-accent)]">
                     {getRoleName(role)}
                   </span>
                 ))}
@@ -437,12 +436,12 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
         )}
 
         {/* ⭐ Visual Staff Status List */}
-        <div className="space-y-3 pt-4 border-t border-gray-100">
+        <div className="space-y-3 pt-4 border-t border-[var(--pd-border)]">
           <div className="flex items-center justify-between px-1">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+            <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] flex items-center gap-2">
               <Users className="h-3 w-3" /> Stato Squadra per questo Turno
             </label>
-            <span className="text-[9px] font-bold text-gray-400 uppercase">
+            <span className="text-[9px] font-bold text-[var(--pd-muted)] uppercase">
               {days.find(d => d.value === selectedDay)?.label} - {selectedShiftType}
             </span>
           </div>
@@ -458,35 +457,35 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
                   onClick={() => !assigned && setSelectedUserId(user.id)}
                   className={cn(
                     "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer",
-                    assigned ? "bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed" : 
-                    isSelected ? "bg-orange-50 border-orange-500 shadow-sm" : 
-                    "bg-white border-gray-100 hover:border-gray-300"
+                    assigned ? "bg-[var(--pd-surface-muted)] border-[var(--pd-border)] opacity-60 cursor-not-allowed" : 
+                    isSelected ? "bg-[var(--pd-accent-soft)] border-[var(--pd-accent)] shadow-sm" : 
+                    "bg-[var(--pd-surface)] border-[var(--pd-border)] hover:border-[var(--pd-border-strong)]"
                   )}
                 >
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "w-2 h-2 rounded-full",
-                      assigned ? "bg-blue-500" : available ? "bg-green-500 animate-pulse" : "bg-red-400"
+                      assigned ? "bg-[var(--pd-accent)]" : available ? "bg-[var(--pd-success)] animate-pulse" : "bg-red-400"
                     )} />
                     <div>
-                      <p className="text-xs font-black text-gray-900 leading-none">{user.username}</p>
-                      <p className="text-[9px] font-bold text-gray-400 uppercase mt-0.5">{getRoleName(user.primaryRole)}</p>
+                      <p className="text-xs font-black text-[var(--pd-text)] leading-none">{user.username}</p>
+                      <p className="text-[9px] font-bold text-[var(--pd-muted)] uppercase mt-0.5">{getRoleName(user.primaryRole)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {assigned ? (
-                      <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase">In Turno</span>
+                      <span className="text-[8px] font-black text-[var(--pd-accent)] bg-[var(--pd-accent-soft)] px-1.5 py-0.5 rounded uppercase">In Turno</span>
                     ) : available ? (
-                      <span className="text-[8px] font-black text-green-600 bg-green-50 px-1.5 py-0.5 rounded uppercase">Disponibile</span>
+                      <span className="text-[8px] font-black text-[var(--pd-success)] bg-[var(--pd-success-soft)] px-1.5 py-0.5 rounded uppercase">Disponibile</span>
                     ) : (
-                      <span className="text-[8px] font-black text-red-500 bg-red-50 px-1.5 py-0.5 rounded uppercase">No Disp.</span>
+                      <span className="text-[8px] font-black text-[var(--pd-danger)] bg-[var(--pd-danger-soft)] px-1.5 py-0.5 rounded uppercase">No Disp.</span>
                     )}
                   </div>
                 </div>
               )
             })}
           </div>
-          <p className="text-[9px] text-gray-400 italic px-1">
+          <p className="text-[9px] text-[var(--pd-muted)] italic px-1">
             <Info className="inline h-2.5 w-2.5 mb-0.5 mr-1" />
             Clicca su un collaboratore disponibile per selezionarlo rapidamente.
           </p>
@@ -497,14 +496,14 @@ export function AddShiftModal({ weekStart, onClose, onShiftAdded, prefilledData 
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 rounded-2xl transition-all"
+            className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-[var(--pd-muted)] hover:bg-[var(--pd-surface-muted)] rounded-2xl transition-all"
           >
             Annulla
           </button>
           <button
             type="submit"
             disabled={submitting || !selectedUserId || !selectedRole || !selectedStartTime}
-            className="flex-[2] py-4 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
+            className="flex-[2] py-4 bg-[var(--pd-accent)] text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-[var(--pd-shadow)] transition-all active:scale-95 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
           >
             {submitting ? 'Inserimento...' : 'Conferma Turno'}
           </button>

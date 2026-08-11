@@ -11,38 +11,58 @@ import {
   HomeIcon,
   CalendarIcon,
   ClockIcon,
-  UserGroupIcon,
   UsersIcon,
   Cog6ToothIcon,
-  ArrowRightOnRectangleIcon,
   ChartBarIcon,
   UserPlusIcon,
   PresentationChartLineIcon,
   ShieldCheckIcon,
-  UserCircleIcon,
   BanknotesIcon,
   BellIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  ArrowRightOnRectangleIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
   CalendarIcon as CalendarIconSolid,
   ClockIcon as ClockIconSolid,
-  UserGroupIcon as UserGroupIconSolid,
   UsersIcon as UsersIconSolid,
   Cog6ToothIcon as Cog6ToothIconSolid,
   ChartBarIcon as ChartBarIconSolid,
   UserPlusIcon as UserPlusIconSolid,
   PresentationChartLineIcon as PresentationChartLineIconSolid,
   ShieldCheckIcon as ShieldCheckIconSolid,
-  UserCircleIcon as UserCircleIconSolid,
   BanknotesIcon as BanknotesIconSolid,
-  BellIcon as BellIconSolid
+  BellIcon as BellIconSolid,
+  UserCircleIcon as UserCircleIconSolid,
 } from '@heroicons/react/24/solid'
 import { cn, getRoleName } from '@/lib/utils'
 import { isAdmin } from '@/lib/auth-utils'
 import { NotificationBell } from '../notifications/notification-bell'
 import { useHaptics } from '@/hooks/use-haptics'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
+
+type NavItem = {
+  name: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  iconSolid: React.ComponentType<{ className?: string }>
+  adminOnly: boolean
+  hideForAdmin?: boolean
+  section: string
+}
+
+const SECTION_LABELS: Record<string, string> = {
+  home: 'Home',
+  lavoro: 'Il mio lavoro',
+  ore: 'Ore e assenze',
+  sostituzioni: 'Sostituzioni',
+  personale: 'Personale',
+  pianificazione: 'Pianificazione',
+  'admin-ore': 'Ore lavorate',
+  sistema: 'Sistema',
+}
 
 export function Sidebar() {
   const { data: session } = useSession()
@@ -54,250 +74,88 @@ export function Sidebar() {
 
   const isUserAdmin = isAdmin(session)
 
-  const handleOpenSidebar = () => {
-    lightClick()
-    setSidebarOpen(true)
-  }
-
-  const handleCloseSidebar = () => {
-    lightClick()
-    setSidebarOpen(false)
-  }
-
-  const navigation = [
-    // 🏠 HOME
-    {
-      name: 'Home',
-      href: '/dashboard',
-      icon: HomeIcon,
-      iconSolid: HomeIconSolid,
-      adminOnly: false,
-      emoji: '🏠',
-      section: 'home'
-    },
-    {
-      name: 'Notifiche',
-      href: '/notifications',
-      icon: BellIcon,
-      iconSolid: BellIconSolid,
-      adminOnly: false,
-      emoji: '🔔',
-      section: 'home'
-    },
-    // 📅 IL MIO LAVORO
-    {
-      name: 'Disponibilità',
-      href: '/availability',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
-      adminOnly: false,
-      hideForAdmin: true,
-      emoji: '📅',
-      section: 'lavoro'
-    },
-    {
-      name: 'Mio Piano',
-      href: '/schedule',
-      icon: ChartBarIcon,
-      iconSolid: ChartBarIconSolid,
-      adminOnly: false,
-      hideForAdmin: true,
-      emoji: '📊',
-      section: 'lavoro'
-    },
-    {
-      name: 'Piano Settimanale',
-      href: '/weekly-plan',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
-      adminOnly: false,
-      emoji: '📅',
-      section: 'lavoro'
-    },
-    {
-      name: 'Disponibilità Utenti',
-      href: '/availability-overview',
-      icon: UsersIcon,
-      iconSolid: UsersIconSolid,
-      adminOnly: false,
-      hideForAdmin: true,
-      emoji: '👥',
-      section: 'lavoro'
-    },
-    // ⏰ ORE & ASSENZE
-    {
-      name: 'Le mie ore',
-      href: '/hours',
-      icon: ClockIcon,
-      iconSolid: ClockIconSolid,
-      adminOnly: false,
-      hideForAdmin: true,
-      emoji: '⏰',
-      section: 'ore'
-    },
-    {
-      name: 'Assenze',
-      href: '/absences',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
-      adminOnly: false,
-      hideForAdmin: true,
-      emoji: '🏖️',
-      section: 'ore'
-    },
-    // 🔄 SOSTITUZIONI
-    {
-      name: 'Sostituzioni',
-      href: '/substitution-requests',
-      icon: UserPlusIcon,
-      iconSolid: UserPlusIconSolid,
-      adminOnly: false,
-      hideForAdmin: true,
-      emoji: '🔄',
-      section: 'sostituzioni'
-    },
-    // 👥 GESTIONE PERSONALE
-    {
-      name: 'Gestione Utenti',
-      href: '/admin/users',
-      icon: UsersIcon,
-      iconSolid: UsersIconSolid,
-      adminOnly: true,
-      section: 'personale'
-    },
-    {
-      name: 'Disponibilità Utenti',
-      href: '/availability-overview',
-      icon: UsersIcon,
-      iconSolid: UsersIconSolid,
-      adminOnly: true,
-      section: 'personale'
-    },
-    // 📅 PIANIFICAZIONE
-    {
-      name: 'Piano Lavoro',
-      href: '/admin/schedule',
-      icon: ChartBarIcon,
-      iconSolid: ChartBarIconSolid,
-      adminOnly: true,
-      section: 'pianificazione'
-    },
-    {
-      name: 'Assenze',
-      href: '/admin/absences',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
-      adminOnly: true,
-      section: 'pianificazione'
-    },
-    {
-      name: 'Sostituzioni',
-      href: '/admin/substitutions',
-      icon: UserPlusIcon,
-      iconSolid: UserPlusIconSolid,
-      adminOnly: true,
-      section: 'pianificazione'
-    },
-    // ⏰ ORE LAVORATE
-    {
-      name: 'Gestione Ore',
-      href: '/admin/hours',
-      icon: ClockIcon,
-      iconSolid: ClockIconSolid,
-      adminOnly: true,
-      section: 'ore'
-    },
-    {
-      name: 'Riepilogo Ore',
-      href: '/admin/hours-summary',
-      icon: PresentationChartLineIcon,
-      iconSolid: PresentationChartLineIconSolid,
-      adminOnly: true,
-      section: 'ore'
-    },
-    {
-      name: 'Acconti',
-      href: '/admin/advances',
-      icon: BanknotesIcon,
-      iconSolid: BanknotesIconSolid,
-      adminOnly: true,
-      section: 'ore'
-    },
-    // ⚙️ SISTEMA
-    {
-      name: 'Configurazioni',
-      href: '/admin/settings',
-      icon: Cog6ToothIcon,
-      iconSolid: Cog6ToothIconSolid,
-      adminOnly: true,
-      section: 'sistema'
-    },
-    {
-      name: 'Sistema e Sicurezza',
-      href: '/admin/system',
-      icon: ShieldCheckIcon,
-      iconSolid: ShieldCheckIconSolid,
-      adminOnly: true,
-      section: 'sistema'
-    },
-    {
-      name: 'Centro Notifiche',
-      href: '/admin/notifications/all',
-      icon: BellIcon,
-      iconSolid: BellIconSolid,
-      adminOnly: true,
-      section: 'sistema'
-    },
-    {
-      name: 'Invia Broadcast',
-      href: '/admin/notifications',
-      icon: BellIcon,
-      iconSolid: BellIconSolid,
-      adminOnly: true,
-      section: 'sistema'
-    }
+  const navigation: NavItem[] = [
+    { name: 'Home', href: '/dashboard', icon: HomeIcon, iconSolid: HomeIconSolid, adminOnly: false, section: 'home' },
+    { name: 'Notifiche', href: '/notifications', icon: BellIcon, iconSolid: BellIconSolid, adminOnly: false, section: 'home' },
+    { name: 'Disponibilità', href: '/availability', icon: CalendarIcon, iconSolid: CalendarIconSolid, adminOnly: false, hideForAdmin: true, section: 'lavoro' },
+    { name: 'Mio Piano', href: '/schedule', icon: ChartBarIcon, iconSolid: ChartBarIconSolid, adminOnly: false, hideForAdmin: true, section: 'lavoro' },
+    { name: 'Piano Settimanale', href: '/weekly-plan', icon: CalendarIcon, iconSolid: CalendarIconSolid, adminOnly: false, section: 'lavoro' },
+    { name: 'Disponibilità Utenti', href: '/availability-overview', icon: UsersIcon, iconSolid: UsersIconSolid, adminOnly: false, hideForAdmin: true, section: 'lavoro' },
+    { name: 'Le mie ore', href: '/hours', icon: ClockIcon, iconSolid: ClockIconSolid, adminOnly: false, hideForAdmin: true, section: 'ore' },
+    { name: 'Assenze', href: '/absences', icon: CalendarIcon, iconSolid: CalendarIconSolid, adminOnly: false, hideForAdmin: true, section: 'ore' },
+    { name: 'Sostituzioni', href: '/substitution-requests', icon: UserPlusIcon, iconSolid: UserPlusIconSolid, adminOnly: false, hideForAdmin: true, section: 'sostituzioni' },
+    { name: 'Gestione Utenti', href: '/admin/users', icon: UsersIcon, iconSolid: UsersIconSolid, adminOnly: true, section: 'personale' },
+    { name: 'Disponibilità Utenti', href: '/availability-overview', icon: UsersIcon, iconSolid: UsersIconSolid, adminOnly: true, section: 'personale' },
+    { name: 'Piano Lavoro', href: '/admin/schedule', icon: ChartBarIcon, iconSolid: ChartBarIconSolid, adminOnly: true, section: 'pianificazione' },
+    { name: 'Assenze', href: '/admin/absences', icon: CalendarIcon, iconSolid: CalendarIconSolid, adminOnly: true, section: 'pianificazione' },
+    { name: 'Sostituzioni', href: '/admin/substitutions', icon: UserPlusIcon, iconSolid: UserPlusIconSolid, adminOnly: true, section: 'pianificazione' },
+    { name: 'Gestione Ore', href: '/admin/hours', icon: ClockIcon, iconSolid: ClockIconSolid, adminOnly: true, section: 'admin-ore' },
+    { name: 'Riepilogo Ore', href: '/admin/hours-summary', icon: PresentationChartLineIcon, iconSolid: PresentationChartLineIconSolid, adminOnly: true, section: 'admin-ore' },
+    { name: 'Acconti', href: '/admin/advances', icon: BanknotesIcon, iconSolid: BanknotesIconSolid, adminOnly: true, section: 'admin-ore' },
+    { name: 'Configurazioni', href: '/admin/settings', icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid, adminOnly: true, section: 'sistema' },
+    { name: 'Sistema e Sicurezza', href: '/admin/system', icon: ShieldCheckIcon, iconSolid: ShieldCheckIconSolid, adminOnly: true, section: 'sistema' },
+    { name: 'Centro Notifiche', href: '/admin/notifications/all', icon: BellIcon, iconSolid: BellIconSolid, adminOnly: true, section: 'sistema' },
+    { name: 'Invia Broadcast', href: '/admin/notifications', icon: BellIcon, iconSolid: BellIconSolid, adminOnly: true, section: 'sistema' },
   ]
 
-  // Filtra la navigazione in base ai permessi
-  const visibleNavigation = navigation.filter(item => {
+  const visibleNavigation = navigation.filter((item) => {
     if (item.adminOnly && !isUserAdmin) return false
     if (item.hideForAdmin && isUserAdmin) return false
-    // Nascondi "Ore Lavorate" se l'utente non ha trackHours abilitato
     if (item.name === 'Le mie ore' && !session.user.trackHours) return false
     return true
   })
 
-  const regularItems = visibleNavigation.filter(item => !item.adminOnly)
-  const adminItems = visibleNavigation.filter(item => item.adminOnly)
+  const regularItems = visibleNavigation.filter((item) => !item.adminOnly)
+  const adminItems = visibleNavigation.filter((item) => item.adminOnly)
 
   return (
     <>
-      {/* Mobile menu button */}
       <div className="lg:hidden fixed top-0 left-0 z-50 p-2 sm:p-4 pt-safe">
         <button
           type="button"
-          className="rounded-2xl p-3 inline-flex items-center justify-center text-gray-500 hover:text-orange-600 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500 bg-white/80 backdrop-blur-md shadow-lg border border-white transition-all active:scale-90"
-          onClick={handleOpenSidebar}
+          className="rounded-xl p-3 inline-flex items-center justify-center transition-all active:scale-95"
+          style={{
+            color: 'var(--pd-muted)',
+            background: 'var(--pd-surface)',
+            border: '1px solid var(--pd-border)',
+            boxShadow: 'var(--pd-shadow)',
+          }}
+          onClick={() => {
+            lightClick()
+            setSidebarOpen(true)
+          }}
         >
           <span className="sr-only">Apri menu</span>
-          <Bars3Icon className="h-7 w-7" aria-hidden="true" />
+          <Bars3Icon className="h-6 w-6" aria-hidden="true" />
         </button>
       </div>
 
-      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="lg:hidden">
           <div className="fixed inset-0 flex z-50">
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={handleCloseSidebar} />
-            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white animate-in slide-in-from-left duration-500 shadow-2xl">
-              <div className="absolute top-0 right-0 -mr-16 pt-safe mt-6">
+            <div
+              className="fixed inset-0 bg-black/40"
+              onClick={() => {
+                lightClick()
+                setSidebarOpen(false)
+              }}
+            />
+            <div
+              className="relative flex-1 flex flex-col max-w-xs w-full shadow-2xl"
+              style={{ background: 'var(--pd-surface)' }}
+            >
+              <div className="absolute top-0 right-0 -mr-14 pt-safe mt-5">
                 <button
                   type="button"
-                  className="ml-1 flex items-center justify-center h-12 w-12 rounded-2xl bg-orange-600 text-white shadow-xl shadow-orange-200 border border-orange-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white active:scale-90 transition-all"
-                  onClick={handleCloseSidebar}
+                  className="flex items-center justify-center h-11 w-11 rounded-xl active:scale-95"
+                  style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}
+                  onClick={() => {
+                    lightClick()
+                    setSidebarOpen(false)
+                  }}
                 >
                   <span className="sr-only">Chiudi menu</span>
-                  <XMarkIcon className="h-7 w-7" aria-hidden="true" />
+                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                 </button>
               </div>
               <div className="flex-1 flex flex-col h-0 pt-safe pb-safe">
@@ -307,8 +165,8 @@ export function Sidebar() {
                   pathname={pathname}
                   session={session}
                   isUserAdmin={isUserAdmin}
-                  isMobile={true}
-                  onItemClick={handleCloseSidebar}
+                  isMobile
+                  onItemClick={() => setSidebarOpen(false)}
                 />
               </div>
             </div>
@@ -316,9 +174,11 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 z-30">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
+        <div
+          className="flex flex-col flex-grow border-r"
+          style={{ background: 'var(--pd-surface)', borderColor: 'var(--pd-border)' }}
+        >
           <SidebarContent
             regularItems={regularItems}
             adminItems={adminItems}
@@ -333,6 +193,34 @@ export function Sidebar() {
   )
 }
 
+function NavLink({
+  item,
+  pathname,
+  onItemClick,
+}: {
+  item: NavItem
+  pathname: string
+  onItemClick?: () => void
+}) {
+  const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+  const Icon = isActive ? item.iconSolid : item.icon
+  return (
+    <Link
+      href={item.href}
+      onClick={onItemClick}
+      className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors"
+      style={{
+        borderRadius: 'var(--pd-radius)',
+        background: isActive ? 'var(--pd-accent-soft)' : 'transparent',
+        color: isActive ? 'var(--pd-accent)' : 'var(--pd-text)',
+      }}
+    >
+      <Icon className="h-5 w-5 shrink-0" />
+      <span>{item.name}</span>
+    </Link>
+  )
+}
+
 function SidebarContent({
   regularItems,
   adminItems,
@@ -340,12 +228,12 @@ function SidebarContent({
   session,
   isUserAdmin,
   isMobile,
-  onItemClick
+  onItemClick,
 }: {
-  regularItems: any[]
-  adminItems: any[]
+  regularItems: NavItem[]
+  adminItems: NavItem[]
   pathname: string
-  session: any
+  session: { user: { id: string; username: string; primaryRole: string } }
   isUserAdmin: boolean
   isMobile: boolean
   onItemClick?: () => void
@@ -353,373 +241,123 @@ function SidebarContent({
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
 
   const toggleSection = (section: string) => {
-    setCollapsedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
+    setCollapsedSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
 
-  const renderSectionHeader = (title: string, sectionKey: string) => {
+  const renderSection = (sectionKey: string, items: NavItem[]) => {
+    const sectionItems = items.filter((i) => i.section === sectionKey)
+    if (sectionItems.length === 0) return null
     const isCollapsed = collapsedSections[sectionKey]
     return (
-      <button
-        onClick={() => toggleSection(sectionKey)}
-        className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] group/header"
-      >
-        <div className="flex items-center">
-          <span className={cn("w-1.5 h-1.5 rounded-full mr-2 transition-all duration-300", isCollapsed ? "bg-gray-300" : "bg-orange-500")} />
-          {title}
-        </div>
-        <ChevronDownIcon className={cn(
-          "h-3 w-3 transition-transform duration-300",
-          isCollapsed ? "-rotate-90 text-gray-300" : "rotate-0 text-gray-400"
-        )} />
-      </button>
+      <div key={sectionKey} className="space-y-1">
+        <button
+          type="button"
+          onClick={() => toggleSection(sectionKey)}
+          className="w-full flex items-center justify-between px-3 py-2 text-[11px] font-semibold tracking-wide"
+          style={{ color: 'var(--pd-muted)' }}
+        >
+          <span>{SECTION_LABELS[sectionKey] ?? sectionKey}</span>
+          <ChevronDownIcon
+            className={cn('h-3.5 w-3.5 transition-transform', isCollapsed && '-rotate-90')}
+          />
+        </button>
+        {!isCollapsed &&
+          sectionItems.map((item) => (
+            <NavLink key={`${item.section}-${item.name}-${item.href}`} item={item} pathname={pathname} onItemClick={onItemClick} />
+          ))}
+      </div>
     )
   }
 
+  const staffSections = ['home', 'lavoro', 'ore', 'sostituzioni']
+  const adminSections = ['personale', 'pianificazione', 'admin-ore', 'sistema']
+
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden">
-      {/* Logo */}
-      <div className={cn("flex items-center flex-shrink-0 px-4", isMobile ? "pt-4" : "pt-6")}>
-        <div className="flex items-center gap-3 bg-gradient-to-r from-orange-600 to-red-600 p-4 rounded-[2rem] shadow-xl w-full border border-white/20">
-          <div className="flex-1 min-w-0">
-            <div className="bg-white/95 rounded-2xl px-3 py-2 border border-white/60 shadow-inner">
-              <Image
-                src="/logo-pizza-doc.png"
-                alt="Pizza D.O.C."
-                width={200}
-                height={56}
-                className="h-8 sm:h-9 w-auto max-w-full object-contain object-left"
-                priority
-              />
-            </div>
+      <div className={cn('flex items-center gap-3 px-4 border-b', isMobile ? 'pt-5 pb-4' : 'py-5')} style={{ borderColor: 'var(--pd-border)' }}>
+        <Image
+          src="/logo-pizza-doc.png"
+          alt="Pizza D.O.C."
+          width={40}
+          height={40}
+          className="rounded-lg object-contain shrink-0"
+          priority
+        />
+        <div className="min-w-0 flex-1">
+          <p className="pd-display text-lg font-semibold leading-tight tracking-tight truncate">
+            Pizza D.O.C.
+          </p>
+          <p className="text-[11px]" style={{ color: 'var(--pd-muted)' }}>
+            Gestione team
+          </p>
+        </div>
+        <NotificationBell />
+      </div>
+
+      <div className="px-4 py-4">
+        <div
+          className="flex items-center gap-3 p-3"
+          style={{
+            background: 'var(--pd-surface-muted)',
+            borderRadius: 'var(--pd-radius-lg)',
+          }}
+        >
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold shrink-0"
+            style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}
+          >
+            {session.user.username.charAt(0).toUpperCase()}
           </div>
-          <div className="flex-shrink-0 text-white bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/10">
-            <NotificationBell iconClassName="text-white h-5 w-5" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{session.user.username}</p>
+            <p className="text-[11px] font-medium mt-0.5" style={{ color: 'var(--pd-accent)' }}>
+              {getRoleName(session.user.primaryRole)}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* User info */}
-      <div className="mt-6 px-4">
-        <div className="relative overflow-hidden bg-white rounded-[2rem] p-4 shadow-soft border border-gray-100 group hover:shadow-lg transition-all duration-500">
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-50 rounded-full blur-3xl opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
-          <div className="relative flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-red-600 rounded-2xl flex items-center justify-center shadow-lg transform -rotate-3 group-hover:rotate-0 transition-transform duration-300">
-                <span className="text-white font-black text-xl">
-                  {session.user.username.charAt(0).toUpperCase()}
-                </span>
-              </div>
-            </div>
-            <div className="ml-4 flex-1 min-w-0">
-              <p className="text-sm font-black text-gray-900 truncate tracking-tight">
-                {session.user.username}
-              </p>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg uppercase tracking-wider border border-orange-100">
-                  {getRoleName(session.user.primaryRole)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="mt-8 flex-1 px-4 space-y-8 pb-8 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-0">
-        {/* Regular navigation items - grouped by section */}
-        {!isUserAdmin && regularItems.length > 0 && (
+      <nav className="flex-1 px-3 space-y-4 pb-4 overflow-y-auto custom-scrollbar min-h-0">
+        {!isUserAdmin && staffSections.map((s) => renderSection(s, regularItems))}
+        {isUserAdmin && (
           <>
-            {/* Home - Dashboard */}
-            <div className="space-y-1">
-              {regularItems.filter(item => item.section === 'home').map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={onItemClick}
-                    className={cn(
-                      'group flex items-center px-4 py-3.5 text-sm font-black rounded-[1.25rem] transition-all relative overflow-hidden',
-                      isActive
-                        ? 'bg-orange-600 text-white shadow-lg shadow-orange-100 ring-1 ring-orange-400'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                    )}
-                  >
-                        <span className="text-xl mr-3 transition-transform duration-300 group-hover:scale-110">
-                                      {item.emoji}
-                                    </span>
-                    <span className="uppercase tracking-widest text-[11px]">{item.name}</span>
-                    {isActive && <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/20" />}
-                  </Link>
-                )
-              })}
-            </div>
-
-            {/* Il Mio Lavoro */}
-            <div className="space-y-3">
-              {renderSectionHeader("Il Mio Lavoro", "lavoro")}
-              {!collapsedSections["lavoro"] && (
-                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                  {regularItems.filter(item => item.section === 'lavoro').map((item) => {
-                    const isActive = pathname === item.href
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={onItemClick}
-                        className={cn(
-                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                          isActive
-                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                        )}
-                      >
-                        <span className="text-lg mr-3 transition-transform duration-300 group-hover:rotate-12">
-                                          {item.emoji}
-                                        </span>
-                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Ore & Assenze */}
-            <div className="space-y-3">
-              {renderSectionHeader("Ore & Assenze", "ore")}
-              {!collapsedSections["ore"] && (
-                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                  {regularItems.filter(item => item.section === 'ore').map((item) => {
-                    const isActive = pathname === item.href
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={onItemClick}
-                        className={cn(
-                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                          isActive
-                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                        )}
-                      >
-                        <span className="text-lg mr-3 transition-transform duration-300 group-hover:rotate-12">
-                                          {item.emoji}
-                                        </span>
-                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Sostituzioni */}
-            <div className="space-y-3">
-              {renderSectionHeader("Sostituzioni", "sostituzioni")}
-              {!collapsedSections["sostituzioni"] && (
-                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                  {regularItems.filter(item => item.section === 'sostituzioni').map((item) => {
-                    const isActive = pathname === item.href
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={onItemClick}
-                        className={cn(
-                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                          isActive
-                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                        )}
-                      >
-                        <span className="text-lg mr-3 transition-transform duration-300 group-hover:rotate-12">
-                                          {item.emoji}
-                                        </span>
-                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* Admin section */}
-        {isUserAdmin && adminItems.length > 0 && (
-          <>
-            {/* Dashboard - Admin */}
-            <div className="space-y-1">
-              <Link
-                href="/dashboard"
-                onClick={onItemClick}
-                className={cn(
-                  'group flex items-center px-4 py-3.5 text-sm font-black rounded-[1.25rem] transition-all relative overflow-hidden',
-                  pathname === '/dashboard'
-                    ? 'bg-orange-600 text-white shadow-lg shadow-orange-100 ring-1 ring-orange-400'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                )}
-              >
-                <span className="text-xl mr-3 transition-transform duration-300 group-hover:scale-110">
-                  🏠
-                </span>
-                <span className="uppercase tracking-widest text-[11px]">Home</span>
-                {pathname === '/dashboard' && <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/20" />}
-              </Link>
-            </div>
-
-            {/* Gestione Personale */}
-            <div className="space-y-3">
-              {renderSectionHeader("Gestione Personale", "personale")}
-              {!collapsedSections["personale"] && (
-                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                  {adminItems.filter(item => item.section === 'personale').map((item) => {
-                    const isActive = pathname === item.href
-                    const Icon = isActive ? item.iconSolid : item.icon
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={onItemClick}
-                        className={cn(
-                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                          isActive
-                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                        )}
-                      >
-                        <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
-                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Pianificazione */}
-            <div className="space-y-3">
-              {renderSectionHeader("Pianificazione", "pianificazione")}
-              {!collapsedSections["pianificazione"] && (
-                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                  {adminItems.filter(item => item.section === 'pianificazione').map((item) => {
-                    const isActive = pathname === item.href
-                    const Icon = isActive ? item.iconSolid : item.icon
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={onItemClick}
-                        className={cn(
-                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                          isActive
-                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                        )}
-                      >
-                        <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
-                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Ore Lavorate */}
-            <div className="space-y-3">
-              {renderSectionHeader("Ore Lavorate", "admin-ore")}
-              {!collapsedSections["admin-ore"] && (
-                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                  {adminItems.filter(item => item.section === 'ore').map((item) => {
-                    const isActive = pathname === item.href
-                    const Icon = isActive ? item.iconSolid : item.icon
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={onItemClick}
-                        className={cn(
-                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                          isActive
-                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                        )}
-                      >
-                        <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
-                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Sistema */}
-            <div className="space-y-3">
-              {renderSectionHeader("Sistema", "sistema")}
-              {!collapsedSections["sistema"] && (
-                <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                  {adminItems.filter(item => item.section === 'sistema').map((item) => {
-                    const isActive = pathname === item.href
-                    const Icon = isActive ? item.iconSolid : item.icon
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={onItemClick}
-                        className={cn(
-                          'group flex items-center px-4 py-3 text-sm font-black rounded-[1.25rem] transition-all relative',
-                          isActive
-                            ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                        )}
-                      >
-                        <Icon className={cn('mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110', isActive ? 'text-orange-500' : 'text-gray-400 group-hover:text-gray-500')} />
-                        <span className="uppercase tracking-widest text-[10px]">{item.name}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+            {renderSection('home', regularItems)}
+            {renderSection('lavoro', regularItems)}
+            {adminSections.map((s) => renderSection(s, adminItems))}
           </>
         )}
       </nav>
 
-      {/* Profile Link */}
-      <div className="flex-shrink-0 p-4 border-t border-gray-200">
+      <div className="flex-shrink-0 p-4 space-y-2 border-t" style={{ borderColor: 'var(--pd-border)' }}>
+        <ThemeToggle className="w-full justify-center" />
         <Link
           href={`/profile/${session.user.id}`}
           onClick={onItemClick}
-          className={cn(
-            'group flex items-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all mb-2',
-            pathname === `/profile/${session.user.id}`
-              ? 'bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 shadow-md border-l-4 border-blue-500'
-              : 'text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white hover:shadow-sm'
-          )}
-        >
-          <span className="text-lg mr-3">👤</span>
-          Il Mio Profilo
-        </Link>
-
-        {/* Logout button */}
-        <button
-          onClick={async () => {
-            console.log('Signing out...')
-            await signOut({
-              callbackUrl: '/auth/signin',
-              redirect: true
-            })
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium transition-colors"
+          style={{
+            borderRadius: 'var(--pd-radius)',
+            background:
+              pathname === `/profile/${session.user.id}` ? 'var(--pd-accent-soft)' : 'transparent',
+            color:
+              pathname === `/profile/${session.user.id}` ? 'var(--pd-accent)' : 'var(--pd-text)',
           }}
-          className="group flex items-center w-full px-4 py-3 text-sm font-semibold text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 hover:text-red-700 transition-all hover:shadow-md border-2 border-transparent hover:border-red-200"
         >
-          <span className="text-lg mr-3">🚪</span>
+          {pathname === `/profile/${session.user.id}` ? (
+            <UserCircleIconSolid className="h-5 w-5" />
+          ) : (
+            <UserCircleIcon className="h-5 w-5" />
+          )}
+          Il mio profilo
+        </Link>
+        <button
+          type="button"
+          onClick={async () => {
+            await signOut({ callbackUrl: '/auth/signin', redirect: true })
+          }}
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium transition-colors"
+          style={{ borderRadius: 'var(--pd-radius)', color: 'var(--pd-danger)' }}
+        >
+          <ArrowRightOnRectangleIcon className="h-5 w-5" />
           Esci
         </button>
       </div>

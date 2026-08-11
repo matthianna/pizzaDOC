@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
+import { StaffPageHeader } from '@/components/layout/staff-page-header'
 import { Users, Clock, Calendar, CheckCircle, XCircle, AlertCircle, Send, User, Ban, Sparkles, ArrowRight, Trash2 } from 'lucide-react'
 import { format, parseISO, isPast } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -11,6 +12,7 @@ import { addWeekCalendarDays } from '@/lib/date-utils'
 import { Role, ShiftType, SubstitutionStatus } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useHaptics } from '@/hooks/use-haptics'
 
 interface Shift {
@@ -155,15 +157,19 @@ export default function SubstitutionRequestsPage() {
 
       if (response.ok) {
         showToast('Richiesta di sostituzione annullata con successo', 'success')
-        closeCancelModal()
-        fetchSubstitutions() // Refresh data
-      } else {
-        const error = await response.json()
-        showToast(error.error || 'Errore nell\'annullamento', 'error')
+        fetchSubstitutions()
+        return
       }
+
+      const error = await response.json().catch(() => ({} as { error?: string }))
+      showToast(error.error || 'Errore nell\'annullamento', 'error')
+      throw new Error('CANCEL_FAILED')
     } catch (error) {
       console.error('Error cancelling substitution:', error)
-      showToast('Errore di connessione', 'error')
+      if (!(error instanceof Error && error.message === 'CANCEL_FAILED')) {
+        showToast('Errore di connessione', 'error')
+      }
+      throw error
     } finally {
       setCancelling(null)
     }
@@ -215,18 +221,10 @@ export default function SubstitutionRequestsPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center tracking-tight">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg mr-4 drop-shadow-orange">
-                <Users className="h-6 w-6 text-white" />
-              </div>
-              Sostituzioni
-            </h1>
-            <p className="text-gray-500 mt-2 font-medium">Trova una copertura o offriti per un turno</p>
-          </div>
-        </div>
+        <StaffPageHeader
+          title="Sostituzioni"
+          subtitle="Trova una copertura o offriti per un turno"
+        />
 
         {loading ? (
           <div className="bg-white rounded-3xl shadow-soft p-12 text-center border border-gray-50">
@@ -237,8 +235,8 @@ export default function SubstitutionRequestsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Available Substitutions */}
             <div className="space-y-4">
-              <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-1">
-                <div className="w-1 h-3 bg-orange-500 rounded-full"></div> Richieste Disponibili
+              <h2 className="pd-section-title flex items-center gap-2 px-1">
+                Richieste disponibili
               </h2>
               {availableSubstitutions.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-8 text-center">
@@ -254,7 +252,7 @@ export default function SubstitutionRequestsPage() {
                   const isAlreadyApplied = substitution.substitute?.id === session.user.id
 
                   return (
-                    <div key={substitution.id} className="bg-white rounded-3xl shadow-soft border border-gray-100 overflow-hidden transition-all">
+                    <div key={substitution.id} className="pd-card overflow-hidden transition-all">
                       <div className="px-5 py-3 border-b border-gray-50 flex items-center justify-between bg-gray-50/30">
                         <div className="flex items-center gap-2">
                           <div className={`p-1 rounded-lg ${getStatusColor(substitution.status)}`}>
@@ -302,7 +300,7 @@ export default function SubstitutionRequestsPage() {
                             onClick={() => applyForSubstitution(substitution.id)}
                             disabled={applying === substitution.id}
                             isLoading={applying === substitution.id}
-                            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-6 rounded-2xl font-black shadow-lg shadow-orange-500/20 active:scale-95 transition-all text-xs uppercase tracking-widest"
+                            className="w-full py-4 pd-btn-primary rounded-2xl text-sm transition-all"
                           >
                             <Send className="h-4 w-4 mr-2" /> Candidati Ora
                           </Button>
@@ -317,8 +315,8 @@ export default function SubstitutionRequestsPage() {
 
             {/* My Requests */}
             <div className="space-y-4">
-              <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-1">
-                <div className="w-1 h-3 bg-blue-500 rounded-full"></div> Le Mie Richieste
+              <h2 className="pd-section-title flex items-center gap-2 px-1">
+                Le mie richieste
               </h2>
               {myRequests.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-8 text-center">
@@ -328,7 +326,7 @@ export default function SubstitutionRequestsPage() {
                 myRequests.map((substitution) => {
                   const shiftDate = getShiftDate(substitution.shifts)
                   return (
-                    <div key={substitution.id} className="bg-white rounded-3xl shadow-soft border border-gray-100 overflow-hidden transition-all">
+                    <div key={substitution.id} className="pd-card overflow-hidden transition-all">
                       <div className="px-5 py-3 border-b border-gray-50 flex items-center justify-between bg-gray-50/30">
                         <div className="flex items-center gap-2">
                           <div className={`p-1 rounded-lg ${getStatusColor(substitution.status)}`}>
@@ -401,30 +399,21 @@ export default function SubstitutionRequestsPage() {
         )}
       </div>
 
-      {/* Cancel Confirmation Modal */}
-      {showCancelModal && selectedSubstitutionToCancel && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-6 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center">
-                <Ban className="w-7 h-7 text-red-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Annulla Richiesta</h3>
-                <p className="text-xs font-bold text-gray-400 uppercase">Questa azione è irreversibile</p>
-              </div>
-            </div>
-            <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 font-bold text-xs uppercase tracking-tight text-orange-800 space-y-1">
-              <p>{getDayName(selectedSubstitutionToCancel.shifts.dayOfWeek)} - {getShiftTypeName(selectedSubstitutionToCancel.shifts.shiftType)}</p>
-              <p>{format(getShiftDate(selectedSubstitutionToCancel.shifts), 'dd MMMM yyyy', { locale: it })}</p>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={closeCancelModal} className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all" disabled={!!cancelling}>Indietro</button>
-              <button onClick={confirmCancelSubstitution} className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-red-500/20" disabled={!!cancelling}>{cancelling ? 'Annullamento...' : 'Conferma'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={showCancelModal && !!selectedSubstitutionToCancel}
+        onClose={closeCancelModal}
+        onConfirm={confirmCancelSubstitution}
+        title="Annulla richiesta"
+        description={
+          selectedSubstitutionToCancel
+            ? `Annullare la richiesta per ${getDayName(selectedSubstitutionToCancel.shifts.dayOfWeek)} ${getShiftTypeName(selectedSubstitutionToCancel.shifts.shiftType)} del ${format(getShiftDate(selectedSubstitutionToCancel.shifts), 'dd MMMM yyyy', { locale: it })}? Questa azione è irreversibile.`
+            : 'Questa azione è irreversibile.'
+        }
+        confirmLabel={cancelling ? 'Annullamento…' : 'Conferma'}
+        cancelLabel="Indietro"
+        isDangerous
+        isLoading={!!cancelling}
+      />
 
       <ToastContainer />
     </MainLayout>

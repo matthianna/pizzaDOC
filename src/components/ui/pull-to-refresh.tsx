@@ -108,14 +108,22 @@ export function PullToRefresh({ children, onRefresh, disabled = false }: PullToR
                 }}
             >
                 <div
-                    className={`w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center ${isRefreshing ? 'animate-spin' : ''
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${isRefreshing ? 'animate-spin' : ''
                         }`}
                     style={{
+                        backgroundColor: 'var(--pd-surface)',
+                        boxShadow: 'var(--pd-shadow)',
                         transform: isRefreshing ? 'none' : `rotate(${progress * 180}deg)`,
                     }}
                 >
-                    <RefreshCcw className={`h-5 w-5 text-orange-600 ${pullDistance >= PULL_THRESHOLD ? 'text-orange-700' : ''
-                        }`} />
+                    <RefreshCcw
+                        className="h-5 w-5"
+                        style={{
+                            color: pullDistance >= PULL_THRESHOLD
+                                ? 'var(--pd-accent-hover)'
+                                : 'var(--pd-accent)',
+                        }}
+                    />
                 </div>
             </div>
 
@@ -131,7 +139,7 @@ export function PullToRefresh({ children, onRefresh, disabled = false }: PullToR
 
             {/* Loading overlay */}
             {isRefreshing && (
-                <div className="fixed inset-0 bg-black/5 z-40 pointer-events-none" />
+                <div className="fixed inset-0 z-40 pointer-events-none" style={{ backgroundColor: 'color-mix(in srgb, var(--pd-text) 5%, transparent)' }} />
             )}
         </div>
     )

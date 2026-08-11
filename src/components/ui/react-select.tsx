@@ -16,52 +16,51 @@ interface SelectProps extends Omit<ReactSelectProps<Option, false>, 'styles'> {
 const customStyles: StylesConfig<Option, false> = {
   control: (provided, state) => ({
     ...provided,
-    backgroundColor: 'white',
-    borderColor: state.isFocused ? '#f97316' : '#d1d5db',
+    backgroundColor: 'var(--pd-surface)',
+    borderColor: state.isFocused ? 'var(--pd-accent)' : 'var(--pd-border-strong)',
     borderWidth: '1px',
     borderRadius: '8px',
     minHeight: '44px',
     fontSize: '14px',
-    boxShadow: state.isFocused ? '0 0 0 3px rgba(249, 115, 22, 0.1)' : 'none',
+    boxShadow: state.isFocused ? '0 0 0 3px var(--pd-accent-soft)' : 'none',
     '&:hover': {
-      borderColor: '#f97316',
+      borderColor: 'var(--pd-accent)',
     },
   }),
   option: (provided, state) => ({
     ...provided,
-    backgroundColor: state.isSelected 
-      ? '#f97316' 
-      : state.isFocused 
-        ? '#fed7aa' 
-        : 'white',
-    color: state.isSelected 
-      ? 'white' 
-      : state.isFocused 
-        ? '#ea580c' 
-        : '#374151',
+    backgroundColor: state.isSelected
+      ? 'var(--pd-accent)'
+      : state.isFocused
+        ? 'var(--pd-accent-soft)'
+        : 'var(--pd-surface)',
+    color: state.isSelected
+      ? 'var(--pd-accent-fg)'
+      : 'var(--pd-text)',
     fontSize: '14px',
     padding: '12px 16px',
     cursor: 'pointer',
     '&:hover': {
-      backgroundColor: state.isSelected ? '#f97316' : '#fed7aa',
-      color: state.isSelected ? 'white' : '#ea580c',
+      backgroundColor: state.isSelected ? 'var(--pd-accent)' : 'var(--pd-accent-soft)',
+      color: state.isSelected ? 'var(--pd-accent-fg)' : 'var(--pd-text)',
     },
   }),
   singleValue: (provided) => ({
     ...provided,
-    color: '#374151',
+    color: 'var(--pd-text)',
     fontSize: '14px',
   }),
   placeholder: (provided) => ({
     ...provided,
-    color: '#9ca3af',
+    color: 'var(--pd-muted)',
     fontSize: '14px',
   }),
   menu: (provided) => ({
     ...provided,
     borderRadius: '8px',
-    border: '1px solid #e5e7eb',
-    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    border: '1px solid var(--pd-border)',
+    backgroundColor: 'var(--pd-surface)',
+    boxShadow: 'var(--pd-shadow)',
     zIndex: 50,
   }),
   menuList: (provided) => ({
@@ -70,16 +69,16 @@ const customStyles: StylesConfig<Option, false> = {
   }),
   dropdownIndicator: (provided, state) => ({
     ...provided,
-    color: state.isFocused ? '#f97316' : '#9ca3af',
+    color: state.isFocused ? 'var(--pd-accent)' : 'var(--pd-muted)',
     '&:hover': {
-      color: '#f97316',
+      color: 'var(--pd-accent)',
     },
   }),
   clearIndicator: (provided) => ({
     ...provided,
-    color: '#9ca3af',
+    color: 'var(--pd-muted)',
     '&:hover': {
-      color: '#ef4444',
+      color: 'var(--pd-danger)',
     },
   }),
 }
@@ -89,7 +88,7 @@ export const Select = forwardRef<any, SelectProps>(
     return (
       <div className={`w-full ${className || ''}`}>
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-[var(--pd-text)] mb-2">
             {label}
           </label>
         )}
@@ -100,7 +99,7 @@ export const Select = forwardRef<any, SelectProps>(
           {...props}
         />
         {error && (
-          <p className="mt-1 text-sm text-red-600">{error}</p>
+          <p className="mt-1 text-sm text-[var(--pd-danger)]">{error}</p>
         )}
       </div>
     )

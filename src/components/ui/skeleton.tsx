@@ -7,10 +7,8 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn(
-        'animate-pulse rounded-md bg-gray-200 dark:bg-gray-800',
-        className
-      )}
+      className={cn('animate-pulse rounded-md', className)}
+      style={{ backgroundColor: 'var(--pd-surface-muted)' }}
     />
   )
 }
@@ -22,15 +20,28 @@ export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
         <Skeleton className="h-10 w-[250px]" />
         <Skeleton className="h-10 w-[100px]" />
       </div>
-      <div className="border rounded-lg overflow-hidden">
-        <div className="bg-gray-50 h-12 flex items-center px-6 border-b">
+      <div
+        className="border rounded-lg overflow-hidden"
+        style={{ borderColor: 'var(--pd-border)' }}
+      >
+        <div
+          className="h-12 flex items-center px-6 border-b"
+          style={{
+            backgroundColor: 'var(--pd-surface-muted)',
+            borderColor: 'var(--pd-border)',
+          }}
+        >
           {Array.from({ length: cols }).map((_, i) => (
             <Skeleton key={i} className="h-4 flex-1 mx-2" />
           ))}
         </div>
-        <div className="bg-white">
+        <div style={{ backgroundColor: 'var(--pd-surface)' }}>
           {Array.from({ length: rows }).map((_, i) => (
-            <div key={i} className="h-16 flex items-center px-6 border-b last:border-0">
+            <div
+              key={i}
+              className="h-16 flex items-center px-6 border-b last:border-0"
+              style={{ borderColor: 'var(--pd-border)' }}
+            >
               {Array.from({ length: cols }).map((_, j) => (
                 <Skeleton key={j} className="h-4 flex-1 mx-2" />
               ))}
@@ -44,7 +55,13 @@ export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
 
 export function CardSkeleton() {
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 space-y-4">
+    <div
+      className="p-6 rounded-2xl shadow-soft space-y-4"
+      style={{
+        backgroundColor: 'var(--pd-surface)',
+        border: '1px solid var(--pd-border)',
+      }}
+    >
       <div className="flex items-center justify-between">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-8 rounded-lg" />

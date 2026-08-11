@@ -58,30 +58,30 @@ function ClientAppCell({ user }: { user: User }) {
 
   const main =
     p.variant === 'none' ? (
-      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider">—</span>
+      <span className="text-[10px] font-bold text-[var(--pd-muted)]/50 uppercase tracking-wider">—</span>
     ) : p.variant === 'pwa' ? (
       <div className="flex flex-col gap-0.5 max-w-[140px]">
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700">
-          <span className="w-2 h-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--pd-success)]">
+          <span className="w-2 h-2 shrink-0 animate-pulse rounded-full bg-[var(--pd-success)]" />
           App PWA
         </span>
-        <span className="text-[9px] font-medium leading-tight text-gray-400">
+        <span className="text-[9px] font-medium leading-tight text-[var(--pd-muted)]">
           {formatDistanceToNow(new Date(p.at), { addSuffix: true, locale: localeIt })}
         </span>
       </div>
     ) : p.variant === 'browser' ? (
       <div className="flex flex-col gap-0.5 max-w-[140px]">
-        <span className="text-[10px] font-black uppercase tracking-wider text-sky-700">Browser</span>
-        <span className="text-[9px] font-medium leading-tight text-gray-400">
+        <span className="text-[10px] font-black uppercase tracking-wider text-[var(--pd-accent)]">Browser</span>
+        <span className="text-[9px] font-medium leading-tight text-[var(--pd-muted)]">
           {formatDistanceToNow(new Date(p.at), { addSuffix: true, locale: localeIt })}
         </span>
       </div>
     ) : (
       <div className="flex max-w-[160px] flex-col gap-0.5">
-        <span className="text-[10px] font-bold text-gray-500">
+        <span className="text-[10px] font-bold text-[var(--pd-muted)]">
           {p.lastMode === 'browser' ? 'Ultimo: browser' : 'Ultimo: app'}
         </span>
-        <span className="text-[9px] font-medium leading-tight text-gray-400" title="Oltre 25 min fa">
+        <span className="text-[9px] font-medium leading-tight text-[var(--pd-muted)]" title="Oltre 25 min fa">
           {formatDistanceToNow(new Date(p.at), { addSuffix: true, locale: localeIt })}
         </span>
       </div>
@@ -90,11 +90,11 @@ function ClientAppCell({ user }: { user: User }) {
   return (
     <div className="max-w-[220px] space-y-2">
       {main}
-      <div className="space-y-1 border-t border-gray-100 pt-2 text-[8px] leading-snug text-gray-400">
+      <div className="space-y-1 border-t border-[var(--pd-border)] pt-2 text-[8px] leading-snug text-[var(--pd-muted)]">
         {user.notificationPermissionReported && (
           <p>
             Permesso notif.:{' '}
-            <span className="font-bold text-gray-600">{user.notificationPermissionReported}</span>
+            <span className="font-bold text-[var(--pd-muted)]">{user.notificationPermissionReported}</span>
             {user.notificationPermissionReportedAt && (
               <span className="mt-0.5 block text-[7px] opacity-80">
                 {formatDistanceToNow(new Date(user.notificationPermissionReportedAt), {
@@ -108,7 +108,7 @@ function ClientAppCell({ user }: { user: User }) {
         {user.clientPushSubscribedReported != null && (
           <p>
             Iscrizione push (client):{' '}
-            <span className="font-bold text-gray-600">{user.clientPushSubscribedReported ? 'sì' : 'no'}</span>
+            <span className="font-bold text-[var(--pd-muted)]">{user.clientPushSubscribedReported ? 'sì' : 'no'}</span>
           </p>
         )}
       </div>
@@ -259,19 +259,19 @@ export default function UsersPage() {
     <MainLayout adminOnly>
       <div className="max-w-7xl mx-auto space-y-8 pb-20">
         {/* Premium Header */}
-        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
+        <div className="relative overflow-hidden bg-[var(--pd-surface)] rounded-[2.5rem] p-8 shadow-[var(--pd-shadow)] border border-[var(--pd-border)]">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--pd-accent-soft)] rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
           
           <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-orange-100 transform -rotate-3">
+              <div className="w-16 h-16 bg-[var(--pd-accent)] rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-[var(--pd-shadow)] transform -rotate-3">
                 <Users className="h-8 w-8 text-white" />
               </div>
           <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
+                <h1 className="pd-display text-2xl sm:text-3xl font-semibold text-[var(--pd-text)] tracking-tight leading-none">
                   Gestione Squadra
             </h1>
-                <p className="text-gray-500 mt-2 text-sm font-medium">
+                <p className="text-[var(--pd-muted)] mt-2 text-sm font-medium">
                   Controlla i profili, i ruoli e i permessi di tutti i collaboratori.
             </p>
           </div>
@@ -282,7 +282,7 @@ export default function UsersPage() {
                 lightClick()
                 setShowCreateForm(true)
               }}
-              className="px-8 py-4 bg-gradient-primary text-white rounded-[1.5rem] text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all active:scale-95 flex items-center gap-3"
+              className="px-8 py-4 bg-[var(--pd-accent)] text-white rounded-[1.5rem] text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-[var(--pd-shadow)] hover:brightness-110 transition-all active:scale-95 flex items-center gap-3"
             >
               <UserPlus className="h-5 w-5" />
               Nuovo Collaboratore
@@ -319,7 +319,7 @@ export default function UsersPage() {
           />
         </div>
         {browserLiveCount > 0 && (
-          <p className="text-[10px] font-bold text-sky-700/80 uppercase tracking-widest px-1">
+          <p className="text-[10px] font-bold text-[var(--pd-accent)]/80 uppercase tracking-widest px-1">
             In browser (live): {browserLiveCount} — dati inviati dal client ogni pochi minuti
           </p>
         )}
@@ -328,21 +328,21 @@ export default function UsersPage() {
         <div className="space-y-6">
           <SectionHeader title="Collaboratori Attivi" count={activeUsers.length} color="green" />
           
-          <div className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 overflow-hidden">
+          <div className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden">
             {/* Desktop Table View */}
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
-                    <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Utente</th>
-                    <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Abilitazioni</th>
-                    <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Trasporti</th>
-                    <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Client app</th>
-                    <th className="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Notifiche</th>
-                    <th className="px-8 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Azioni</th>
+                  <tr className="bg-[var(--pd-surface-muted)]/80 border-b border-[var(--pd-border)]">
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em]">Utente</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em]">Abilitazioni</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em]">Trasporti</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em]">Client app</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em]">Notifiche</th>
+                    <th className="px-8 py-5 text-center text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em]">Azioni</th>
                 </tr>
               </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-[var(--pd-border)]">
                   {activeUsers.map(user => (
                     <UserRow 
                       key={user.id} 
@@ -374,7 +374,7 @@ export default function UsersPage() {
             {activeUsers.length === 0 && (
               <div className="py-20 text-center">
                 <Users className="h-16 w-16 text-gray-100 mx-auto mb-4" />
-                <p className="text-gray-400 font-black uppercase tracking-widest text-sm">Nessun collaboratore attivo</p>
+                <p className="text-[var(--pd-muted)] font-black uppercase tracking-widest text-sm">Nessun collaboratore attivo</p>
             </div>
           )}
           </div>
@@ -385,10 +385,10 @@ export default function UsersPage() {
           <div className="space-y-6">
             <SectionHeader title="Account Disattivati" count={inactiveUsers.length} color="red" />
             
-            <div className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 overflow-hidden opacity-70">
+            <div className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden opacity-70">
               <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full">
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-[var(--pd-border)]">
                     {inactiveUsers.map(user => (
                       <UserRow 
                         key={user.id} 
@@ -455,9 +455,9 @@ export default function UsersPage() {
         isDangerous={true}
         metadata={
           deletingUser && (
-            <div className="text-sm font-bold text-gray-600 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-              <div className="flex justify-between mb-1"><span>Username:</span> <span className="text-gray-900">{deletingUser.username}</span></div>
-              <div className="flex justify-between"><span>Ruolo:</span> <span className="text-gray-900">{getRoleName(deletingUser.primaryRole)}</span></div>
+            <div className="text-sm font-bold text-[var(--pd-muted)] bg-[var(--pd-surface-muted)] p-4 rounded-2xl border border-[var(--pd-border)]">
+              <div className="flex justify-between mb-1"><span>Username:</span> <span className="text-[var(--pd-text)]">{deletingUser.username}</span></div>
+              <div className="flex justify-between"><span>Ruolo:</span> <span className="text-[var(--pd-text)]">{getRoleName(deletingUser.primaryRole)}</span></div>
             </div>
           )
         }
@@ -479,32 +479,32 @@ export default function UsersPage() {
 
 function SectionHeader({ title, count, color }: any) {
   const colors: any = {
-    green: 'bg-green-500',
-    red: 'bg-red-500'
+    green: 'bg-[var(--pd-success)]',
+    red: 'bg-[var(--pd-danger)]'
   }
   return (
     <div className="flex items-center gap-3 px-4">
       <div className={cn("w-2 h-2 rounded-full", colors[color])}></div>
-      <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{title} ({count})</h2>
+      <h2 className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em]">{title} ({count})</h2>
     </div>
   )
 }
 
 function StatCard({ label, value, icon: Icon, color, hint }: { label: string; value: string | number; icon: ComponentType<{ className?: string }>; color: string; hint?: string }) {
   const colors: Record<string, string> = {
-    orange: 'bg-orange-50 text-orange-600',
-    green: 'bg-green-50 text-green-600',
-    red: 'bg-red-50 text-red-600'
+    orange: 'bg-[var(--pd-accent-soft)] text-[var(--pd-accent)]',
+    green: 'bg-[var(--pd-success-soft)] text-[var(--pd-success)]',
+    red: 'bg-[var(--pd-danger-soft)] text-[var(--pd-danger)]'
   }
   return (
-    <div className="bg-white p-6 rounded-[2rem] shadow-soft border border-gray-100 flex items-center gap-5">
+    <div className="bg-[var(--pd-surface)] p-6 rounded-[2rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] flex items-center gap-5">
       <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm", colors[color])}>
         <Icon className="h-7 w-7" />
       </div>
       <div>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-        <p className="text-2xl font-black text-gray-900">{value}</p>
-        {hint && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-wide">{hint}</p>}
+        <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-1">{label}</p>
+        <p className="text-2xl font-black text-[var(--pd-text)]">{value}</p>
+        {hint && <p className="text-[9px] font-bold text-[var(--pd-muted)] mt-1 uppercase tracking-wide">{hint}</p>}
       </div>
     </div>
   )
@@ -512,15 +512,15 @@ function StatCard({ label, value, icon: Icon, color, hint }: { label: string; va
 
 function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
   return (
-    <tr className="group hover:bg-orange-50/30 transition-colors">
+    <tr className="group hover:bg-[var(--pd-accent-soft)]/30 transition-colors">
       <td className="px-8 py-5 whitespace-nowrap">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center font-black text-gray-400 border border-gray-100 group-hover:border-orange-200 group-hover:text-orange-500 transition-all">
+          <div className="w-10 h-10 bg-[var(--pd-surface-muted)] rounded-xl flex items-center justify-center font-black text-[var(--pd-muted)] border border-[var(--pd-border)] group-hover:border-[var(--pd-accent)] group-hover:text-[var(--pd-accent)] transition-all">
             {user.username.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-black text-gray-900">{user.username}</p>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{getRoleName(user.primaryRole)}</p>
+            <p className="text-sm font-black text-[var(--pd-text)]">{user.username}</p>
+            <p className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-wider">{getRoleName(user.primaryRole)}</p>
           </div>
         </div>
       </td>
@@ -529,7 +529,7 @@ function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any)
           {user.user_roles.map((ur: any, i: number) => (
             <span key={i} className={cn(
               "px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest",
-              ur.role === user.primaryRole ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-500"
+              ur.role === user.primaryRole ? "bg-[var(--pd-accent-soft)] text-[var(--pd-accent-hover)]" : "bg-[var(--pd-surface-muted)] text-[var(--pd-muted)]"
             )}>
               {getRoleName(ur.role)}
               {ur.role === user.primaryRole && <span className="ml-1">★</span>}
@@ -542,12 +542,12 @@ function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any)
           {user.user_transports.length > 0 ? user.user_transports.map((ut: any, i: number) => (
             <span key={i} className={cn(
               "px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest",
-              ut.transport === user.primaryTransport ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
+              ut.transport === user.primaryTransport ? "bg-[var(--pd-accent-soft)] text-[var(--pd-accent)]" : "bg-[var(--pd-surface-muted)] text-[var(--pd-muted)]"
             )}>
               {getTransportName(ut.transport)}
               {ut.transport === user.primaryTransport && <span className="ml-1">★</span>}
             </span>
-          )) : <span className="text-[10px] font-bold text-gray-300 uppercase italic">Nessuno</span>}
+          )) : <span className="text-[10px] font-bold text-[var(--pd-muted)]/50 uppercase italic">Nessuno</span>}
         </div>
       </td>
       <td className="px-8 py-5">
@@ -559,18 +559,18 @@ function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any)
             onClick={onTogglePush}
             className={cn(
               "w-10 h-5 rounded-full relative transition-all shadow-inner",
-              user.pushNotificationsEnabled ? "bg-orange-500" : "bg-gray-200"
+              user.pushNotificationsEnabled ? "bg-[var(--pd-accent)]" : "bg-gray-200"
             )}
           >
             <div className={cn(
-              "absolute top-1 w-3 h-3 bg-white rounded-full transition-all shadow-sm",
+              "absolute top-1 w-3 h-3 bg-[var(--pd-surface)] rounded-full transition-all shadow-sm",
               user.pushNotificationsEnabled ? "right-1" : "left-1"
             )} />
           </button>
           {user.pushNotificationsEnabled && (
             <div className={cn(
               "w-2 h-2 rounded-full",
-              user.push_subscriptions?.length > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"
+              user.push_subscriptions?.length > 0 ? "bg-[var(--pd-success)] animate-pulse" : "bg-[var(--pd-warning)]"
             )} />
           )}
         </div>
@@ -588,15 +588,15 @@ function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any)
 
 function UserMobileCard({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any) {
   return (
-    <div className="bg-white rounded-[2rem] p-6 shadow-soft border border-gray-100 space-y-6">
+    <div className="bg-[var(--pd-surface)] rounded-[2rem] p-6 shadow-[var(--pd-shadow)] border border-[var(--pd-border)] space-y-6">
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center font-black text-gray-400">
+          <div className="w-12 h-12 bg-[var(--pd-surface-muted)] rounded-2xl flex items-center justify-center font-black text-[var(--pd-muted)]">
             {user.username.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="text-base font-black text-gray-900 leading-none">{user.username}</p>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1.5">{getRoleName(user.primaryRole)}</p>
+            <p className="text-base font-black text-[var(--pd-text)] leading-none">{user.username}</p>
+            <p className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-widest mt-1.5">{getRoleName(user.primaryRole)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -607,31 +607,31 @@ function UserMobileCard({ user, onEdit, onDelete, onResetPassword, onTogglePush 
 
       <div className="grid grid-cols-2 gap-4 pt-2">
         <div className="space-y-2">
-          <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Ruoli</p>
+          <p className="text-[9px] font-black text-[var(--pd-muted)]/50 uppercase tracking-widest">Ruoli</p>
           <div className="flex flex-wrap gap-1.5">
             {user.user_roles.map((ur: any, i: number) => (
-              <span key={i} className="px-2 py-0.5 bg-gray-50 text-gray-500 text-[9px] font-black rounded-lg uppercase">{getRoleName(ur.role).substring(0,3)}</span>
+              <span key={i} className="px-2 py-0.5 bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] text-[9px] font-black rounded-lg uppercase">{getRoleName(ur.role).substring(0,3)}</span>
             ))}
           </div>
         </div>
         <div className="space-y-2">
-          <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Notifiche Push</p>
+          <p className="text-[9px] font-black text-[var(--pd-muted)]/50 uppercase tracking-widest">Notifiche Push</p>
           <div className="flex items-center gap-3">
-            <Bell className={cn("w-4 h-4", user.pushNotificationsEnabled ? "text-orange-500" : "text-gray-200")} />
-            <div className={cn("w-2 h-2 rounded-full", user.push_subscriptions?.length > 0 ? "bg-green-500" : "bg-yellow-500")} />
+            <Bell className={cn("w-4 h-4", user.pushNotificationsEnabled ? "text-[var(--pd-accent-fg)]/800" : "text-gray-200")} />
+            <div className={cn("w-2 h-2 rounded-full", user.push_subscriptions?.length > 0 ? "bg-[var(--pd-success)]" : "bg-[var(--pd-warning)]")} />
           </div>
         </div>
       </div>
 
-      <div className="space-y-2 pt-2 border-t border-gray-50">
-        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Client app (PWA)</p>
+      <div className="space-y-2 pt-2 border-t border-[var(--pd-border)]">
+        <p className="text-[9px] font-black text-[var(--pd-muted)]/50 uppercase tracking-widest">Client app (PWA)</p>
         <ClientAppCell user={user} />
       </div>
 
-      <div className="pt-4 border-t border-gray-50">
+      <div className="pt-4 border-t border-[var(--pd-border)]">
         <button 
           onClick={onResetPassword}
-          className="w-full py-3 bg-gray-50 hover:bg-orange-50 text-gray-400 hover:text-orange-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+          className="w-full py-3 bg-[var(--pd-surface-muted)] hover:bg-[var(--pd-accent-soft)] text-[var(--pd-muted)] hover:text-[var(--pd-accent)] rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
         >
           <RotateCw className="h-3 w-3" />
           Reset Password
@@ -643,9 +643,9 @@ function UserMobileCard({ user, onEdit, onDelete, onResetPassword, onTogglePush 
 
 function ActionBtn({ icon: Icon, color, onClick, size = 'md' }: any) {
   const colors: any = {
-    blue: 'text-blue-500 bg-blue-50 hover:bg-blue-100',
-    orange: 'text-orange-500 bg-orange-50 hover:bg-orange-100',
-    red: 'text-red-500 bg-red-50 hover:bg-red-100'
+    blue: 'text-[var(--pd-accent)] bg-[var(--pd-accent-soft)] hover:bg-[var(--pd-accent-soft)]',
+    orange: 'text-[var(--pd-accent-fg)]/800 bg-[var(--pd-accent-soft)] hover:bg-[var(--pd-accent-soft)]',
+    red: 'text-[var(--pd-danger)] bg-[var(--pd-danger-soft)] hover:bg-[var(--pd-danger-soft)]'
   }
   const sizes: any = {
     md: 'p-2',
@@ -743,7 +743,7 @@ function UserFormModal({
       <form onSubmit={handleSubmit} className="space-y-8 pt-4">
         {/* Username section */}
         <div className="space-y-3">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Nome Utente</label>
+          <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] ml-1">Nome Utente</label>
           <input
                 type="text"
                 required
@@ -751,13 +751,13 @@ function UserFormModal({
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
             placeholder="Es: mario.rossi"
-            className="w-full bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] px-6 py-4 text-sm font-black text-gray-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all disabled:opacity-50"
+            className="w-full bg-[var(--pd-surface-muted)] border-2 border-[var(--pd-border)] rounded-[1.5rem] px-6 py-4 text-sm font-black text-[var(--pd-text)] focus:outline-none focus:border-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all disabled:opacity-50"
           />
         </div>
 
         {/* Roles section */}
         <div className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Abilitazioni & Ruoli</label>
+          <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] ml-1">Abilitazioni & Ruoli</label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {['ADMIN', 'PIZZAIOLO', 'FATTORINO', 'CUCINA', 'SALA'].map((role) => (
               <label 
@@ -765,14 +765,14 @@ function UserFormModal({
                 className={cn(
                   "flex items-center gap-3 p-5 border-2 rounded-[1.5rem] cursor-pointer transition-all",
                   formData.roles.includes(role as Role)
-                    ? "bg-orange-50 border-orange-500 shadow-sm"
-                    : "bg-white border-gray-50 hover:border-gray-200"
+                    ? "bg-[var(--pd-accent-soft)] border-[var(--pd-accent)] shadow-sm"
+                    : "bg-[var(--pd-surface)] border-[var(--pd-border)] hover:border-[var(--pd-border)]"
                 )}
                 onClick={() => lightClick()}
               >
                 <div className={cn(
                   "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                  formData.roles.includes(role as Role) ? "bg-orange-500 border-orange-500" : "border-gray-200"
+                  formData.roles.includes(role as Role) ? "bg-[var(--pd-accent)] border-[var(--pd-accent)]" : "border-[var(--pd-border)]"
                 )}>
                   {formData.roles.includes(role as Role) && <Check className="h-3.5 w-3.5 text-white stroke-[4]" />}
                 </div>
@@ -788,7 +788,7 @@ function UserFormModal({
                         }
                       }}
                     />
-                <span className="text-xs font-black text-gray-900 leading-none">{getRoleName(role)}</span>
+                <span className="text-xs font-black text-[var(--pd-text)] leading-none">{getRoleName(role)}</span>
                   </label>
                 ))}
               </div>
@@ -797,20 +797,20 @@ function UserFormModal({
         {/* Primary Role select */}
         {formData.roles.length > 0 && (
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Ruolo Principale</label>
+            <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] ml-1">Ruolo Principale</label>
             <div className="relative group">
               <select
                 required
               value={formData.primaryRole}
                 onChange={(e) => setFormData({ ...formData, primaryRole: e.target.value as Role })}
-                className="w-full appearance-none bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] px-6 py-4 text-sm font-black text-gray-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all cursor-pointer"
+                className="w-full appearance-none bg-[var(--pd-surface-muted)] border-2 border-[var(--pd-border)] rounded-[1.5rem] px-6 py-4 text-sm font-black text-[var(--pd-text)] focus:outline-none focus:border-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all cursor-pointer"
               >
                 <option value="">Seleziona il ruolo principale...</option>
                 {formData.roles.map(role => (
                   <option key={role} value={role}>{getRoleName(role)}</option>
                 ))}
               </select>
-              <ChevronRight className="absolute right-6 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90 pointer-events-none group-focus-within:rotate-180 transition-transform" />
+              <ChevronRight className="absolute right-6 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--pd-muted)] rotate-90 pointer-events-none group-focus-within:rotate-180 transition-transform" />
             </div>
           </div>
         )}
@@ -818,7 +818,7 @@ function UserFormModal({
         {/* Transport section for drivers */}
             {formData.roles.includes('FATTORINO') && (
           <div className="space-y-4 pt-2 animate-in slide-in-from-top-4 duration-300">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Mezzi di Trasporto</label>
+            <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] ml-1">Mezzi di Trasporto</label>
                   <div className="flex gap-4">
                     {['AUTO', 'SCOOTER'].map((transport) => (
                 <label 
@@ -826,14 +826,14 @@ function UserFormModal({
                   className={cn(
                     "flex-1 flex items-center gap-3 p-5 border-2 rounded-[1.5rem] cursor-pointer transition-all",
                     formData.transports.includes(transport as TransportType)
-                      ? "bg-blue-50 border-blue-500 shadow-sm"
-                      : "bg-white border-gray-50 hover:border-gray-200"
+                      ? "bg-[var(--pd-accent-soft)] border-blue-500 shadow-sm"
+                      : "bg-[var(--pd-surface)] border-[var(--pd-border)] hover:border-[var(--pd-border)]"
                   )}
                   onClick={() => lightClick()}
                 >
                   <div className={cn(
                     "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                    formData.transports.includes(transport as TransportType) ? "bg-blue-500 border-blue-500" : "border-gray-200"
+                    formData.transports.includes(transport as TransportType) ? "bg-[var(--pd-accent)] border-blue-500" : "border-[var(--pd-border)]"
                   )}>
                     {formData.transports.includes(transport as TransportType) && <Check className="h-3.5 w-3.5 text-white stroke-[4]" />}
                   </div>
@@ -849,27 +849,27 @@ function UserFormModal({
                             }
                           }}
                         />
-                  <span className="text-xs font-black text-gray-900 leading-none">{getTransportName(transport)}</span>
+                  <span className="text-xs font-black text-[var(--pd-text)] leading-none">{getTransportName(transport)}</span>
                       </label>
                     ))}
                 </div>
 
                 {formData.transports.length > 1 && (
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Mezzo Preferito</label>
+                <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] ml-1">Mezzo Preferito</label>
                 <div className="relative group">
                   <select
                     required
                     value={formData.primaryTransport}
                     onChange={(e) => setFormData({ ...formData, primaryTransport: e.target.value as TransportType })}
-                    className="w-full appearance-none bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] px-6 py-4 text-sm font-black text-gray-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all cursor-pointer"
+                    className="w-full appearance-none bg-[var(--pd-surface-muted)] border-2 border-[var(--pd-border)] rounded-[1.5rem] px-6 py-4 text-sm font-black text-[var(--pd-text)] focus:outline-none focus:border-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all cursor-pointer"
                   >
                     <option value="">Seleziona il mezzo principale...</option>
                     {formData.transports.map(transport => (
                       <option key={transport} value={transport}>{getTransportName(transport)}</option>
                     ))}
                   </select>
-                  <ChevronRight className="absolute right-6 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90 pointer-events-none group-focus-within:rotate-180 transition-transform" />
+                  <ChevronRight className="absolute right-6 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--pd-muted)] rotate-90 pointer-events-none group-focus-within:rotate-180 transition-transform" />
                 </div>
               </div>
             )}
@@ -877,8 +877,8 @@ function UserFormModal({
         )}
 
         {/* Configuration Flags */}
-        <div className="space-y-4 pt-8 border-t border-gray-100">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Configurazione Account</label>
+        <div className="space-y-4 pt-8 border-t border-[var(--pd-border)]">
+          <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.2em] ml-1">Configurazione Account</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               { id: 'isActive', label: 'Collaboratore Attivo', icon: Users, color: 'green' },
@@ -888,23 +888,23 @@ function UserFormModal({
               <label 
                 key={flag.id} 
                 className={cn(
-                  "flex items-center justify-between p-5 bg-gray-50 rounded-[1.5rem] cursor-pointer hover:bg-white hover:shadow-sm border-2 border-transparent hover:border-gray-100 transition-all",
-                  (formData as any)[flag.id] && "bg-white border-gray-50"
+                  "flex items-center justify-between p-5 bg-[var(--pd-surface-muted)] rounded-[1.5rem] cursor-pointer hover:bg-white hover:shadow-sm border-2 border-transparent hover:border-[var(--pd-border)] transition-all",
+                  (formData as any)[flag.id] && "bg-[var(--pd-surface)] border-[var(--pd-border)]"
                 )}
                 onClick={() => lightClick()}
               >
                 <div className="flex items-center gap-4">
-                  <div className={cn("p-2.5 rounded-xl transition-colors", (formData as any)[flag.id] ? `bg-${flag.color}-50 text-${flag.color}-600` : "bg-gray-200 text-gray-400")}>
+                  <div className={cn("p-2.5 rounded-xl transition-colors", (formData as any)[flag.id] ? `bg-${flag.color}-50 text-${flag.color}-600` : "bg-gray-200 text-[var(--pd-muted)]")}>
                     <flag.icon className="h-5 w-5" />
                   </div>
-                  <span className="text-xs font-black text-gray-700 uppercase tracking-tight">{flag.label}</span>
+                  <span className="text-xs font-black text-[var(--pd-text)] uppercase tracking-tight">{flag.label}</span>
                 </div>
                 <div className={cn(
                   "w-12 h-6 rounded-full relative transition-all shadow-inner",
-                  (formData as any)[flag.id] ? "bg-orange-500" : "bg-gray-300"
+                  (formData as any)[flag.id] ? "bg-[var(--pd-accent)]" : "bg-gray-300"
                 )}>
                   <div className={cn(
-                    "absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm",
+                    "absolute top-1 w-4 h-4 bg-[var(--pd-surface)] rounded-full transition-all shadow-sm",
                     (formData as any)[flag.id] ? "right-1" : "left-1"
                   )} />
                 </div>
@@ -920,18 +920,18 @@ function UserFormModal({
               </div>
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-gray-50">
+        <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-[var(--pd-border)]">
           <button
                 type="button"
                 onClick={onClose}
-            className="flex-1 py-5 text-xs font-black uppercase tracking-[0.2em] text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-[1.5rem] transition-all"
+            className="flex-1 py-5 text-xs font-black uppercase tracking-[0.2em] text-[var(--pd-muted)] hover:text-[var(--pd-muted)] hover:bg-[var(--pd-surface-muted)] rounded-[1.5rem] transition-all"
               >
                 Annulla
           </button>
           <button
                 type="submit"
             disabled={loading}
-            className="flex-[2] py-5 bg-gradient-primary text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all active:scale-95 disabled:opacity-50"
+            className="flex-[2] py-5 bg-[var(--pd-accent)] text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-lg shadow-[var(--pd-shadow)] hover:brightness-110 transition-all active:scale-95 disabled:opacity-50"
           >
             {loading ? (
               <div className="flex items-center justify-center gap-2">
@@ -1033,7 +1033,7 @@ function ResetPasswordModal({
         <div className="space-y-6">
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[var(--pd-success)] text-white flex items-center justify-center shrink-0">
                 <Check className="h-5 w-5" />
               </div>
               <div>
@@ -1047,15 +1047,15 @@ function ResetPasswordModal({
           </div>
 
           <div className="space-y-3">
-            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
+            <div className="rounded-2xl border border-[var(--pd-border)] bg-[var(--pd-surface-muted)] px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--pd-muted)] mb-1">
                 Username
               </p>
-              <p className="text-sm font-black text-gray-900">{result.username}</p>
+              <p className="text-sm font-black text-[var(--pd-text)]">{result.username}</p>
             </div>
 
-            <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-1">
+            <div className="rounded-2xl border border-[var(--pd-accent)] bg-[var(--pd-accent-soft)] px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--pd-accent-fg)]/800 mb-1">
                 Password temporanea
               </p>
               <div className="flex items-center gap-2">
@@ -1065,7 +1065,7 @@ function ResetPasswordModal({
                 <button
                   type="button"
                   onClick={copyPassword}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-orange-200 text-[10px] font-black uppercase tracking-wider text-orange-700 hover:bg-orange-100 transition-colors"
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-[var(--pd-accent)] text-[10px] font-black uppercase tracking-wider text-[var(--pd-accent-hover)] hover:bg-[var(--pd-accent-soft)] transition-colors"
                 >
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                   {copied ? 'Copiata' : 'Copia'}
@@ -1077,15 +1077,15 @@ function ResetPasswordModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-4 bg-gradient-primary text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all"
+            className="w-full py-4 bg-[var(--pd-accent)] text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-lg shadow-[var(--pd-shadow)] hover:brightness-110 transition-all"
           >
             Chiudi
           </button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4 flex gap-3">
-            <KeyRound className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
+          <div className="rounded-2xl border border-[var(--pd-border)] bg-[var(--pd-accent-soft)]/60 p-4 flex gap-3">
+            <KeyRound className="h-5 w-5 text-[var(--pd-accent)] shrink-0 mt-0.5" />
             <div className="text-xs text-orange-900 leading-relaxed">
               Reset password per{' '}
               <span className="font-black">{user.username}</span>. L&apos;utente dovrà cambiare la
@@ -1100,8 +1100,8 @@ function ResetPasswordModal({
               className={cn(
                 'py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all',
                 mode === 'username'
-                  ? 'bg-orange-500 text-white border-orange-500'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-orange-200'
+                  ? 'bg-[var(--pd-accent)] text-white border-[var(--pd-accent)]'
+                  : 'bg-white text-[var(--pd-muted)] border-[var(--pd-border)] hover:border-[var(--pd-accent)]'
               )}
             >
               = Username
@@ -1112,8 +1112,8 @@ function ResetPasswordModal({
               className={cn(
                 'py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all',
                 mode === 'custom'
-                  ? 'bg-orange-500 text-white border-orange-500'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-orange-200'
+                  ? 'bg-[var(--pd-accent)] text-white border-[var(--pd-accent)]'
+                  : 'bg-white text-[var(--pd-muted)] border-[var(--pd-border)] hover:border-[var(--pd-accent)]'
               )}
             >
               Personalizzata
@@ -1121,20 +1121,20 @@ function ResetPasswordModal({
           </div>
 
           {mode === 'username' ? (
-            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
+            <div className="rounded-2xl border border-[var(--pd-border)] bg-[var(--pd-surface-muted)] px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--pd-muted)] mb-1">
                 Password temporanea
               </p>
-              <p className="text-sm font-black text-gray-900">{user.username}</p>
+              <p className="text-sm font-black text-[var(--pd-text)]">{user.username}</p>
               {user.username.length < 6 && (
-                <p className="text-[11px] text-red-600 mt-2 font-medium">
+                <p className="text-[11px] text-[var(--pd-danger)] mt-2 font-medium">
                   Username troppo corto: scegli una password personalizzata (≥ 6 caratteri).
                 </p>
               )}
             </div>
           ) : (
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--pd-muted)] mb-2">
                 Nuova password temporanea
               </label>
               <div className="relative">
@@ -1149,7 +1149,7 @@ function ResetPasswordModal({
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase tracking-wider text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase tracking-wider text-[var(--pd-muted)] hover:text-[var(--pd-muted)]"
                 >
                   {showPassword ? 'Nascondi' : 'Mostra'}
                 </button>
@@ -1158,7 +1158,7 @@ function ResetPasswordModal({
           )}
 
           {error && (
-            <p className="text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+            <p className="text-xs font-medium text-[var(--pd-danger)] bg-[var(--pd-danger-soft)] border border-[var(--pd-border)] rounded-xl px-4 py-3">
               {error}
             </p>
           )}
@@ -1168,14 +1168,14 @@ function ResetPasswordModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 py-4 text-xs font-black uppercase tracking-[0.2em] text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-[1.5rem] transition-all disabled:opacity-50"
+              className="flex-1 py-4 text-xs font-black uppercase tracking-[0.2em] text-[var(--pd-muted)] hover:text-[var(--pd-muted)] hover:bg-[var(--pd-surface-muted)] rounded-[1.5rem] transition-all disabled:opacity-50"
             >
               Annulla
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-[2] py-4 bg-orange-500 text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-[2] py-4 bg-[var(--pd-accent)] text-white text-xs font-black uppercase tracking-[0.2em] rounded-[1.5rem] shadow-lg shadow-[var(--pd-shadow)] hover:bg-[var(--pd-accent)] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

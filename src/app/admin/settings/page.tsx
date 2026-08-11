@@ -353,7 +353,7 @@ export default function SettingsPage() {
     return (
       <MainLayout adminOnly>
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--pd-accent)]"></div>
         </div>
       </MainLayout>
     )
@@ -363,16 +363,16 @@ export default function SettingsPage() {
     <MainLayout adminOnly>
       <div className="space-y-6 max-w-7xl mx-auto">
         {/* Header Premium */}
-        <div className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 p-8">
+        <div className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8">
           <div className="flex items-center gap-5">
-            <div className="p-4 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-xl shadow-orange-100">
+            <div className="p-4 bg-[var(--pd-accent)] rounded-2xl shadow-xl shadow-[var(--pd-shadow)]">
               <Cog6ToothIcon className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+              <h1 className="pd-display text-3xl font-semibold text-[var(--pd-text)] tracking-tight">
                 Configurazioni Sistema
               </h1>
-              <p className="text-gray-500 font-medium mt-1">
+              <p className="text-[var(--pd-muted)] font-medium mt-1">
                 Gestisci le impostazioni generali del sistema
               </p>
             </div>
@@ -380,15 +380,15 @@ export default function SettingsPage() {
         </div>
 
         {/* Scooter Configuration */}
-        <div className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 p-8 hover:shadow-xl transition-all">
+        <div className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8 hover:shadow-xl transition-all">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl flex items-center justify-center shadow-sm">
+              <div className="w-14 h-14 bg-[var(--pd-accent-soft)] rounded-2xl flex items-center justify-center shadow-sm">
                 <span className="text-2xl">🛵</span>
               </div>
               <div>
-                <h3 className="text-lg font-black text-gray-900">Scooter Disponibili</h3>
-                <p className="text-sm text-gray-500 font-medium mt-0.5">Numero di scooter per le consegne</p>
+                <h3 className="text-lg font-black text-[var(--pd-text)]">Scooter Disponibili</h3>
+                <p className="text-sm text-[var(--pd-muted)] font-medium mt-0.5">Numero di scooter per le consegne</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -398,12 +398,12 @@ export default function SettingsPage() {
                 max="20"
                 value={settings.scooter_count}
                 onChange={(e) => setSettings({ ...settings, scooter_count: e.target.value })}
-                className="w-24 h-12 text-center text-xl font-black border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                className="w-24 h-12 text-center text-xl font-black border-2 border-[var(--pd-border)] rounded-2xl focus:border-[var(--pd-accent)] focus:ring-2 focus:ring-orange-100 transition-all"
               />
               <Button
                 onClick={() => saveSetting('scooter_count', settings.scooter_count, 'Numero di scooter disponibili')}
                 isLoading={saving === 'scooter_count'}
-                className="bg-orange-600 hover:bg-orange-700 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-200"
+                className="bg-[var(--pd-accent)] hover:bg-[var(--pd-accent-hover)] px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--pd-shadow)]"
               >
                 {saving === 'scooter_count' ? 'Salvataggio...' : 'Salva'}
               </Button>
@@ -414,55 +414,55 @@ export default function SettingsPage() {
         {/* Holidays — link to dedicated page */}
         <Link
           href="/admin/holidays"
-          className="block bg-white rounded-[2.5rem] shadow-soft border border-gray-100 p-8 hover:shadow-xl transition-all group"
+          className="block bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8 hover:shadow-xl transition-all group"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-red-50 to-red-100 rounded-2xl flex items-center justify-center shadow-sm">
-                <Calendar className="w-6 h-6 text-red-600" />
+              <div className="w-14 h-14 bg-[var(--pd-danger-soft)] rounded-2xl flex items-center justify-center shadow-sm">
+                <Calendar className="w-6 h-6 text-[var(--pd-danger)]" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-gray-900">Giorni di Chiusura</h3>
-                <p className="text-sm text-gray-500 font-medium mt-0.5">
+                <h3 className="text-lg font-black text-[var(--pd-text)]">Giorni di Chiusura</h3>
+                <p className="text-sm text-[var(--pd-muted)] font-medium mt-0.5">
                   Gestisci i giorni festivi e le chiusure
                 </p>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-600 transition-colors" />
+            <ChevronRight className="w-5 h-5 text-[var(--pd-muted)] group-hover:text-[var(--pd-accent)] transition-colors" />
           </div>
         </Link>
 
         {/* Shift Limits Configuration - Collapsible */}
-        <div className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 overflow-hidden">
+        <div className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden">
           <button
             onClick={() => setShiftLimitsOpen(!shiftLimitsOpen)}
-            className="w-full px-8 py-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors"
+            className="w-full px-8 py-6 flex items-center justify-between hover:bg-[var(--pd-surface-muted)]/80 transition-colors"
           >
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl flex items-center justify-center shadow-sm">
+              <div className="w-14 h-14 bg-[var(--pd-accent-soft)] rounded-2xl flex items-center justify-center shadow-sm">
                 <span className="text-2xl">👥</span>
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-black text-gray-900">Limiti Personale per Turno</h3>
-                <p className="text-sm text-gray-500 font-medium">Configura il personale richiesto per ogni turno e ruolo</p>
+                <h3 className="text-lg font-black text-[var(--pd-text)]">Limiti Personale per Turno</h3>
+                <p className="text-sm text-[var(--pd-muted)] font-medium">Configura il personale richiesto per ogni turno e ruolo</p>
               </div>
             </div>
             {shiftLimitsOpen ? (
-              <ChevronUpIcon className="w-5 h-5 text-gray-400" />
+              <ChevronUpIcon className="w-5 h-5 text-[var(--pd-muted)]" />
             ) : (
-              <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+              <ChevronDownIcon className="w-5 h-5 text-[var(--pd-muted)]" />
             )}
           </button>
 
           {shiftLimitsOpen && (
-            <div className="border-t border-gray-100">
-              <div className="px-8 py-6 border-b border-gray-100">
+            <div className="border-t border-[var(--pd-border)]">
+              <div className="px-8 py-6 border-b border-[var(--pd-border)]">
                 <div className="flex items-center justify-between">
                   <div className="flex-1"></div>
                   <Button
                     onClick={saveShiftLimits}
                     isLoading={savingLimits}
-                    className="bg-orange-600 hover:bg-orange-700 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-200"
+                    className="bg-[var(--pd-accent)] hover:bg-[var(--pd-accent-hover)] px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--pd-shadow)]"
                     leftIcon={!savingLimits ? <Check className="w-4 h-4" /> : undefined}
                   >
                     💾 Salva Tutti i Limiti
@@ -470,20 +470,20 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="mt-6 flex items-center justify-center">
-                  <div className="inline-flex items-center bg-gray-100 rounded-2xl p-1 gap-1">
+                  <div className="inline-flex items-center bg-[var(--pd-surface-muted)] rounded-2xl p-1 gap-1">
                     <button
                       onClick={() => setSelectedShift('PRANZO')}
                       className={cn(
                         "px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200",
                         selectedShift === 'PRANZO'
-                          ? "bg-white text-orange-700 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          ? "bg-[var(--pd-surface)] text-[var(--pd-accent-hover)] shadow-sm"
+                          : "text-[var(--pd-muted)] hover:text-[var(--pd-text)]"
                       )}
                     >
                       <span className="flex items-center gap-2">
                         <span>🍕</span>
                         <span>PRANZO</span>
-                        <span className="text-xs text-gray-500">11:00-14:00</span>
+                        <span className="text-xs text-[var(--pd-muted)]">11:00-14:00</span>
                       </span>
                     </button>
                     <button
@@ -491,14 +491,14 @@ export default function SettingsPage() {
                       className={cn(
                         "px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200",
                         selectedShift === 'CENA'
-                          ? "bg-white text-blue-700 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          ? "bg-[var(--pd-surface)] text-[var(--pd-accent)] shadow-sm"
+                          : "text-[var(--pd-muted)] hover:text-[var(--pd-text)]"
                       )}
                     >
                       <span className="flex items-center gap-2">
                         <span>🍝</span>
                         <span>CENA</span>
-                        <span className="text-xs text-gray-500">17:00-22:00</span>
+                        <span className="text-xs text-[var(--pd-muted)]">17:00-22:00</span>
                       </span>
                     </button>
                   </div>
@@ -507,23 +507,23 @@ export default function SettingsPage() {
 
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-[var(--pd-surface-muted)]">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider w-40">
+                      <th className="px-6 py-4 text-left text-xs font-black text-[var(--pd-muted)] uppercase tracking-wider w-40">
                         Giorno
                       </th>
                       {roles.map(role => (
-                        <th key={role} className="px-6 py-4 text-center text-xs font-black text-gray-600 uppercase tracking-wider">
+                        <th key={role} className="px-6 py-4 text-center text-xs font-black text-[var(--pd-muted)] uppercase tracking-wider">
                           {roleLabels[role]}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
+                  <tbody className="bg-[var(--pd-surface)] divide-y divide-gray-100">
                     {days.map((day, dayIndex) => (
-                      <tr key={dayIndex} className="hover:bg-gray-50 transition-colors">
+                      <tr key={dayIndex} className="hover:bg-[var(--pd-surface-muted)] transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-bold text-gray-900">{day}</span>
+                          <span className="text-sm font-bold text-[var(--pd-text)]">{day}</span>
                         </td>
                         {roles.map(role => {
                           const value = getShiftLimit(dayIndex, selectedShift, role)
@@ -541,7 +541,7 @@ export default function SettingsPage() {
                                     role, 
                                     parseInt(e.target.value) || 0
                                   )}
-                                  className="w-20 h-12 text-center text-lg font-black border-2 border-gray-200 rounded-xl hover:border-orange-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                  className="w-20 h-12 text-center text-lg font-black border-2 border-[var(--pd-border)] rounded-xl hover:border-[var(--pd-accent)] focus:border-[var(--pd-accent)] focus:ring-2 focus:ring-orange-100 transition-all"
                                   placeholder="0"
                                 />
                               </div>
@@ -554,14 +554,13 @@ export default function SettingsPage() {
                 </table>
               </div>
 
-              <div className="px-8 py-6 bg-blue-50 border-t border-blue-100">
+              <div className="px-8 py-6 bg-[var(--pd-accent-soft)] border-t border-[var(--pd-border)]">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-0.5">
-                    <span className="text-lg">💡</span>
-                  </div>
+                    </div>
                   <div className="flex-1">
                     <h4 className="text-xs font-black text-blue-900 mb-2 uppercase tracking-widest">Come funziona:</h4>
-                    <ul className="text-xs text-blue-800 space-y-1">
+                    <ul className="text-xs text-[var(--pd-accent)] space-y-1">
                       <li>• <strong>Personale Richiesto:</strong> Numero di persone necessarie per quel turno e ruolo</li>
                       <li>• <strong>Valore 0:</strong> Nessun requisito per quella combinazione (verrà ignorata)</li>
                       <li>• <strong>Generazione Automatica:</strong> L&apos;algoritmo userà questi valori per assegnare i turni</li>
@@ -574,36 +573,36 @@ export default function SettingsPage() {
         </div>
 
         {/* Start Times Configuration - Collapsible */}
-        <div className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 overflow-hidden">
+        <div className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden">
           <button
             onClick={() => setStartTimesOpen(!startTimesOpen)}
-            className="w-full px-8 py-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors"
+            className="w-full px-8 py-6 flex items-center justify-between hover:bg-[var(--pd-surface-muted)]/80 transition-colors"
           >
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl flex items-center justify-center shadow-sm">
+              <div className="w-14 h-14 bg-[var(--pd-accent-soft)] rounded-2xl flex items-center justify-center shadow-sm">
                 <span className="text-2xl">⏰</span>
               </div>
               <div className="text-left">
-                <h3 className="text-lg font-black text-gray-900">Orari di Inizio per Turno</h3>
-                <p className="text-sm text-gray-500 font-medium">Distribuisci il personale su orari diversi</p>
+                <h3 className="text-lg font-black text-[var(--pd-text)]">Orari di Inizio per Turno</h3>
+                <p className="text-sm text-[var(--pd-muted)] font-medium">Distribuisci il personale su orari diversi</p>
               </div>
             </div>
             {startTimesOpen ? (
-              <ChevronUpIcon className="w-5 h-5 text-gray-400" />
+              <ChevronUpIcon className="w-5 h-5 text-[var(--pd-muted)]" />
             ) : (
-              <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+              <ChevronDownIcon className="w-5 h-5 text-[var(--pd-muted)]" />
             )}
           </button>
 
           {startTimesOpen && (
-            <div className="border-t border-gray-100">
-              <div className="px-8 py-6 border-b border-gray-100">
+            <div className="border-t border-[var(--pd-border)]">
+              <div className="px-8 py-6 border-b border-[var(--pd-border)]">
                 <div className="flex items-center justify-between">
                   <div className="flex-1"></div>
                   <Button
                     onClick={saveDistributions}
                     isLoading={savingDistributions}
-                    className="bg-orange-600 hover:bg-orange-700 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-200"
+                    className="bg-[var(--pd-accent)] hover:bg-[var(--pd-accent-hover)] px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[var(--pd-shadow)]"
                     leftIcon={!savingDistributions ? <Check className="w-4 h-4" /> : undefined}
                   >
                     💾 Salva Tutti gli Orari
@@ -611,20 +610,20 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="mt-6 flex items-center justify-center">
-                  <div className="inline-flex items-center bg-gray-100 rounded-2xl p-1 gap-1">
+                  <div className="inline-flex items-center bg-[var(--pd-surface-muted)] rounded-2xl p-1 gap-1">
                     <button
                       onClick={() => setSelectedShift('PRANZO')}
                       className={cn(
                         "px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200",
                         selectedShift === 'PRANZO'
-                          ? "bg-white text-orange-700 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          ? "bg-[var(--pd-surface)] text-[var(--pd-accent-hover)] shadow-sm"
+                          : "text-[var(--pd-muted)] hover:text-[var(--pd-text)]"
                       )}
                     >
                       <span className="flex items-center gap-2">
                         <span>🍕</span>
                         <span>PRANZO</span>
-                        <span className="text-xs text-gray-500">11:00-14:00</span>
+                        <span className="text-xs text-[var(--pd-muted)]">11:00-14:00</span>
                       </span>
                     </button>
                     <button
@@ -632,14 +631,14 @@ export default function SettingsPage() {
                       className={cn(
                         "px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200",
                         selectedShift === 'CENA'
-                          ? "bg-white text-blue-700 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          ? "bg-[var(--pd-surface)] text-[var(--pd-accent)] shadow-sm"
+                          : "text-[var(--pd-muted)] hover:text-[var(--pd-text)]"
                       )}
                     >
                       <span className="flex items-center gap-2">
                         <span>🍝</span>
                         <span>CENA</span>
-                        <span className="text-xs text-gray-500">17:00-22:00</span>
+                        <span className="text-xs text-[var(--pd-muted)]">17:00-22:00</span>
                       </span>
                     </button>
                   </div>
@@ -652,24 +651,24 @@ export default function SettingsPage() {
                   
                   if (!hasRequirements) {
                     return (
-                      <div key={dayIndex} className="p-6 bg-gray-50">
+                      <div key={dayIndex} className="p-6 bg-[var(--pd-surface-muted)]">
                         <div className="flex items-center gap-3">
-                          <h4 className="text-sm font-bold text-gray-900">{day}</h4>
-                          <span className="text-xs text-gray-500 italic">Nessun personale richiesto per questo turno</span>
+                          <h4 className="text-sm font-bold text-[var(--pd-text)]">{day}</h4>
+                          <span className="text-xs text-[var(--pd-muted)] italic">Nessun personale richiesto per questo turno</span>
                         </div>
                       </div>
                     )
                   }
 
                   return (
-                    <div key={dayIndex} className="p-6 hover:bg-gray-50 transition-colors">
-                      <h4 className="text-sm font-bold text-gray-900 mb-4">{day}</h4>
+                    <div key={dayIndex} className="p-6 hover:bg-[var(--pd-surface-muted)] transition-colors">
+                      <h4 className="text-sm font-bold text-[var(--pd-text)] mb-4">{day}</h4>
                       
                       <div className="overflow-x-auto">
                         <table className="min-w-full">
                           <thead>
-                            <tr className="border-b border-gray-200">
-                              <th className="px-4 py-3 text-left text-xs font-black text-gray-600 uppercase">
+                            <tr className="border-b border-[var(--pd-border)]">
+                              <th className="px-4 py-3 text-left text-xs font-black text-[var(--pd-muted)] uppercase">
                                 Orario
                               </th>
                               {roles.map(role => {
@@ -683,11 +682,11 @@ export default function SettingsPage() {
                                 return (
                                   <th key={role} className="px-4 py-3 text-center">
                                     <div className="flex flex-col items-center gap-1">
-                                      <span className="text-xs font-black text-gray-600 uppercase">{roleLabels[role]}</span>
+                                      <span className="text-xs font-black text-[var(--pd-muted)] uppercase">{roleLabels[role]}</span>
                                       <div className={cn(
                                         "text-xs font-bold px-2 py-0.5 rounded-full",
-                                        isOver ? 'bg-red-100 text-red-700' :
-                                        isComplete ? 'bg-green-100 text-green-700' : 
+                                        isOver ? 'bg-red-100 text-[var(--pd-danger)]' :
+                                        isComplete ? 'bg-green-100 text-[var(--pd-success)]' : 
                                         'bg-yellow-100 text-yellow-700'
                                       )}>
                                         {distributed}/{required}
@@ -702,9 +701,9 @@ export default function SettingsPage() {
                             {Array.from(new Set(
                               roles.flatMap(role => getAvailableStartTimes(selectedShift, role))
                             )).sort().map(startTime => (
-                              <tr key={startTime} className="hover:bg-gray-50">
+                              <tr key={startTime} className="hover:bg-[var(--pd-surface-muted)]">
                                 <td className="px-4 py-3 whitespace-nowrap">
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-gray-100 text-gray-700">
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-[var(--pd-surface-muted)] text-[var(--pd-text)]">
                                     {startTime}
                                   </span>
                                 </td>
@@ -734,13 +733,13 @@ export default function SettingsPage() {
                                               startTime,
                                               parseInt(e.target.value) || 0
                                             )}
-                                            className="w-20 h-10 text-center text-sm font-bold border-2 border-gray-200 rounded-xl hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all"
+                                            className="w-20 h-10 text-center text-sm font-bold border-2 border-[var(--pd-border)] rounded-xl hover:border-[var(--pd-accent)] focus:border-[var(--pd-accent)] focus:ring-2 focus:ring-[var(--pd-accent-soft)] transition-all"
                                             placeholder="0"
                                           />
                                         </div>
                                       ) : (
                                         <div className="flex justify-center">
-                                          <span className="text-gray-300">—</span>
+                                          <span className="text-[var(--pd-muted)]/50">—</span>
                                         </div>
                                       )}
                                     </td>
@@ -756,14 +755,13 @@ export default function SettingsPage() {
                 })}
               </div>
 
-              <div className="px-8 py-6 bg-purple-50 border-t border-purple-100">
+              <div className="px-8 py-6 bg-[var(--pd-accent-soft)] border-t border-[var(--pd-border)]">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-0.5">
-                    <span className="text-lg">💡</span>
-                  </div>
+                    </div>
                   <div className="flex-1">
-                    <h4 className="text-xs font-black text-purple-900 mb-2 uppercase tracking-widest">Come funziona:</h4>
-                    <ul className="text-xs text-purple-800 space-y-1">
+                    <h4 className="text-xs font-black text-[var(--pd-text)] mb-2 uppercase tracking-widest">Come funziona:</h4>
+                    <ul className="text-xs text-[var(--pd-text)] space-y-1">
                       <li>• <strong>Badge Colorato:</strong> Verde = completato, Giallo = mancanti, Rosso = troppi</li>
                       <li>• <strong>Distribuzione:</strong> La somma degli orari deve essere uguale al personale richiesto</li>
                       <li>• <strong>Limiti:</strong> Configurati in Limiti Personale per Turno (sopra)</li>

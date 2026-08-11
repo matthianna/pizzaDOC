@@ -1,7 +1,7 @@
 // PizzaDOC Service Worker
-// Version: 1.3.1 — apple-touch + logo paths
+// Version: 1.4.0 — Fornace theme + offline public
 
-const CACHE_NAME = 'pizzadoc-v1.3.1';
+const CACHE_NAME = 'pizzadoc-v1.4.0';
 const OFFLINE_URL = '/offline';
 
 // Static assets to cache immediately
@@ -19,7 +19,7 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker v1.3.1...');
+  console.log('[SW] Installing service worker v1.4.0...');
 
   event.waitUntil(
     caches.open(CACHE_NAME)

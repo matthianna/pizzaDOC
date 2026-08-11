@@ -273,75 +273,63 @@ export default function DashboardPage() {
   return (
     <MainLayout>
       <div className="space-y-8 max-w-6xl mx-auto pb-20 px-2 sm:px-4">
-        {/* Welcome Section - More compact and premium */}
-        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-soft border border-gray-100 group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60 group-hover:scale-110 transition-transform duration-700"></div>
-          
-          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-[2rem] flex items-center justify-center shadow-xl shadow-orange-100 transform -rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                <span className="text-white font-black text-2xl sm:text-3xl">
-                  {session?.user.username.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight leading-none">
-                  Ciao, {session?.user.username}!
-                </h1>
-                <div className="flex items-center gap-2 mt-3">
-                  <span className="px-3 py-1 bg-orange-50 text-orange-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-orange-100">
-                    {isAdminUser ? 'Amministratore' : getRoleName(session?.user.primaryRole || 'USER')}
-                  </span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-                  <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">
-                    {format(new Date(), 'EEEE d MMMM', { locale: it })}
-                  </span>
-                </div>
-              </div>
+        {/* Benvenuto */}
+        <section className="pd-card p-6 sm:p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <p className="text-sm font-medium" style={{ color: 'var(--pd-muted)' }}>
+                {format(new Date(), 'EEEE d MMMM', { locale: it })}
+              </p>
+              <h1 className="pd-display text-2xl sm:text-3xl font-semibold tracking-tight mt-0.5">
+                Ciao, {session?.user.username}
+              </h1>
+              <p className="mt-2 text-sm" style={{ color: 'var(--pd-muted)' }}>
+                {isAdminUser ? 'Amministratore' : getRoleName(session?.user.primaryRole || 'USER')}
+              </p>
             </div>
 
-            {/* Quick Summary Circle Stats */}
-            <div className="flex items-center gap-4 border-t md:border-t-0 md:border-l border-gray-50 pt-6 md:pt-0 md:pl-8">
+            <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l pt-6 md:pt-0 md:pl-8" style={{ borderColor: 'var(--pd-border)' }}>
               {isAdminUser ? (
                 <div className="flex items-center gap-6">
                   <div className="text-center">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">In Sospeso</p>
-                    <p className="text-2xl font-black text-orange-600">{pendingHours?.totalShifts || 0}</p>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--pd-muted)' }}>In sospeso</p>
+                    <p className="pd-display text-2xl font-semibold tabular-nums" style={{ color: 'var(--pd-accent)' }}>{pendingHours?.totalShifts || 0}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Attivi</p>
-                    <p className="text-2xl font-black text-green-600">{stats.activeUsers || 0}</p>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--pd-muted)' }}>Attivi</p>
+                    <p className="pd-display text-2xl font-semibold tabular-nums" style={{ color: 'var(--pd-success)' }}>{stats.activeUsers || 0}</p>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-6">
                   <div className="text-center">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ore Mese</p>
-                    <p className="text-2xl font-black text-blue-600">{formatDecimalHoursIt(stats.myApprovedHours || 0)}</p>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--pd-muted)' }}>Ore mese</p>
+                    <p className="pd-display text-2xl font-semibold tabular-nums">{formatDecimalHoursIt(stats.myApprovedHours || 0)}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Turni</p>
-                    <p className="text-2xl font-black text-orange-600">{stats.myShiftsThisWeek || 0}</p>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--pd-muted)' }}>Turni</p>
+                    <p className="pd-display text-2xl font-semibold tabular-nums" style={{ color: 'var(--pd-accent)' }}>{stats.myShiftsThisWeek || 0}</p>
                   </div>
                 </div>
               )}
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Weather Widget */}
         <WeatherWidget />
 
-        {/* 🚀 LIVE: Chi lavora oggi - High Priority Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between px-2">
-            <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-3">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              Chi lavora oggi • {format(new Date(), 'dd/MM')}
-            </h2>
+            <div className="flex items-baseline justify-between gap-3 w-full">
+              <h2 className="pd-display text-xl font-semibold">Chi lavora oggi</h2>
+              <span className="text-xs font-medium" style={{ color: 'var(--pd-muted)' }}>
+                {format(new Date(), 'dd/MM')} · {todayShifts?.totalWorkers ?? 0} in servizio
+              </span>
+            </div>
             {isAdminUser && (
-              <a href="/admin/schedule" className="text-[10px] font-black text-orange-600 uppercase tracking-widest hover:underline">
-                Vedi Piano Completo →
+              <a href="/admin/schedule" className="text-xs font-medium shrink-0 ml-4" style={{ color: 'var(--pd-accent)' }}>
+                Piano completo →
               </a>
             )}
           </div>
@@ -361,14 +349,14 @@ export default function DashboardPage() {
 
               if (showEmpty) {
                 return (
-                  <div className="col-span-full bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200 py-12 text-center">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                      <Calendar className="h-8 w-8 text-gray-200" />
-                    </div>
-                    <p className="text-gray-400 font-black uppercase tracking-widest text-xs">
-                      Nessun turno programmato per oggi
-                    </p>
+                  <div className="col-span-full pd-card border-dashed py-12 text-center" style={{ borderStyle: 'dashed' }}>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--pd-surface-muted)' }}>
+                    <Calendar className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />
                   </div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--pd-muted)' }}>
+                    Nessun turno programmato per oggi
+                  </p>
+                </div>
                 )
               }
 
@@ -383,14 +371,14 @@ export default function DashboardPage() {
               return (
                 <>
                   {hasHoliday && (
-                    <div className="col-span-full rounded-[2rem] border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50/80 p-5 shadow-sm">
+                    <div className="col-span-full pd-card p-5" style={{ background: 'var(--pd-warning-soft)' }}>
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200">
-                          <Sparkles className="h-5 w-5 text-amber-700" />
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--pd-surface)' }}>
+                          <Sparkles className="h-5 w-5" style={{ color: 'var(--pd-warning)' }} />
                         </div>
                         <div className="min-w-0 text-left">
-                          <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-900">
-                            Festa / chiusura oggi
+                          <p className="text-sm font-semibold" style={{ color: 'var(--pd-warning)' }}>
+                            Festa o chiusura oggi
                           </p>
                           {todayShifts.isFullClosure && (
                             <p className="text-sm font-bold text-amber-950 mt-1">
@@ -417,10 +405,7 @@ export default function DashboardPage() {
                     const closed = type === 'PRANZO' ? prClosed : ceClosed
                     if (closed && shifts.length === 0) {
                       return (
-                        <div
-                          key={type}
-                          className="bg-white rounded-[2rem] shadow-soft border border-red-100 overflow-hidden"
-                        >
+                        <div key={type} className="pd-card overflow-hidden">
                           <div
                             className={cn(
                               'px-6 py-4 border-b flex items-center justify-between',
@@ -465,14 +450,11 @@ export default function DashboardPage() {
                     if (shifts.length === 0) return null
 
                     return (
-                      <div
-                        key={type}
-                        className="bg-white rounded-[2rem] shadow-soft border border-gray-100 overflow-hidden"
-                      >
+                      <div key={type} className="pd-card overflow-hidden">
                         <div
                           className={cn(
                             'px-6 py-4 border-b border-gray-50 flex items-center justify-between',
-                            type === 'PRANZO' ? 'bg-orange-50/30' : 'bg-indigo-50/30'
+                            type === 'PRANZO' ? 'bg-orange-50/30' : 'bg-[var(--pd-accent-soft)]'
                           )}
                         >
                           <div className="flex items-center gap-3">
@@ -481,7 +463,7 @@ export default function DashboardPage() {
                                 'w-8 h-8 rounded-xl flex items-center justify-center shadow-sm',
                                 type === 'PRANZO'
                                   ? 'bg-orange-100 text-orange-600'
-                                  : 'bg-indigo-100 text-indigo-600'
+                                  : 'bg-[var(--pd-accent-soft)] text-[var(--pd-accent)]'
                               )}
                             >
                               {type === 'PRANZO' ? (
@@ -493,7 +475,7 @@ export default function DashboardPage() {
                             <span
                               className={cn(
                                 'text-xs font-black uppercase tracking-[0.2em]',
-                                type === 'PRANZO' ? 'text-orange-700' : 'text-indigo-700'
+                                type === 'PRANZO' ? 'text-orange-700' : 'text-[var(--pd-accent)]'
                               )}
                             >
                               Turno {type}
@@ -588,14 +570,14 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Notifications / Alerts - Col span 2 */}
           <div className="lg:col-span-2 space-y-4">
-            <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] px-2 flex items-center gap-3">
-              Azioni Richieste
+            <h2 className="pd-section-title px-2">
+              Azioni richieste
             </h2>
             
             <div className="grid grid-cols-1 gap-4">
               {/* Admin: Approvals */}
               {isAdminUser && pendingHours && pendingHours.totalShifts > 0 && (
-                <div className="relative overflow-hidden bg-gradient-to-r from-orange-500 to-orange-600 rounded-[2rem] p-6 shadow-lg shadow-orange-100 group">
+                <div className="relative overflow-hidden pd-card p-6" style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}>
                   <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                     <Clock className="h-20 w-20 text-white" />
                   </div>
@@ -608,8 +590,8 @@ export default function DashboardPage() {
                           : `Ci sono ${pendingHours.totalShifts} registrazioni ore in attesa di approvazione o rifiuto.`}
                       </p>
                     </div>
-                    <a href="/admin/hours" onClick={() => lightClick()} className="bg-white text-orange-600 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all text-center">
-                      Approva Ora
+                    <a href="/admin/hours" onClick={() => lightClick()} className="px-6 py-3 rounded-2xl text-sm font-semibold text-center pd-press" style={{ background: 'var(--pd-surface)', color: 'var(--pd-accent)' }}>
+                      Approva ora
                     </a>
                   </div>
                 </div>
@@ -617,7 +599,7 @@ export default function DashboardPage() {
 
               {/* User: Missing Hours */}
               {!isAdminUser && missingHours && missingHours.count > 0 && (
-                <div className="relative overflow-hidden bg-gradient-to-r from-red-500 to-red-600 rounded-[2rem] p-6 shadow-lg shadow-red-100 group">
+                <div className="relative overflow-hidden pd-card p-6" style={{ background: 'var(--pd-danger)', color: 'var(--pd-accent-fg)' }}>
                   <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                     <AlertCircle className="h-20 w-20 text-white" />
                   </div>
@@ -628,7 +610,7 @@ export default function DashboardPage() {
                         Hai {missingHours.count} {missingHours.count === 1 ? 'turno passato' : 'turni passati'} senza ore nel sistema. L&apos;amministrazione le inserirà: non devi fare nulla qui.
                       </p>
                     </div>
-                    <a href="/hours" onClick={() => lightClick()} className="bg-white text-red-600 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all text-center">
+                    <a href="/hours" onClick={() => lightClick()} className="px-6 py-3 rounded-2xl text-sm font-semibold text-center pd-press" style={{ background: 'var(--pd-surface)', color: 'var(--pd-danger)' }}>
                       Vedi dettaglio
                     </a>
                   </div>
@@ -637,9 +619,9 @@ export default function DashboardPage() {
 
               {/* Admin Task: Substitutions */}
               {isAdminUser && typeof stats.pendingSubstitutions === 'number' && stats.pendingSubstitutions > 0 && (
-                <div className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-6 group hover:border-purple-200 transition-colors">
+                <div className="pd-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600">
+                    <div className="w-12 h-12 bg-[var(--pd-accent-soft)] rounded-2xl flex items-center justify-center text-[var(--pd-accent)]">
                       <UserPlus className="h-6 w-6" />
                     </div>
                     <div>
@@ -647,7 +629,7 @@ export default function DashboardPage() {
                       <p className="text-gray-400 text-xs font-medium mt-0.5">{stats.pendingSubstitutions} richieste da approvare</p>
                     </div>
                   </div>
-                  <a href="/admin/substitutions" className="px-6 py-3 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-100 active:scale-95 transition-all text-center">
+                  <a href="/admin/substitutions" className="px-6 py-3 bg-[var(--pd-accent)] text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-[var(--pd-shadow)] active:scale-95 transition-all text-center">
                     Gestisci
                   </a>
                 </div>
@@ -676,11 +658,11 @@ export default function DashboardPage() {
 
           {/* Secondary Section - Personal Info */}
           <div className="space-y-4">
-            <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] px-2 flex items-center gap-3">
-              {isAdminUser ? 'Info Settimanali' : 'I Miei Prossimi Turni'}
+            <h2 className="pd-section-title px-2">
+              {isAdminUser ? 'Info settimanali' : 'I miei prossimi turni'}
             </h2>
             
-            <div className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 p-6 flex-1 min-h-[300px]">
+            <div className="pd-card p-6 flex-1 min-h-[300px]">
               {isAdminUser ? (
                 <div className="space-y-6">
                   <DashboardStatItem label="Utenti Attivi" value={stats.activeUsers || 0} icon={Users} color="green" />
@@ -737,7 +719,7 @@ function QuickActionItem({ href, title, icon: Icon, color }: any) {
     blue: 'bg-blue-50 text-blue-600 border-blue-100',
     orange: 'bg-orange-50 text-orange-600 border-orange-100',
     green: 'bg-green-50 text-green-600 border-green-100',
-    purple: 'bg-purple-50 text-purple-600 border-purple-100',
+    purple: 'bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] border-[var(--pd-border)]',
     red: 'bg-red-50 text-red-600 border-red-100',
     gray: 'bg-gray-50 text-gray-600 border-gray-100'
   }
@@ -749,7 +731,7 @@ function QuickActionItem({ href, title, icon: Icon, color }: any) {
       )}>
         <Icon className="h-6 w-6 sm:h-7 sm:w-7 group-hover:scale-110 transition-transform" />
       </div>
-      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">{title}</span>
+      <span className="text-[11px] font-medium text-center" style={{ color: 'var(--pd-muted)' }}>{title}</span>
     </a>
   )
 }
@@ -759,7 +741,7 @@ function DashboardStatItem({ label, value, icon: Icon, color }: any) {
     green: 'bg-green-50 text-green-600',
     blue: 'bg-blue-50 text-blue-600',
     orange: 'bg-orange-50 text-orange-600',
-    purple: 'bg-purple-50 text-purple-600'
+    purple: 'bg-[var(--pd-accent-soft)] text-[var(--pd-accent)]'
   }
   return (
     <div className="flex items-center justify-between">
@@ -767,7 +749,7 @@ function DashboardStatItem({ label, value, icon: Icon, color }: any) {
         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", colors[color])}>
           <Icon className="h-5 w-5" />
         </div>
-        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{label}</span>
+        <span className="text-xs font-medium" style={{ color: 'var(--pd-muted)' }}>{label}</span>
       </div>
       <span className="text-xl font-black text-gray-900">{value}</span>
     </div>

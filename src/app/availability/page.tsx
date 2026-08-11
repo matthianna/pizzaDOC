@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
+import { StaffPageHeader } from '@/components/layout/staff-page-header'
 import { useSession } from 'next-auth/react'
 import { Calendar, ChevronLeft, ChevronRight, Save, AlertCircle, Lock, CheckCircle, Sparkles, Ban } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -183,48 +184,39 @@ export default function AvailabilityPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center tracking-tight">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg mr-4 drop-shadow-orange">
-                <Calendar className="h-6 w-6 text-white" />
-              </div>
-              Disponibilità
-            </h1>
-            <p className="text-gray-500 mt-2 font-medium">Indica i turni in cui puoi lavorare</p>
-          </div>
-        </div>
+      <div className="space-y-6 max-w-2xl mx-auto">
+        <StaffPageHeader
+          title="Disponibilità"
+          subtitle="Indica i turni in cui puoi lavorare"
+        />
 
-        {/* Week Navigation */}
-        <div className="bg-white rounded-3xl shadow-soft p-4 sm:p-6 border border-gray-50">
+        <div className="pd-card p-4 sm:p-6">
           <div className="flex items-center justify-between mb-6">
-            <button onClick={() => navigateWeek('prev')} className="p-3 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors active:scale-90">
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <button type="button" onClick={() => navigateWeek('prev')} className="p-3 pd-press" style={{ borderRadius: 'var(--pd-radius)', color: 'var(--pd-text)' }}>
+              <ChevronLeft className="h-5 w-5" />
             </button>
             <div className="text-center">
-              <h2 className="text-base sm:text-lg font-black text-gray-900 leading-tight">
-                {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
+              <h2 className="pd-display text-base sm:text-lg font-semibold leading-tight">
+                {formatDate(weekDays[0])} – {formatDate(weekDays[6])}
               </h2>
               {!canEditAnyDay && (
-                <div className="flex items-center justify-center mt-1 text-orange-600 font-bold">
+                <div className="flex items-center justify-center mt-1 text-sm font-medium" style={{ color: 'var(--pd-accent)' }}>
                   <Lock className="h-3 w-3 mr-1" />
-                  <span className="text-[10px] uppercase">Sola Lettura</span>
+                  <span>Sola lettura</span>
                 </div>
               )}
             </div>
-            <button onClick={() => navigateWeek('next')} className="p-3 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors active:scale-90">
-              <ChevronRight className="h-5 w-5 text-gray-600" />
+            <button type="button" onClick={() => navigateWeek('next')} className="p-3 pd-press" style={{ borderRadius: 'var(--pd-radius)', color: 'var(--pd-text)' }}>
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
 
           {absenceInfo.length > 0 && (
-            <div className="mb-6 bg-red-50 border border-red-100 rounded-2xl p-4">
+            <div className="mb-6 rounded-2xl p-4 border" style={{ background: 'var(--pd-danger-soft)', borderColor: 'var(--pd-border)' }}>
               <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                <AlertCircle className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--pd-danger)' }} />
                 <div>
-                  <h4 className="text-sm font-black text-red-900 uppercase tracking-tight">Assenze Programmate</h4>
+                  <h4 className="text-sm font-semibold" style={{ color: 'var(--pd-danger)' }}>Assenze programmate</h4>
                   {absenceInfo.map((a, i) => (
                     <p key={i} className="text-xs text-red-700 font-medium">
                       {format(new Date(a.startDate), 'dd/MM')} - {format(new Date(a.endDate), 'dd/MM')} {a.reason && `(${a.reason})`}
@@ -245,17 +237,17 @@ export default function AvailabilityPage() {
                 const cenaHoliday = holidayForSlot(day, 'CENA')
 
                 return (
-                  <div key={index} className={`rounded-3xl shadow-soft border border-gray-100 p-5 transition-all ${dayDisabled ? 'bg-red-50/30' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-50">
+                  <div key={index} className="pd-card p-5 transition-all" style={{ opacity: dayDisabled ? 0.85 : 1 }}>
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b" style={{ borderColor: 'var(--pd-border)' }}>
                       <div>
-                        <span className={`font-black text-lg tracking-tight ${dayDisabled ? 'text-red-800' : 'text-gray-900'}`}>
+                        <span className="font-semibold text-lg tracking-tight" style={{ color: dayDisabled ? 'var(--pd-danger)' : 'var(--pd-text)' }}>
                           {getDayName(dayOfWeek)}
                         </span>
-                        <p className="text-xs font-bold text-gray-400 uppercase">{formatDate(day)}</p>
+                        <p className="text-xs font-medium" style={{ color: 'var(--pd-muted)' }}>{formatDate(day)}</p>
                       </div>
                       {dayDisabled && (
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-black">
-                          <Ban className="h-3 w-3" /> ASSENTE
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'var(--pd-danger-soft)', color: 'var(--pd-danger)' }}>
+                          <Ban className="h-3 w-3" /> Assente
                         </div>
                       )}
                     </div>
@@ -285,13 +277,13 @@ export default function AvailabilityPage() {
             </div>
 
             {/* Desktop View */}
-            <div className="hidden sm:block overflow-hidden rounded-3xl border border-gray-100 shadow-soft">
-              <table className="min-w-full divide-y divide-gray-100">
-                <thead className="bg-gray-50/50">
+            <div className="hidden sm:block overflow-hidden pd-card">
+              <table className="min-w-full divide-y" style={{ borderColor: 'var(--pd-border)' }}>
+                <thead style={{ background: 'var(--pd-surface-muted)' }}>
                   <tr>
-                    <th className="text-left py-4 px-6 font-black text-gray-400 text-[10px] uppercase tracking-widest">Giorno</th>
-                    <th className="text-center py-4 px-6 font-black text-gray-400 text-[10px] uppercase tracking-widest">Pranzo</th>
-                    <th className="text-center py-4 px-6 font-black text-gray-400 text-[10px] uppercase tracking-widest">Cena</th>
+                    <th className="text-left py-4 px-6 text-xs font-semibold" style={{ color: 'var(--pd-muted)' }}>Giorno</th>
+                    <th className="text-center py-4 px-6 text-xs font-semibold" style={{ color: 'var(--pd-muted)' }}>Pranzo</th>
+                    <th className="text-center py-4 px-6 text-xs font-semibold" style={{ color: 'var(--pd-muted)' }}>Cena</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-50">
@@ -329,8 +321,8 @@ export default function AvailabilityPage() {
               </table>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Legenda</span>
+            <div className="mt-6 pt-4 border-t flex flex-wrap items-center gap-x-4 gap-y-2" style={{ borderColor: 'var(--pd-border)' }}>
+              <span className="text-xs font-semibold" style={{ color: 'var(--pd-muted)' }}>Legenda</span>
               <div className="flex items-center gap-2" title="Turno non selezionabile">
                 <Sparkles className="h-4 w-4 text-orange-400 shrink-0" aria-hidden />
                 <span className="text-xs font-medium text-gray-600">Giorno festivo o locale chiuso</span>
@@ -344,9 +336,9 @@ export default function AvailabilityPage() {
                 onClick={saveAvailability}
                 disabled={saving || loading}
                 isLoading={saving}
-                className="w-full sm:w-auto sm:px-12 bg-orange-600 hover:bg-orange-700 text-white py-6 rounded-2xl font-black shadow-lg shadow-orange-500/20 transition-all active:scale-95"
+                className="w-full sm:w-auto sm:px-12 py-4 pd-btn-primary transition-all"
               >
-                <Save className="h-5 w-5 mr-2" /> SALVA DISPONIBILITÀ
+                <Save className="h-5 w-5 mr-2" /> Salva disponibilità
               </Button>
             </div>
           )}
@@ -359,23 +351,34 @@ export default function AvailabilityPage() {
 
 function ShiftToggle({ label, times, isActive, isDisabled, holiday, onToggle, canEdit }: any) {
   return (
-    <div className={`flex flex-col items-center p-3 rounded-2xl border transition-all ${isActive ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-50'
-      }`}>
-      <span className="text-xs font-black text-gray-900 uppercase tracking-tight mb-1">{label}</span>
-      <span className="text-[10px] font-bold text-gray-400 mb-3">{times}</span>
+    <div
+      className="flex flex-col items-center p-3 transition-all border"
+      style={{
+        borderRadius: 'var(--pd-radius)',
+        background: isActive ? 'var(--pd-success-soft)' : 'var(--pd-surface-muted)',
+        borderColor: isActive ? 'color-mix(in srgb, var(--pd-success) 45%, transparent)' : 'var(--pd-border)',
+      }}
+    >
+      <span className="text-xs font-semibold mb-1">{label}</span>
+      <span className="text-[10px] font-medium mb-3" style={{ color: 'var(--pd-muted)' }}>{times}</span>
       {isDisabled ? (
         <Lock className="h-6 w-6 text-red-100" />
       ) : holiday ? (
         <div className="text-center">
           <Sparkles className="h-6 w-6 text-orange-400 mx-auto" />
-          <span className="text-[10px] font-black text-orange-600 block mt-1 uppercase">Festa</span>
+          <span className="text-[10px] font-semibold block mt-1" style={{ color: 'var(--pd-warning)' }}>Festa</span>
         </div>
       ) : (
         <button
           onClick={onToggle}
           disabled={!canEdit}
-          className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-sm active:scale-90 ${isActive ? 'bg-green-500 text-white shadow-glow-green' : 'bg-white border border-gray-200 text-gray-200'
-            } ${!canEdit ? 'opacity-50 grayscale' : ''}`}
+          className={`w-12 h-12 flex items-center justify-center transition-all pd-press ${!canEdit ? 'opacity-50 grayscale' : ''}`}
+          style={{
+            borderRadius: 'var(--pd-radius)',
+            background: isActive ? 'var(--pd-success)' : 'var(--pd-surface)',
+            color: isActive ? 'var(--pd-accent-fg)' : 'var(--pd-muted)',
+            border: isActive ? 'none' : '1px solid var(--pd-border)',
+          }}
         >
           <CheckCircle className={`h-7 w-7 ${isActive ? 'scale-100' : 'scale-75 opacity-20'} transition-transform`} />
         </button>

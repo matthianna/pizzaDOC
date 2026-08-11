@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
+import { StaffPageHeader } from '@/components/layout/staff-page-header'
 import { Calendar, ChevronLeft, ChevronRight, Users, Check, X, Sparkles } from 'lucide-react'
 import { addWeeks, subWeeks } from 'date-fns'
 import { cn, getDayName, getRoleName } from '@/lib/utils'
@@ -183,24 +184,12 @@ export default function AvailabilityOverviewPage() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header Moderno */}
-        <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <div className="p-4 bg-orange-600 rounded-2xl shadow-lg shadow-orange-200">
-                <Users className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight">
-                  Disponibilità Utenti
-                </h1>
-                <p className="text-gray-500 font-medium mt-1">
-                  Panoramica settimanale di tutta la squadra PizzaDOC.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
+        <div className="pd-card p-6 sm:p-8">
+          <StaffPageHeader
+            title="Disponibilità utenti"
+            subtitle="Panoramica settimanale di tutta la squadra PizzaDOC."
+            action={
+              <div className="flex items-center gap-3">
               <div className="bg-gray-100 p-1 rounded-2xl flex items-center">
                 <button
                   onClick={goToPreviousWeek}
@@ -220,18 +209,20 @@ export default function AvailabilityOverviewPage() {
               </div>
               <button
                 onClick={goToCurrentWeek}
-                className="px-5 py-3 bg-orange-50 text-orange-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-orange-100 transition-all"
+                className="px-5 py-3 rounded-2xl text-xs font-semibold transition-all"
+                style={{ background: 'var(--pd-accent-soft)', color: 'var(--pd-accent)' }}
               >
                 Oggi
               </button>
-            </div>
-          </div>
+              </div>
+            }
+          />
         </div>
 
         {/* Filters & Quick Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-1 bg-white rounded-3xl shadow-soft border border-gray-100 p-6 flex flex-col justify-center">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-1">Filtra Personale</label>
+          <div className="lg:col-span-1 pd-card p-6 flex flex-col justify-center">
+            <label className="text-xs font-semibold mb-3 px-1" style={{ color: 'var(--pd-muted)' }}>Filtra personale</label>
             <div className="relative">
               <select
                 value={selectedRole}
@@ -254,7 +245,7 @@ export default function AvailabilityOverviewPage() {
               { label: 'Slot Coperti', value: totalAvailabilities, color: 'green', icon: Check },
               { label: 'Tasso Copertura', value: `${availabilityPercentage.toFixed(1)}%`, color: 'orange', icon: Calendar }
             ].map((stat, i) => (
-              <div key={i} className="bg-white rounded-3xl shadow-soft border border-gray-100 p-6 flex items-center gap-4">
+              <div key={i} className="pd-card p-6 flex items-center gap-4">
                 <div className={cn("p-3 rounded-2xl shadow-sm", `bg-${stat.color}-50 text-${stat.color}-600`)}>
                   <stat.icon className="h-6 w-6" />
                 </div>
@@ -268,7 +259,7 @@ export default function AvailabilityOverviewPage() {
         </div>
 
         {/* Table Moderno */}
-        <div className="bg-white rounded-[2rem] shadow-soft border border-gray-100 overflow-hidden">
+        <div className="pd-card overflow-hidden">
           {loading ? (
             <div className="p-20 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
@@ -396,7 +387,7 @@ export default function AvailabilityOverviewPage() {
         </div>
 
         {/* Legend Moderna */}
-        <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-6">
+        <div className="pd-card p-6">
           <div className="flex flex-wrap items-center gap-8 justify-center sm:justify-start">
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
@@ -420,7 +411,7 @@ export default function AvailabilityOverviewPage() {
               <div className="p-1.5 bg-orange-50 rounded-lg border border-orange-100">
                 <Sparkles className="h-4 w-4 text-orange-500" />
               </div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Chiusura / Festivo</span>
+              <span className="text-xs font-medium" style={{ color: 'var(--pd-muted)' }}>Chiusura / festivo</span>
             </div>
           </div>
         </div>

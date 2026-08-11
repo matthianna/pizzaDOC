@@ -3,7 +3,6 @@
 import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface ModalProps {
   isOpen: boolean
@@ -27,14 +26,12 @@ export function Modal({
   maxWidth = 'md',
   className,
   headerIcon,
-  zIndex = 99999
+  zIndex = 99999,
 }: ModalProps) {
-  // Lock scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       const scrollY = window.scrollY
       document.body.style.overflow = 'hidden'
-      
       return () => {
         document.body.style.overflow = ''
         window.scrollTo(0, scrollY)
@@ -46,17 +43,26 @@ export function Modal({
 
   const getMaxWidth = () => {
     switch (maxWidth) {
-      case 'sm': return 448
-      case 'md': return 672
-      case 'lg': return 896
-      case 'xl': return 1152
-      case '2xl': return 1400
-      default: return 672
+      case 'sm':
+        return 448
+      case 'md':
+        return 672
+      case 'lg':
+        return 896
+      case 'xl':
+        return 1152
+      case '2xl':
+        return 1400
+      default:
+        return 672
     }
   }
 
   const modalContent = (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pd-modal-title"
       style={{
         position: 'fixed',
         top: 0,
@@ -64,67 +70,68 @@ export function Modal({
         right: 0,
         bottom: 0,
         width: '100vw',
-        height: '100vh',
+        height: '100dvh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex,
-        padding: 16,
-        boxSizing: 'border-box'
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+        boxSizing: 'border-box',
       }}
     >
-      {/* Backdrop */}
       <div
         onClick={onClose}
+        aria-hidden
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.4)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)'
+          backgroundColor: 'rgba(0, 0, 0, 0.45)',
         }}
       />
 
-      {/* Modal Box */}
       <div
         onClick={(e) => e.stopPropagation()}
+        className={className}
         style={{
           position: 'relative',
-          backgroundColor: '#ffffff',
-          borderRadius: 48,
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          backgroundColor: 'var(--pd-surface)',
+          borderRadius: 'var(--pd-radius-xl)',
+          boxShadow: 'var(--pd-shadow)',
+          border: '1px solid var(--pd-border)',
           width: '100%',
           maxWidth: getMaxWidth(),
-          maxHeight: 'calc(100vh - 64px)',
+          maxHeight: 'min(90dvh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)))',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
         }}
       >
-        {/* Header */}
         <div
           style={{
-            padding: '32px 48px 24px 48px',
+            padding: '1.25rem 1.25rem 1rem',
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'space-between',
             flexShrink: 0,
-            borderBottom: '1px solid #f3f4f6'
+            borderBottom: '1px solid var(--pd-border)',
+            gap: '0.75rem',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flex: 1, minWidth: 0 }}>
             {headerIcon && (
               <div
                 style={{
-                  padding: 16,
-                  backgroundColor: '#ea580c',
-                  borderRadius: 24,
-                  color: 'white',
+                  padding: '0.75rem',
+                  backgroundColor: 'var(--pd-accent)',
+                  borderRadius: 'var(--pd-radius)',
+                  color: 'var(--pd-accent-fg)',
                   flexShrink: 0,
-                  boxShadow: '0 10px 15px -3px rgba(234, 88, 12, 0.3)'
                 }}
               >
                 {headerIcon}
@@ -132,12 +139,14 @@ export function Modal({
             )}
             <div style={{ minWidth: 0, flex: 1 }}>
               <h2
+                id="pd-modal-title"
+                className="pd-display"
                 style={{
-                  fontSize: 28,
-                  fontWeight: 900,
-                  color: '#111827',
+                  fontSize: 'clamp(1.25rem, 4vw, 1.75rem)',
+                  fontWeight: 600,
+                  color: 'var(--pd-text)',
                   margin: 0,
-                  letterSpacing: '-0.025em'
+                  letterSpacing: '-0.02em',
                 }}
               >
                 {title}
@@ -145,14 +154,10 @@ export function Modal({
               {subtitle && (
                 <p
                   style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: '#9ca3af',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    marginTop: 6,
-                    margin: 0,
-                    marginTop: 6
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                    color: 'var(--pd-muted)',
+                    margin: '0.35rem 0 0',
                   }}
                 >
                   {subtitle}
@@ -161,30 +166,31 @@ export function Modal({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Chiudi"
             style={{
-              padding: 12,
-              backgroundColor: '#f3f4f6',
+              padding: '0.625rem',
+              backgroundColor: 'var(--pd-surface-muted)',
               border: 'none',
-              borderRadius: 16,
+              borderRadius: 'var(--pd-radius)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              marginLeft: 16
             }}
           >
-            <X style={{ width: 24, height: 24, color: '#6b7280' }} />
+            <X style={{ width: 20, height: 20, color: 'var(--pd-muted)' }} />
           </button>
         </div>
 
-        {/* Content - Scrollable */}
         <div
           style={{
-            padding: '24px 48px 32px 48px',
+            padding: '1.25rem',
             overflowY: 'auto',
-            flex: 1
+            flex: 1,
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           {children}
@@ -193,7 +199,6 @@ export function Modal({
     </div>
   )
 
-  // Use portal to render at document body level
   if (typeof window !== 'undefined') {
     return createPortal(modalContent, document.body)
   }

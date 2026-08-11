@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
+import { StaffPageHeader } from '@/components/layout/staff-page-header'
 import { User, Calendar, Clock, MapPin, Briefcase, TrendingUp, ChevronRight, Star, ShieldCheck, Mail, Smartphone, Bike, Car } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -92,7 +93,7 @@ export default function ProfilePage() {
           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
             <User className="h-10 w-10 text-gray-300" />
           </div>
-          <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Profilo non trovato</h2>
+          <h2 className="pd-display text-xl font-semibold" style={{ color: 'var(--pd-text)' }}>Profilo non trovato</h2>
           <p className="text-gray-500 font-medium">L'utente che stai cercando non esiste o è stato rimosso.</p>
         </div>
       </MainLayout>
@@ -102,29 +103,33 @@ export default function ProfilePage() {
   return (
     <MainLayout>
       <div className="max-w-5xl mx-auto space-y-8 pb-20">
-        {/* Premium Header */}
-        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
-          
-          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-8">
+        <section className="pd-card p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="flex items-center gap-8">
               <div className="relative">
-                <div className="w-24 h-24 bg-gradient-to-br from-orange-400 to-red-600 rounded-[2rem] flex items-center justify-center shadow-2xl transform rotate-3">
-                  <span className="text-white font-black text-4xl transform -rotate-3">
+                <div
+                  className="w-24 h-24 flex items-center justify-center"
+                  style={{ borderRadius: 'var(--pd-radius-lg)', background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}
+                >
+                  <span className="pd-display text-4xl font-semibold">
                     {profile.username.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <div className={cn(
-                  "absolute -bottom-2 -right-2 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg border-2 border-white",
-                  profile.isActive ? "bg-green-500 text-white" : "bg-red-500 text-white"
-                )}>
+                <div
+                  className="absolute -bottom-2 -right-2 px-3 py-1 rounded-xl text-[10px] font-semibold shadow-lg border-2"
+                  style={{
+                    borderColor: 'var(--pd-surface)',
+                    background: profile.isActive ? 'var(--pd-success)' : 'var(--pd-danger)',
+                    color: 'var(--pd-accent-fg)',
+                  }}
+                >
                   {profile.isActive ? 'Attivo' : 'Offline'}
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">
+                  <h1 className="pd-display text-3xl font-semibold tracking-tight leading-none">
                     {profile.username}
                   </h1>
                   {profile.primaryRole === 'ADMIN' && (
@@ -132,7 +137,7 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-3 py-1 bg-orange-50 text-orange-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-orange-100">
+                  <span className="px-3 py-1 text-[11px] font-semibold rounded-lg border" style={{ background: 'var(--pd-accent-soft)', color: 'var(--pd-accent)', borderColor: 'var(--pd-border)' }}>
                     {getRoleName(profile.primaryRole)}
                   </span>
                   {profile.secondaryRoles.map((role, i) => (
@@ -148,12 +153,12 @@ export default function ProfilePage() {
               {profile.primaryTransport && (
                 <div className="flex items-center gap-3 px-5 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
                   {profile.primaryTransport === 'AUTO' ? <Car className="h-5 w-5 text-blue-500" /> : <Bike className="h-5 w-5 text-orange-500" />}
-                  <span className="text-xs font-black text-gray-900 uppercase tracking-widest">{profile.primaryTransport}</span>
+                  <span className="text-xs font-semibold">{profile.primaryTransport}</span>
                 </div>
               )}
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -176,9 +181,8 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Upcoming Shifts Section */}
           <div className="space-y-6">
-            <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" />
-              Prossimi Turni
+            <h3 className="px-4 pd-section-title flex items-center">
+              Prossimi turni
             </h3>
             <div className="space-y-4">
               {profile.upcomingShifts.length === 0 ? (
@@ -210,9 +214,8 @@ export default function ProfilePage() {
 
           {/* Recent Hours Section */}
           <div className="space-y-6">
-            <h3 className="px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2" />
-              Attività Recente
+            <h3 className="px-4 pd-section-title flex items-center">
+              Attività recente
             </h3>
             <div className="space-y-4">
               {profile.recentHours.length === 0 ? (
@@ -255,11 +258,11 @@ function ProfileStatCard({ label, value, icon: Icon, color, description }: any) 
     orange: 'bg-orange-50 text-orange-600 shadow-orange-100',
     blue: 'bg-blue-50 text-blue-600 shadow-blue-100',
     green: 'bg-green-50 text-green-600 shadow-green-100',
-    purple: 'bg-purple-50 text-purple-600 shadow-purple-100'
+    purple: 'bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] shadow-[var(--pd-shadow)]'
   }
   
   return (
-    <div className="bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100 flex flex-col gap-6 group hover:shadow-lg transition-all duration-500">
+    <div className="pd-card p-8 flex flex-col gap-6 group transition-all duration-500">
       <div className="flex items-center justify-between">
         <div className={cn("w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-lg transition-transform duration-500 group-hover:scale-110", colors[color])}>
           <Icon className="h-8 w-8" />

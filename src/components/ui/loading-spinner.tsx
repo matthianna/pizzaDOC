@@ -20,17 +20,28 @@ export function LoadingSpinner({
   }
 
   const containerClasses = fullScreen 
-    ? 'min-h-screen flex items-center justify-center bg-gray-50'
+    ? 'min-h-screen flex items-center justify-center'
     : 'flex items-center justify-center py-8'
 
   return (
-    <div className={containerClasses}>
+    <div
+      className={containerClasses}
+      style={fullScreen ? { backgroundColor: 'var(--pd-bg)' } : undefined}
+    >
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <Pizza className={`${sizeClasses[size]} text-orange-600 animate-pulse`} />
+          <Pizza
+            className={`${sizeClasses[size]} animate-pulse`}
+            style={{ color: 'var(--pd-accent)' }}
+          />
         </div>
         {text && (
-          <p className="text-gray-600 text-sm animate-pulse">{text}</p>
+          <p
+            className="text-sm animate-pulse"
+            style={{ color: 'var(--pd-muted)' }}
+          >
+            {text}
+          </p>
         )}
       </div>
     </div>

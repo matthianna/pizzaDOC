@@ -14,6 +14,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
+    if (!session.user.roles?.includes('ADMIN')) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const month = searchParams.get('month') // formato: YYYY-MM
     const year = searchParams.get('year')   // formato: YYYY

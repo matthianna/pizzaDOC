@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, type JSX, type ElementType } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
+import { StaffPageHeader } from '@/components/layout/staff-page-header'
 import { Clock, AlertCircle, CheckCircle, XCircle, Calendar, History, BarChart3, TrendingUp, ChevronLeft, ChevronRight, Timer, ChevronDown, UtensilsCrossed, Moon } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -91,10 +92,10 @@ function getShiftTypeStyles(shiftType: ShiftType | string) {
     }
   }
   return {
-    card: 'border-indigo-200/80 bg-gradient-to-br from-indigo-50/80 to-white',
-    header: 'bg-indigo-50/70 border-indigo-100',
-    badge: 'bg-indigo-100 text-indigo-800',
-    dot: 'bg-indigo-600',
+    card: 'border-[var(--pd-border)] bg-gradient-to-br from-[var(--pd-surface-muted)] to-[var(--pd-surface)]',
+    header: 'bg-[var(--pd-surface-muted)] border-[var(--pd-border)]',
+    badge: 'bg-[var(--pd-accent-soft)] text-[var(--pd-accent)]',
+    dot: 'bg-[var(--pd-accent)]',
     icon: Moon,
   }
 }
@@ -306,32 +307,20 @@ export default function HoursPage() {
   return (
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-8 pb-20">
-        {/* Premium Header */}
-        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
-          
-          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-orange-100 transform -rotate-3">
-                <Clock className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
-                  Le Mie Ore Lavorate
-                </h1>
-                <p className="text-gray-500 mt-2 text-sm font-medium">
-                  Consulta le ore registrate dall’amministrazione per i tuoi turni. Lo storico mostra solo ore approvate.
-                </p>
-              </div>
-            </div>
-
+        <div className="pd-card p-6 sm:p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <StaffPageHeader
+              title="Le mie ore lavorate"
+              subtitle="Consulta le ore registrate dall'amministrazione per i tuoi turni. Lo storico mostra solo ore approvate."
+            />
             <button
               onClick={() => {
                 lightClick()
                 setShowHistory(!showHistory)
                 if (!showHistory && !historyData) fetchHistory()
               }}
-              className="px-6 py-3 bg-white border-2 border-gray-100 text-gray-900 rounded-2xl text-xs font-black uppercase tracking-widest shadow-sm hover:shadow-md hover:border-orange-200 transition-all active:scale-95 flex items-center gap-2"
+              className="px-6 py-3 rounded-2xl text-sm font-semibold border transition-all pd-press shrink-0"
+              style={{ background: 'var(--pd-surface)', borderColor: 'var(--pd-border)', color: 'var(--pd-text)' }}
             >
               {showHistory ? (
                 <><ChevronLeft className="h-4 w-4 text-orange-600" /> Torna ai Turni</>
@@ -408,7 +397,7 @@ export default function HoursPage() {
         {!showHistory && (
           <>
             {/* Week Navigator */}
-            <div className="bg-white rounded-[2rem] shadow-soft border border-gray-100 p-4 flex items-center justify-between">
+            <div className="pd-card p-4 flex items-center justify-between">
               <button onClick={goToPreviousWeek} className="p-3 bg-gray-50 text-gray-400 hover:bg-orange-50 hover:text-orange-600 rounded-xl transition-all">
                 <ChevronLeft className="h-6 w-6" />
               </button>
@@ -572,13 +561,13 @@ function DashboardStatCard({ label, value, icon: Icon, color }: { label: string;
     green: 'bg-green-50 text-green-600 shadow-green-100'
   }
   return (
-    <div className="bg-white rounded-[2rem] p-6 shadow-soft border border-gray-100 flex items-center gap-5">
+    <div className="pd-card p-6 flex items-center gap-5">
       <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg", colors[color])}>
         <Icon className="h-7 w-7" />
       </div>
       <div>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-        <p className="text-2xl font-black text-gray-900 leading-none">{value}</p>
+        <p className="text-xs font-medium mb-1" style={{ color: 'var(--pd-muted)' }}>{label}</p>
+        <p className="pd-display text-2xl font-semibold tabular-nums leading-none">{value}</p>
       </div>
     </div>
   )
@@ -677,7 +666,7 @@ function HistoryShiftCard({ detail }: { detail: HistoryShiftDetail }) {
             </p>
           </div>
         </div>
-        <div className="px-2.5 py-1 bg-gradient-primary text-white rounded-lg font-black text-xs shadow-md flex-shrink-0">
+        <div className="px-2.5 py-1 rounded-lg font-semibold text-xs flex-shrink-0" style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}>
           {formatDecimalHoursIt(detail.hours)}
         </div>
       </div>
@@ -753,7 +742,7 @@ function ShiftCard({
       <div
         className={cn(
           'px-8 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-50',
-          shift.shiftType === 'PRANZO' ? 'bg-orange-50/30' : 'bg-indigo-50/30'
+          shift.shiftType === 'PRANZO' ? 'bg-orange-50/30' : 'bg-[var(--pd-accent-soft)]'
         )}
       >
         <div className="flex items-center gap-5">

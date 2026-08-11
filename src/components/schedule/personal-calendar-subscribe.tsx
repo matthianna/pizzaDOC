@@ -70,7 +70,7 @@ export function PersonalCalendarSubscribe() {
   }
 
   return (
-    <div className="glass rounded-xl shadow-soft border border-white/40 px-4 py-4 sm:px-5">
+    <div className="pd-card px-4 py-4 sm:px-5">
       <ToastContainer />
       <ConfirmDialog
         isOpen={showRegenConfirm}
@@ -84,25 +84,29 @@ export function PersonalCalendarSubscribe() {
       />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-            <Smartphone className="h-5 w-5 text-orange-500 shrink-0" />
+          <h2 className="pd-display text-base font-semibold flex items-center gap-2">
+            <Smartphone className="h-5 w-5 shrink-0" style={{ color: 'var(--pd-accent)' }} />
             Calendario personale
           </h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm mt-1" style={{ color: 'var(--pd-muted)' }}>
             Sottoscrivi i tuoi turni su iPhone (Apple Calendario) o Android (Google Calendar).
           </p>
         </div>
         <button
           type="button"
           onClick={() => setShowHelp((v) => !v)}
-          className="text-sm font-medium text-orange-600 hover:text-orange-700 shrink-0 self-start"
+          className="text-sm font-medium shrink-0 self-start"
+          style={{ color: 'var(--pd-accent)' }}
         >
           {showHelp ? 'Nascondi guida' : 'Come fare (iPhone / Android)'}
         </button>
       </div>
 
       {showHelp && (
-        <div className="mt-3 text-sm text-gray-700 space-y-3 bg-orange-50/60 rounded-lg px-3 py-3 border border-orange-100">
+        <div
+          className="mt-3 text-sm space-y-3 rounded-lg px-3 py-3 border"
+          style={{ background: 'var(--pd-accent-soft)', borderColor: 'var(--pd-border)', color: 'var(--pd-text)' }}
+        >
           <div>
             <p className="font-semibold text-gray-900 mb-1">iPhone / Apple Calendario</p>
             <ol className="list-decimal list-inside space-y-1">
@@ -141,7 +145,7 @@ export function PersonalCalendarSubscribe() {
           <>
             <a
               href={urls.webcalUrl}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 transition-colors"
+              className="inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2 transition-colors pd-btn-primary"
             >
               <Link2 className="h-4 w-4" />
               Apri in Calendario Apple

@@ -129,7 +129,7 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
             case 'SUBSTITUTION_APPLIED':
             case 'SUBSTITUTION_APPROVED':
             case 'SUBSTITUTION_REJECTED':
-                return <ArrowLeftRight className="h-5 w-5 text-purple-500" />
+                return <ArrowLeftRight className="h-5 w-5 text-[var(--pd-accent)]" />
             case 'AVAILABILITY_REMINDER':
                 return <AlertCircle className="h-5 w-5 text-yellow-500" />
             default:
@@ -163,7 +163,7 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
 
             {/* Panel */}
             <div 
-                className="fixed w-[calc(100vw-2rem)] sm:w-96 max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-gray-200 z-[9999] overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200"
+                className="fixed w-[calc(100vw-2rem)] sm:w-96 max-h-[80vh] pd-card z-[9999] overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200"
                 style={{
                     top: panelPosition.top,
                     left: panelPosition.left,
@@ -171,7 +171,10 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                <div
+                    className="flex items-center justify-between px-4 py-3"
+                    style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}
+                >
                     <h3 className="font-semibold flex items-center gap-2">
                         <Bell className="h-5 w-5" />
                         Notifiche
@@ -198,39 +201,40 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
                 <div className="max-h-[60vh] overflow-y-auto">
                     {notifications.length === 0 && !loading ? (
                         <div className="py-12 text-center">
-                            <BellOff className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-gray-500 text-sm">Nessuna notifica</p>
+                            <BellOff className="h-12 w-12 mx-auto mb-3" style={{ color: 'var(--pd-border)' }} />
+                            <p className="text-sm" style={{ color: 'var(--pd-muted)' }}>Nessuna notifica</p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-gray-100">
+                        <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
                             {notifications.map(notification => (
                                 <button
                                     key={notification.id}
                                     onClick={() => handleNotificationClick(notification)}
-                                    className={cn(
-                                        'w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3',
-                                        !notification.isRead && 'bg-orange-50/50'
-                                    )}
+                                    className="w-full text-left px-4 py-3 transition-colors flex gap-3 hover:opacity-90"
+                                    style={{
+                                      background: !notification.isRead ? 'var(--pd-accent-soft)' : 'transparent',
+                                      borderColor: 'var(--pd-border)',
+                                    }}
                                 >
                                     <div className="flex-shrink-0 mt-0.5">
                                         {getNotificationIcon(notification.type)}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between gap-2">
-                                            <p className={cn(
-                                                'text-sm line-clamp-1',
-                                                notification.isRead ? 'text-gray-700' : 'text-gray-900 font-semibold'
-                                            )}>
+                                            <p
+                                              className={cn('text-sm line-clamp-1', !notification.isRead && 'font-semibold')}
+                                              style={{ color: 'var(--pd-text)' }}
+                                            >
                                                 {notification.title}
                                             </p>
                                             {!notification.isRead && (
-                                                <span className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0 mt-1" />
+                                                <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: 'var(--pd-accent)' }} />
                                             )}
                                         </div>
-                                        <p className="text-sm text-gray-600 line-clamp-2 mt-0.5">
+                                        <p className="text-sm line-clamp-2 mt-0.5" style={{ color: 'var(--pd-muted)' }}>
                                             {notification.body}
                                         </p>
-                                        <p className="text-xs text-gray-400 mt-1">
+                                        <p className="text-xs mt-1" style={{ color: 'var(--pd-muted)' }}>
                                             {(() => {
                                                 try {
                                                     const date = new Date(notification.sentAt)
@@ -255,7 +259,8 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
                         <button
                             onClick={() => fetchNotifications()}
                             disabled={loading}
-                            className="w-full py-3 text-sm text-orange-600 hover:bg-orange-50 transition-colors disabled:opacity-50"
+                            className="w-full py-3 text-sm font-medium transition-colors disabled:opacity-50"
+                            style={{ color: 'var(--pd-accent)' }}
                         >
                             {loading ? (
                                 <Loader2 className="h-4 w-4 animate-spin mx-auto" />
@@ -270,7 +275,8 @@ export function NotificationBell({ iconClassName }: { iconClassName?: string }) 
                 <div className="border-t border-gray-100 px-4 py-2">
                     <a
                         href="/notifications"
-                        className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                        className="text-sm font-medium"
+                        style={{ color: 'var(--pd-accent)' }}
                         onClick={() => setIsOpen(false)}
                     >
                         Vedi tutte le notifiche →

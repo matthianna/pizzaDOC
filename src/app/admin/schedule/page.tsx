@@ -551,18 +551,18 @@ export default function AdminSchedulePage() {
       <ToastContainer />
       <div className="space-y-8 max-w-[1600px] mx-auto pb-20">
         {/* Advanced Header */}
-        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
+        <div className="relative overflow-hidden bg-[var(--pd-surface)] rounded-[2.5rem] p-8 shadow-[var(--pd-shadow)] border border-[var(--pd-border)]">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--pd-accent-soft)] rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
           
           <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             <div className="flex items-center gap-6">
-              <div className="p-4 bg-orange-600 rounded-3xl shadow-xl shadow-orange-100 text-white transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+              <div className="p-4 bg-[var(--pd-accent)] rounded-3xl shadow-xl shadow-[var(--pd-shadow)] text-white transform -rotate-3 hover:rotate-0 transition-transform duration-300">
                 <Calendar className="h-8 w-8" />
               </div>
               <div>
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">Piano di Lavoro</h1>
-                <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] mt-2 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <h1 className="pd-display text-3xl font-semibold text-[var(--pd-text)] tracking-tight leading-none">Piano di Lavoro</h1>
+                <p className="text-[var(--pd-muted)] font-bold uppercase tracking-widest text-[10px] mt-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[var(--pd-success)] animate-pulse" />
                   Gestione Settimanale Operativa
                 </p>
               </div>
@@ -573,14 +573,14 @@ export default function AdminSchedulePage() {
                 <>
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="group px-5 py-3.5 bg-red-50 text-red-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-red-600 hover:text-white transition-all duration-300 flex items-center gap-2 border border-red-100 shadow-sm"
+                    className="group px-5 py-3.5 bg-[var(--pd-danger-soft)] text-[var(--pd-danger)] text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-red-600 hover:text-white transition-all duration-300 flex items-center gap-2 border border-[var(--pd-border)] shadow-sm"
                   >
                     <Trash2 className="h-4 w-4 transition-transform group-hover:scale-110" />
                     Elimina
                   </button>
                   <button
                     onClick={exportToPDF}
-                    className="group px-5 py-3.5 bg-blue-50 text-blue-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-blue-600 hover:text-white transition-all duration-300 flex items-center gap-2 border border-blue-100 shadow-sm"
+                    className="group px-5 py-3.5 bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-[var(--pd-accent-hover)] hover:text-white transition-all duration-300 flex items-center gap-2 border border-[var(--pd-border)] shadow-sm"
                   >
                     <Download className="h-4 w-4 transition-transform group-hover:-translate-y-1" />
                     PDF
@@ -588,7 +588,7 @@ export default function AdminSchedulePage() {
                   <button
                     onClick={notifyUsers}
                     disabled={notifying}
-                    className="group px-5 py-3.5 bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-600 hover:text-white transition-all duration-300 flex items-center gap-2 border border-indigo-100 shadow-sm disabled:opacity-50"
+                    className="group px-5 py-3.5 bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-[var(--pd-accent)] hover:text-white transition-all duration-300 flex items-center gap-2 border border-[var(--pd-border)] shadow-sm disabled:opacity-50"
                   >
                     <Bell className={cn("h-4 w-4", notifying && "animate-bounce")} />
                     Notifica
@@ -598,7 +598,7 @@ export default function AdminSchedulePage() {
               <button
                 onClick={() => setShowGenerateConfirm(true)}
                 disabled={generating}
-                className="group px-6 py-3.5 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-orange-700 transition-all duration-300 flex items-center gap-2 shadow-lg shadow-orange-100 active:scale-95 disabled:grayscale"
+                className="group px-6 py-3.5 bg-[var(--pd-accent)] text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-[var(--pd-accent-hover)] transition-all duration-300 flex items-center gap-2 shadow-lg shadow-[var(--pd-shadow)] active:scale-95 disabled:grayscale"
               >
                 <Play className={cn("h-4 w-4", generating && "animate-spin")} />
                 Genera Piano
@@ -617,24 +617,24 @@ export default function AdminSchedulePage() {
           </div>
 
           {/* Week Selector Integrated */}
-          <div className="mt-10 pt-8 border-t border-gray-50 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="mt-10 pt-8 border-t border-[var(--pd-border)] flex flex-col sm:flex-row items-center justify-between gap-6">
             <button
               onClick={() => navigateWeek('prev')}
-              className="flex items-center gap-3 px-6 py-3 text-sm font-black uppercase tracking-widest text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-2xl transition-all duration-300"
+              className="flex items-center gap-3 px-6 py-3 text-sm font-black uppercase tracking-widest text-[var(--pd-muted)] hover:text-[var(--pd-accent)] hover:bg-[var(--pd-accent-soft)] rounded-2xl transition-all duration-300"
             >
               <ChevronLeft className="h-5 w-5" />
               Precedente
             </button>
 
             <div className="flex flex-col items-center">
-              <div className="px-8 py-3 bg-gray-50 rounded-[2rem] border-2 border-gray-100 shadow-inner group transition-all duration-500 hover:border-orange-200">
-                <h2 className="text-xl font-black text-gray-900 flex items-center gap-4">
-                  <span className="text-orange-600 opacity-40">#</span>
+              <div className="px-8 py-3 bg-[var(--pd-surface-muted)] rounded-[2rem] border-2 border-[var(--pd-border)] shadow-inner group transition-all duration-500 hover:border-[var(--pd-accent)]">
+                <h2 className="text-xl font-black text-[var(--pd-text)] flex items-center gap-4">
+                  <span className="text-[var(--pd-accent)] opacity-40">#</span>
                   {formatDate(weekDays[0])} — {formatDate(weekDays[6])}
                 </h2>
               </div>
               {schedule && (
-                <span className="mt-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">
+                <span className="mt-3 text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.3em]">
                   Piano Settimanale Attivo
                 </span>
               )}
@@ -642,7 +642,7 @@ export default function AdminSchedulePage() {
 
             <button
               onClick={() => navigateWeek('next')}
-              className="flex items-center gap-3 px-6 py-3 text-sm font-black uppercase tracking-widest text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-2xl transition-all duration-300"
+              className="flex items-center gap-3 px-6 py-3 text-sm font-black uppercase tracking-widest text-[var(--pd-muted)] hover:text-[var(--pd-accent)] hover:bg-[var(--pd-accent-soft)] rounded-2xl transition-all duration-300"
             >
               Successiva
               <ChevronRight className="h-5 w-5" />
@@ -655,28 +655,28 @@ export default function AdminSchedulePage() {
           <div className="xl:col-span-1 space-y-8">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 gap-4">
-              <div className="bg-white p-6 rounded-[2rem] shadow-soft border border-gray-100 relative overflow-hidden group">
+              <div className="bg-[var(--pd-surface)] p-6 rounded-[2rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                  <Target className="h-12 w-12 text-orange-600" />
+                  <Target className="h-12 w-12 text-[var(--pd-accent)]" />
                 </div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Copertura Totale</p>
-                <h3 className="text-3xl font-black text-gray-900 mt-2">
+                <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Copertura Totale</p>
+                <h3 className="text-3xl font-black text-[var(--pd-text)] mt-2">
                   {schedule ? "94%" : "0%"}
                 </h3>
-                <div className="w-full bg-gray-100 h-2 rounded-full mt-4 overflow-hidden">
-                  <div className="bg-orange-500 h-full rounded-full" style={{ width: schedule ? '94%' : '0%' }}></div>
+                <div className="w-full bg-[var(--pd-surface-muted)] h-2 rounded-full mt-4 overflow-hidden">
+                  <div className="bg-[var(--pd-accent)] h-full rounded-full" style={{ width: schedule ? '94%' : '0%' }}></div>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-[2rem] shadow-soft border border-gray-100 relative overflow-hidden group">
+              <div className="bg-[var(--pd-surface)] p-6 rounded-[2rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                  <Users className="h-12 w-12 text-blue-600" />
+                  <Users className="h-12 w-12 text-[var(--pd-accent)]" />
                 </div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Collaboratori</p>
-                <h3 className="text-3xl font-black text-gray-900 mt-2">
+                <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Collaboratori</p>
+                <h3 className="text-3xl font-black text-[var(--pd-text)] mt-2">
                   {schedule ? [...new Set(schedule.shifts.map(s => s.userId))].length : 0}
                 </h3>
-                <p className="text-[10px] font-bold text-blue-600 uppercase mt-2">In servizio questa settimana</p>
+                <p className="text-[10px] font-bold text-[var(--pd-accent)] uppercase mt-2">In servizio questa settimana</p>
               </div>
             </div>
 
@@ -693,24 +693,24 @@ export default function AdminSchedulePage() {
                   {missingAvailability.map((username, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1.5 bg-white text-[10px] font-black text-amber-700 uppercase rounded-xl border border-amber-200 shadow-sm"
+                      className="px-3 py-1.5 bg-white text-[10px] font-black text-[var(--pd-warning)] uppercase rounded-xl border border-[var(--pd-border)] shadow-sm"
                     >
                       {username}
                     </span>
                   ))}
                 </div>
                 <p className="mt-6 text-[10px] font-bold text-amber-600/70 italic leading-relaxed">
-                  💡 La generazione automatica è più precisa con tutte le disponibilità.
+                  La generazione automatica è più precisa con tutte le disponibilità.
                 </p>
               </div>
             ) : (
-              <div className="bg-green-50 rounded-[2rem] p-6 border-2 border-green-100 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
+              <div className="bg-[var(--pd-success-soft)] rounded-[2rem] p-6 border-2 border-green-100 shadow-sm flex items-center gap-4">
+                <div className="w-12 h-12 bg-[var(--pd-success)] rounded-2xl flex items-center justify-center text-white shadow-lg">
                   <Check className="h-6 w-6" />
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-green-900 uppercase tracking-wider leading-none">Status OK</h3>
-                  <p className="text-[10px] font-bold text-green-600 uppercase mt-2">Tutte le disp. inserite</p>
+                  <p className="text-[10px] font-bold text-[var(--pd-success)] uppercase mt-2">Tutte le disp. inserite</p>
                 </div>
               </div>
             )}
@@ -718,7 +718,7 @@ export default function AdminSchedulePage() {
 
           {/* Main Area: Schedule Grid */}
           <div className="xl:col-span-3">
-            <div className="bg-white rounded-[3rem] shadow-soft border border-gray-100 overflow-hidden">
+            <div className="bg-[var(--pd-surface)] rounded-[3rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden">
               {loading ? (
                 <div className="p-12 space-y-8">
                   <Skeleton className="h-12 w-64 rounded-2xl" />
@@ -728,29 +728,29 @@ export default function AdminSchedulePage() {
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="bg-gray-50/50">
-                        <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] border-b border-gray-100 w-[180px]">
+                      <tr className="bg-[var(--pd-surface-muted)]/80">
+                        <th className="px-8 py-6 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.3em] border-b border-[var(--pd-border)] w-[180px]">
                           Giorno
                         </th>
-                        <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] border-b border-gray-100">
+                        <th className="px-8 py-6 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.3em] border-b border-[var(--pd-border)]">
                           <div className="flex items-center gap-3">
-                            <span className="w-3 h-3 rounded-full bg-orange-100 flex items-center justify-center">
-                              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                            <span className="w-3 h-3 rounded-full bg-[var(--pd-accent-soft)] flex items-center justify-center">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--pd-accent)]" />
                             </span>
                             Turno Pranzo
                           </div>
                         </th>
-                        <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] border-b border-gray-100">
+                        <th className="px-8 py-6 text-left text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-[0.3em] border-b border-[var(--pd-border)]">
                           <div className="flex items-center gap-3">
-                            <span className="w-3 h-3 rounded-full bg-blue-100 flex items-center justify-center">
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            <span className="w-3 h-3 rounded-full bg-[var(--pd-accent-soft)] flex items-center justify-center">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--pd-accent)]" />
                             </span>
                             Turno Cena
                           </div>
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-[var(--pd-border)]">
                       {weekDays.map((day, index) => {
                         const dayOfWeek = getDayOfWeek(day)
                         const pranzoCrew = shiftGroups[`${dayOfWeek}-PRANZO`] || []
@@ -768,15 +768,15 @@ export default function AdminSchedulePage() {
                             key={index}
                             className={cn(
                               'group transition-colors',
-                              isFullClosureDay ? 'bg-orange-50/35 hover:bg-orange-50/50' : 'hover:bg-gray-50/50'
+                              isFullClosureDay ? 'bg-[var(--pd-accent-soft)]/35 hover:bg-[var(--pd-accent-soft)]/50' : 'hover:bg-[var(--pd-surface-muted)]/80'
                             )}
                           >
-                            <td className="px-8 py-8 border-r border-gray-50">
+                            <td className="px-8 py-8 border-r border-[var(--pd-border)]">
                               <div className="flex flex-col gap-1.5">
-                                <span className="text-lg font-black text-gray-900 leading-none">
+                                <span className="text-lg font-black text-[var(--pd-text)] leading-none">
                                   {getDayName(dayOfWeek)}
                                 </span>
-                                <span className="text-[11px] font-black text-orange-600/50 uppercase tracking-widest">
+                                <span className="text-[11px] font-black text-[var(--pd-accent)]/50 uppercase tracking-widest">
                                   {formatDate(day)}
                                 </span>
                                 {holidayBadges.length > 0 && (
@@ -787,8 +787,8 @@ export default function AdminSchedulePage() {
                                         className={cn(
                                           'inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-tight border',
                                           isFullClosureDay
-                                            ? 'bg-orange-100 text-orange-800 border-orange-200'
-                                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                                            ? 'bg-[var(--pd-accent-soft)] text-orange-800 border-[var(--pd-accent)]'
+                                            : 'bg-amber-50 text-amber-800 border-[var(--pd-border)]'
                                         )}
                                       >
                                         <Sparkles className="h-3 w-3 shrink-0 opacity-80" />
@@ -796,7 +796,7 @@ export default function AdminSchedulePage() {
                                       </span>
                                     ))}
                                     {holidayDescriptions.length > 0 && (
-                                      <span className="text-[10px] font-bold text-gray-500 leading-snug max-w-[220px]">
+                                      <span className="text-[10px] font-bold text-[var(--pd-muted)] leading-snug max-w-[220px]">
                                         {holidayDescriptions.join(' · ')}
                                       </span>
                                     )}
@@ -842,16 +842,16 @@ export default function AdminSchedulePage() {
                 </div>
               ) : (
                 <div className="text-center py-32 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-orange-50/30 to-transparent"></div>
+                  <div className="absolute inset-0 bg-transparent"></div>
                   <div className="relative z-10">
-                    <div className="w-24 h-24 bg-gray-100 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-gray-300">
+                    <div className="w-24 h-24 bg-[var(--pd-surface-muted)] rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-[var(--pd-muted)]/50">
                       <Calendar className="h-12 w-12" />
                     </div>
-                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Nessun piano generato</h3>
-                    <p className="text-gray-500 font-medium mt-3 max-w-xs mx-auto">Configura le disponibilità e premi il tasto sopra per iniziare.</p>
+                    <h3 className="text-2xl font-black text-[var(--pd-text)] tracking-tight">Nessun piano generato</h3>
+                    <p className="text-[var(--pd-muted)] font-medium mt-3 max-w-xs mx-auto">Configura le disponibilità e premi il tasto sopra per iniziare.</p>
                     <button
                       onClick={() => setShowGenerateConfirm(true)}
-                      className="mt-10 px-8 py-4 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-orange-100 hover:bg-orange-700 transition-all active:scale-95"
+                      className="mt-10 px-8 py-4 bg-[var(--pd-accent)] text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-[var(--pd-shadow)] hover:bg-[var(--pd-accent-hover)] transition-all active:scale-95"
                     >
                       Genera Ora
                     </button>
@@ -900,16 +900,16 @@ export default function AdminSchedulePage() {
         {selectedShift && (
           <div className="space-y-6">
             {/* User Info */}
-            <div className="bg-gradient-to-br from-red-50 to-red-100/50 p-5 rounded-2xl border border-red-200">
+            <div className="bg-[var(--pd-danger-soft)]/50 p-5 rounded-2xl border border-[var(--pd-border)]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-red-500 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-red-200">
+                <div className="w-12 h-12 bg-[var(--pd-danger-soft)]0 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-red-200">
                   {selectedShift.user.username.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <h4 className="font-black text-red-900 text-sm uppercase tracking-wider">
                     {selectedShift.user.username}
                   </h4>
-                  <p className="text-xs text-red-600 font-medium">Sarà rimosso dal turno</p>
+                  <p className="text-xs text-[var(--pd-danger)] font-medium">Sarà rimosso dal turno</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
@@ -934,24 +934,24 @@ export default function AdminSchedulePage() {
 
             {/* Reason */}
             <div>
-              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+              <label className="block text-xs font-black text-[var(--pd-muted)] uppercase tracking-widest mb-3">
                 Motivo (opzionale)
               </label>
               <textarea
                 value={removeReason}
                 onChange={(e) => setRemoveReason(e.target.value)}
                 rows={3}
-                className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 placeholder-gray-400 bg-gray-50 font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:bg-white transition-all resize-none"
+                className="w-full border-2 border-[var(--pd-border)] rounded-2xl px-5 py-4 text-[var(--pd-text)] placeholder-[var(--pd-muted)]/50 bg-[var(--pd-surface-muted)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--pd-danger)] focus:border-[var(--pd-danger)] focus:bg-[var(--pd-surface)] transition-all resize-none"
                 placeholder="Motivo della rimozione..."
               />
             </div>
 
             {/* Submit Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--pd-border)]">
               <button
                 type="button"
                 onClick={() => setShowRemoveModal(false)}
-                className="px-6 py-3 text-xs font-black text-gray-600 uppercase tracking-widest hover:bg-gray-100 rounded-xl transition-all"
+                className="px-6 py-3 text-xs font-black text-[var(--pd-muted)] uppercase tracking-widest hover:bg-[var(--pd-surface-muted)] rounded-xl transition-all"
               >
                 Annulla
               </button>
@@ -978,29 +978,29 @@ export default function AdminSchedulePage() {
         {editingShift && (
           <div className="space-y-6">
             {/* User Info */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 rounded-2xl border border-blue-200">
+            <div className="bg-[var(--pd-accent-soft)]/50 p-5 rounded-2xl border border-[var(--pd-border)]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-200">
+                <div className="w-12 h-12 bg-[var(--pd-accent)] rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-[var(--pd-shadow)]">
                   <Clock className="h-6 w-6" />
                 </div>
                 <div>
                   <h4 className="font-black text-blue-900 text-sm uppercase tracking-wider">
                     {editingShift.user.username}
                   </h4>
-                  <p className="text-xs text-blue-600 font-medium">Modifica orario di inizio</p>
+                  <p className="text-xs text-[var(--pd-accent)] font-medium">Modifica orario di inizio</p>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3 text-sm">
                 <div className="bg-white/60 rounded-xl p-3">
-                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Giorno</p>
+                  <p className="text-[10px] font-bold text-[var(--pd-accent)] uppercase tracking-wider">Giorno</p>
                   <p className="font-black text-blue-900">{getDayName(editingShift.dayOfWeek)}</p>
                 </div>
                 <div className="bg-white/60 rounded-xl p-3">
-                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Turno</p>
+                  <p className="text-[10px] font-bold text-[var(--pd-accent)] uppercase tracking-wider">Turno</p>
                   <p className="font-black text-blue-900">{getShiftTypeName(editingShift.shiftType)}</p>
                 </div>
                 <div className="bg-white/60 rounded-xl p-3">
-                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Ruolo</p>
+                  <p className="text-[10px] font-bold text-[var(--pd-accent)] uppercase tracking-wider">Ruolo</p>
                   <p className="font-black text-blue-900">{getRoleName(editingShift.role)}</p>
                 </div>
               </div>
@@ -1008,13 +1008,13 @@ export default function AdminSchedulePage() {
 
             {/* Start Time Selection */}
             <div>
-              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+              <label className="block text-xs font-black text-[var(--pd-muted)] uppercase tracking-widest mb-3">
                 Orario Inizio
               </label>
               <select
                 value={newStartTime}
                 onChange={(e) => setNewStartTime(e.target.value)}
-                className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 bg-gray-50 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
+                className="w-full border-2 border-[var(--pd-border)] rounded-2xl px-5 py-4 text-[var(--pd-text)] bg-[var(--pd-surface-muted)] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-[var(--pd-surface)] transition-all appearance-none cursor-pointer"
               >
                 <option value="">Seleziona orario</option>
                 {(editingShift.shiftType === 'PRANZO' ? [
@@ -1033,23 +1033,23 @@ export default function AdminSchedulePage() {
               </select>
             </div>
 
-            <p className="text-xs text-gray-500 font-medium bg-gray-50 px-4 py-3 rounded-xl">
-              💡 Gli orari di fine sono fissi per tutti i turni
+            <p className="text-xs text-[var(--pd-muted)] font-medium bg-[var(--pd-surface-muted)] px-4 py-3 rounded-xl">
+              Gli orari di fine sono fissi per tutti i turni
             </p>
 
             {/* Submit Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--pd-border)]">
               <button
                 type="button"
                 onClick={() => setShowTimeEditModal(false)}
-                className="px-6 py-3 text-xs font-black text-gray-600 uppercase tracking-widest hover:bg-gray-100 rounded-xl transition-all"
+                className="px-6 py-3 text-xs font-black text-[var(--pd-muted)] uppercase tracking-widest hover:bg-[var(--pd-surface-muted)] rounded-xl transition-all"
               >
                 Annulla
               </button>
               <button
                 onClick={confirmTimeUpdate}
                 disabled={!newStartTime || updatingTime}
-                className="px-8 py-3 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                className="px-8 py-3 bg-[var(--pd-accent)] text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-[var(--pd-shadow)] hover:bg-[var(--pd-accent-hover)] transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 {updatingTime && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                 Aggiorna Orario
@@ -1068,47 +1068,47 @@ export default function AdminSchedulePage() {
         {editingRoleShift && (
           <div className="space-y-6">
             {/* User Info */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl border border-purple-200">
+            <div className="bg-[var(--pd-accent-soft)]/50 p-5 rounded-2xl border border-[var(--pd-border)]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-purple-500 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-purple-200">
+                <div className="w-12 h-12 bg-[var(--pd-accent)] rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-[var(--pd-shadow)]">
                   <Edit className="h-6 w-6" />
                 </div>
                 <div>
-                  <h4 className="font-black text-purple-900 text-sm uppercase tracking-wider">
+                  <h4 className="font-black text-[var(--pd-text)] text-sm uppercase tracking-wider">
                     {editingRoleShift.user.username}
                   </h4>
-                  <p className="text-xs text-purple-600 font-medium">Cambia ruolo per questo turno</p>
+                  <p className="text-xs text-[var(--pd-accent)] font-medium">Cambia ruolo per questo turno</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-white/60 rounded-xl p-3">
-                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Giorno</p>
-                  <p className="font-black text-purple-900">{getDayName(editingRoleShift.dayOfWeek)}</p>
+                  <p className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-wider">Giorno</p>
+                  <p className="font-black text-[var(--pd-text)]">{getDayName(editingRoleShift.dayOfWeek)}</p>
                 </div>
                 <div className="bg-white/60 rounded-xl p-3">
-                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Turno</p>
-                  <p className="font-black text-purple-900">{getShiftTypeName(editingRoleShift.shiftType)}</p>
+                  <p className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-wider">Turno</p>
+                  <p className="font-black text-[var(--pd-text)]">{getShiftTypeName(editingRoleShift.shiftType)}</p>
                 </div>
                 <div className="bg-white/60 rounded-xl p-3">
-                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Ruolo Attuale</p>
-                  <p className="font-black text-purple-900">{getRoleName(editingRoleShift.role)}</p>
+                  <p className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-wider">Ruolo Attuale</p>
+                  <p className="font-black text-[var(--pd-text)]">{getRoleName(editingRoleShift.role)}</p>
                 </div>
                 <div className="bg-white/60 rounded-xl p-3">
-                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Ruolo Principale</p>
-                  <p className="font-black text-purple-900">{getRoleName(editingRoleShift.user.primaryRole)}</p>
+                  <p className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-wider">Ruolo Principale</p>
+                  <p className="font-black text-[var(--pd-text)]">{getRoleName(editingRoleShift.user.primaryRole)}</p>
                 </div>
               </div>
             </div>
 
             {/* Role Selection */}
             <div>
-              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
+              <label className="block text-xs font-black text-[var(--pd-muted)] uppercase tracking-widest mb-3">
                 Nuovo Ruolo
               </label>
               <select
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value as Role)}
-                className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 bg-gray-50 font-bold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white transition-all appearance-none cursor-pointer"
+                className="w-full border-2 border-[var(--pd-border)] rounded-2xl px-5 py-4 text-[var(--pd-text)] bg-[var(--pd-surface-muted)] font-bold focus:outline-none focus:ring-2 focus:ring-[var(--pd-accent)] focus:border-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all appearance-none cursor-pointer"
               >
                 <option value="">Seleziona ruolo</option>
                 <option value="FATTORINO">{getRoleName('FATTORINO')}</option>
@@ -1118,23 +1118,23 @@ export default function AdminSchedulePage() {
               </select>
             </div>
 
-            <p className="text-xs text-gray-500 font-medium bg-gray-50 px-4 py-3 rounded-xl">
-              💡 Verifica che l'utente possa svolgere questo ruolo
+            <p className="text-xs text-[var(--pd-muted)] font-medium bg-[var(--pd-surface-muted)] px-4 py-3 rounded-xl">
+              Verifica che l&apos;utente possa svolgere questo ruolo
             </p>
 
             {/* Submit Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--pd-border)]">
               <button
                 type="button"
                 onClick={() => setShowRoleEditModal(false)}
-                className="px-6 py-3 text-xs font-black text-gray-600 uppercase tracking-widest hover:bg-gray-100 rounded-xl transition-all"
+                className="px-6 py-3 text-xs font-black text-[var(--pd-muted)] uppercase tracking-widest hover:bg-[var(--pd-surface-muted)] rounded-xl transition-all"
               >
                 Annulla
               </button>
               <button
                 onClick={confirmRoleUpdate}
                 disabled={!newRole || updatingRole}
-                className="px-8 py-3 bg-purple-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                className="px-8 py-3 bg-[var(--pd-accent)] text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-[var(--pd-shadow)] hover:bg-[var(--pd-accent-hover)] transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 {updatingRole && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                 Aggiorna Ruolo
@@ -1203,9 +1203,9 @@ function getTransportIcon(user: ScheduleShift['user'], role: Role) {
 
   switch (primaryTransport) {
     case 'AUTO':
-      return <Car className="h-3 w-3 text-blue-600" />
+      return <Car className="h-3 w-3 text-[var(--pd-accent)]" />
     case 'SCOOTER':
-      return <Bike className="h-3 w-3 text-green-600" />
+      return <Bike className="h-3 w-3 text-[var(--pd-success)]" />
     default:
       return null
   }
@@ -1250,7 +1250,7 @@ function ShiftCrew({
   if (isHoliday) {
     return (
       <div className="flex items-center justify-center py-2">
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800 border border-red-200">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800 border border-[var(--pd-border)]">
           🔒 CHIUSO
         </span>
       </div>
@@ -1278,7 +1278,7 @@ function ShiftCrew({
   shifts.forEach(shift => allRoles.add(shift.role))
 
   if (allRoles.size === 0) {
-    return <span className="text-gray-400 text-sm">Nessuno assegnato</span>
+    return <span className="text-[var(--pd-muted)] text-sm">Nessuno assegnato</span>
   }
 
   return (
@@ -1304,13 +1304,13 @@ function ShiftCrew({
           <div key={role}>
             <div className="flex items-center justify-between mb-1 group/role">
               <div className="flex items-center gap-2">
-                <div className="text-xs font-medium text-gray-700">
+                <div className="text-xs font-medium text-[var(--pd-text)]">
                   {getRoleName(role)} ({assigned}/{required})
                 </div>
                 {onQuickAdd && (
                   <button
                     onClick={() => onQuickAdd(dayOfWeek, shiftType, role)}
-                    className="inline-flex items-center justify-center w-5 h-5 md:w-4 md:h-4 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-all opacity-100 md:opacity-0 md:group-hover/role:opacity-100"
+                    className="inline-flex items-center justify-center w-5 h-5 md:w-4 md:h-4 rounded-full bg-[var(--pd-accent)] text-white hover:bg-[var(--pd-accent-hover)] transition-all opacity-100 md:opacity-0 md:group-hover/role:opacity-100"
                     title={`Aggiungi ${getRoleName(role)}`}
                   >
                     <UserPlus className="h-3 w-3 md:h-2.5 md:w-2.5" />
@@ -1318,7 +1318,7 @@ function ShiftCrew({
                 )}
               </div>
               {missing > 0 && (
-                <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                <span className="text-xs font-medium text-[var(--pd-danger)] bg-[var(--pd-danger-soft)] px-2 py-0.5 rounded">
                   -{missing}
                 </span>
               )}
@@ -1329,12 +1329,12 @@ function ShiftCrew({
                 return (
                   <div
                     key={shift.id}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 group relative"
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--pd-accent-soft)] text-orange-800 group relative"
                   >
                     <span className="flex items-center gap-1">
                       {shift.user.username}
                       {transportIcon}
-                      <span className="text-xs text-orange-600 ml-1">
+                      <span className="text-xs text-[var(--pd-accent)] ml-1">
                         {shift.startTime}
                       </span>
                     </span>
@@ -1342,7 +1342,7 @@ function ShiftCrew({
                       {onEditTime && (
                         <button
                           onClick={() => onEditTime(shift)}
-                          className="text-blue-600 hover:text-blue-800 p-1"
+                          className="text-[var(--pd-accent)] hover:text-[var(--pd-accent)] p-1"
                           title="Modifica orari"
                         >
                           <Clock className="h-3 w-3" />
@@ -1351,7 +1351,7 @@ function ShiftCrew({
                       {onEditRole && (
                         <button
                           onClick={() => onEditRole(shift)}
-                          className="text-purple-600 hover:text-purple-800 p-1"
+                          className="text-[var(--pd-accent)] hover:text-[var(--pd-text)] p-1"
                           title="Modifica ruolo"
                         >
                           <Edit className="h-3 w-3" />
@@ -1360,7 +1360,7 @@ function ShiftCrew({
                       {onRemoveShift && (
                         <button
                           onClick={() => onRemoveShift(shift)}
-                          className="text-red-600 hover:text-red-800 p-1"
+                          className="text-[var(--pd-danger)] hover:text-red-800 p-1"
                           title="Rimuovi dal turno"
                         >
                           <UserMinus className="h-3 w-3" />
@@ -1372,7 +1372,7 @@ function ShiftCrew({
               })}
               {missing > 0 && (
                 <div className="inline-flex items-center gap-1">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600 border border-red-200 border-dashed">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-[var(--pd-danger)] border border-[var(--pd-border)] border-dashed">
                     Mancano {missing}
                   </span>
                 </div>
@@ -1430,25 +1430,25 @@ function CoverageReport({
   if (!coverageData) return null
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+    <div className="bg-[var(--pd-surface)] rounded-xl shadow-md border border-[var(--pd-border)] overflow-hidden">
       {/* Header - Collapsible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-6 py-5 bg-gradient-to-r from-blue-50 via-white to-blue-50 hover:from-blue-100 hover:via-blue-50 hover:to-blue-100 transition-all duration-200"
+        className="w-full px-6 py-5 bg-[var(--pd-surface-muted)] hover:bg-[var(--pd-surface-muted)] transition-all duration-200"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {/* Icon Box */}
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+            <div className="w-12 h-12 bg-[var(--pd-accent)] rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
               <BarChart3 className="h-6 w-6 text-white" />
             </div>
 
             {/* Title */}
             <div className="text-left">
-              <h3 className="text-lg font-bold text-gray-900">
+              <h3 className="text-lg font-bold text-[var(--pd-text)]">
                 Resoconto Assegnamento Turni per Persona
               </h3>
-              <p className="text-sm text-gray-600 font-medium">
+              <p className="text-sm text-[var(--pd-muted)] font-medium">
                 Statistiche di copertura disponibilità
               </p>
             </div>
@@ -1456,12 +1456,12 @@ function CoverageReport({
 
           <div className="flex items-center space-x-6">
             {/* Global Stats */}
-            <div className="bg-white rounded-lg px-4 py-2 border-2 border-blue-200">
+            <div className="bg-[var(--pd-surface)] rounded-lg px-4 py-2 border-2 border-[var(--pd-border)]">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-[var(--pd-accent)]">
                   {coverageData.global.assignmentPercentage}%
                 </div>
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-[var(--pd-muted)]">
                   {coverageData.global.totalAssignments}/{coverageData.global.totalAvailabilities} assegnati
                 </div>
               </div>
@@ -1469,7 +1469,7 @@ function CoverageReport({
 
             {/* Expand Icon */}
             <div className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-              <ChevronDown className="h-6 w-6 text-gray-400" />
+              <ChevronDown className="h-6 w-6 text-[var(--pd-muted)]" />
             </div>
           </div>
         </div>
@@ -1477,48 +1477,48 @@ function CoverageReport({
 
       {/* User Stats Table - Expandable */}
       {isExpanded && (
-        <div className="border-t border-gray-200">
+        <div className="border-t border-[var(--pd-border)]">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-[var(--pd-surface-muted)]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[var(--pd-muted)] uppercase tracking-wider">
                     Dipendente
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-[var(--pd-muted)] uppercase tracking-wider">
                     Ruolo
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-[var(--pd-muted)] uppercase tracking-wider">
                     Disponibilità
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-[var(--pd-muted)] uppercase tracking-wider">
                     Assegnati
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-[var(--pd-muted)] uppercase tracking-wider">
                     % Assegnamento
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-[var(--pd-surface)] divide-y divide-gray-200">
                 {coverageData.userStats.map((user) => (
-                  <tr key={user.userId} className="hover:bg-gray-50 transition-colors">
+                  <tr key={user.userId} className="hover:bg-[var(--pd-surface-muted)] transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">
+                      <div className="text-sm font-semibold text-[var(--pd-text)]">
                         {user.username}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="text-sm font-medium text-gray-600">
+                      <span className="text-sm font-medium text-[var(--pd-muted)]">
                         {user.primaryRole || '-'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="text-sm font-bold text-gray-900">
+                      <span className="text-sm font-bold text-[var(--pd-text)]">
                         {user.availabilitiesEntered}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="text-sm font-bold text-gray-900">
+                      <span className="text-sm font-bold text-[var(--pd-text)]">
                         {user.shiftsAssigned}
                       </span>
                     </td>
@@ -1526,16 +1526,16 @@ function CoverageReport({
                       <div className="flex items-center justify-center gap-3">
                         <div className="w-20 bg-gray-200 rounded-full h-2.5">
                           <div
-                            className={`h-2.5 rounded-full transition-all duration-300 ${user.assignmentPercentage >= 80 ? 'bg-green-500' :
-                              user.assignmentPercentage >= 50 ? 'bg-yellow-500' :
-                                'bg-red-500'
+                            className={`h-2.5 rounded-full transition-all duration-300 ${user.assignmentPercentage >= 80 ? 'bg-[var(--pd-success)]' :
+                              user.assignmentPercentage >= 50 ? 'bg-[var(--pd-warning)]' :
+                                'bg-[var(--pd-danger-soft)]0'
                               }`}
                             style={{ width: `${Math.min(100, user.assignmentPercentage)}%` }}
                           />
                         </div>
-                        <span className={`text-sm font-bold min-w-[45px] ${user.assignmentPercentage >= 80 ? 'text-green-600' :
+                        <span className={`text-sm font-bold min-w-[45px] ${user.assignmentPercentage >= 80 ? 'text-[var(--pd-success)]' :
                           user.assignmentPercentage >= 50 ? 'text-yellow-600' :
-                            'text-red-600'
+                            'text-[var(--pd-danger)]'
                           }`}>
                           {user.assignmentPercentage}%
                         </span>

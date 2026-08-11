@@ -13,15 +13,16 @@ import {
     Loader2,
     Settings,
     Trash2,
-    X
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { MainLayout } from '@/components/layout/main-layout'
+import { StaffPageHeader } from '@/components/layout/staff-page-header'
 import { usePushNotifications } from '@/components/notifications/notification-bell'
 import { useNotifications } from '@/components/notifications/notification-provider'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Modal } from '@/components/ui/modal'
 
 interface Notification {
     id: string
@@ -173,7 +174,7 @@ export default function NotificationsPage() {
             case 'SUBSTITUTION_APPLIED':
             case 'SUBSTITUTION_APPROVED':
             case 'SUBSTITUTION_REJECTED':
-                return <ArrowLeftRight className="h-6 w-6 text-purple-500" />
+                return <ArrowLeftRight className="h-6 w-6 text-[var(--pd-accent)]" />
                 case 'AVAILABILITY_REMINDER':
                     return <AlertCircle className="h-6 w-6 text-yellow-500" />
                 case 'ABSENCE_REQUESTED':
@@ -187,21 +188,13 @@ export default function NotificationsPage() {
 
     return (
         <MainLayout>
-            <div className="max-w-3xl mx-auto">
-                {/* Header */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                <Bell className="h-7 w-7 text-orange-600" />
-                                Centro Notifiche
-                            </h1>
-                            <p className="text-gray-500 mt-1">
-                                Gestisci le tue notifiche e preferenze
-                            </p>
-                        </div>
-
-                        <div className="flex items-center gap-3">
+            <div className="max-w-3xl mx-auto space-y-6">
+                <div className="pd-card p-6">
+                    <StaffPageHeader
+                        title="Notifiche"
+                        subtitle="Gestisci le tue notifiche e preferenze"
+                        action={
+                        <div className="flex items-center gap-3 flex-wrap">
                             {notifications.length > 0 && (
                                 <button
                                     onClick={() => setShowDeleteAllConfirm(true)}
@@ -222,7 +215,8 @@ export default function NotificationsPage() {
                                 </button>
                             )}
                         </div>
-                    </div>
+                        }
+                    />
 
                     {/* Push Notification Settings */}
                     {isSupported && (
@@ -247,10 +241,11 @@ export default function NotificationsPage() {
                                 onClick={isSubscribed ? unsubscribe : subscribe}
                                 disabled={pushLoading}
                                 className={cn(
-                                    "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2",
-                                    isSubscribed ? 'bg-orange-600' : 'bg-gray-200',
+                                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2',
+                                    !isSubscribed && 'bg-gray-200',
                                     pushLoading && 'opacity-50 cursor-not-allowed'
                                 )}
+                                style={isSubscribed ? { background: 'var(--pd-accent)' } : undefined}
                             >
                                 <span
                                     className={cn(
@@ -270,7 +265,7 @@ export default function NotificationsPage() {
                             <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
                         </div>
                     ) : notifications.length === 0 ? (
-                        <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
+                        <div className="text-center py-12 pd-card">
                             <BellOff className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                             <h3 className="text-lg font-medium text-gray-900">Nessuna notifica</h3>
                             <p className="text-gray-500">Non hai nuove notifiche al momento</p>
@@ -282,11 +277,10 @@ export default function NotificationsPage() {
                                     key={notification.id}
                                     onClick={() => handleNotificationClick(notification)}
                                     className={cn(
-                                        "w-full text-left bg-white p-4 rounded-xl shadow-sm border transition-all hover:shadow-md cursor-pointer",
-                                        notification.isRead
-                                            ? "border-gray-100"
-                                            : "border-orange-200 bg-orange-50/30 font-semibold"
+                                        "w-full text-left p-4 pd-card transition-all cursor-pointer",
+                                        !notification.isRead && "font-semibold"
                                     )}
+                                    style={!notification.isRead ? { background: 'var(--pd-accent-soft)', borderColor: 'color-mix(in srgb, var(--pd-accent) 35%, transparent)' } : undefined}
                                 >
                                     <div className="flex gap-4">
                                         <div className={cn(
@@ -348,7 +342,8 @@ export default function NotificationsPage() {
                                 <button
                                     onClick={() => fetchNotifications()}
                                     disabled={loading}
-                                    className="w-full py-4 text-center text-orange-600 font-medium bg-white rounded-xl border border-gray-200 hover:bg-orange-50 transition-colors"
+                                    className="w-full py-4 text-center font-medium pd-card transition-colors"
+                                    style={{ color: 'var(--pd-accent)' }}
                                 >
                                     {loading ? (
                                         <Loader2 className="h-5 w-5 animate-spin mx-auto" />
@@ -362,68 +357,67 @@ export default function NotificationsPage() {
                 </div>
             </div>
 
-            {/* Notification Detail Modal */}
-            {selectedNotification && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-orange-50 to-white">
-                            <div className="flex items-center gap-3">
-                                <div className="p-3 bg-white rounded-2xl shadow-sm ring-1 ring-gray-200">
-                                    {getNotificationIcon(selectedNotification.type)}
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-gray-900">{selectedNotification.title}</h3>
-                                    <p className="text-xs text-gray-500">
-                                        {(() => {
-                                            try {
-                                                const date = new Date(selectedNotification.sentAt)
-                                                if (isNaN(date.getTime())) return ''
-                                                return formatDistanceToNow(date, {
-                                                    addSuffix: true,
-                                                    locale: it
-                                                })
-                                            } catch {
-                                                return ''
-                                            }
-                                        })()}
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setSelectedNotification(null)}
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
-                            >
-                                <X className="h-6 w-6" />
-                            </button>
-                        </div>
-                        <div className="p-8">
-                            <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-wrap">
-                                {selectedNotification.body as string}
-                            </p>
+            <Modal
+                isOpen={!!selectedNotification}
+                onClose={() => setSelectedNotification(null)}
+                title={selectedNotification?.title ?? 'Notifica'}
+                subtitle={
+                    selectedNotification
+                        ? (() => {
+                              try {
+                                  const date = new Date(selectedNotification.sentAt)
+                                  if (isNaN(date.getTime())) return undefined
+                                  return formatDistanceToNow(date, {
+                                      addSuffix: true,
+                                      locale: it,
+                                  })
+                              } catch {
+                                  return undefined
+                              }
+                          })()
+                        : undefined
+                }
+                maxWidth="md"
+                headerIcon={
+                    selectedNotification ? getNotificationIcon(selectedNotification.type) : undefined
+                }
+            >
+                {selectedNotification && (
+                    <div className="space-y-6">
+                        <p
+                            className="text-base leading-relaxed whitespace-pre-wrap"
+                            style={{ color: 'var(--pd-text)' }}
+                        >
+                            {selectedNotification.body as string}
+                        </p>
 
-                            {selectedNotification && resolveNotificationLink(selectedNotification) && (
-                                <button
-                                    onClick={() =>
-                                        handleGoToLink(resolveNotificationLink(selectedNotification)!)
-                                    }
-                                    className="w-full mt-8 py-4 bg-gradient-primary text-white rounded-2xl font-bold shadow-lg shadow-orange-500/20 hover:brightness-110 transition-all transform active:scale-95 flex items-center justify-center gap-2"
-                                >
-                                    Vai alla pagina
-                                    <ArrowLeftRight className="h-5 w-5" />
-                                </button>
-                            )}
-                        </div>
-                        <div className="p-4 bg-gray-50 flex justify-end">
+                        {resolveNotificationLink(selectedNotification) && (
                             <button
-                                onClick={() => setSelectedNotification(null)}
-                                className="px-6 py-2 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors"
+                                type="button"
+                                onClick={() =>
+                                    handleGoToLink(resolveNotificationLink(selectedNotification)!)
+                                }
+                                className="w-full py-3.5 pd-btn-primary transition-all flex items-center justify-center gap-2"
                             >
-                                Chiudi
+                                Vai alla pagina
+                                <ArrowLeftRight className="h-5 w-5" />
                             </button>
-                        </div>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={() => setSelectedNotification(null)}
+                            className="w-full py-3 text-sm font-semibold rounded-xl transition-colors"
+                            style={{
+                                color: 'var(--pd-muted)',
+                                background: 'var(--pd-surface-muted)',
+                            }}
+                        >
+                            Chiudi
+                        </button>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
 
             <ConfirmDialog
                 isOpen={showDeleteAllConfirm}

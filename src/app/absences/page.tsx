@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, type ElementType, type ReactNode } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
+import { StaffPageHeader } from '@/components/layout/staff-page-header'
 import { Modal } from '@/components/ui/modal'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
@@ -228,36 +229,23 @@ export default function AbsencesPage() {
         onClose={() => setDeleteId(null)}
       />
       <div className="max-w-6xl mx-auto space-y-8 pb-20">
-        {/* Premium Header */}
-        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60" />
-
-          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-orange-100 transform -rotate-3">
-                <Calendar className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
-                  Assenze e Vacanze
-                </h1>
-                <p className="text-gray-500 mt-2 text-sm font-medium">
-                  Richiedi un periodo di riposo. Resta in attesa di approvazione dall’amministrazione.
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                lightClick()
-                setShowForm(true)
-              }}
-              className="px-6 py-3 bg-gradient-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-100 hover:shadow-xl transition-all active:scale-95 flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Nuova Assenza
-            </button>
-          </div>
+        <div className="pd-card p-6 sm:p-8">
+          <StaffPageHeader
+            title="Assenze e vacanze"
+            subtitle="Richiedi un periodo di riposo. Resta in attesa di approvazione dall'amministrazione."
+            action={
+              <button
+                onClick={() => {
+                  lightClick()
+                  setShowForm(true)
+                }}
+                className="px-6 py-3 pd-btn-primary rounded-2xl text-sm flex items-center gap-2 shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+                Nuova assenza
+              </button>
+            }
+          />
         </div>
 
         {/* Stats */}
@@ -477,7 +465,7 @@ export default function AbsencesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-[2] py-4 bg-gradient-primary text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-[2] py-4 pd-btn-primary text-sm rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {submitting ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
@@ -513,7 +501,7 @@ function StatCard({
   }
 
   return (
-    <div className="bg-white rounded-[2rem] p-6 shadow-soft border border-gray-100 flex items-center gap-5">
+    <div className="pd-card p-6 flex items-center gap-5">
       <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg', colors[color])}>
         <Icon className="h-7 w-7" />
       </div>
@@ -553,7 +541,7 @@ function AbsenceSection({
   const Wrapper = hideToggle ? 'div' : 'button'
 
   return (
-    <div className="bg-white rounded-[2rem] shadow-soft border border-gray-100 overflow-hidden">
+    <div className="pd-card overflow-hidden">
       <Wrapper
         type={hideToggle ? undefined : 'button'}
         onClick={hideToggle ? undefined : onToggle}

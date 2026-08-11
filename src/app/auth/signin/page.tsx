@@ -6,9 +6,22 @@ import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { cn } from '@/lib/utils'
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--pd-surface)',
+  color: 'var(--pd-text)',
+  border: '1px solid var(--pd-border-strong)',
+  boxShadow: 'var(--pd-shadow)',
+  borderRadius: 'var(--pd-radius)',
+}
+
+const heroGlowStyle: React.CSSProperties = {
+  background: `radial-gradient(ellipse 90% 70% at 50% -10%, color-mix(in srgb, var(--pd-accent) 28%, transparent), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 80%, color-mix(in srgb, var(--pd-accent) 12%, transparent), transparent 50%)`,
+}
 
 export default function SignInPage() {
   const [username, setUsername] = useState('')
@@ -19,16 +32,15 @@ export default function SignInPage() {
   const [dbStatus, setDbStatus] = useState<'checking' | 'ok' | 'error'>('checking')
   const [dbMessage, setDbMessage] = useState('Verificando connessione...')
   const router = useRouter()
-  const { showToast, ToastContainer } = useToast()
+  const { ToastContainer } = useToast()
 
-  // Verifica lo stato del database all'avvio
   useEffect(() => {
     const checkDatabaseHealth = async () => {
       try {
         console.log('[LOGIN] Checking database health...')
         const response = await fetch('/api/health')
         console.log('[LOGIN] Health response status:', response.status)
-        
+
         if (!response.ok) {
           console.error('[LOGIN] Health check failed with status:', response.status)
           setDbStatus('error')
@@ -38,7 +50,7 @@ export default function SignInPage() {
 
         const contentType = response.headers.get('content-type')
         console.log('[LOGIN] Content-Type:', contentType)
-        
+
         if (!contentType || !contentType.includes('application/json')) {
           const text = await response.text()
           console.error('[LOGIN] Non-JSON response:', text.substring(0, 200))
@@ -46,19 +58,14 @@ export default function SignInPage() {
           setDbMessage('Risposta non valida dal server')
           return
         }
-        
+
         const data = await response.json()
         console.log('[LOGIN] Health check data:', data)
-        
+
         if (data.status === 'ok') {
           setDbStatus('ok')
-          const n =
-            typeof data.userCount === 'number' ? data.userCount : null
-          setDbMessage(
-            n !== null
-              ? `Database OK `
-              : 'Database OK'
-          )
+          const n = typeof data.userCount === 'number' ? data.userCount : null
+          setDbMessage(n !== null ? `Database OK ` : 'Database OK')
         } else {
           setDbStatus('error')
           setDbMessage(`Errore DB: ${data.message || 'Sconosciuto'}`)
@@ -71,8 +78,7 @@ export default function SignInPage() {
     }
 
     checkDatabaseHealth()
-    
-    // Ricontrolla ogni 30 secondi
+
     const interval = setInterval(checkDatabaseHealth, 30000)
     return () => clearInterval(interval)
   }, [])
@@ -86,7 +92,7 @@ export default function SignInPage() {
       const result = await signIn('credentials', {
         username: username.trim(),
         password,
-        redirect: false
+        redirect: false,
       })
 
       if (result?.error) {
@@ -97,12 +103,11 @@ export default function SignInPage() {
         }
       } else {
         console.log('Login successful, checking session...')
-        // Force refresh to get updated session
         setTimeout(async () => {
           try {
             const session = await getSession()
             console.log('Session after login:', session?.user)
-            
+
             if (session?.user.isFirstLogin) {
               console.log('First login detected, redirecting to change password')
               router.push('/auth/first-login')
@@ -110,12 +115,10 @@ export default function SignInPage() {
               console.log('Regular login, redirecting to dashboard')
               router.push('/dashboard')
             }
-            
-            // Force page refresh to ensure middleware recognizes session
+
             window.location.reload()
           } catch (error) {
             console.error('Error getting session:', error)
-            // Fallback: let middleware handle redirect
             router.push('/dashboard')
           }
         }, 500)
@@ -129,145 +132,161 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-orange-200/20 rounded-full blur-3xl -ml-20 -mt-20 animate-pulse"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-200/20 rounded-full blur-3xl -mr-32 -mb-32 animate-pulse" style={{ animationDelay: '1s' }}></div>
+    <div className="min-h-dvh flex flex-col relative overflow-hidden" style={{ background: 'var(--pd-bg)' }}>
+      <div className="absolute inset-0 pointer-events-none" aria-hidden style={heroGlowStyle} />
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo and Title */}
-        <div className="text-center mb-10 animate-in fade-in zoom-in duration-700">
-          <div className="inline-flex items-center justify-center mb-6 p-4 rounded-[2rem] bg-white shadow-2xl shadow-orange-200/60 border border-gray-100/80">
-            <Image
-              src="/logo-pizza-doc.png?v=3"
-              alt="Pizza D.O.C."
-              width={140}
-              height={140}
-              className="w-[7.5rem] h-[7.5rem] sm:w-36 sm:h-36 object-contain"
-              priority
-            />
-          </div>
-          <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">
-            Pizza<span className="text-orange-600">DOC</span>
-          </h1>
-          <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Team Management System</p>
-        </div>
+      <div className="relative z-10 flex items-center justify-end px-4 sm:px-8 pt-safe py-4">
+        <ThemeToggle />
+      </div>
 
-        {/* Login Form Card */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-white p-8 sm:p-10 animate-in slide-in-from-bottom-8 duration-700">
-          <div className="mb-8">
-            <h2 className="text-2xl font-black text-gray-900">Bentornato!</h2>
-            <p className="text-gray-500 text-sm mt-1">Accedi per gestire i tuoi turni e disponibilità.</p>
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-4 sm:px-6 pb-12">
+        <div className="mx-auto w-full max-w-md">
+          <div className="text-center mb-10">
+            <div
+              className="inline-flex mb-6 p-3"
+              style={{
+                background: 'var(--pd-surface)',
+                boxShadow: 'var(--pd-shadow)',
+                border: '1px solid var(--pd-border)',
+                borderRadius: 'var(--pd-radius-lg)',
+              }}
+            >
+              <Image
+                src="/logo-pizza-doc.png?v=3"
+                alt="Pizza D.O.C."
+                width={96}
+                height={96}
+                className="w-20 h-20 sm:w-24 sm:h-24 object-contain"
+                priority
+              />
+            </div>
+            <h1 className="pd-display text-4xl sm:text-5xl font-semibold tracking-tight">
+              Pizza D.O.C.
+            </h1>
+            <p className="mt-3 text-sm sm:text-base" style={{ color: 'var(--pd-muted)' }}>
+              Sistema di gestione del team
+            </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 animate-in shake duration-300">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <p className="text-xs font-bold text-red-700 uppercase tracking-wider">{error}</p>
+            <div
+              className="mb-5 p-4 rounded-[var(--pd-radius)]"
+              style={{
+                background: 'var(--pd-danger-soft)',
+                border: '1px solid color-mix(in srgb, var(--pd-danger) 25%, transparent)',
+              }}
+            >
+              <p className="text-sm font-semibold" style={{ color: 'var(--pd-danger)' }}>
+                {error}
+              </p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label htmlFor="username" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                Nome Utente
+              <label
+                htmlFor="username"
+                className="block text-xs font-semibold px-0.5"
+                style={{ color: 'var(--pd-muted)' }}
+              >
+                Nome utente
               </label>
-              <div className="relative group">
-                <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Es: mario.rossi"
-                  className="w-full px-5 py-4 bg-gray-50 border-gray-100 border-2 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white focus:border-transparent transition-all placeholder-gray-300 group-hover:bg-white"
-                  required
-                />
-              </div>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="es. mario.rossi"
+                autoComplete="username"
+                className="w-full px-4 py-3.5 text-sm font-medium outline-none"
+                style={inputStyle}
+                required
+              />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                Password Segreta
+              <label
+                htmlFor="password"
+                className="block text-xs font-semibold px-0.5"
+                style={{ color: 'var(--pd-muted)' }}
+              >
+                Password
               </label>
-              <div className="relative group">
+              <div className="relative">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-5 py-4 bg-gray-50 border-gray-100 border-2 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white focus:border-transparent transition-all placeholder-gray-300 group-hover:bg-white"
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3.5 pr-12 text-sm font-medium outline-none"
+                  style={inputStyle}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-orange-600 transition-colors"
+                  className="absolute inset-y-0 right-0 px-3.5 flex items-center"
+                  style={{ color: 'var(--pd-muted)' }}
+                  aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 disabled:from-orange-300 disabled:to-orange-200 text-white font-black py-4 rounded-2xl text-sm uppercase tracking-widest shadow-xl shadow-orange-200 transition-all active:scale-95 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              isLoading={isLoading}
+              className="w-full py-4 text-sm font-semibold tracking-wide rounded-[var(--pd-radius)] shadow-[0_8px_24px_-8px_color-mix(in_srgb,var(--pd-accent)_55%,transparent)]"
             >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Accesso in corso...</span>
-                </>
-              ) : (
-                <>
-                  <span>Accedi Ora</span>
-                  <ChevronRightIcon className="h-4 w-4" />
-                </>
-              )}
-            </button>
+              {isLoading ? 'Accesso in corso...' : 'Accedi'}
+            </Button>
           </form>
-        </div>
 
-        {/* Database Status Badge */}
-        <div className="mt-8 flex justify-center animate-in fade-in duration-1000 delay-500">
-          <div className={cn(
-            "flex items-center gap-3 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm border transition-all",
-            dbStatus === 'ok' 
-              ? 'bg-green-50 text-green-700 border-green-100'
-              : dbStatus === 'error'
-              ? 'bg-red-50 text-red-700 border-red-100'
-              : 'bg-white/50 text-gray-500 border-gray-100'
-          )}>
-            <div className={cn(
-              "w-2 h-2 rounded-full shadow-sm",
-              dbStatus === 'ok' ? 'bg-green-500' : dbStatus === 'error' ? 'bg-red-500' : 'bg-gray-300 animate-pulse'
-            )} />
-            <span>{dbMessage}</span>
+          <div className="mt-8 flex justify-center">
+            <div
+              className={cn('flex items-center gap-2.5 px-4 py-2 text-[11px] font-semibold rounded-full')}
+              style={{
+                background:
+                  dbStatus === 'ok'
+                    ? 'var(--pd-success-soft)'
+                    : dbStatus === 'error'
+                      ? 'var(--pd-danger-soft)'
+                      : 'var(--pd-surface)',
+                color:
+                  dbStatus === 'ok'
+                    ? 'var(--pd-success)'
+                    : dbStatus === 'error'
+                      ? 'var(--pd-danger)'
+                      : 'var(--pd-muted)',
+                border: '1px solid var(--pd-border)',
+              }}
+            >
+              <div
+                className={cn('w-2 h-2 rounded-full', dbStatus === 'checking' && 'animate-pulse')}
+                style={{
+                  background:
+                    dbStatus === 'ok'
+                      ? 'var(--pd-success)'
+                      : dbStatus === 'error'
+                        ? 'var(--pd-danger)'
+                        : 'var(--pd-muted)',
+                }}
+              />
+              <span>{dbMessage}</span>
+            </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="text-center mt-10">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-            © 2026 PizzaDOC Official App
+          <p className="mt-10 text-center text-xs" style={{ color: 'var(--pd-muted)' }}>
+            © {new Date().getFullYear()} Pizza D.O.C.
           </p>
         </div>
       </div>
-      
+
       <ToastContainer />
     </div>
-  )
-}
-
-function ChevronRightIcon({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={className}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-    </svg>
   )
 }

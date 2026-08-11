@@ -27,7 +27,14 @@ function isPublicApi(pathname: string): boolean {
   if (pathname === '/api/push/vapid-key') return true
   // Seed is public to NextAuth but always requires Bearer SEED_SECRET in the handler
   if (pathname === '/api/seed') return true
-  if (pathname.startsWith('/api/cron')) return true
+  // Solo job cron reali (Bearer CRON_SECRET nell'handler) — NON /test
+  const cronJobs = new Set([
+    '/api/cron/availability-reminder',
+    '/api/cron/daily-backup',
+    '/api/cron/hours-reminder',
+    '/api/cron/substitution-expiry',
+  ])
+  if (cronJobs.has(pathname)) return true
   // Personal ICS feed: authenticated by secret calendarToken in the path
   if (pathname.startsWith('/api/calendar/')) return true
   if (isNextAuthPublicRoute(pathname)) return true
@@ -76,6 +83,16 @@ export default withAuth(
     }
 
     // --- Pagine ---
+    const isDesignPreview = path.startsWith('/design-preview')
+    if (isDesignPreview) {
+      return NextResponse.next()
+    }
+
+    // Offline PWA: accessibile senza sessione (fallback service worker)
+    if (path === '/offline') {
+      return NextResponse.next()
+    }
+
     const isAuthPage = path.startsWith('/auth')
 
     if (isAuthPage && isAuth) {
@@ -90,7 +107,7 @@ export default withAuth(
       }
     }
 
-    if (!isAuthPage && !isAuth) {
+    if (!isAuthPage && !isDesignPreview && !isAuth) {
       return NextResponse.redirect(new URL('/auth/signin', req.url))
     }
 
@@ -109,6 +126,12 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         if (req.nextUrl.pathname.startsWith('/auth')) {
+          return true
+        }
+        if (req.nextUrl.pathname.startsWith('/design-preview')) {
+          return true
+        }
+        if (req.nextUrl.pathname === '/offline') {
           return true
         }
         if (req.nextUrl.pathname.startsWith('/api')) {

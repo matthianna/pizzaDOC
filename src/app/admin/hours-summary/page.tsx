@@ -302,19 +302,19 @@ export default function AdminHoursSummaryPage() {
     <MainLayout adminOnly>
       <div className="max-w-7xl mx-auto space-y-8 pb-20">
         {/* Header Premium */}
-        <div className="relative overflow-hidden bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
+        <div className="relative overflow-hidden bg-[var(--pd-surface)] rounded-[2.5rem] p-8 shadow-[var(--pd-shadow)] border border-[var(--pd-border)]">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--pd-accent-soft)] rounded-full blur-3xl -mr-32 -mt-32 opacity-60"></div>
           
           <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-blue-100 transform -rotate-3">
+              <div className="w-16 h-16 bg-[var(--pd-accent)] rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-[var(--pd-shadow)] transform -rotate-3">
                 <BarChart3 className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
+                <h1 className="pd-display text-2xl sm:text-3xl font-semibold text-[var(--pd-text)] tracking-tight leading-none">
                   Analisi & Riepilogo Ore
                 </h1>
-                <p className="text-gray-500 mt-2 text-sm font-medium">
+                <p className="text-[var(--pd-muted)] mt-2 text-sm font-medium">
                   Monitora le ore lavorate, esporta report e gestisci le mancanze.
                 </p>
               </div>
@@ -327,9 +327,9 @@ export default function AdminHoursSummaryPage() {
                     lightClick()
                     exportToPDF()
                   }}
-                  className="px-6 py-3 bg-white border-2 border-gray-100 text-gray-900 rounded-2xl text-xs font-black uppercase tracking-widest shadow-sm hover:shadow-md hover:border-blue-200 transition-all active:scale-95 flex items-center gap-2"
+                  className="px-6 py-3 bg-white border-2 border-[var(--pd-border)] text-[var(--pd-text)] rounded-2xl text-xs font-black uppercase tracking-widest shadow-sm hover:shadow-md hover:border-[var(--pd-border)] transition-all active:scale-95 flex items-center gap-2"
                 >
-                  <Download className="h-4 w-4 text-blue-600" />
+                  <Download className="h-4 w-4 text-[var(--pd-accent)]" />
                   Esporta PDF Generale
                 </button>
               )}
@@ -338,7 +338,7 @@ export default function AdminHoursSummaryPage() {
         </div>
 
         {/* Custom Tabs */}
-        <div className="bg-gray-100/50 p-2 rounded-[2rem] flex gap-2 border border-gray-200/20">
+        <div className="bg-[var(--pd-surface-muted)]/50 p-2 rounded-[2rem] flex gap-2 border border-[var(--pd-border)]/20">
           <button
             onClick={() => {
               lightClick()
@@ -347,8 +347,8 @@ export default function AdminHoursSummaryPage() {
             className={cn(
               "flex-1 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest transition-all duration-300",
               activeTab === 'summary' 
-                ? "bg-white text-blue-600 shadow-sm" 
-                : "text-gray-400 hover:text-gray-600"
+                ? "bg-[var(--pd-surface)] text-[var(--pd-accent)] shadow-sm" 
+                : "text-[var(--pd-muted)] hover:text-[var(--pd-muted)]"
             )}
           >
             📊 Riepilogo Mensile/Annuale
@@ -361,8 +361,8 @@ export default function AdminHoursSummaryPage() {
             className={cn(
               "flex-1 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-widest transition-all duration-300 relative",
               activeTab === 'missing' 
-                ? "bg-white text-red-600 shadow-sm" 
-                : "text-gray-400 hover:text-gray-600"
+                ? "bg-[var(--pd-surface)] text-[var(--pd-danger)] shadow-sm" 
+                : "text-[var(--pd-muted)] hover:text-[var(--pd-muted)]"
             )}
           >
             ⚠️ Ore Mancanti
@@ -379,7 +379,7 @@ export default function AdminHoursSummaryPage() {
           <div className="space-y-8">
             {/* Filters & Stats Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-3 bg-white rounded-[2.5rem] shadow-soft border border-gray-100 p-8">
+              <div className="lg:col-span-3 bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <ReactSelect
                     label="Filtra Dipendente"
@@ -430,7 +430,7 @@ export default function AdminHoursSummaryPage() {
               </div>
 
               {/* Total Hours Card */}
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 shadow-xl shadow-blue-100 text-white flex flex-col justify-center">
+              <div className="bg-[var(--pd-accent)] rounded-[2.5rem] p-8 shadow-[var(--pd-shadow)] text-[var(--pd-accent-fg)] flex flex-col justify-center">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Ore Totali Periodo</p>
                 <div className="flex items-end gap-2">
                   <span className="text-4xl font-black leading-none normal-case">
@@ -454,18 +454,18 @@ export default function AdminHoursSummaryPage() {
                   <TableSkeleton cols={4} rows={3} />
                 </div>
               ) : summary.length === 0 ? (
-                <div className="bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-100 py-20 text-center">
+                <div className="bg-[var(--pd-surface-muted)] rounded-[3rem] border-2 border-dashed border-[var(--pd-border)] py-20 text-center">
                   <BarChart3 className="h-16 w-16 text-gray-200 mx-auto mb-6" />
-                  <p className="text-gray-400 font-black uppercase tracking-widest text-sm">Nessun dato trovato per questo periodo</p>
+                  <p className="text-[var(--pd-muted)] font-black uppercase tracking-widest text-sm">Nessun dato trovato per questo periodo</p>
                 </div>
               ) : (
                 summary.map((userSummary) => (
-                  <div key={userSummary.user.id} className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 overflow-hidden group/user transition-all duration-300">
+                  <div key={userSummary.user.id} className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden group/user transition-all duration-300">
                     {/* User Header */}
                     <div 
                       className={cn(
                         "p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 cursor-pointer transition-all duration-300",
-                        expandedUsers.has(userSummary.user.id) ? "bg-blue-50/30" : "hover:bg-gray-50/50"
+                        expandedUsers.has(userSummary.user.id) ? "bg-[var(--pd-accent-soft)]/30" : "hover:bg-[var(--pd-surface-muted)]/80"
                       )}
                       onClick={() => {
                         lightClick()
@@ -475,13 +475,13 @@ export default function AdminHoursSummaryPage() {
                       <div className="flex items-center gap-6">
                         <div className={cn(
                           "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-md",
-                          expandedUsers.has(userSummary.user.id) ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400 group-hover/user:bg-blue-100 group-hover/user:text-blue-600"
+                          expandedUsers.has(userSummary.user.id) ? "bg-[var(--pd-accent)] text-[var(--pd-accent-fg)]" : "bg-[var(--pd-surface-muted)] text-[var(--pd-muted)] group-hover/user:bg-[var(--pd-accent-soft)] group-hover/user:text-[var(--pd-accent)]"
                         )}>
                           <User className="h-7 w-7" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-black text-gray-900 leading-none">{userSummary.user.username}</h3>
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">
+                          <h3 className="text-lg font-black text-[var(--pd-text)] leading-none">{userSummary.user.username}</h3>
+                          <p className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-widest mt-2">
                             {userSummary.user.primaryRole ? getRoleName(userSummary.user.primaryRole) : 'Collaboratore'}
                           </p>
                         </div>
@@ -489,8 +489,8 @@ export default function AdminHoursSummaryPage() {
 
                       <div className="flex items-center gap-6 self-end sm:self-auto">
                         <div className="text-right">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Totale Ore</p>
-                          <p className="text-2xl font-black text-gray-900 leading-none">{formatDecimalHoursIt(userSummary.yearlyTotal)}</p>
+                          <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-1">Totale Ore</p>
+                          <p className="text-2xl font-black text-[var(--pd-text)] leading-none">{formatDecimalHoursIt(userSummary.yearlyTotal)}</p>
                         </div>
                         <button
                           onClick={(e) => {
@@ -498,14 +498,14 @@ export default function AdminHoursSummaryPage() {
                             lightClick()
                             exportUserYearPDF(userSummary.user.id)
                           }}
-                          className="w-10 h-10 rounded-xl bg-white border border-gray-100 text-gray-400 flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm"
+                          className="w-10 h-10 rounded-xl bg-white border border-[var(--pd-border)] text-[var(--pd-muted)] flex items-center justify-center hover:bg-[var(--pd-accent-soft)] hover:text-[var(--pd-accent)] hover:border-[var(--pd-border)] transition-all shadow-sm"
                           title="Esporta PDF Annuale"
                         >
                           <FileText className="h-5 w-5" />
                         </button>
                         <div className={cn(
-                          "w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 transition-all duration-300",
-                          expandedUsers.has(userSummary.user.id) && "bg-blue-100 text-blue-600 rotate-180"
+                          "w-10 h-10 rounded-xl bg-[var(--pd-surface-muted)] flex items-center justify-center text-[var(--pd-muted)] transition-all duration-300",
+                          expandedUsers.has(userSummary.user.id) && "bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] rotate-180"
                         )}>
                           <ChevronDown className="h-5 w-5" />
                         </div>
@@ -515,21 +515,21 @@ export default function AdminHoursSummaryPage() {
                     {/* Breakdown List */}
                     {expandedUsers.has(userSummary.user.id) && (
                       <div className="px-8 pb-8 space-y-4">
-                        <div className="h-px bg-gray-100 w-full mb-6" />
+                        <div className="h-px bg-[var(--pd-surface-muted)] w-full mb-6" />
                         
                         {userSummary.monthlyHours.length === 0 ? (
-                          <p className="text-center py-8 text-xs font-bold text-gray-400 uppercase tracking-widest">Nessun dato mensile disponibile</p>
+                          <p className="text-center py-8 text-xs font-bold text-[var(--pd-muted)] uppercase tracking-widest">Nessun dato mensile disponibile</p>
                         ) : (
                           userSummary.monthlyHours.map((month) => {
                             const monthKey = `${userSummary.user.id}-${month.month}`
                             const isMonthExpanded = expandedMonths.has(monthKey)
 
                             return (
-                              <div key={month.month} className="bg-gray-50/50 rounded-3xl border border-gray-100 overflow-hidden">
+                              <div key={month.month} className="bg-[var(--pd-surface-muted)]/80 rounded-3xl border border-[var(--pd-border)] overflow-hidden">
                                 <div 
                                   className={cn(
                                     "p-5 flex items-center justify-between cursor-pointer transition-all",
-                                    isMonthExpanded ? "bg-white border-b border-gray-100 shadow-sm" : "hover:bg-white/80"
+                                    isMonthExpanded ? "bg-[var(--pd-surface)] border-b border-[var(--pd-border)] shadow-sm" : "hover:bg-white/80"
                                   )}
                                   onClick={() => {
                                     lightClick()
@@ -539,17 +539,17 @@ export default function AdminHoursSummaryPage() {
                                   <div className="flex items-center gap-4">
                                     <div className={cn(
                                       "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
-                                      isMonthExpanded ? "bg-blue-600 text-white shadow-lg shadow-blue-50" : "bg-white text-blue-400 shadow-sm"
+                                      isMonthExpanded ? "bg-[var(--pd-accent)] text-white shadow-lg shadow-[var(--pd-shadow)]" : "bg-[var(--pd-surface)] text-[var(--pd-accent)] shadow-sm"
                                     )}>
                                       <Calendar className="h-4 w-4" />
                                     </div>
-                                    <span className="text-sm font-black text-gray-900 uppercase tracking-tight">{getMonthName(month.month)}</span>
+                                    <span className="text-sm font-black text-[var(--pd-text)] uppercase tracking-tight">{getMonthName(month.month)}</span>
                                   </div>
 
                                   <div className="flex items-center gap-4">
                                     <div className="text-right hidden sm:block">
-                                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Ore / Turni</p>
-                                      <p className="text-sm font-black text-gray-900">{formatDecimalHoursIt(month.totalHours)} <span className="text-gray-300 font-medium">/</span> {month.shiftsCount}</p>
+                                      <p className="text-[9px] font-black text-[var(--pd-muted)] uppercase tracking-widest mb-0.5">Ore / Turni</p>
+                                      <p className="text-sm font-black text-[var(--pd-text)]">{formatDecimalHoursIt(month.totalHours)} <span className="text-[var(--pd-muted)]/50 font-medium">/</span> {month.shiftsCount}</p>
                                     </div>
                                     <button
                                       onClick={(e) => {
@@ -557,7 +557,7 @@ export default function AdminHoursSummaryPage() {
                                         lightClick()
                                         exportUserMonthPDF(userSummary.user.id, month.month)
                                       }}
-                                      className="p-2 bg-white text-gray-400 rounded-lg border border-gray-100 hover:bg-blue-50 hover:text-blue-600 transition-all"
+                                      className="p-2 bg-white text-[var(--pd-muted)] rounded-lg border border-[var(--pd-border)] hover:bg-[var(--pd-accent-soft)] hover:text-[var(--pd-accent)] transition-all"
                                     >
                                       <FileText className="h-4 w-4" />
                                     </button>
@@ -573,20 +573,20 @@ export default function AdminHoursSummaryPage() {
                                       )
 
                                       return (
-                                        <div key={detail.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 hover:border-blue-100 transition-all shadow-sm">
+                                        <div key={detail.id} className="flex items-center justify-between p-4 bg-[var(--pd-surface)] rounded-2xl border border-[var(--pd-border)] hover:border-[var(--pd-border)] transition-all shadow-sm">
                                           <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-gray-50 flex flex-col items-center justify-center font-black text-gray-400 border border-gray-100">
+                                            <div className="w-10 h-10 rounded-xl bg-[var(--pd-surface-muted)] flex flex-col items-center justify-center font-black text-[var(--pd-muted)] border border-[var(--pd-border)]">
                                               <span className="text-[8px] uppercase leading-none">{getDayName(detail.shift.dayOfWeek).substring(0, 3)}</span>
                                               <span className="text-sm leading-none mt-1">{shiftDate.getUTCDate()}</span>
                                             </div>
                                             <div>
-                                              <p className="text-xs font-black text-gray-900 uppercase tracking-tight">{getShiftTypeName(detail.shift.shiftType)}</p>
-                                              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">{getRoleName(detail.shift.role)}</p>
+                                              <p className="text-xs font-black text-[var(--pd-text)] uppercase tracking-tight">{getShiftTypeName(detail.shift.shiftType)}</p>
+                                              <p className="text-[9px] text-[var(--pd-muted)] font-bold uppercase tracking-widest mt-1">{getRoleName(detail.shift.role)}</p>
                                             </div>
                                           </div>
                                           <div className="text-right">
-                                            <p className="text-xs font-black text-gray-900">{detail.startTime} - {detail.endTime}</p>
-                                            <p className="text-[10px] font-bold text-blue-600 mt-1">{formatDecimalHoursIt(detail.totalHours)}</p>
+                                            <p className="text-xs font-black text-[var(--pd-text)]">{detail.startTime} - {detail.endTime}</p>
+                                            <p className="text-[10px] font-bold text-[var(--pd-accent)] mt-1">{formatDecimalHoursIt(detail.totalHours)}</p>
                                           </div>
                                         </div>
                                       )
@@ -609,19 +609,19 @@ export default function AdminHoursSummaryPage() {
         {/* Tab Content: Missing Hours */}
         {activeTab === 'missing' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-soft border border-gray-100 flex items-center justify-between">
+            <div className="bg-[var(--pd-surface)] rounded-[2.5rem] p-8 shadow-[var(--pd-shadow)] border border-[var(--pd-border)] flex items-center justify-between">
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-red-100">
+                <div className="w-16 h-16 bg-[var(--pd-danger)] rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-red-100">
                   <AlertCircle className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Turni senza ore</h2>
-                  <p className="text-gray-500 mt-1 text-sm font-medium">Questi collaboratori non hanno ancora inviato le ore per i turni passati.</p>
+                  <h2 className="text-2xl font-black text-[var(--pd-text)] tracking-tight">Turni senza ore</h2>
+                  <p className="text-[var(--pd-muted)] mt-1 text-sm font-medium">Questi collaboratori non hanno ancora inviato le ore per i turni passati.</p>
                 </div>
               </div>
-              <div className="bg-red-50 px-6 py-3 rounded-2xl border border-red-100">
-                <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Collaboratori</p>
-                <p className="text-2xl font-black text-red-700 leading-none">{missingHours.length}</p>
+              <div className="bg-[var(--pd-danger-soft)] px-6 py-3 rounded-2xl border border-[var(--pd-border)]">
+                <p className="text-[10px] font-black text-[var(--pd-danger)] uppercase tracking-widest mb-1">Collaboratori</p>
+                <p className="text-2xl font-black text-[var(--pd-danger)] leading-none">{missingHours.length}</p>
               </div>
             </div>
 
@@ -630,27 +630,27 @@ export default function AdminHoursSummaryPage() {
                 <TableSkeleton cols={1} rows={4} />
               </div>
             ) : missingHours.length === 0 ? (
-              <div className="bg-green-50 rounded-[3rem] border-2 border-dashed border-green-100 py-20 text-center">
-                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <div className="bg-[var(--pd-success-soft)] rounded-[3rem] border-2 border-dashed border-green-100 py-20 text-center">
+                <div className="w-20 h-20 bg-[var(--pd-surface)] rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
                   <Clock className="h-10 w-10 text-green-400" />
                 </div>
-                <h3 className="text-green-600 font-black uppercase tracking-[0.2em] text-sm">Ottimo! Non ci sono ore mancanti.</h3>
+                <h3 className="text-[var(--pd-success)] font-black uppercase tracking-[0.2em] text-sm">Ottimo! Non ci sono ore mancanti.</h3>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {missingHours.map((userMissing) => (
-                  <div key={userMissing.userId} className="bg-white rounded-[2.5rem] shadow-soft border border-gray-100 overflow-hidden group/missing transition-all duration-300">
-                    <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                  <div key={userMissing.userId} className="bg-[var(--pd-surface)] rounded-[2.5rem] shadow-[var(--pd-shadow)] border border-[var(--pd-border)] overflow-hidden group/missing transition-all duration-300">
+                    <div className="p-6 border-b border-[var(--pd-border)] bg-[var(--pd-surface-muted)]/50 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-red-600 text-white rounded-2xl flex items-center justify-center shadow-md">
                           <User className="h-6 w-6" />
                         </div>
                         <div>
-                          <h3 className="text-base font-black text-gray-900 leading-tight">{userMissing.username}</h3>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{getRoleName(userMissing.primaryRole)}</p>
+                          <h3 className="text-base font-black text-[var(--pd-text)] leading-tight">{userMissing.username}</h3>
+                          <p className="text-[10px] text-[var(--pd-muted)] font-bold uppercase tracking-widest mt-1">{getRoleName(userMissing.primaryRole)}</p>
                         </div>
                       </div>
-                      <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-xl text-xs font-black">
+                      <span className="px-3 py-1.5 bg-red-100 text-[var(--pd-danger)] rounded-xl text-xs font-black">
                         {userMissing.shifts.length} Turni
                       </span>
                     </div>
@@ -658,19 +658,19 @@ export default function AdminHoursSummaryPage() {
                       {userMissing.shifts.map((shift) => (
                         <div key={shift.shiftId} className={cn(
                           "p-4 rounded-2xl border transition-all",
-                          shift.hoursStatus === 'REJECTED' ? "bg-red-50 border-red-200 shadow-sm" : "bg-white border-gray-100"
+                          shift.hoursStatus === 'REJECTED' ? "bg-[var(--pd-danger-soft)] border-[var(--pd-border)] shadow-sm" : "bg-[var(--pd-surface)] border-[var(--pd-border)]"
                         )}>
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
-                              <Calendar className="h-4 w-4 text-gray-400" />
-                              <span className="text-xs font-black text-gray-900 uppercase tracking-tight">
+                              <Calendar className="h-4 w-4 text-[var(--pd-muted)]" />
+                              <span className="text-xs font-black text-[var(--pd-text)] uppercase tracking-tight">
                                 {getDayName(shift.dayOfWeek)} {format(parseISO(shift.shiftDate), 'dd/MM')}
                               </span>
                             </div>
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{getShiftTypeName(shift.shiftType)}</span>
+                            <span className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">{getShiftTypeName(shift.shiftType)}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded-lg">{getRoleName(shift.role)}</span>
+                            <span className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-widest bg-[var(--pd-surface-muted)] px-2 py-1 rounded-lg">{getRoleName(shift.role)}</span>
                             {shift.hoursStatus === 'REJECTED' && (
                               <span className="px-2 py-1 bg-red-600 text-white text-[8px] font-black uppercase rounded-lg animate-pulse">Rifiutato</span>
                             )}

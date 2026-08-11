@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
+import { StaffPageHeader } from '@/components/layout/staff-page-header'
 import {
     Calendar, Download, ChevronLeft, ChevronRight,
     Loader2, Sparkles, Sun, Moon
@@ -120,19 +121,10 @@ export default function WeeklyPlanPage() {
     return (
         <MainLayout>
             <div className="max-w-6xl mx-auto space-y-6 pb-20">
-                {/* Header */}
-                <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200">
-                                <Calendar className="h-7 w-7 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-2xl font-black text-gray-900 tracking-tight">Piano Settimanale</h1>
-                                <p className="text-gray-500 font-medium text-sm mt-0.5">Consulta i turni di tutta la squadra</p>
-                            </div>
-                        </div>
-
+                <StaffPageHeader
+                    title="Piano settimanale"
+                    subtitle="Consulta i turni di tutta la squadra"
+                    action={
                         <div className="flex items-center gap-3">
                             {isAdmin && (
                             <Button
@@ -162,23 +154,22 @@ export default function WeeklyPlanPage() {
                                 >GRIGLIA</button>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    }
+                />
 
-                {/* Week Navigator */}
-                <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-4 flex items-center justify-between">
+                <div className="pd-card p-4 flex items-center justify-between">
                     <button onClick={prevWeek} className="p-3 bg-gray-50 hover:bg-orange-50 text-gray-400 hover:text-orange-600 rounded-xl transition-all">
                         <ChevronLeft className="h-5 w-5" />
                     </button>
 
                     <div className="flex flex-col items-center cursor-pointer group" onClick={goToToday}>
-                        <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest group-hover:text-orange-500 transition-colors">Settimana selezionata</span>
+                        <span className="text-xs font-medium" style={{ color: 'var(--pd-muted)' }}>Settimana selezionata</span>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="text-lg font-black text-gray-900">
+                            <span className="pd-display text-lg font-semibold">
                                 {formatDayMonthIt(currentWeek)}
                             </span>
                             <span className="text-gray-300">—</span>
-                            <span className="text-lg font-black text-gray-900">
+                            <span className="pd-display text-lg font-semibold">
                                 {formatDayMonthYearIt(addWeekCalendarDays(currentWeek, 6))}
                             </span>
                         </div>
@@ -276,7 +267,7 @@ export default function WeeklyPlanPage() {
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <Moon className="h-4 w-4 text-indigo-500" />
+                                                    <Moon className="h-4 w-4 text-[var(--pd-accent)]" />
                                                     <span className="text-xs font-black text-gray-500 uppercase tracking-widest">Cena</span>
                                                 </div>
                                                 {!isCenaClosure && cenaShifts.length > 0 && (
@@ -382,9 +373,9 @@ export default function WeeklyPlanPage() {
 
                         {/* Cena Row */}
                         <div className="grid grid-cols-8">
-                            <div className="p-4 bg-indigo-50 border-r border-gray-100 flex items-center gap-2">
-                                <Moon className="h-4 w-4 text-indigo-600" />
-                                <span className="text-xs font-black text-indigo-700 uppercase">Cena</span>
+                            <div className="p-4 bg-[var(--pd-accent-soft)] border-r border-gray-100 flex items-center gap-2">
+                                <Moon className="h-4 w-4 text-[var(--pd-accent)]" />
+                                <span className="text-xs font-black text-[var(--pd-accent)] uppercase">Cena</span>
                             </div>
                             {days.map((_, idx) => {
                                 const gh = holidaysForDay(idx)

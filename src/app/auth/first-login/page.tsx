@@ -4,9 +4,24 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { useSession, signOut, signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Lock, Shield, Check, X, Sparkles, KeyRound } from 'lucide-react'
+import { Eye, EyeOff, Check, X } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
+import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { cn } from '@/lib/utils'
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--pd-surface)',
+  color: 'var(--pd-text)',
+  border: '1px solid var(--pd-border-strong)',
+  boxShadow: 'var(--pd-shadow)',
+  borderRadius: 'var(--pd-radius)',
+}
+
+const heroGlowStyle: React.CSSProperties = {
+  background: `radial-gradient(ellipse 90% 70% at 50% -10%, color-mix(in srgb, var(--pd-accent) 28%, transparent), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 80%, color-mix(in srgb, var(--pd-accent) 12%, transparent), transparent 50%)`,
+}
 
 export default function FirstLoginPage() {
   const { data: session } = useSession()
@@ -49,27 +64,27 @@ export default function FirstLoginPage() {
         credentials: 'include',
         body: JSON.stringify({
           userId: session?.user.id,
-          newPassword: password
-        })
+          newPassword: password,
+        }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
         showToast('Password cambiata con successo!', 'success')
-        
+
         const username = session?.user.username
-        
+
         if (username) {
           setTimeout(async () => {
             await signOut({ redirect: false })
-            
+
             const result = await signIn('credentials', {
               username: username,
               password: password,
-              redirect: false
+              redirect: false,
             })
-            
+
             if (result?.ok) {
               router.push('/dashboard')
               router.refresh()
@@ -95,247 +110,214 @@ export default function FirstLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-orange-200/30 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-200/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
-      <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-orange-100/50 rounded-full blur-2xl" />
-      
-      <div className="w-full max-w-md relative z-10">
-        {/* Header Card */}
-        <div className="text-center mb-8">
-          {/* Logo */}
-          <div className="relative inline-block mb-6">
-            <div className="inline-flex items-center justify-center p-3 rounded-[2rem] bg-white shadow-2xl shadow-orange-200/60 border border-gray-100/80">
+    <div className="min-h-dvh flex flex-col relative overflow-hidden" style={{ background: 'var(--pd-bg)' }}>
+      <div className="absolute inset-0 pointer-events-none" aria-hidden style={heroGlowStyle} />
+
+      <div className="relative z-10 flex items-center justify-end px-4 sm:px-8 pt-safe py-4">
+        <ThemeToggle />
+      </div>
+
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-4 sm:px-6 pb-12">
+        <div className="mx-auto w-full max-w-md">
+          <div className="text-center mb-10">
+            <div
+              className="inline-flex mb-6 p-3"
+              style={{
+                background: 'var(--pd-surface)',
+                boxShadow: 'var(--pd-shadow)',
+                border: '1px solid var(--pd-border)',
+                borderRadius: 'var(--pd-radius-lg)',
+              }}
+            >
               <Image
                 src="/logo-pizza-doc.png?v=3"
                 alt="Pizza D.O.C."
-                width={120}
-                height={120}
-                className="w-24 h-24 object-contain"
+                width={96}
+                height={96}
+                className="w-20 h-20 sm:w-24 sm:h-24 object-contain"
                 priority
               />
             </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-xl flex items-center justify-center shadow-lg animate-bounce">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-          </div>
-          
-          {/* Title */}
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-3">
-            Benvenuto!
-          </h1>
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 rounded-full mb-3">
-            <span className="text-orange-600 font-black text-sm">Ciao</span>
-            <span className="text-orange-800 font-black text-sm">{session?.user.username}</span>
-            <span className="text-orange-600">👋</span>
-          </div>
-          <p className="text-gray-500 text-sm font-medium">
-            Prima di iniziare, imposta la tua password personale
-          </p>
-        </div>
-
-        {/* Main Card */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-white p-8 relative overflow-hidden">
-          {/* Card decoration */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-100/50 to-transparent rounded-full blur-2xl -mr-10 -mt-10" />
-          
-          {/* Icon header */}
-          <div className="flex items-center justify-center mb-8">
-            <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl border border-orange-100">
-              <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-200">
-                <KeyRound className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Sicurezza</p>
-                <p className="text-sm font-black text-gray-900">Nuova Password</p>
-              </div>
-            </div>
+            <h1 className="pd-display text-4xl sm:text-5xl font-semibold tracking-tight">
+              Pizza D.O.C.
+            </h1>
+            <p className="mt-3 text-sm sm:text-base" style={{ color: 'var(--pd-muted)' }}>
+              Sistema di gestione del team
+            </p>
           </div>
 
-          {/* Error */}
+          <div className="text-center mb-8">
+            <h2 className="pd-display text-2xl font-semibold tracking-tight">Benvenuto</h2>
+            {session?.user.username && (
+              <p className="mt-2 text-sm font-medium" style={{ color: 'var(--pd-accent)' }}>
+                Ciao, {session.user.username}
+              </p>
+            )}
+            <p className="mt-2 text-sm" style={{ color: 'var(--pd-muted)' }}>
+              Prima di iniziare, imposta la tua password personale
+            </p>
+          </div>
+
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border-2 border-red-100 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-4">
-              <div className="w-8 h-8 bg-red-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <X className="w-4 h-4 text-white" />
-              </div>
-              <p className="text-sm font-bold text-red-700">{error}</p>
+            <div
+              className="mb-5 p-4 rounded-[var(--pd-radius)] flex items-center gap-3"
+              style={{
+                background: 'var(--pd-danger-soft)',
+                border: '1px solid color-mix(in srgb, var(--pd-danger) 25%, transparent)',
+              }}
+            >
+              <X className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--pd-danger)' }} />
+              <p className="text-sm font-semibold" style={{ color: 'var(--pd-danger)' }}>
+                {error}
+              </p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Password field */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                Nuova Password
+              <label
+                htmlFor="password"
+                className="block text-xs font-semibold px-0.5"
+                style={{ color: 'var(--pd-muted)' }}
+              >
+                Nuova password
               </label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <Lock className={cn(
-                    "w-5 h-5 transition-colors",
-                    password.length > 0 
-                      ? isValidLength ? "text-green-500" : "text-red-400"
-                      : "text-gray-300"
-                  )} />
-                </div>
+              <div className="relative">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Minimo 6 caratteri"
-                  className={cn(
-                    "w-full pl-12 pr-12 py-4 border-2 rounded-2xl text-sm font-bold text-gray-900 bg-gray-50 focus:bg-white focus:outline-none transition-all placeholder-gray-400",
-                    password.length > 0 
-                      ? isValidLength 
-                        ? "border-green-300 focus:border-green-500 focus:ring-4 focus:ring-green-100" 
-                        : "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100"
-                      : "border-gray-100 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
-                  )}
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3.5 pr-12 text-sm font-medium outline-none"
+                  style={{
+                    ...inputStyle,
+                    borderColor:
+                      password.length > 0
+                        ? isValidLength
+                          ? 'var(--pd-success)'
+                          : 'var(--pd-danger)'
+                        : 'var(--pd-border-strong)',
+                  }}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute inset-y-0 right-0 px-3.5 flex items-center"
+                  style={{ color: 'var(--pd-muted)' }}
+                  aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              
-              {/* Password strength indicator */}
-              <div className="flex items-center gap-2 mt-2 ml-1">
-                <div className="flex gap-1 flex-1">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "h-1.5 flex-1 rounded-full transition-all duration-300",
-                        password.length >= i * 2 
-                          ? password.length >= 8 ? "bg-green-500" : password.length >= 6 ? "bg-yellow-500" : "bg-red-400"
-                          : "bg-gray-200"
-                      )}
-                    />
-                  ))}
-                </div>
-                {password.length > 0 && (
-                  <span className={cn(
-                    "text-[10px] font-black uppercase",
-                    isValidLength ? "text-green-600" : "text-red-500"
-                  )}>
-                    {password.length >= 8 ? "Forte" : password.length >= 6 ? "OK" : `${password.length}/6`}
-                  </span>
-                )}
-              </div>
+              {password.length > 0 && (
+                <p
+                  className="text-xs font-medium px-0.5"
+                  style={{ color: isValidLength ? 'var(--pd-success)' : 'var(--pd-danger)' }}
+                >
+                  {isValidLength
+                    ? password.length >= 8
+                      ? 'Password forte'
+                      : 'Password valida'
+                    : `Almeno 6 caratteri (${password.length}/6)`}
+                </p>
+              )}
             </div>
 
-            {/* Confirm Password field */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                Conferma Password
+              <label
+                htmlFor="confirmPassword"
+                className="block text-xs font-semibold px-0.5"
+                style={{ color: 'var(--pd-muted)' }}
+              >
+                Conferma password
               </label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <Shield className={cn(
-                    "w-5 h-5 transition-colors",
-                    confirmPassword.length > 0 
-                      ? passwordsMatch ? "text-green-500" : "text-red-400"
-                      : "text-gray-300"
-                  )} />
-                </div>
+              <div className="relative">
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Ripeti la password"
-                  className={cn(
-                    "w-full pl-12 pr-12 py-4 border-2 rounded-2xl text-sm font-bold text-gray-900 bg-gray-50 focus:bg-white focus:outline-none transition-all placeholder-gray-400",
-                    confirmPassword.length > 0 
-                      ? passwordsMatch 
-                        ? "border-green-300 focus:border-green-500 focus:ring-4 focus:ring-green-100" 
-                        : "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100"
-                      : "border-gray-100 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
-                  )}
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3.5 pr-12 text-sm font-medium outline-none"
+                  style={{
+                    ...inputStyle,
+                    borderColor:
+                      confirmPassword.length > 0
+                        ? passwordsMatch
+                          ? 'var(--pd-success)'
+                          : 'var(--pd-danger)'
+                        : 'var(--pd-border-strong)',
+                  }}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute inset-y-0 right-0 px-3.5 flex items-center"
+                  style={{ color: 'var(--pd-muted)' }}
+                  aria-label={showConfirmPassword ? 'Nascondi password' : 'Mostra password'}
                 >
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              
-              {/* Match indicator */}
               {confirmPassword.length > 0 && (
-                <div className={cn(
-                  "flex items-center gap-2 mt-2 ml-1 animate-in slide-in-from-left-2",
-                  passwordsMatch ? "text-green-600" : "text-red-500"
-                )}>
+                <div
+                  className={cn('flex items-center gap-2 px-0.5 text-xs font-medium')}
+                  style={{ color: passwordsMatch ? 'var(--pd-success)' : 'var(--pd-danger)' }}
+                >
                   {passwordsMatch ? (
                     <>
-                      <Check className="w-4 h-4" />
-                      <span className="text-xs font-bold">Le password coincidono</span>
+                      <Check className="h-4 w-4" />
+                      <span>Le password coincidono</span>
                     </>
                   ) : (
                     <>
-                      <X className="w-4 h-4" />
-                      <span className="text-xs font-bold">Le password non coincidono</span>
+                      <X className="h-4 w-4" />
+                      <span>Le password non coincidono</span>
                     </>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Submit button */}
-            <button
+            <Button
               type="submit"
               disabled={!canSubmit}
-              className={cn(
-                "w-full py-5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3",
-                canSubmit
-                  ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl shadow-orange-200 hover:shadow-2xl hover:shadow-orange-300 hover:scale-[1.02] active:scale-[0.98]"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              )}
+              isLoading={isLoading}
+              className="w-full py-4 text-sm font-semibold tracking-wide rounded-[var(--pd-radius)] shadow-[0_8px_24px_-8px_color-mix(in_srgb,var(--pd-accent)_55%,transparent)]"
             >
-              {isLoading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Aggiornamento...</span>
-                </>
-              ) : (
-                <>
-                  <Lock className="w-5 h-5" />
-                  <span>Imposta Password</span>
-                </>
-              )}
-            </button>
+              {isLoading ? 'Aggiornamento...' : 'Imposta password'}
+            </Button>
           </form>
 
-          {/* Info note */}
-          <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-2xl flex items-start gap-3">
-            <div className="w-8 h-8 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Check className="w-4 h-4 text-white" />
-            </div>
+          <div
+            className="mt-6 p-4 rounded-[var(--pd-radius)] flex items-start gap-3"
+            style={{
+              background: 'var(--pd-success-soft)',
+              border: '1px solid color-mix(in srgb, var(--pd-success) 25%, transparent)',
+            }}
+          >
+            <Check className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--pd-success)' }} />
             <div>
-              <p className="text-xs font-black text-green-800 mb-0.5">Accesso Automatico</p>
-              <p className="text-[11px] text-green-600 font-medium leading-relaxed">
+              <p className="text-xs font-semibold" style={{ color: 'var(--pd-success)' }}>
+                Accesso automatico
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
                 Dopo il cambio password, entrerai direttamente nel sistema.
               </p>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <p className="text-xs font-bold text-gray-400">
-            © {new Date().getFullYear()} PizzaDOC • Tutti i diritti riservati
+          <p className="mt-10 text-center text-xs" style={{ color: 'var(--pd-muted)' }}>
+            © {new Date().getFullYear()} Pizza D.O.C.
           </p>
         </div>
       </div>
-      
+
       <ToastContainer />
     </div>
   )

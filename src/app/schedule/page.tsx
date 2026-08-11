@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { MainLayout } from '@/components/layout/main-layout'
+import { StaffPageHeader } from '@/components/layout/staff-page-header'
 import { Calendar, Clock, ChevronLeft, ChevronRight, MapPin, Users, AlertCircle, FileText } from 'lucide-react'
 import { isPast } from 'date-fns'
-import { getDayName, getRoleName, getShiftTypeName } from '@/lib/utils'
+import { getDayName, getRoleName, getShiftTypeName, cn } from '@/lib/utils'
 import {
   getWeekStart,
   getWeekDays,
@@ -21,6 +22,7 @@ import { formatDecimalHoursIt } from '@/lib/format-hours-display'
 import { Role, ShiftType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/ui/modal'
 import { useToast } from '@/components/ui/toast'
 import { PersonalCalendarSubscribe } from '@/components/schedule/personal-calendar-subscribe'
 
@@ -207,23 +209,14 @@ export default function SchedulePage() {
   return (
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-              <Calendar className="h-6 w-6 text-orange-500 mr-2" />
-              Il Mio Piano di Lavoro
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Visualizza i tuoi turni assegnati per la settimana
-            </p>
-          </div>
-        </div>
+        <StaffPageHeader
+          title="Il mio piano di lavoro"
+          subtitle="Visualizza i tuoi turni assegnati per la settimana"
+        />
 
         <PersonalCalendarSubscribe />
 
-        {/* Week Navigation */}
-        <div className="glass rounded-xl shadow-soft p-4 sm:p-6 mb-6">
+        <div className="pd-card p-4 sm:p-6 mb-6">
           {/* Mobile View */}
           <div className="flex sm:hidden items-center justify-between">
             <button
@@ -288,7 +281,7 @@ export default function SchedulePage() {
         </div>
 
         {/* Legend */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 p-4">
+        <div className="pd-card p-4">
           <div className="flex flex-wrap items-center gap-3 justify-center">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-amber-100 border-2 border-orange-300"></div>
@@ -313,17 +306,14 @@ export default function SchedulePage() {
               utcCalendarDateKey(day) === appTodayCalendarDateKey()
 
             return (
-              <div key={dayIndex} className={`glass rounded-xl shadow-sm border overflow-hidden flex flex-col transition-all duration-300 ${columnIsToday ? 'ring-2 ring-orange-400 border-orange-300 shadow-glow-orange transform scale-[1.02]' : 'border-white/40 hover:border-orange-200'}`}>
-                {/* Day Header */}
-                <div className={`px-3 py-3 text-center border-b ${columnIsToday ? 'bg-gradient-to-b from-orange-500 to-orange-600 text-white border-orange-500' : 'bg-gradient-to-b from-gray-50 to-gray-100 border-gray-100'}`}>
-                  <div className={`text-sm font-black tracking-wider ${columnIsToday ? 'text-white' : 'text-gray-500'}`}>
-                    {shortWeekdayItFromDate(day).toUpperCase()}
+              <div key={dayIndex} className={cn('pd-card overflow-hidden flex flex-col transition-all duration-300', columnIsToday && 'ring-2')} style={columnIsToday ? { borderColor: 'var(--pd-accent)' } : undefined}>
+                <div className="px-3 py-3 text-center border-b" style={{ background: columnIsToday ? 'var(--pd-accent-soft)' : 'var(--pd-surface-muted)', borderColor: 'var(--pd-border)' }}>
+                  <div className="text-sm font-semibold" style={{ color: columnIsToday ? 'var(--pd-accent)' : 'var(--pd-muted)' }}>
+                    {shortWeekdayItFromDate(day)}
                   </div>
-                  <div className={`text-lg font-bold ${columnIsToday ? 'text-white' : 'text-gray-900'}`}>
-                    {String(day.getUTCDate()).padStart(2, '0')}
-                  </div>
+                  <div className="text-lg font-semibold">{String(day.getUTCDate()).padStart(2, '0')}</div>
                   {columnIsToday && (
-                    <div className="text-[10px] text-orange-600 font-bold bg-white rounded-full px-2 py-0.5 inline-block mt-1 shadow-sm uppercase tracking-widest">Oggi</div>
+                    <div className="text-[10px] font-semibold rounded-full px-2 py-0.5 inline-block mt-1" style={{ background: 'var(--pd-accent)', color: 'var(--pd-accent-fg)' }}>Oggi</div>
                   )}
                 </div>
 
@@ -426,17 +416,16 @@ export default function SchedulePage() {
 
                                 if (existingSubstitution) {
                                   const statusConfig = {
-                                    PENDING: { text: 'In attesa', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: '⏳' },
-                                    APPLIED: { text: 'Candidature', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: '👥' },
-                                    APPROVED: { text: 'Approvato', color: 'bg-green-50 text-green-700 border-green-200', icon: '✅' },
-                                    REJECTED: { text: 'Rifiutato', color: 'bg-red-50 text-red-700 border-red-200', icon: '❌' },
-                                    CANCELLED: { text: 'Annullato', color: 'bg-gray-50 text-gray-700 border-gray-200', icon: '🚫' }
+                                    PENDING: { text: 'In attesa', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: null },
+                                    APPLIED: { text: 'Candidature', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: null },
+                                    APPROVED: { text: 'Approvato', color: 'bg-green-50 text-green-700 border-green-200', icon: null },
+                                    REJECTED: { text: 'Rifiutato', color: 'bg-red-50 text-red-700 border-red-200', icon: null },
+                                    CANCELLED: { text: 'Annullato', color: 'bg-gray-50 text-gray-700 border-gray-200', icon: null }
                                   }
                                   const status = statusConfig[existingSubstitution.status] || statusConfig.PENDING
 
                                   return (
                                     <div className={`w-full text-xs py-1.5 border rounded-md flex items-center justify-center font-semibold ${status.color}`}>
-                                      <span className="mr-1.5">{status.icon}</span>
                                       {status.text}
                                     </div>
                                   )
@@ -476,9 +465,9 @@ export default function SchedulePage() {
 
         {/* Summary */}
         {shifts.length > 0 && (
-          <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl shadow-lg border border-orange-200 p-4 sm:p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
-              Riepilogo Settimana
+          <div className="pd-card p-4 sm:p-6">
+            <h3 className="pd-display text-xl font-semibold mb-4 text-center">
+              Riepilogo settimana
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:p-6">
               <div className="text-center bg-white rounded-xl p-6 shadow-md border border-orange-200">
@@ -504,58 +493,68 @@ export default function SchedulePage() {
         )}
 
         {/* Substitution Request Modal */}
-        {showSubstitutionModal && selectedShift && (
-          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 max-w-md w-full">
-              <div className="p-4 sm:p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Cerca un Sostituto
-                </h3>
-
-                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <div className="text-sm font-medium text-gray-900">
-                    {getDayName(selectedShift.dayOfWeek)} - {getShiftTypeName(selectedShift.shiftType)}
-                  </div>
-                  <div className="text-xs text-gray-600 mt-1">
-                    {formatDate(addWeekCalendarDays(currentWeek, selectedShift.dayOfWeek))}
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    {selectedShift.startTime} • {getRoleName(selectedShift.role)}
-                  </div>
+        <Modal
+          isOpen={showSubstitutionModal && !!selectedShift}
+          onClose={() => {
+            setShowSubstitutionModal(false)
+            setSelectedShift(null)
+            setRequestNote('')
+          }}
+          title="Cerca un sostituto"
+          subtitle="Invia una richiesta di sostituzione"
+          maxWidth="sm"
+        >
+          {selectedShift && (
+            <div className="space-y-4">
+              <div
+                className="p-3 rounded-[var(--pd-radius)]"
+                style={{
+                  background: 'var(--pd-accent-soft)',
+                  border: '1px solid var(--pd-border)',
+                }}
+              >
+                <div className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                  {getDayName(selectedShift.dayOfWeek)} - {getShiftTypeName(selectedShift.shiftType)}
                 </div>
-
-                <Input
-                  label="Motivo della richiesta"
-                  placeholder="Spiega perché hai bisogno di un sostituto..."
-                  value={requestNote}
-                  onChange={(e) => setRequestNote(e.target.value)}
-                  multiline
-                  rows={3}
-                />
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowSubstitutionModal(false)
-                      setSelectedShift(null)
-                      setRequestNote('')
-                    }}
-                  >
-                    Annulla
-                  </Button>
-                  <Button
-                    onClick={createSubstitutionRequest}
-                    disabled={!requestNote.trim() || submitting}
-                    isLoading={submitting}
-                  >
-                    Crea Richiesta
-                  </Button>
+                <div className="text-xs mt-1" style={{ color: 'var(--pd-muted)' }}>
+                  {formatDate(addWeekCalendarDays(currentWeek, selectedShift.dayOfWeek))}
+                </div>
+                <div className="text-xs" style={{ color: 'var(--pd-muted)' }}>
+                  {selectedShift.startTime} · {getRoleName(selectedShift.role)}
                 </div>
               </div>
+
+              <Input
+                label="Motivo della richiesta"
+                placeholder="Spiega perché hai bisogno di un sostituto..."
+                value={requestNote}
+                onChange={(e) => setRequestNote(e.target.value)}
+                multiline
+                rows={3}
+              />
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowSubstitutionModal(false)
+                    setSelectedShift(null)
+                    setRequestNote('')
+                  }}
+                >
+                  Annulla
+                </Button>
+                <Button
+                  onClick={createSubstitutionRequest}
+                  disabled={!requestNote.trim() || submitting}
+                  isLoading={submitting}
+                >
+                  Crea richiesta
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </Modal>
       </div>
       <ToastContainer />
     </MainLayout>

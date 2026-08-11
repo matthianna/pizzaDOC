@@ -58,7 +58,16 @@ export function ConfirmDialog({
   }
 
   const content = (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center box-border"
+      style={{
+        height: '100dvh',
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+      }}
+    >
       <button
         type="button"
         aria-label="Chiudi"
@@ -69,29 +78,52 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="relative w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden"
+        className="relative w-full max-w-md rounded-2xl overflow-hidden"
+        style={{
+          backgroundColor: 'var(--pd-surface)',
+          border: '1px solid var(--pd-border)',
+          boxShadow: 'var(--pd-shadow)',
+          maxHeight:
+            'min(90dvh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)))',
+        }}
       >
         <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
           <div className="flex items-start gap-3 min-w-0">
             <div
-              className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
-                isDangerous ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'
-              }`}
+              className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+              style={
+                isDangerous
+                  ? { backgroundColor: 'var(--pd-danger-soft)', color: 'var(--pd-danger)' }
+                  : { backgroundColor: 'var(--pd-accent-soft)', color: 'var(--pd-accent)' }
+              }
             >
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h2 id="confirm-dialog-title" className="text-lg font-bold text-gray-900">
+              <h2
+                id="confirm-dialog-title"
+                className="text-lg font-bold"
+                style={{ color: 'var(--pd-text)' }}
+              >
                 {title}
               </h2>
-              <p className="mt-1 text-sm text-gray-600">{description}</p>
+              <p className="mt-1 text-sm" style={{ color: 'var(--pd-muted)' }}>
+                {description}
+              </p>
             </div>
           </div>
           <button
             type="button"
             disabled={loading}
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-50"
+            className="p-2 rounded-lg disabled:opacity-50"
+            style={{ color: 'var(--pd-muted)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--pd-surface-muted)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent'
+            }}
           >
             <X className="h-5 w-5" />
           </button>

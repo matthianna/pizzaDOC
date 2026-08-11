@@ -4,7 +4,7 @@
   "description": "Sistema di gestione piano di lavoro per pizzeria",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#f7f3ee",
   "theme_color": "#EA580C",
   "orientation": "portrait-primary",
   "scope": "/",

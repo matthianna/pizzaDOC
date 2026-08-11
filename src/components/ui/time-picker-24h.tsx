@@ -51,62 +51,124 @@ export function TimePicker24h({
     return { value: v, label: v }
   })
 
+  const selectStyle: React.CSSProperties = {
+    backgroundColor: 'var(--pd-surface)',
+    borderColor: 'var(--pd-border-strong)',
+    color: 'var(--pd-text)',
+    textAlignLast: 'center',
+  }
+
   return (
     <div className={`flex items-center gap-4 ${className}`}>
       {/* Hours Select */}
       <div className="flex-1 relative group">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+        <div
+          className="absolute inset-0 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"
+          style={{ background: 'var(--pd-accent-soft)' }}
+        />
         <select
           value={hours}
           onChange={(e) => handleHoursChange(e.target.value)}
-          className="relative w-full appearance-none bg-gradient-to-br from-white to-indigo-50 border-3 border-indigo-400 rounded-3xl px-6 py-5 text-3xl font-black text-indigo-900 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:border-indigo-600 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] text-center"
-          style={{ textAlignLast: 'center' }}
+          className="relative w-full appearance-none border-2 rounded-3xl px-6 py-5 text-3xl font-black focus:outline-none focus:ring-4 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] text-center"
+          style={{
+            ...selectStyle,
+            boxShadow: 'var(--pd-shadow)',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = 'var(--pd-accent)'
+            e.currentTarget.style.boxShadow = '0 0 0 4px var(--pd-accent-soft)'
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = 'var(--pd-border-strong)'
+            e.currentTarget.style.boxShadow = 'var(--pd-shadow)'
+          }}
         >
           {hoursOptions.map(option => (
-            <option key={option.value} value={option.value} className="text-xl font-bold bg-white">
+            <option
+              key={option.value}
+              value={option.value}
+              className="text-xl font-bold"
+              style={{ backgroundColor: 'var(--pd-surface)', color: 'var(--pd-text)' }}
+            >
               {option.label}
             </option>
           ))}
         </select>
         <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none">
-          <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--pd-accent)' }}>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
-        <div className="text-sm text-indigo-700 font-bold text-center mt-2 tracking-wide">ORE</div>
+        <div
+          className="text-sm font-bold text-center mt-2 tracking-wide"
+          style={{ color: 'var(--pd-muted)' }}
+        >
+          ORE
+        </div>
       </div>
       
       {/* Separator */}
       <div className="flex flex-col items-center justify-center -mt-6">
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-pink-400 to-purple-600 rounded-full blur-lg opacity-50 animate-pulse"></div>
-          <span className="relative text-5xl font-black bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">:</span>
+          <div
+            className="absolute inset-0 rounded-full blur-lg opacity-50 animate-pulse"
+            style={{ background: 'var(--pd-accent-soft)' }}
+          />
+          <span
+            className="relative text-5xl font-black"
+            style={{ color: 'var(--pd-accent)' }}
+          >
+            :
+          </span>
         </div>
       </div>
       
       {/* Minutes Select */}
       <div className="flex-1 relative group">
-        <div className="absolute inset-0 bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-500 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+        <div
+          className="absolute inset-0 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"
+          style={{ background: 'var(--pd-accent-soft)' }}
+        />
         <select
           value={minutes}
           onChange={(e) => handleMinutesChange(e.target.value)}
-          className="relative w-full appearance-none bg-gradient-to-br from-white to-pink-50 border-3 border-pink-400 rounded-3xl px-6 py-5 text-3xl font-black text-pink-900 focus:outline-none focus:ring-4 focus:ring-pink-500 focus:border-pink-600 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] text-center"
-          style={{ textAlignLast: 'center' }}
+          className="relative w-full appearance-none border-2 rounded-3xl px-6 py-5 text-3xl font-black focus:outline-none focus:ring-4 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] text-center"
+          style={{
+            ...selectStyle,
+            boxShadow: 'var(--pd-shadow)',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = 'var(--pd-accent)'
+            e.currentTarget.style.boxShadow = '0 0 0 4px var(--pd-accent-soft)'
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = 'var(--pd-border-strong)'
+            e.currentTarget.style.boxShadow = 'var(--pd-shadow)'
+          }}
         >
           {minutesOptions.map(option => (
-            <option key={option.value} value={option.value} className="text-xl font-bold bg-white">
+            <option
+              key={option.value}
+              value={option.value}
+              className="text-xl font-bold"
+              style={{ backgroundColor: 'var(--pd-surface)', color: 'var(--pd-text)' }}
+            >
               {option.label}
             </option>
           ))}
         </select>
         <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none">
-          <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--pd-accent)' }}>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
-        <div className="text-sm text-pink-700 font-bold text-center mt-2 tracking-wide">MINUTI</div>
+        <div
+          className="text-sm font-bold text-center mt-2 tracking-wide"
+          style={{ color: 'var(--pd-muted)' }}
+        >
+          MINUTI
+        </div>
       </div>
     </div>
   )
 }
-

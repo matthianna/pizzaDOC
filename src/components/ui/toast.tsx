@@ -27,26 +27,42 @@ export function Toast({ message, type = 'info', duration = 4000, onClose }: Toas
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-600" />
+        return <CheckCircle className="h-5 w-5" style={{ color: 'var(--pd-success)' }} />
       case 'error':
-        return <XCircle className="h-5 w-5 text-red-600" />
+        return <XCircle className="h-5 w-5" style={{ color: 'var(--pd-danger)' }} />
       case 'warning':
-        return <AlertCircle className="h-5 w-5 text-yellow-600" />
+        return <AlertCircle className="h-5 w-5" style={{ color: 'var(--pd-warning)' }} />
       default:
-        return <Info className="h-5 w-5 text-blue-600" />
+        return <Info className="h-5 w-5" style={{ color: 'var(--pd-accent)' }} />
     }
   }
 
-  const getColors = () => {
+  const getStyles = (): React.CSSProperties => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 border-green-200 text-green-800'
+        return {
+          backgroundColor: 'var(--pd-success-soft)',
+          borderColor: 'var(--pd-success)',
+          color: 'var(--pd-text)',
+        }
       case 'error':
-        return 'bg-red-50 border-red-200 text-red-800'
+        return {
+          backgroundColor: 'var(--pd-danger-soft)',
+          borderColor: 'var(--pd-danger)',
+          color: 'var(--pd-text)',
+        }
       case 'warning':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800'
+        return {
+          backgroundColor: 'var(--pd-warning-soft)',
+          borderColor: 'var(--pd-warning)',
+          color: 'var(--pd-text)',
+        }
       default:
-        return 'bg-blue-50 border-blue-200 text-blue-800'
+        return {
+          backgroundColor: 'var(--pd-accent-soft)',
+          borderColor: 'var(--pd-accent)',
+          color: 'var(--pd-text)',
+        }
     }
   }
 
@@ -56,7 +72,10 @@ export function Toast({ message, type = 'info', duration = 4000, onClose }: Toas
     <div className={`fixed top-4 right-4 z-50 transform transition-all duration-300 ${
       isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
     }`}>
-      <div className={`flex items-center p-4 rounded-lg border shadow-lg max-w-sm ${getColors()}`}>
+      <div
+        className="flex items-center p-4 rounded-lg border shadow-lg max-w-sm"
+        style={getStyles()}
+      >
         <div className="flex-shrink-0">
           {getIcon()}
         </div>
@@ -68,7 +87,14 @@ export function Toast({ message, type = 'info', duration = 4000, onClose }: Toas
             setIsVisible(false)
             setTimeout(() => onClose?.(), 300)
           }}
-          className="ml-4 flex-shrink-0 rounded-md p-1 hover:bg-black/10 transition-colors"
+          className="ml-4 flex-shrink-0 rounded-md p-1 transition-colors"
+          style={{ color: 'var(--pd-muted)' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--pd-surface-muted)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+          }}
         >
           <X className="h-4 w-4" />
         </button>

@@ -75,13 +75,16 @@ export function ConfirmationModal({
         right: 0,
         bottom: 0,
         width: '100vw',
-        height: '100vh',
+        height: '100dvh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 99999,
-        padding: 16,
-        boxSizing: 'border-box'
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+        boxSizing: 'border-box',
       }}
     >
       <div
@@ -102,15 +105,17 @@ export function ConfirmationModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--pd-surface)',
           borderRadius: 48,
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          boxShadow: 'var(--pd-shadow)',
+          border: '1px solid var(--pd-border)',
           width: '100%',
           maxWidth: 672,
-          maxHeight: 'calc(100vh - 64px)',
+          maxHeight:
+            'min(90dvh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)))',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
         }}
       >
         <div
@@ -120,14 +125,14 @@ export function ConfirmationModal({
             alignItems: 'flex-start',
             justifyContent: 'space-between',
             flexShrink: 0,
-            borderBottom: '1px solid #f3f4f6'
+            borderBottom: '1px solid var(--pd-border)'
           }}
         >
           <h2
             style={{
               fontSize: 28,
               fontWeight: 900,
-              color: '#111827',
+              color: 'var(--pd-text)',
               margin: 0,
               letterSpacing: '-0.025em',
               paddingRight: 16
@@ -141,7 +146,7 @@ export function ConfirmationModal({
             disabled={isLoading}
             style={{
               padding: 12,
-              backgroundColor: '#f3f4f6',
+              backgroundColor: 'var(--pd-surface-muted)',
               border: 'none',
               borderRadius: 16,
               cursor: isLoading ? 'not-allowed' : 'pointer',
@@ -152,7 +157,7 @@ export function ConfirmationModal({
               opacity: isLoading ? 0.6 : 1
             }}
           >
-            <X style={{ width: 24, height: 24, color: '#6b7280' }} />
+            <X style={{ width: 24, height: 24, color: 'var(--pd-muted)' }} />
           </button>
         </div>
 
@@ -164,28 +169,54 @@ export function ConfirmationModal({
           }}
         >
           <div className="space-y-6">
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl border border-purple-200">
+            <div
+              className="p-5 rounded-2xl"
+              style={{
+                background: 'var(--pd-accent-soft)',
+                border: '1px solid var(--pd-border)',
+              }}
+            >
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-purple-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-200">
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
+                  style={{
+                    backgroundColor: 'var(--pd-accent)',
+                    color: 'var(--pd-accent-fg)',
+                    boxShadow: '0 8px 24px -8px color-mix(in srgb, var(--pd-accent) 55%, transparent)',
+                  }}
+                >
                   <AlertTriangle className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xs text-purple-600 font-medium leading-snug">
+                  <p
+                    className="text-xs font-medium leading-snug"
+                    style={{ color: 'var(--pd-text)' }}
+                  >
                     {description}
                   </p>
                 </div>
               </div>
 
               {metadata && (
-                <div className="bg-white/60 rounded-xl p-4 border border-purple-100/80 text-left text-sm text-purple-900 space-y-1">
+                <div
+                  className="rounded-xl p-4 text-left text-sm space-y-1"
+                  style={{
+                    backgroundColor: 'var(--pd-surface)',
+                    border: '1px solid var(--pd-border)',
+                    color: 'var(--pd-text)',
+                  }}
+                >
                   {metadata}
                 </div>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">
-                Digita <span className="text-purple-600">{confirmPhrase}</span> per confermare
+              <label
+                className="block text-xs font-black uppercase tracking-widest mb-3"
+                style={{ color: 'var(--pd-muted)' }}
+              >
+                Digita <span style={{ color: 'var(--pd-accent)' }}>{confirmPhrase}</span> per confermare
               </label>
               <input
                 type="text"
@@ -193,14 +224,35 @@ export function ConfirmationModal({
                 onChange={(e) => setInputValue(e.target.value)}
                 disabled={isLoading}
                 placeholder="Conferma qui..."
-                className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 bg-gray-50 font-bold text-center focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:bg-white transition-all placeholder-gray-300"
+                className="w-full border-2 rounded-2xl px-5 py-4 font-bold text-center focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  borderColor: 'var(--pd-border-strong)',
+                  backgroundColor: 'var(--pd-surface-muted)',
+                  color: 'var(--pd-text)',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--pd-accent)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px var(--pd-accent-soft)'
+                  e.currentTarget.style.backgroundColor = 'var(--pd-surface)'
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--pd-border-strong)'
+                  e.currentTarget.style.boxShadow = 'none'
+                  e.currentTarget.style.backgroundColor = 'var(--pd-surface-muted)'
+                }}
                 autoComplete="off"
                 autoFocus
               />
             </div>
 
             {isDangerous && (
-              <p className="text-xs text-red-600 font-medium bg-red-50 px-4 py-3 rounded-xl flex items-center gap-2">
+              <p
+                className="text-xs font-medium px-4 py-3 rounded-xl flex items-center gap-2"
+                style={{
+                  color: 'var(--pd-danger)',
+                  backgroundColor: 'var(--pd-danger-soft)',
+                }}
+              >
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 Azione irreversibile: verifica i dati prima di procedere.
               </p>
@@ -209,14 +261,24 @@ export function ConfirmationModal({
         </div>
 
         <div
-          className="flex justify-end gap-3 pt-4 border-t border-gray-100 px-12 pb-8"
-          style={{ flexShrink: 0 }}
+          className="flex justify-end gap-3 pt-4 px-12 pb-8"
+          style={{
+            flexShrink: 0,
+            borderTop: '1px solid var(--pd-border)',
+          }}
         >
           <button
             type="button"
             onClick={handleClose}
             disabled={isLoading}
-            className="px-6 py-3 text-xs font-black text-gray-600 uppercase tracking-widest hover:bg-gray-100 rounded-xl transition-all disabled:opacity-50"
+            className="px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50"
+            style={{ color: 'var(--pd-muted)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--pd-surface-muted)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent'
+            }}
           >
             Annulla
           </button>
@@ -224,7 +286,20 @@ export function ConfirmationModal({
             type="button"
             onClick={handleConfirm}
             disabled={!isConfirmEnabled}
-            className="px-8 py-3 bg-purple-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all disabled:opacity-50 flex items-center gap-2 min-w-[10rem] justify-center"
+            className="px-8 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 flex items-center gap-2 min-w-[10rem] justify-center"
+            style={{
+              backgroundColor: 'var(--pd-accent)',
+              color: 'var(--pd-accent-fg)',
+              boxShadow: '0 8px 24px -8px color-mix(in srgb, var(--pd-accent) 55%, transparent)',
+            }}
+            onMouseEnter={(e) => {
+              if (!e.currentTarget.disabled) {
+                e.currentTarget.style.backgroundColor = 'var(--pd-accent-hover)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--pd-accent)'
+            }}
           >
             {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : confirmButtonText}
           </button>

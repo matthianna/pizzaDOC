@@ -96,7 +96,7 @@ export default function HolidaysPage() {
     return (
       <MainLayout adminOnly>
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--pd-accent)]"></div>
         </div>
       </MainLayout>
     )
@@ -106,23 +106,23 @@ export default function HolidaysPage() {
     <MainLayout adminOnly>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header Moderno */}
-        <div className="bg-white rounded-3xl shadow-soft border border-gray-100 p-8">
+        <div className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <div className="p-4 bg-orange-600 rounded-2xl shadow-lg shadow-orange-200">
+              <div className="p-4 bg-[var(--pd-accent)] rounded-2xl shadow-lg shadow-[var(--pd-shadow)]">
                 <Calendar className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+                <h1 className="pd-display text-3xl font-semibold text-[var(--pd-text)] tracking-tight">
                   Giorni Festivi
                 </h1>
-                <p className="text-gray-500 font-medium mt-1">
+                <p className="text-[var(--pd-muted)] font-medium mt-1">
                   Gestisci i giorni di chiusura dell&apos;azienda e i periodi di festa.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="bg-gray-100 p-1 rounded-xl flex items-center">
+              <div className="bg-[var(--pd-surface-muted)] p-1 rounded-xl flex items-center">
                 {years.map(year => (
                   <button
                     key={year}
@@ -130,8 +130,8 @@ export default function HolidaysPage() {
                     className={cn(
                       "px-4 py-2 rounded-lg text-xs font-black transition-all",
                       filterYear === year.toString()
-                        ? "bg-white text-orange-600 shadow-sm"
-                        : "text-gray-400 hover:text-gray-600"
+                        ? "bg-[var(--pd-surface)] text-[var(--pd-accent)] shadow-sm"
+                        : "text-[var(--pd-muted)] hover:text-[var(--pd-muted)]"
                     )}
                   >
                     {year}
@@ -143,7 +143,7 @@ export default function HolidaysPage() {
                   setEditingHoliday(null)
                   setShowModal(true)
                 }}
-                className="bg-orange-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-700 shadow-lg shadow-orange-200 transition-all flex items-center gap-2"
+                className="bg-[var(--pd-accent)] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[var(--pd-accent-hover)] shadow-lg shadow-[var(--pd-shadow)] transition-all flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
                 Nuovo Festivo
@@ -155,35 +155,35 @@ export default function HolidaysPage() {
         {/* Holidays Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {holidays.length === 0 ? (
-            <div className="col-span-full bg-white rounded-3xl shadow-soft border border-dashed border-gray-300 p-20 text-center">
-              <div className="p-4 bg-gray-50 rounded-full w-fit mx-auto mb-4">
-                <Calendar className="h-10 w-10 text-gray-300" />
+            <div className="col-span-full bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-dashed border-[var(--pd-border-strong)] p-20 text-center">
+              <div className="p-4 bg-[var(--pd-surface-muted)] rounded-full w-fit mx-auto mb-4">
+                <Calendar className="h-10 w-10 text-[var(--pd-muted)]/50" />
               </div>
-              <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Nessun giorno festivo per il {filterYear}</p>
+              <p className="text-[var(--pd-muted)] font-bold uppercase tracking-widest text-sm">Nessun giorno festivo per il {filterYear}</p>
             </div>
           ) : (
             holidays.map((holiday) => (
-              <div key={holiday.id} className="bg-white rounded-3xl shadow-soft border border-gray-100 p-6 hover:shadow-xl transition-all group relative overflow-hidden">
+              <div key={holiday.id} className="bg-[var(--pd-surface)] rounded-3xl shadow-[var(--pd-shadow)] border border-[var(--pd-border)] p-6 hover:shadow-xl transition-all group relative overflow-hidden">
                 <div className={cn(
                   "absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 transition-transform group-hover:scale-110",
-                  holiday.closureType === 'FULL_DAY' ? "bg-red-500" :
-                  holiday.closureType === 'PRANZO_ONLY' ? "bg-yellow-500" : "bg-blue-500"
+                  holiday.closureType === 'FULL_DAY' ? "bg-[var(--pd-danger-soft)]0" :
+                  holiday.closureType === 'PRANZO_ONLY' ? "bg-[var(--pd-warning)]" : "bg-[var(--pd-accent)]"
                 )} />
                 
                 <div className="flex justify-between items-start mb-6">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Data Festività</p>
-                    <h3 className="text-lg font-black text-gray-900 leading-tight">
+                    <p className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest">Data Festività</p>
+                    <h3 className="text-lg font-black text-[var(--pd-text)] leading-tight">
                       {format(new Date(holiday.date), 'EEEE', { locale: it })}
                       <br />
-                      <span className="text-orange-600">{format(new Date(holiday.date), 'd MMMM yyyy', { locale: it })}</span>
+                      <span className="text-[var(--pd-accent)]">{format(new Date(holiday.date), 'd MMMM yyyy', { locale: it })}</span>
                     </h3>
                   </div>
                   <span className={cn(
                     "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm",
-                    holiday.closureType === 'FULL_DAY' ? "bg-red-50 text-red-700 border border-red-100" :
+                    holiday.closureType === 'FULL_DAY' ? "bg-[var(--pd-danger-soft)] text-[var(--pd-danger)] border border-[var(--pd-border)]" :
                     holiday.closureType === 'PRANZO_ONLY' ? "bg-yellow-50 text-yellow-700 border border-yellow-100" :
-                    "bg-blue-50 text-blue-700 border border-blue-100"
+                    "bg-[var(--pd-accent-soft)] text-[var(--pd-accent)] border border-[var(--pd-border)]"
                   )}>
                     {getClosureTypeName(holiday.closureType)}
                   </span>
@@ -191,26 +191,26 @@ export default function HolidaysPage() {
 
                 {holiday.description && (
                   <div className="mb-6">
-                    <p className="text-xs font-medium text-gray-600 leading-relaxed italic bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <p className="text-xs font-medium text-[var(--pd-muted)] leading-relaxed italic bg-[var(--pd-surface-muted)] p-3 rounded-xl border border-[var(--pd-border)]">
                       &quot;{holiday.description}&quot;
                     </p>
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 pt-4 border-t border-gray-50">
+                <div className="flex items-center gap-2 pt-4 border-t border-[var(--pd-border)]">
                   <button
                     onClick={() => {
                       setEditingHoliday(holiday)
                       setShowModal(true)
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 text-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-50 transition-all"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--pd-surface-muted)] text-[var(--pd-accent)] rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[var(--pd-accent-soft)] transition-all"
                   >
                     <Edit className="h-3.5 w-3.5" />
                     Modifica
                   </button>
                   <button
                     onClick={() => openDeleteConfirm(holiday)}
-                    className="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all"
+                    className="px-4 py-2.5 bg-[var(--pd-danger-soft)] text-[var(--pd-danger)] rounded-xl hover:bg-[var(--pd-danger-soft)] transition-all"
                     title="Elimina"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -328,19 +328,19 @@ function HolidayFormModal({
       <form onSubmit={handleSubmit} className="space-y-8 pt-4">
         {/* Data section */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Data Chiusura</label>
+          <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest px-1">Data Chiusura</label>
           <input
             type="date"
             required
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="w-full bg-gray-50 border-gray-100 border-2 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+            className="w-full bg-[var(--pd-surface-muted)] border-[var(--pd-border)] border-2 rounded-2xl px-5 py-3 text-sm font-bold text-[var(--pd-text)] focus:outline-none focus:ring-2 focus:ring-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all"
           />
         </div>
 
         {/* Closure Type section */}
         <div className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Modalità Chiusura</label>
+          <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest px-1">Modalità Chiusura</label>
           <div className="grid grid-cols-1 gap-2">
             {[
               { id: 'FULL_DAY', label: 'Giorno Intero', desc: 'Chiuso sia a pranzo che a cena' },
@@ -352,17 +352,17 @@ function HolidayFormModal({
                 className={cn(
                   "flex items-center justify-between p-4 border-2 rounded-2xl cursor-pointer transition-all",
                   formData.closureType === type.id
-                    ? "bg-orange-50 border-orange-500 shadow-sm"
-                    : "bg-white border-gray-100 hover:border-gray-200"
+                    ? "bg-[var(--pd-accent-soft)] border-[var(--pd-accent)] shadow-sm"
+                    : "bg-[var(--pd-surface)] border-[var(--pd-border)] hover:border-[var(--pd-border)]"
                 )}
               >
                 <div>
-                  <p className="text-sm font-black text-gray-900">{type.label}</p>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{type.desc}</p>
+                  <p className="text-sm font-black text-[var(--pd-text)]">{type.label}</p>
+                  <p className="text-[10px] font-bold text-[var(--pd-muted)] uppercase tracking-tight">{type.desc}</p>
                 </div>
                 <div className={cn(
                   "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                  formData.closureType === type.id ? "bg-orange-500 border-orange-500" : "border-gray-200"
+                  formData.closureType === type.id ? "bg-[var(--pd-accent)] border-[var(--pd-accent)]" : "border-[var(--pd-border)]"
                 )}>
                   {formData.closureType === type.id && <Check className="h-3 w-3 text-white stroke-[4]" />}
                 </div>
@@ -380,13 +380,13 @@ function HolidayFormModal({
 
         {/* Description section */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Motivazione (Opzionale)</label>
+          <label className="text-[10px] font-black text-[var(--pd-muted)] uppercase tracking-widest px-1">Motivazione (Opzionale)</label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
             placeholder="Es: Vacanze estive, Manutenzione straordinaria..."
-            className="w-full bg-gray-50 border-gray-100 border-2 rounded-2xl px-5 py-3 text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all placeholder-gray-300 resize-none"
+            className="w-full bg-[var(--pd-surface-muted)] border-[var(--pd-border)] border-2 rounded-2xl px-5 py-3 text-sm font-bold text-[var(--pd-text)] focus:outline-none focus:ring-2 focus:ring-[var(--pd-accent)] focus:bg-[var(--pd-surface)] transition-all placeholder-[var(--pd-muted)]/50 resize-none"
           />
         </div>
 
@@ -395,14 +395,14 @@ function HolidayFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 rounded-2xl transition-all"
+            className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-[var(--pd-muted)] hover:bg-[var(--pd-surface-muted)] rounded-2xl transition-all"
           >
             Annulla
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="flex-[2] py-4 bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-orange-100 transition-all active:scale-95 disabled:opacity-50"
+            className="flex-[2] py-4 bg-[var(--pd-accent)] text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-[var(--pd-shadow)] transition-all active:scale-95 disabled:opacity-50"
           >
             {loading ? 'Salvataggio...' : 'Salva Festività'}
           </button>
