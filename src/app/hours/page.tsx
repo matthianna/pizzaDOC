@@ -445,7 +445,7 @@ export default function HoursPage() {
                         <button
                           type="button"
                           onClick={() => toggleMonth(month.month)}
-                          className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left pd-press"
+                          className="pd-card-header w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left pd-press"
                         >
                           <div className="min-w-0">
                             <p className="text-sm font-semibold capitalize" style={{ color: 'var(--pd-text)' }}>

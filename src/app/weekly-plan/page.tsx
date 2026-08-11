@@ -366,7 +366,7 @@ export default function WeeklyPlanPage() {
                         key={idx}
                         className="px-2 py-3 text-center min-w-[100px]"
                         style={{
-                          background: dayIsToday ? 'var(--pd-accent-soft)' : 'var(--pd-surface-muted)',
+                          background: dayIsToday ? 'var(--pd-accent-soft)' : 'var(--pd-panel-header)',
                         }}
                       >
                         <p
@@ -392,19 +392,28 @@ export default function WeeklyPlanPage() {
                 </tr>
               </thead>
               <tbody>
-                {(['PRANZO', 'CENA'] as const).map((shiftType) => (
-                  <tr key={shiftType} style={{ borderBottom: '1px solid var(--pd-border)' }}>
+                {(['PRANZO', 'CENA'] as const).map((shiftType) => {
+                  const isPranzo = shiftType === 'PRANZO'
+                  const rowBg = isPranzo
+                    ? 'color-mix(in srgb, var(--pd-warning-soft) 65%, var(--pd-surface))'
+                    : 'color-mix(in srgb, var(--pd-muted) 10%, var(--pd-surface))'
+                  const labelBg = isPranzo
+                    ? 'color-mix(in srgb, var(--pd-warning-soft) 85%, var(--pd-surface))'
+                    : 'color-mix(in srgb, var(--pd-muted) 14%, var(--pd-surface))'
+
+                  return (
+                  <tr key={shiftType} style={{ borderBottom: '1px solid var(--pd-border)', background: rowBg }}>
                     <td
                       className="px-3 py-3 text-xs font-semibold sticky left-0 z-10 align-top"
-                      style={{ color: 'var(--pd-text)', background: 'var(--pd-surface)' }}
+                      style={{ color: 'var(--pd-text)', background: labelBg }}
                     >
                       <span className="inline-flex items-center gap-1.5">
-                        {shiftType === 'PRANZO' ? (
+                        {isPranzo ? (
                           <Sun className="h-3.5 w-3.5" style={{ color: 'var(--pd-warning)' }} />
                         ) : (
                           <Moon className="h-3.5 w-3.5" style={{ color: 'var(--pd-muted)' }} />
                         )}
-                        {shiftType === 'PRANZO' ? 'Pranzo' : 'Cena'}
+                        {isPranzo ? 'Pranzo' : 'Cena'}
                       </span>
                     </td>
                     {DAYS.map((_, idx) => {
@@ -426,7 +435,7 @@ export default function WeeklyPlanPage() {
                           className="px-1.5 py-2 align-top"
                           style={{
                             background: dayIsToday
-                              ? 'color-mix(in srgb, var(--pd-accent-soft) 40%, transparent)'
+                              ? 'color-mix(in srgb, var(--pd-accent-soft) 45%, transparent)'
                               : undefined,
                           }}
                         >
@@ -448,33 +457,24 @@ export default function WeeklyPlanPage() {
                                 return (
                                   <div
                                     key={shift.id}
-                                    className="px-2 py-1.5"
+                                    className="px-2 py-1"
                                     style={{
                                       background: tone.bg,
                                       borderRadius: 'var(--pd-radius)',
                                     }}
                                   >
-                                    <div className="flex items-start justify-between gap-1">
-                                      <p
-                                        className="font-semibold truncate text-[11px] leading-tight min-w-0"
-                                        style={{ color: 'var(--pd-text)' }}
-                                      >
-                                        {formatUsername(shift.user.username)}
-                                      </p>
-                                      {start ? (
-                                        <span
-                                          className="shrink-0 text-[10px] font-semibold tabular-nums leading-tight"
-                                          style={{ color: 'var(--pd-text)' }}
-                                        >
-                                          {start}
-                                        </span>
-                                      ) : null}
-                                    </div>
                                     <p
-                                      className="truncate text-[10px] mt-0.5"
+                                      className="font-semibold truncate text-[11px] leading-tight"
+                                      style={{ color: 'var(--pd-text)' }}
+                                    >
+                                      {formatUsername(shift.user.username)}
+                                    </p>
+                                    <p
+                                      className="truncate text-[10px] mt-0.5 tabular-nums"
                                       style={{ color: tone.color }}
                                     >
                                       {getRoleName(shift.role)}
+                                      {start ? ` · ${start}` : ''}
                                     </p>
                                   </div>
                                 )
@@ -489,7 +489,8 @@ export default function WeeklyPlanPage() {
                       )
                     })}
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -519,8 +520,7 @@ function ShiftSlot({
   return (
     <div style={{ borderBottom: last ? undefined : '1px solid var(--pd-border)' }}>
       <div
-        className="px-4 py-2 flex items-center justify-between gap-2"
-        style={{ background: 'var(--pd-surface-muted)' }}
+        className="px-4 py-2 flex items-center justify-between gap-2 pd-card-header"
       >
         <p
           className="text-[11px] font-semibold uppercase tracking-wide inline-flex items-center gap-1.5"

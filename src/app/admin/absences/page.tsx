@@ -321,8 +321,7 @@ export default function AdminAbsencesPage() {
                     <button
                       type="button"
                       onClick={() => toggleMonth(group.key, groupIndex)}
-                      className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left pd-press"
-                      style={{ background: 'var(--pd-surface-muted)' }}
+                      className="pd-card-header w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left pd-press"
                     >
                       <div className="min-w-0 flex items-center gap-2">
                         <p

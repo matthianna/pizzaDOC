@@ -10,7 +10,9 @@
   --pd-bg: #f7f3ee;
   --pd-bg-elevated: #fffdf9;
   --pd-surface: #ffffff;
-  --pd-surface-muted: #f0ebe4;
+  /* Distinct from page bg so card headers / chips don't blend in */
+  --pd-surface-muted: #e7dfd4;
+  --pd-panel-header: #ddd4c7;
   --pd-border: rgba(28, 25, 23, 0.1);
   --pd-border-strong: rgba(28, 25, 23, 0.18);
   --pd-text: #1c1917;
@@ -44,7 +46,8 @@ html[data-theme="dark"] {
   --pd-bg: #14110f;
   --pd-bg-elevated: #1c1815;
   --pd-surface: #221e1a;
-  --pd-surface-muted: #2a241f;
+  --pd-surface-muted: #2f2923;
+  --pd-panel-header: #352e27;
   --pd-border: rgba(245, 237, 227, 0.1);
   --pd-border-strong: rgba(245, 237, 227, 0.18);
   --pd-text: #f5ede3;
@@ -123,6 +126,11 @@ body {
   border: 1px solid var(--pd-border);
   border-radius: var(--pd-radius-lg);
   box-shadow: var(--pd-shadow);
+}
+
+.pd-card-header {
+  background: var(--pd-panel-header, var(--pd-surface-muted));
+  border-bottom: 1px solid var(--pd-border-strong);
 }
 
 .pd-section-title {

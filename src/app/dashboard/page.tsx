@@ -382,7 +382,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => setWeatherOpen((o) => !o)}
-            className="w-full flex items-center justify-between px-4 py-3 text-left pd-press"
+            className="pd-card-header w-full flex items-center justify-between px-4 py-3 text-left pd-press"
           >
             <span className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
               Meteo Savosa
@@ -585,11 +585,7 @@ export default function DashboardPage() {
                         }}
                       >
                         <div
-                          className="px-4 py-2.5 flex items-center justify-between gap-2"
-                          style={{
-                            background: 'var(--pd-surface-muted)',
-                            borderBottom: '1px solid var(--pd-border)',
-                          }}
+                          className="pd-card-header px-4 py-2.5 flex items-center justify-between gap-2"
                         >
                           <p
                             className="text-sm font-semibold inline-flex items-center gap-1.5"

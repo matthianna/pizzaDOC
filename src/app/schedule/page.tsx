@@ -285,12 +285,11 @@ export default function SchedulePage() {
                   }}
                 >
                   <div
-                    className="px-4 py-3 flex items-center justify-between gap-3"
+                    className="pd-card-header px-4 py-3 flex items-center justify-between gap-3"
                     style={{
                       background: columnIsToday
-                        ? 'color-mix(in srgb, var(--pd-accent-soft) 70%, var(--pd-surface))'
-                        : 'var(--pd-surface-muted)',
-                      borderBottom: '1px solid var(--pd-border)',
+                        ? 'color-mix(in srgb, var(--pd-accent-soft) 75%, var(--pd-panel-header))'
+                        : undefined,
                     }}
                   >
                     <div className="min-w-0">
