@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin } from '@/lib/auth-utils'
 import { normalizeDate } from '@/lib/normalize-date'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 
 // GET /api/admin/absences - Get all absences (admin only)
 export async function GET(request: NextRequest) {
@@ -39,21 +40,23 @@ export async function GET(request: NextRequest) {
       whereClause.startDate = { gt: today }
     }
 
-    const absences = await prisma.absences.findMany({
-      where: whereClause,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            primaryRole: true
+    const absences = await withPrismaRetry(() =>
+      prisma.absences.findMany({
+        where: whereClause,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              primaryRole: true
+            }
           }
+        },
+        orderBy: {
+          startDate: 'desc'
         }
-      },
-      orderBy: {
-        startDate: 'desc'
-      }
-    })
+      })
+    )
 
     return NextResponse.json(absences)
   } catch (error) {

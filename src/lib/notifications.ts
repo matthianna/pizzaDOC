@@ -1,5 +1,6 @@
 import webpush from 'web-push'
 import { prisma } from '@/lib/prisma'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 import { NotificationType } from '@prisma/client'
 
 // VAPID keys should be generated once and stored in environment variables
@@ -254,7 +255,8 @@ export async function getUserNotifications(userId: string, options?: {
 }) {
     const { limit = 20, offset = 0, unreadOnly = false } = options || {}
 
-    const [notifications, total, unreadCount] = await Promise.all([
+    const [notifications, total, unreadCount] = await withPrismaRetry(() =>
+      Promise.all([
         prisma.notifications.findMany({
             where: {
                 userId,
@@ -270,7 +272,8 @@ export async function getUserNotifications(userId: string, options?: {
         prisma.notifications.count({
             where: { userId, isRead: false }
         })
-    ])
+      ])
+    )
 
     return { notifications, total, unreadCount }
 }

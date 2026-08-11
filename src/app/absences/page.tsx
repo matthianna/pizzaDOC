@@ -75,21 +75,29 @@ export default function AbsencesPage() {
     fetchAbsences()
   }, [])
 
-  const fetchAbsences = async () => {
+  const fetchAbsences = async (attempt = 0) => {
     try {
       const response = await fetch('/api/user/absences')
       if (response.ok) {
         const data = await response.json()
         setAbsences(data)
-      } else {
-        showToast('Impossibile caricare le assenze', 'error')
+        setLoading(false)
+        return
       }
+      if (attempt < 1) {
+        await new Promise((r) => setTimeout(r, 400))
+        return fetchAbsences(attempt + 1)
+      }
+      showToast('Impossibile caricare le assenze', 'error')
     } catch (error) {
       console.error('Error fetching absences:', error)
+      if (attempt < 1) {
+        await new Promise((r) => setTimeout(r, 400))
+        return fetchAbsences(attempt + 1)
+      }
       showToast('Impossibile caricare le assenze', 'error')
-    } finally {
-      setLoading(false)
     }
+    setLoading(false)
   }
 
   const resetForm = () => {

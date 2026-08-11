@@ -6,6 +6,8 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { createNotification } from '@/lib/notifications'
 import { NotificationType } from '@prisma/client'
+import { normalizeDate } from '@/lib/normalize-date'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 
 // GET /api/user/absences - Get user's absences
 export async function GET(request: NextRequest) {
@@ -16,14 +18,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }
 
-    const absences = await prisma.absences.findMany({
-      where: {
-        userId: session.user.id
-      },
-      orderBy: {
-        startDate: 'desc'
-      }
-    })
+    const absences = await withPrismaRetry(() =>
+      prisma.absences.findMany({
+        where: {
+          userId: session.user.id,
+        },
+        orderBy: {
+          startDate: 'desc',
+        },
+      })
+    )
 
     return NextResponse.json(absences)
   } catch (error) {

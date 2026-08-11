@@ -14,12 +14,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const settings = await prisma.SystemSettings.findMany({
+    const settings = await prisma.systemSettings.findMany({
       orderBy: { key: 'asc' },
     })
 
     const settingsObj = settings.reduce(
-      (acc, setting) => {
+      (acc: Record<string, string>, setting: { key: string; value: string }) => {
         acc[setting.key] = setting.value
         return acc
       },
@@ -49,9 +49,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Key and value are required' }, { status: 400 })
     }
 
-    const previous = await prisma.SystemSettings.findUnique({ where: { key } })
+    const previous = await prisma.systemSettings.findUnique({ where: { key } })
     const now = new Date()
-    const setting = await prisma.SystemSettings.upsert({
+    const setting = await prisma.systemSettings.upsert({
       where: { key },
       update: {
         value: value.toString(),

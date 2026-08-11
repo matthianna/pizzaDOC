@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { normalizeDate } from '@/lib/normalize-date'
@@ -23,7 +24,8 @@ export async function GET() {
     await expireSubstitutionsPastDeadline(now)
 
     // Get available substitutions (not mine, future shifts, pending/applied status)
-    const availableSubstitutions = await prisma.substitutions.findMany({
+    const availableSubstitutions = await withPrismaRetry(() =>
+      prisma.substitutions.findMany({
       where: {
         requesterId: {
           not: session.user.id
@@ -69,6 +71,7 @@ export async function GET() {
         createdAt: 'desc'
       }
     })
+    )
 
     // Filter out past shifts (considera anche l'orario di inizio)
     const futureAvailable = availableSubstitutions.filter(sub => {
@@ -86,7 +89,8 @@ export async function GET() {
     })
 
     // Get user's own substitution requests
-    const mySubstitutions = await prisma.substitutions.findMany({
+    const mySubstitutions = await withPrismaRetry(() =>
+      prisma.substitutions.findMany({
       where: {
         requesterId: session.user.id
       },
@@ -124,6 +128,7 @@ export async function GET() {
         createdAt: 'desc'
       }
     })
+    )
 
     console.log('📊 API Substitutions - Available:', futureAvailable.length)
     console.log('📊 API Substitutions - Mine:', mySubstitutions.length)

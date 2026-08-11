@@ -1,58 +1,52 @@
 import { PrismaClient } from '@prisma/client'
+import { withPrismaRetry } from '@/lib/prisma-retry'
 
-// Estendi globalThis per type safety
 declare global {
-  var __prisma: PrismaClient | undefined
+  // eslint-disable-next-line no-var
+  var __prisma: ReturnType<typeof createPrismaClient> | undefined
 }
-
-// Log per debug
-console.log('[PRISMA] Initializing Prisma Client...')
-console.log('[PRISMA] NODE_ENV:', process.env.NODE_ENV)
-console.log('[PRISMA] VERCEL:', process.env.VERCEL ? 'Yes' : 'No')
-console.log('[PRISMA] DATABASE_URL present:', !!process.env.DATABASE_URL)
 
 if (!process.env.DATABASE_URL) {
   console.error('[PRISMA] ⚠️ CRITICAL: DATABASE_URL is not defined!')
   throw new Error('DATABASE_URL environment variable is required')
 }
 
-// Funzione per creare il client
-const createPrismaClient = (): PrismaClient => {
-  console.log('[PRISMA] Creating new PrismaClient instance')
-  
-  const client = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+function databaseUrlWithTimeouts(url: string): string {
+  try {
+    const u = new URL(url)
+    if (!u.searchParams.has('connect_timeout')) {
+      u.searchParams.set('connect_timeout', '30')
+    }
+    if (!u.searchParams.has('pool_timeout')) {
+      u.searchParams.set('pool_timeout', '20')
+    }
+    return u.toString()
+  } catch {
+    return url
+  }
+}
+
+function createPrismaClient() {
+  const base = new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: databaseUrlWithTimeouts(process.env.DATABASE_URL!),
       },
     },
   })
-  
-  console.log('[PRISMA] ✅ PrismaClient created successfully')
-  return client
+
+  return base.$extends({
+    query: {
+      async $allOperations({ args, query }) {
+        return withPrismaRetry(() => query(args), { retries: 3, delayMs: 400 })
+      },
+    },
+  })
 }
 
-// Usa il singleton pattern - PER EVITARE CONNESSIONI MULTIPLE
-// Funziona sia in dev che in prod (serverless)
 if (!global.__prisma) {
   global.__prisma = createPrismaClient()
 }
 
 export const prisma = global.__prisma
-
-// Verifica che prisma non sia mai undefined
-if (!prisma) {
-  console.error('[PRISMA] ❌ CRITICAL: Prisma instance is undefined!')
-  throw new Error('Failed to initialize Prisma Client')
-}
-
-console.log('[PRISMA] ✅ Prisma export ready')
-
-// Cleanup delle connessioni in development quando il server viene riavviato
-if (process.env.NODE_ENV === 'development') {
-  process.on('beforeExit', async () => {
-    console.log('[PRISMA] Cleaning up connections before exit...')
-    await prisma.$disconnect()
-  })
-}
