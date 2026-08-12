@@ -14,6 +14,7 @@ import {
   ChevronDown,
   MapPin,
   Monitor,
+  Trash2,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -249,6 +250,7 @@ export default function SystemAdminPage() {
 
   const [showBackupConfirm, setShowBackupConfirm] = useState(false)
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false)
+  const [clearingLogs, setClearingLogs] = useState(false)
 
   useEffect(() => {
     if (activeTab === 'logs') fetchLogs()
@@ -316,6 +318,50 @@ export default function SystemAdminPage() {
 
   const downloadBackup = () => {
     window.open('/api/admin/database/backup?download=true', '_blank')
+  }
+
+  const clearLogs = async () => {
+    setClearingLogs(true)
+    try {
+      const response = await fetch('/api/admin/audit-logs', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keepBackups: true }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        showToast(
+          `Log puliti · ${data.deletedCount?.toLocaleString('it-IT') ?? 0} eventi eliminati`,
+          'success'
+        )
+        setFilterAction(null)
+        setLogsPage(1)
+        setLogsLoading(true)
+        try {
+          const refresh = await fetch(`/api/admin/audit-logs?limit=${PAGE_SIZE}&offset=0`)
+          if (refresh.ok) {
+            const refreshed = await refresh.json()
+            setLogs(refreshed.logs)
+            setLogsTotal(refreshed.total)
+          }
+        } finally {
+          setLogsLoading(false)
+        }
+      } else {
+        const error = await response.json()
+        showToast(error.error || 'Errore nella pulizia dei log', 'error')
+        throw new Error(error.error || 'clear failed')
+      }
+    } catch (error) {
+      console.error('Error clearing logs:', error)
+      if (error instanceof Error && error.message !== 'clear failed') {
+        showToast('Errore di connessione', 'error')
+      }
+      throw error
+    } finally {
+      setClearingLogs(false)
+    }
   }
 
   const totalPages = Math.ceil(logsTotal / PAGE_SIZE)
@@ -404,6 +450,24 @@ export default function SystemAdminPage() {
               >
                 <RefreshCw className={cn('h-3.5 w-3.5', logsLoading && 'animate-spin')} />
                 Aggiorna
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCleanupConfirm(true)}
+                disabled={clearingLogs}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold disabled:opacity-40"
+                style={{
+                  background: 'var(--pd-danger-soft)',
+                  borderRadius: 'var(--pd-radius)',
+                  color: 'var(--pd-danger)',
+                }}
+              >
+                {clearingLogs ? (
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                Pulisci log
               </button>
               <span className="text-xs tabular-nums ml-auto" style={{ color: 'var(--pd-muted)' }}>
                 {logsTotal.toLocaleString('it-IT')} eventi
@@ -605,22 +669,19 @@ export default function SystemAdminPage() {
       <ConfirmationModal
         isOpen={showCleanupConfirm}
         onClose={() => setShowCleanupConfirm(false)}
-        onConfirm={() => {
-          showToast('I backup sono on-demand: non ci sono file da eliminare.', 'info')
-          setShowCleanupConfirm(false)
-        }}
-        title="Info pulizia backup"
-        description="I backup sono generati on-demand e scaricati direttamente. Non vengono più salvati file sul server."
-        confirmPhrase="OK"
-        confirmButtonText="Capito"
-        isDangerous={false}
+        onConfirm={clearLogs}
+        title="Pulisci audit log"
+        description="Stai per eliminare tutti gli eventi di audit. I log di backup database restano. L’azione non è reversibile."
+        confirmPhrase="PULISCI LOG"
+        confirmButtonText="Pulisci log"
+        isDangerous
         metadata={
           <div className="text-sm space-y-1">
             <p>
-              <strong>Sistema:</strong> Backup on-demand
+              <strong>Eventi da eliminare:</strong> {logsTotal.toLocaleString('it-IT')}
             </p>
             <p>
-              <strong>Storico:</strong> Visibile nei log di audit
+              <strong>Conservati:</strong> record DATABASE_BACKUP
             </p>
           </div>
         }

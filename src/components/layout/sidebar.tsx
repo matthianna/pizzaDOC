@@ -423,29 +423,34 @@ function SidebarContent({
         </nav>
 
         <div
-          className="shrink-0 p-4 pt-3 space-y-2 border-t"
+          className={cn(
+            'shrink-0 p-4 pt-3 space-y-2 border-t',
+            !isUserAdmin && 'mt-auto'
+          )}
           style={{ borderColor: 'var(--pd-border)' }}
         >
           <ThemeToggle className="w-full justify-center" />
-          <Link
-            href={`/profile/${session.user.id}`}
-            onClick={onItemClick}
-            className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium transition-colors"
-            style={{
-              borderRadius: 'var(--pd-radius)',
-              background:
-                pathname === `/profile/${session.user.id}` ? 'var(--pd-accent-soft)' : 'transparent',
-              color:
-                pathname === `/profile/${session.user.id}` ? 'var(--pd-accent)' : 'var(--pd-text)',
-            }}
-          >
-            {pathname === `/profile/${session.user.id}` ? (
-              <UserCircleIconSolid className="h-5 w-5" />
-            ) : (
-              <UserCircleIcon className="h-5 w-5" />
-            )}
-            Il mio profilo
-          </Link>
+          {!isUserAdmin && (
+            <Link
+              href={`/profile/${session.user.id}`}
+              onClick={onItemClick}
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium transition-colors"
+              style={{
+                borderRadius: 'var(--pd-radius)',
+                background:
+                  pathname === `/profile/${session.user.id}` ? 'var(--pd-accent-soft)' : 'transparent',
+                color:
+                  pathname === `/profile/${session.user.id}` ? 'var(--pd-accent)' : 'var(--pd-text)',
+              }}
+            >
+              {pathname === `/profile/${session.user.id}` ? (
+                <UserCircleIconSolid className="h-5 w-5" />
+              ) : (
+                <UserCircleIcon className="h-5 w-5" />
+              )}
+              Il mio profilo
+            </Link>
+          )}
           <button
             type="button"
             onClick={async () => {

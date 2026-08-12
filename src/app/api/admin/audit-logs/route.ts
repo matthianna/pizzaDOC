@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getAuditLogs, getAuditStats } from '@/lib/audit-logger'
+import { getAuditLogs, getAuditStats, clearAuditLogs } from '@/lib/audit-logger'
+import { isAdmin } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,6 +42,39 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error fetching audit logs:', error)
+    return NextResponse.json(
+      { error: error.message || 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session || !isAdmin(session)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json().catch(() => ({}))
+    const keepBackups = body?.keepBackups !== false
+
+    const result = await clearAuditLogs({
+      keepBackups,
+      actor: {
+        userId: session.user.id,
+        username: session.user.username,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      deletedCount: result.deletedCount,
+      keepBackups: result.keepBackups,
+    })
+  } catch (error: any) {
+    console.error('Error clearing audit logs:', error)
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

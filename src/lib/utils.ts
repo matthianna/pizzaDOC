@@ -6,7 +6,8 @@ export const PRIORITY_USERS = [
   'valentino.dipietro',
   'mario.dipietro',
   'alessio.tshimanga',
-  'giulia'
+  'giulia',
+  'michele.caiazzo'
 ]
 
 export function isPriorityUser(username: string): boolean {

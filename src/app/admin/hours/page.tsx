@@ -5,12 +5,11 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { MainLayout } from '@/components/layout/main-layout'
 import { PageHeader } from '@/components/layout/page-header'
-import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
-import { EmptyState } from '@/components/ui/list-row'
+import { EmptyState, ListRow } from '@/components/ui/list-row'
 import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, User, Plus, Search, RefreshCw } from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName, formatUsername } from '@/lib/utils'
-import { formatDate, shiftCalendarDateUtc } from '@/lib/date-utils'
+import { formatDateLong, shiftCalendarDateUtc } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
 import { Select as ReactSelect } from '@/components/ui/react-select'
 import { TableSkeleton, CardSkeleton } from '@/components/ui/skeleton'
@@ -409,9 +408,6 @@ export default function AdminHoursPage() {
     return null
   }
 
-  const totalHours = workedHours.reduce((sum, h) => sum + h.totalHours, 0)
-  const pendingCount = workedHours.filter(h => h.status === 'PENDING').length
-
   // Raggruppa per utente
   const groupedByUser = workedHours.reduce((acc, hours) => {
     const userId = hours.user.id
@@ -438,6 +434,38 @@ export default function AdminHoursPage() {
       )
     : userGroups
 
+  const missingCount = useMemo(
+    () => missingByUser.reduce((n, u) => n + u.shifts.length, 0),
+    [missingByUser]
+  )
+
+  const missingDateGroups = useMemo(() => {
+    type Item = { user: MissingUserGroup; row: MissingShiftRow }
+    const buckets = new Map<string, { key: string; date: Date; items: Item[] }>()
+
+    for (const user of missingByUser) {
+      for (const row of user.shifts) {
+        const date = shiftCalendarDateUtc(row.weekStart, row.dayOfWeek)
+        const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+        const bucket = buckets.get(key) ?? { key, date, items: [] }
+        bucket.items.push({ user, row })
+        buckets.set(key, bucket)
+      }
+    }
+
+    return Array.from(buckets.values())
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .map((group) => ({
+        ...group,
+        label: formatDateLong(group.date),
+        items: group.items.sort((a, b) => {
+          const byShift = a.row.shiftType.localeCompare(b.row.shiftType)
+          if (byShift !== 0) return byShift
+          return a.user.username.localeCompare(b.user.username)
+        }),
+      }))
+  }, [missingByUser])
+
   const toggleUser = (userId: string) => {
     setExpandedUsers(prev => {
       const newSet = new Set(prev)
@@ -457,13 +485,6 @@ export default function AdminHoursPage() {
           dense
           title="Inserimento ore"
           subtitle="Revisiona, correggi e approva le ore dei turni"
-        />
-
-        <StatStrip
-          items={[
-            { label: 'Da revisionare', value: pendingCount },
-            { label: 'Ore totali', value: formatDecimalHoursIt(totalHours) },
-          ]}
         />
 
         <div
@@ -545,8 +566,10 @@ export default function AdminHoursPage() {
 
         {/* Turni senza ore (o rifiutate) */}
         <SectionBlock
-          title="Turni senza ore"
-          subtitle="Inserisci start/fine effettivi per i turni passati ancora senza ore, oppure correggi quelle rifiutate."
+          title={
+            missingCount > 0 ? `Turni senza ore · ${missingCount}` : 'Turni senza ore'
+          }
+          subtitle="Inserisci gli orari effettivi o correggi i turni rifiutati."
           action={
             <button
               type="button"
@@ -554,61 +577,76 @@ export default function AdminHoursPage() {
                 lightClick()
                 fetchMissingShifts()
               }}
-              className="shrink-0 inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold pd-press"
+              aria-label="Aggiorna elenco"
+              title="Aggiorna elenco"
+              className="shrink-0 inline-flex items-center justify-center h-9 w-9 pd-press"
               style={{
-                color: 'var(--pd-text)',
+                color: 'var(--pd-muted)',
                 background: 'var(--pd-surface-muted)',
                 borderRadius: 'var(--pd-radius)',
               }}
             >
-              <RefreshCw className="h-4 w-4" />
-              Aggiorna elenco
+              <RefreshCw className={cn('h-4 w-4', missingLoading && 'animate-spin')} />
             </button>
           }
           card
         >
-          {missingLoading ? (
+          {missingLoading && missingDateGroups.length === 0 ? (
             <div className="p-4">
               <CardSkeleton />
             </div>
-          ) : missingByUser.length === 0 ? (
+          ) : missingDateGroups.length === 0 ? (
             <EmptyState
               title="Nessun turno in attesa"
-              description="Nessun turno passato in attesa di ore per i filtri del sistema."
+              description="Tutti i turni passati hanno già le ore inserite."
               icon={<Clock className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
             />
           ) : (
-            <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
-              {missingByUser.map((u) => (
-                <div key={u.userId} className="p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" style={{ color: 'var(--pd-muted)' }} />
-                    <span className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>{formatUsername(u.username)}</span>
-                    <span className="text-[10px] font-bold uppercase" style={{ color: 'var(--pd-muted)' }}>
-                      {getRoleName(u.primaryRole)}
+            <div>
+              {missingDateGroups.map((group) => (
+                <div key={group.key}>
+                  <div className="pd-card-header flex items-center justify-between gap-3 px-4 py-2">
+                    <p
+                      className="text-xs font-semibold capitalize truncate"
+                      style={{ color: 'var(--pd-text)' }}
+                    >
+                      {group.label}
+                    </p>
+                    <span
+                      className="text-[11px] font-medium tabular-nums px-2 py-0.5 shrink-0"
+                      style={{
+                        color: 'var(--pd-muted)',
+                        background: 'var(--pd-surface)',
+                        borderRadius: 'var(--pd-radius-pill)',
+                        border: '1px solid var(--pd-border)',
+                      }}
+                    >
+                      {group.items.length}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {u.shifts.map((row) => (
-                      <button
+                  {group.items.map(({ user, row }) => {
+                    const rejected = row.hoursStatus === 'REJECTED'
+                    return (
+                      <ListRow
                         key={row.shiftId}
-                        type="button"
-                        onClick={() => openCreateShiftModal(u, row)}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold pd-press"
-                        style={{
-                          background: 'var(--pd-surface-muted)',
-                          border: '1px solid var(--pd-border)',
-                          borderRadius: 'var(--pd-radius)',
-                          color: 'var(--pd-text)',
-                        }}
-                      >
-                        <Plus className="h-3.5 w-3.5" style={{ color: 'var(--pd-accent)' }} />
-                        {formatDate(shiftCalendarDateUtc(row.weekStart, row.dayOfWeek))} ·{' '}
-                        {getShiftTypeName(row.shiftType)}
-                        {row.hoursStatus === 'REJECTED' ? ' · Rifiutato' : ''}
-                      </button>
-                    ))}
-                  </div>
+                        as="button"
+                        onClick={() => openCreateShiftModal(user, row)}
+                        title={formatUsername(user.username)}
+                        subtitle={`${getRoleName(user.primaryRole)} · ${getShiftTypeName(row.shiftType)}${
+                          rejected ? ' · Rifiutato' : ''
+                        }`}
+                        trailing={
+                          <span
+                            className="inline-flex items-center gap-1 text-xs font-semibold"
+                            style={{ color: rejected ? 'var(--pd-danger)' : 'var(--pd-accent)' }}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            {rejected ? 'Correggi' : 'Ore'}
+                          </span>
+                        }
+                      />
+                    )
+                  })}
                 </div>
               ))}
             </div>

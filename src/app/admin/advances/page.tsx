@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Plus, Edit, Trash2, DollarSign, User, Info, AlertTriangle, RefreshCw, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { getRoleName, cn } from '@/lib/utils'
+import { getRoleName, cn, formatUsername } from '@/lib/utils'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { Modal } from '@/components/ui/modal'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -43,6 +43,7 @@ export default function AdvancesPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletingAdvance, setDeletingAdvance] = useState<Advance | null>(null)
   const [filterUserId, setFilterUserId] = useState<string>('')
+  const [collapsedMonths, setCollapsedMonths] = useState<Record<string, boolean>>({})
 
   // Form state
   const [formUserId, setFormUserId] = useState('')
@@ -62,6 +63,7 @@ export default function AdvancesPage() {
     } else {
       fetchAdvances()
     }
+    setCollapsedMonths({})
   }, [filterUserId])
 
   useEffect(() => {
@@ -239,6 +241,46 @@ export default function AdvancesPage() {
 
   const totalAdvances = filteredAdvances.reduce((sum, a) => sum + a.amount, 0)
 
+  const monthGroups = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; items: Advance[]; total: number }>()
+
+    const sorted = [...filteredAdvances].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime()
+    })
+
+    for (const advance of sorted) {
+      const date = new Date(advance.date)
+      const key = format(date, 'yyyy-MM')
+      const label = format(date, 'MMMM yyyy', { locale: it })
+      const existing = map.get(key)
+      if (existing) {
+        existing.items.push(advance)
+        existing.total += advance.amount
+      } else {
+        map.set(key, {
+          key,
+          label: label.charAt(0).toUpperCase() + label.slice(1),
+          items: [advance],
+          total: advance.amount,
+        })
+      }
+    }
+
+    return Array.from(map.values())
+  }, [filteredAdvances])
+
+  const isMonthCollapsed = (key: string, index: number) => {
+    if (key in collapsedMonths) return collapsedMonths[key]
+    return index > 0
+  }
+
+  const toggleMonth = (key: string, index: number) => {
+    setCollapsedMonths((prev) => {
+      const currentlyCollapsed = key in prev ? prev[key] : index > 0
+      return { ...prev, [key]: !currentlyCollapsed }
+    })
+  }
+
   if (loading) {
     return (
       <MainLayout adminOnly contentWidth="6xl">
@@ -338,37 +380,83 @@ export default function AdvancesPage() {
               icon={<DollarSign className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
             />
           ) : (
-            <div>
-              {filteredAdvances.map((advance) => (
-                <ListRow
-                  key={advance.id}
-                  title={advance.user.username}
-                  subtitle={`${getRoleName(advance.user.primaryRole)} · ${format(new Date(advance.date), 'd MMM yyyy', { locale: it })}${advance.notes ? ` · ${advance.notes}` : ''}`}
-                  meta={`CHF ${advance.amount.toFixed(2)}`}
-                  trailing={
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => openEditForm(advance)}
-                        className="p-2 pd-press"
-                        title="Modifica"
-                        style={{ color: 'var(--pd-muted)', borderRadius: 'var(--pd-radius-sm)' }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openDeleteConfirm(advance)}
-                        className="p-2 pd-press"
-                        title="Elimina"
-                        style={{ color: 'var(--pd-danger)', borderRadius: 'var(--pd-radius-sm)' }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  }
-                />
-              ))}
+            <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
+              {monthGroups.map((group, groupIndex) => {
+                const collapsed = isMonthCollapsed(group.key, groupIndex)
+                return (
+                  <div key={group.key}>
+                    <button
+                      type="button"
+                      onClick={() => toggleMonth(group.key, groupIndex)}
+                      className="pd-card-header w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left pd-press"
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <p className="text-sm font-semibold capitalize" style={{ color: 'var(--pd-text)' }}>
+                          {group.label}
+                        </p>
+                        <span
+                          className="text-[11px] font-medium tabular-nums px-2 py-0.5"
+                          style={{
+                            color: 'var(--pd-muted)',
+                            background: 'var(--pd-surface)',
+                            borderRadius: 'var(--pd-radius-pill)',
+                            border: '1px solid var(--pd-border)',
+                          }}
+                        >
+                          {group.items.length}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        <p className="text-sm font-semibold tabular-nums" style={{ color: 'var(--pd-text)' }}>
+                          CHF {group.total.toFixed(0)}
+                        </p>
+                        <ChevronDown
+                          className={cn(
+                            'h-4 w-4 transition-transform',
+                            !collapsed && 'rotate-180'
+                          )}
+                          style={{ color: 'var(--pd-muted)' }}
+                        />
+                      </div>
+                    </button>
+
+                    {!collapsed && (
+                      <div>
+                        {group.items.map((advance) => (
+                          <ListRow
+                            key={advance.id}
+                            title={formatUsername(advance.user.username)}
+                            subtitle={`${getRoleName(advance.user.primaryRole)} · ${format(new Date(advance.date), 'd MMM yyyy', { locale: it })}${advance.notes ? ` · ${advance.notes}` : ''}`}
+                            meta={`CHF ${advance.amount.toFixed(2)}`}
+                            trailing={
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditForm(advance)}
+                                  className="p-2 pd-press"
+                                  title="Modifica"
+                                  style={{ color: 'var(--pd-muted)', borderRadius: 'var(--pd-radius-sm)' }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openDeleteConfirm(advance)}
+                                  className="p-2 pd-press"
+                                  title="Elimina"
+                                  style={{ color: 'var(--pd-danger)', borderRadius: 'var(--pd-radius-sm)' }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </SectionBlock>

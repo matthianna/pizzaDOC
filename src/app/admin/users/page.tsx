@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useEffect, type ComponentType, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, type ComponentType, type FormEvent } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { PageHeader } from '@/components/layout/page-header'
 import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
 import { EmptyState } from '@/components/ui/list-row'
-import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, Check, Clock, ChevronRight, ShieldCheck, Mail, Star, UserPlus, Trash, RotateCw, ShieldAlert, KeyRound, Copy, Loader2 } from 'lucide-react'
+import { Plus, Edit, Trash2, RotateCcw, Users, X, Bell, Check, Clock, ChevronRight, ChevronDown, ShieldCheck, Mail, Star, UserPlus, Trash, RotateCw, ShieldAlert, KeyRound, Copy, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { it as localeIt } from 'date-fns/locale'
-import { cn, getRoleName, getTransportName } from '@/lib/utils'
+import { cn, getRoleName, getTransportName, formatUsername } from '@/lib/utils'
 import { Role, TransportType } from '@prisma/client'
 import { Select } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,26 @@ import { useHaptics } from '@/hooks/use-haptics'
 import { useToast } from '@/components/ui/toast'
 
 const CLIENT_PRESENCE_STALE_MS = 25 * 60 * 1000
+
+const ROLE_ORDER: Role[] = ['PIZZAIOLO', 'CUCINA', 'SALA', 'FATTORINO', 'ADMIN']
+
+function groupUsersByRole(list: User[]) {
+  const map = new Map<Role, User[]>()
+  for (const user of list) {
+    const role = user.primaryRole
+    const existing = map.get(role)
+    if (existing) existing.push(user)
+    else map.set(role, [user])
+  }
+  for (const [, group] of map) {
+    group.sort((a, b) => a.username.localeCompare(b.username, 'it'))
+  }
+  return ROLE_ORDER.filter((role) => map.has(role)).map((role) => ({
+    role,
+    label: getRoleName(role),
+    users: map.get(role)!,
+  }))
+}
 
 const FLAG_ICON_CLASSES: Record<string, string> = {
   green: 'bg-[var(--pd-success-soft)] text-[var(--pd-success)]',
@@ -149,6 +169,7 @@ export default function UsersPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletingUser, setDeletingUser] = useState<User | null>(null)
   const [resetTarget, setResetTarget] = useState<User | null>(null)
+  const [showInactive, setShowInactive] = useState(false)
   const { lightClick, success: successClick, error: errorClick } = useHaptics()
 
   useEffect(() => {
@@ -240,6 +261,11 @@ export default function UsersPage() {
     }
   }
 
+  const activeUsers = useMemo(() => users.filter((user) => user.isActive), [users])
+  const inactiveUsers = useMemo(() => users.filter((user) => !user.isActive), [users])
+  const activeByRole = useMemo(() => groupUsersByRole(activeUsers), [activeUsers])
+  const inactiveByRole = useMemo(() => groupUsersByRole(inactiveUsers), [inactiveUsers])
+
   if (loading) {
     return (
       <MainLayout adminOnly contentWidth="6xl">
@@ -253,13 +279,17 @@ export default function UsersPage() {
     )
   }
 
-  const activeUsers = users.filter(user => user.isActive)
-  const inactiveUsers = users.filter(user => !user.isActive)
-
   const pushEnabledCount = activeUsers.filter(u => u.pushNotificationsEnabled).length
   const pushSubscribedCount = activeUsers.filter(u => u.push_subscriptions?.length > 0).length
   const pwaLiveCount = activeUsers.filter(u => getClientAppPresence(u).variant === 'pwa').length
   const browserLiveCount = activeUsers.filter(u => getClientAppPresence(u).variant === 'browser').length
+
+  const userActions = (user: User) => ({
+    onEdit: () => setEditingUser(user),
+    onDelete: () => openDeleteConfirm(user),
+    onResetPassword: () => openResetPassword(user),
+    onTogglePush: () => togglePushNotifications(user.id, user.pushNotificationsEnabled),
+  })
 
   return (
     <MainLayout adminOnly contentWidth="6xl">
@@ -298,90 +328,133 @@ export default function UsersPage() {
           </p>
         )}
 
-        {/* Active Users Table */}
+        {/* Active Users — grouped by primary role */}
         <SectionBlock title={`Collaboratori attivi (${activeUsers.length})`} card>
-          {/* Desktop Table View */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ background: 'var(--pd-surface-muted)', borderBottom: '1px solid var(--pd-border)' }}>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Utente</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Abilitazioni</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Trasporti</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Client app</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Notifiche</th>
-                  <th className="px-4 py-3 text-center text-[10px] font-semibold text-[var(--pd-muted)]">Azioni</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--pd-border)]">
-                {activeUsers.map(user => (
-                  <UserRow
-                    key={user.id}
-                    user={user}
-                    onEdit={() => setEditingUser(user)}
-                    onDelete={() => openDeleteConfirm(user)}
-                    onResetPassword={() => openResetPassword(user)}
-                    onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Card View */}
-          <div className="grid grid-cols-1 gap-4 p-6 sm:hidden">
-            {activeUsers.map(user => (
-              <UserMobileCard
-                key={user.id}
-                user={user}
-                onEdit={() => setEditingUser(user)}
-                onDelete={() => openDeleteConfirm(user)}
-                onResetPassword={() => openResetPassword(user)}
-                onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
-              />
-            ))}
-          </div>
-
-          {activeUsers.length === 0 && (
+          {activeUsers.length === 0 ? (
             <EmptyState
               title="Nessun collaboratore attivo"
               icon={<Users className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
             />
+          ) : (
+            <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
+              {activeByRole.map((group) => (
+                <div key={group.role}>
+                  <div className="pd-card-header px-4 py-2.5 flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                      {group.label}
+                    </p>
+                    <span
+                      className="text-[11px] font-medium tabular-nums px-2 py-0.5"
+                      style={{
+                        color: 'var(--pd-muted)',
+                        background: 'var(--pd-surface)',
+                        borderRadius: 'var(--pd-radius-pill)',
+                        border: '1px solid var(--pd-border)',
+                      }}
+                    >
+                      {group.users.length}
+                    </span>
+                  </div>
+
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--pd-border)' }}>
+                          <th className="px-4 py-2 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Utente</th>
+                          <th className="px-4 py-2 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Abilitazioni</th>
+                          <th className="px-4 py-2 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Trasporti</th>
+                          <th className="px-4 py-2 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Client app</th>
+                          <th className="px-4 py-2 text-left text-[10px] font-semibold text-[var(--pd-muted)]">Notifiche</th>
+                          <th className="px-4 py-2 text-center text-[10px] font-semibold text-[var(--pd-muted)]">Azioni</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--pd-border)]">
+                        {group.users.map((user) => (
+                          <UserRow key={user.id} user={user} {...userActions(user)} />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 p-4 sm:hidden">
+                    {group.users.map((user) => (
+                      <UserMobileCard key={user.id} user={user} {...userActions(user)} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </SectionBlock>
 
-        {/* Inactive Users Table */}
+        {/* Inactive Users — collapsible, grouped by role */}
         {inactiveUsers.length > 0 && (
-          <SectionBlock title={`Account disattivati (${inactiveUsers.length})`} card className="opacity-70">
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full">
-                <tbody className="divide-y divide-[var(--pd-border)]">
-                  {inactiveUsers.map(user => (
-                    <UserRow
-                      key={user.id}
-                      user={user}
-                      onEdit={() => setEditingUser(user)}
-                      onDelete={() => openDeleteConfirm(user)}
-                      onResetPassword={() => openResetPassword(user)}
-                      onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="grid grid-cols-1 gap-4 p-6 sm:hidden">
-              {inactiveUsers.map(user => (
-                <UserMobileCard
-                  key={user.id}
-                  user={user}
-                  onEdit={() => setEditingUser(user)}
-                  onDelete={() => openDeleteConfirm(user)}
-                  onResetPassword={() => openResetPassword(user)}
-                  onTogglePush={() => togglePushNotifications(user.id, user.pushNotificationsEnabled)}
-                />
-              ))}
-            </div>
-          </SectionBlock>
+          <section
+            className="overflow-hidden opacity-80"
+            style={{
+              background: 'var(--pd-surface)',
+              border: '1px solid var(--pd-border)',
+              borderRadius: 'var(--pd-radius-lg)',
+              boxShadow: 'var(--pd-shadow)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                lightClick()
+                setShowInactive((v) => !v)
+              }}
+              className="pd-card-header w-full flex items-center justify-between gap-3 px-4 py-3 text-left pd-press"
+            >
+              <div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                  Account disattivati
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
+                  {inactiveUsers.length}{' '}
+                  {inactiveUsers.length === 1 ? 'account' : 'account'}
+                </p>
+              </div>
+              <ChevronDown
+                className={cn('h-4 w-4 transition-transform', showInactive && 'rotate-180')}
+                style={{ color: 'var(--pd-muted)' }}
+              />
+            </button>
+
+            {showInactive && (
+              <div className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
+                {inactiveByRole.map((group) => (
+                  <div key={`inactive-${group.role}`}>
+                    <div
+                      className="px-4 py-2 flex items-center justify-between gap-2"
+                      style={{ background: 'var(--pd-surface-muted)' }}
+                    >
+                      <p className="text-xs font-semibold" style={{ color: 'var(--pd-muted)' }}>
+                        {group.label}
+                      </p>
+                      <span className="text-[11px] tabular-nums" style={{ color: 'var(--pd-muted)' }}>
+                        {group.users.length}
+                      </span>
+                    </div>
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full">
+                        <tbody className="divide-y divide-[var(--pd-border)]">
+                          {group.users.map((user) => (
+                            <UserRow key={user.id} user={user} {...userActions(user)} />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 p-4 sm:hidden">
+                      {group.users.map((user) => (
+                        <UserMobileCard key={user.id} user={user} {...userActions(user)} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         )}
       </div>
 
@@ -452,7 +525,7 @@ function UserRow({ user, onEdit, onDelete, onResetPassword, onTogglePush }: any)
             {user.username.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-semibold text-[var(--pd-text)]">{user.username}</p>
+            <p className="text-sm font-semibold text-[var(--pd-text)]">{formatUsername(user.username)}</p>
             <p className="text-[10px] font-bold text-[var(--pd-muted)]">{getRoleName(user.primaryRole)}</p>
           </div>
         </div>
@@ -528,7 +601,7 @@ function UserMobileCard({ user, onEdit, onDelete, onResetPassword, onTogglePush 
             {user.username.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="text-base font-semibold text-[var(--pd-text)] leading-none">{user.username}</p>
+            <p className="text-base font-semibold text-[var(--pd-text)] leading-none">{formatUsername(user.username)}</p>
             <p className="text-[10px] font-bold text-[var(--pd-muted)]  mt-1.5">{getRoleName(user.primaryRole)}</p>
           </div>
         </div>

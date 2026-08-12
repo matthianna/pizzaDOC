@@ -27,8 +27,6 @@ import { useHaptics } from '@/hooks/use-haptics'
 import { Skeleton } from '@/components/ui/skeleton'
 import { WeatherWidget } from '@/components/weather/weather-widget'
 import { NotificationPermissionPrompt } from '@/components/notifications/notification-permission-prompt'
-import { formatDecimalHoursIt } from '@/lib/format-hours-display'
-import { StatStrip } from '@/components/ui/stat-strip'
 import { SectionBlock } from '@/components/ui/section-block'
 import { QuickActionPills } from '@/components/ui/quick-action-pills'
 import { ListRow, EmptyState } from '@/components/ui/list-row'
@@ -297,26 +295,6 @@ export default function DashboardPage() {
       .join(' · ')}`
   }
 
-  const statItems = isAdminUser
-    ? [
-        { label: 'Utenti attivi', value: stats.activeUsers ?? 0 },
-        { label: 'Turni settimana', value: stats.totalShiftsThisWeek ?? 0 },
-        {
-          label: 'In attesa',
-          value: pendingHours?.totalShifts ?? stats.pendingHours ?? 0,
-          href: '/admin/hours',
-        },
-      ]
-    : [
-        { label: 'Turni settimana', value: stats.myShiftsThisWeek ?? 0 },
-        ...(trackHours
-          ? [
-              { label: 'Ore mese', value: formatDecimalHoursIt(stats.myApprovedHours || 0) },
-              { label: 'Sostituzioni', value: stats.myPendingSubstitutions ?? 0 },
-            ]
-          : [{ label: 'Sostituzioni', value: stats.myPendingSubstitutions ?? 0 }]),
-      ]
-
   const quickActions = [
     ...(!isAdminUser
       ? [{ label: 'Disponibilità', href: '/availability', icon: CalendarDays }]
@@ -399,8 +377,6 @@ export default function DashboardPage() {
             </div>
           )}
         </section>
-
-        <StatStrip items={statItems} />
 
         <SectionBlock title="Azioni rapide">
           <QuickActionPills items={quickActions} />

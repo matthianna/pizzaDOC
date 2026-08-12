@@ -64,19 +64,11 @@ interface CandidateScore {
   reason: string
 }
 
-interface StartTimeDistribution {
-  dayOfWeek: number
-  shiftType: ShiftType
-  role: Role
-  startTime: string
-  targetCount: number
-}
-
 /**
- * Improved max-coverage scheduler (v2).
- * Classic snapshot lives in max-coverage-algorithm-classic.ts.
+ * Frozen snapshot of the original max-coverage scheduler.
+ * Do not change behavior — use MaxCoverageAlgorithmImproved for fixes.
  */
-export class MaxCoverageAlgorithmImproved {
+export class MaxCoverageAlgorithmClassic {
   
   // Orari personalizzati per utenti speciali
   private readonly CUSTOM_START_TIMES: Record<string, { pranzo: string; cena: string }> = {
@@ -84,29 +76,15 @@ export class MaxCoverageAlgorithmImproved {
     'valentino.dipietro': { pranzo: '11:00', cena: '17:00' }
   }
 
-  // Preferenze ruolo fisse (vincolo stretto finché quel ruolo ha ancora bisogno di gente)
-  // Mario è dinamico: vedi getMarioPreferredRole()
-  // Sala: Michele > Giulia (poi gli altri via scoring)
+  // 🎯 PREFERENZE RUOLI SPECIFICHE per coordinamento VIP (solo vincolo stretto)
+  // Valentino è forzato su PIZZAIOLO in fase VIP.
+  // Mario ha sia PIZZAIOLO che CUCINA: NON va vincolato solo a CUCINA — altrimenti con
+  // PIZZAIOLO scoperto resta in cucina e il forno resta vuoto. I requisiti sono già
+  // ordinati con priorità ruolo (PIZZAIOLO > CUCINA), quindi Mario compete per PIZZAIOLO
+  // prima; se il turno è già coperto, può andare in CUCINA (es. con valentino al forno).
   private readonly VIP_ROLE_PREFERENCES: Record<string, Role> = {
-    'valentino.dipietro': 'PIZZAIOLO',
-    'michele.caiazzo': 'SALA',
-    'giulia': 'SALA'
+    'valentino.dipietro': 'PIZZAIOLO'
   }
-
-  /** Ordine preferenza Sala (indice più basso = priorità più alta) */
-  private readonly SALA_PRIORITY: string[] = ['michele.caiazzo', 'giulia']
-
-  private getSalaPriorityRank(username: string): number {
-    const idx = this.SALA_PRIORITY.indexOf(username.toLowerCase())
-    return idx === -1 ? 100 : idx
-  }
-
-  /** userId → primaryTransport (in-memory cache for scooter checks) */
-  private transportByUserId = new Map<string, TransportType | null>()
-  /** Preloaded start-time distributions for the generate run */
-  private startTimeDistributions: StartTimeDistribution[] = []
-  /** Remaining high-priority gaps (for week-level opportunity cost) */
-  private remainingPriorityGaps: ShiftRequirement[] = []
 
   /**
    * Verifica se un utente ha orari personalizzati
@@ -128,26 +106,7 @@ export class MaxCoverageAlgorithmImproved {
    * Verifica se un utente è prioritario
    */
   private isPriorityUser(username: string): boolean {
-    return isPriorityUser(username) || username in this.VIP_ROLE_PREFERENCES || username === 'mario.dipietro'
-  }
-
-  /**
-   * Mario: se in cucina ci sono già 2 → va al forno (PIZZAIOLO).
-   * Se in cucina c'è al massimo 1 (0 o 1) e serve ancora cucina → resta/va in CUCINA.
-   * Se il forno è ancora a 0, la regola min-coverage lo spinge comunque al forno prima.
-   */
-  private getMarioPreferredRole(
-    turnGaps?: Record<Role, { required: number; assigned: number; gap: number }>
-  ): Role {
-    if (!turnGaps) return 'PIZZAIOLO'
-    const cucina = turnGaps.CUCINA
-    if (cucina && cucina.required > 0 && cucina.assigned >= 2) {
-      return 'PIZZAIOLO'
-    }
-    if (cucina && cucina.required > 0 && cucina.assigned <= 1 && cucina.gap > 0) {
-      return 'CUCINA'
-    }
-    return 'PIZZAIOLO'
+    return isPriorityUser(username)
   }
   
   /**
@@ -164,59 +123,38 @@ export class MaxCoverageAlgorithmImproved {
   }
   
   /**
-   * Preload start-time distributions once per generate run
+   * Verifica se si può aggiungere un altro scooter al turno
    */
-  private async preloadStartTimeDistributions(): Promise<void> {
-    const rows = await prisma.shift_start_time_distributions.findMany({
-      where: {
-        isActive: true,
-        targetCount: { gt: 0 }
-      },
-      orderBy: { startTime: 'asc' }
-    })
-    this.startTimeDistributions = rows.map(r => ({
-      dayOfWeek: r.dayOfWeek,
-      shiftType: r.shiftType as ShiftType,
-      role: r.role as Role,
-      startTime: r.startTime,
-      targetCount: r.targetCount
-    }))
-  }
-
-  private buildTransportCache(users: UserProfile[]): void {
-    this.transportByUserId.clear()
-    for (const user of users) {
-      this.transportByUserId.set(user.id, user.primaryTransport)
-    }
-  }
-
-  /**
-   * Verifica se si può aggiungere un altro scooter al turno (in-memory)
-   */
-  private checkScooterLimit(
+  private async checkScooterLimit(
     candidate: UserProfile,
     currentSchedule: ScheduleShift[],
     dayOfWeek: number,
     shiftType: ShiftType,
     maxScooter: number
-  ): boolean {
+  ): Promise<boolean> {
+    // Se non è fattorino o non usa scooter, ok
     if (!candidate.roles.includes('FATTORINO') || candidate.primaryTransport !== 'SCOOTER') {
       return true
     }
-
-    const sameShiftFattorini = currentSchedule.filter(s =>
-      s.dayOfWeek === dayOfWeek &&
+    
+    // Conta scooter già assegnati per questo turno
+    const sameShiftFattorini = currentSchedule.filter(s => 
+      s.dayOfWeek === dayOfWeek && 
       s.shiftType === shiftType &&
       s.role === 'FATTORINO'
     )
-
+    
     let scooterCount = 0
     for (const shift of sameShiftFattorini) {
-      if (this.transportByUserId.get(shift.userId) === 'SCOOTER') {
+      const user = await prisma.user.findUnique({
+        where: { id: shift.userId },
+        select: { primaryTransport: true }
+      })
+      if (user?.primaryTransport === 'SCOOTER') {
         scooterCount++
       }
     }
-
+    
     return scooterCount < maxScooter
   }
 
@@ -230,15 +168,16 @@ export class MaxCoverageAlgorithmImproved {
   }
 
   /**
-   * Ottiene l'orario di inizio ottimale basandosi sulle distribuzioni precaricate
+   * Ottiene l'orario di inizio ottimale basandosi sulle distribuzioni configurate
    */
-  private getOptimalStartTime(
+  private async getOptimalStartTime(
     shiftType: ShiftType, 
     role: Role, 
     dayOfWeek: number,
     assignedStartTimes: Map<string, number>,
     username?: string
-  ): string {
+  ): Promise<string> {
+    // ⭐ PRIORITÀ ASSOLUTA: Orari personalizzati per utenti speciali
     if (username && this.hasCustomStartTime(username)) {
       const customTime = this.getCustomStartTime(username, shiftType)
       if (customTime) {
@@ -246,15 +185,25 @@ export class MaxCoverageAlgorithmImproved {
         return customTime
       }
     }
-
-    const distributions = this.startTimeDistributions.filter(
-      d => d.dayOfWeek === dayOfWeek && d.shiftType === shiftType && d.role === role
-    )
+    // Carica le distribuzioni configurate
+    const distributions = await prisma.shift_start_time_distributions.findMany({
+      where: {
+        dayOfWeek: dayOfWeek,
+        shiftType: shiftType,
+        role: role,
+        isActive: true,
+        targetCount: { gt: 0 } // Solo slot con targetCount > 0
+      },
+      orderBy: {
+        startTime: 'asc'
+      }
+    })
 
     if (distributions.length === 0) {
       return shiftType === 'PRANZO' ? '11:30' : '18:00'
     }
 
+    // Trova lo slot con più spazio disponibile
     let bestSlot = distributions[0].startTime
     let maxSpace = -1
 
@@ -262,13 +211,13 @@ export class MaxCoverageAlgorithmImproved {
       const key = `${dayOfWeek}_${shiftType}_${role}_${dist.startTime}`
       const currentCount = assignedStartTimes.get(key) || 0
       const availableSpace = dist.targetCount - currentCount
-
+      
       if (availableSpace > maxSpace) {
         maxSpace = availableSpace
         bestSlot = dist.startTime
       }
     }
-
+    
     return bestSlot
   }
 
@@ -311,21 +260,23 @@ export class MaxCoverageAlgorithmImproved {
       ADMIN: { demand: 0, supply: 0, scarcityScore: 0 }
     }
 
+    // DEMAND: Quante volte serve questo ruolo nella settimana?
     requirements.forEach(req => {
       analysis[req.role].demand += req.requiredStaff
     })
 
-    // SUPPLY: available person-slots (role holders × available turns), weighted
+    // SUPPLY: Quante persone hanno questo ruolo (pesato)?
     users.forEach(user => {
-      const availableSlots = user.availabilities.filter(a => a.isAvailable).length
-      if (availableSlots === 0) return
-
       user.roles.forEach(role => {
-        const weight = role === user.primaryRole ? 1.0 : 0.7
-        analysis[role].supply += weight * Math.min(1, availableSlots / 4)
+        if (role === user.primaryRole) {
+          analysis[role].supply += 1.0  // Ruolo primario: peso pieno
+        } else {
+          analysis[role].supply += 0.7  // Ruolo secondario: peso ridotto
+        }
       })
     })
 
+    // SCARCITY SCORE: Rapporto domanda/offerta
     Object.keys(analysis).forEach(role => {
       const r = role as Role
       if (analysis[r].supply > 0) {
@@ -342,25 +293,20 @@ export class MaxCoverageAlgorithmImproved {
    * ALGORITMO PRINCIPALE - Genera lo schedule ottimizzato
    */
   async generateMaxCoverageSchedule(weekStart: Date): Promise<ScheduleResult> {
-    console.log('\n🚀 ===== ALGORITMO MIGLIORATO (v2) DI SCHEDULING =====')
+    console.log('\n🚀 ===== NUOVO ALGORITMO INTELLIGENTE DI SCHEDULING =====')
     console.log(`📅 Settimana: ${weekStart.toISOString().split('T')[0]}`)
     
     // 1. Carica tutti i dati necessari
     const users = await this.loadUserProfiles(weekStart)
-    const requirements = await this.loadShiftRequirements(weekStart)
+    const requirements = await this.loadShiftRequirements(weekStart)  // ✅ Passa weekStart per filtrare festivi
+    const existingShifts = await this.loadExistingShifts(weekStart)
     const transportLimits = await this.getTransportLimits()
-    await this.preloadStartTimeDistributions()
-    this.buildTransportCache(users)
-    
-    // Fresh regenerate: never seed from existing DB shifts
-    const existingShifts: ScheduleShift[] = []
     
     console.log(`\n📊 Dati caricati:`)
     console.log(`   👥 Utenti attivi: ${users.length}`)
     console.log(`   📋 Requisiti turni: ${requirements.length}`)
-    console.log(`   🔄 Seed turni esistenti: 0 (fresh regenerate)`)
+    console.log(`   🔄 Turni esistenti: ${existingShifts.length}`)
     console.log(`   🛵 Limite scooter per turno: ${transportLimits.maxScooter}`)
-    console.log(`   ⏰ Distribuzioni orari: ${this.startTimeDistributions.length}`)
     
     // 1.5 Analizza scarsità ruoli (fondamentale per scoring intelligente!)
     const roleScarcity = this.analyzeRoleScarcity(users, requirements)
@@ -389,12 +335,11 @@ export class MaxCoverageAlgorithmImproved {
       }
     }
     
-    // 2. Min-coverage first: 1° posto per ogni ruolo del turno, poi 2° posto, ecc.
-    // (evita di riempire 2 Cucina prima di avere 1 Fattorino / 1 Sala)
-    const sortedRequirements = this.orderRequirementsMinCoverageFirst(
+    // 2. Ordina requisiti e intercala forno/cucina (P,C,P,C) per stesso giorno/turno
+    // Così non si riempiono mai 2 slot PIZZAIOLO prima del primo CUCINA (evita 2+0 con Mario+Valentino).
+    const sortedRequirements = this.interleavePizzaioloCucina(
       this.prioritizeRequirements(requirements)
     )
-    this.remainingPriorityGaps = [...sortedRequirements]
     
     console.log(`\n🎯 Requisiti ordinati per priorità:`)
     sortedRequirements.slice(0, 5).forEach(req => {
@@ -402,17 +347,19 @@ export class MaxCoverageAlgorithmImproved {
     })
     
     // 3. FASE 0: Assegnamento Prioritario per VIP ai RUOLI PIZZAIOLO/CUCINA
+    // Valentino → solo PIZZAIOLO; Mario (PIZZAIOLO+CUCINA) → prima slot PIZZAIOLO poi CUCINA
     console.log(`\n\n🌟 === FASE 0: ASSEGNAMENTO VIP AI RUOLI PIZZAIOLO/CUCINA ===`)
     console.log(`   valentino.dipietro → PIZZAIOLO (vincolato)`)
     console.log(`   mario.dipietro → PIZZAIOLO e/o CUCINA secondo priorità requisiti`)
     
+    // Filtra solo i requisiti per PIZZAIOLO e CUCINA (ruoli preferiti dei VIP)
     const vipPreferredRequirements = sortedRequirements.filter(req => 
       req.role === 'PIZZAIOLO' || req.role === 'CUCINA'
     )
     
     let schedule = await this.intelligentAssignment(
       users, 
-      vipPreferredRequirements,
+      vipPreferredRequirements,  // Solo PIZZAIOLO e CUCINA
       existingShifts, 
       transportLimits,
       'vip',
@@ -423,7 +370,7 @@ export class MaxCoverageAlgorithmImproved {
     console.log(`\n\n🥇 === FASE 1: ASSEGNAMENTO CON RUOLI PRIMARI ===`)
     schedule = await this.intelligentAssignment(
       users, 
-      sortedRequirements,
+      sortedRequirements,  // Tutti i requisiti
       schedule, 
       transportLimits,
       'primary',
@@ -433,13 +380,14 @@ export class MaxCoverageAlgorithmImproved {
     // 4.5 FASE 1.5: Focus su Ruoli Critici con Ruoli Secondari
     let gaps = this.findGaps(schedule, requirements)
     if (gaps.length > 0) {
+      // Filtra solo i gap per ruoli CRITICI (scarsità > 1.5)
       const criticalGaps = gaps.filter(gap => roleScarcity[gap.role].scarcityScore > 1.5)
       
       if (criticalGaps.length > 0) {
         console.log(`\n\n🔴 === FASE 1.5: FOCUS SU RUOLI CRITICI (ruoli secondari) ===`)
         console.log(`   Ruoli critici da coprire: ${criticalGaps.map(g => g.role).join(', ')}`)
         
-        const criticalRequirements = this.orderRequirementsMinCoverageFirst(
+        const criticalRequirements = this.interleavePizzaioloCucina(
           this.gapsToRequirements(criticalGaps, requirements)
         )
         schedule = await this.intelligentAssignment(
@@ -459,7 +407,7 @@ export class MaxCoverageAlgorithmImproved {
       console.log(`\n\n🥈 === FASE 2: COMPLETAMENTO CON RUOLI SECONDARI ===`)
       console.log(`   Gap rimanenti da colmare: ${gaps.length}`)
       
-      const gapRequirements = this.orderRequirementsMinCoverageFirst(
+      const gapRequirements = this.interleavePizzaioloCucina(
         this.gapsToRequirements(gaps, requirements)
       )
       schedule = await this.intelligentAssignment(
@@ -478,7 +426,7 @@ export class MaxCoverageAlgorithmImproved {
       console.log(`\n\n🔥 === FASE 3: RILASSAMENTO VINCOLI RIPOSO ===`)
       console.log(`   Gap critici rimanenti: ${gaps.length}`)
       
-      const gapRequirements = this.orderRequirementsMinCoverageFirst(
+      const gapRequirements = this.interleavePizzaioloCucina(
         this.gapsToRequirements(gaps, requirements)
       )
       schedule = await this.intelligentAssignment(
@@ -491,27 +439,14 @@ export class MaxCoverageAlgorithmImproved {
       )
     }
 
-    // 7. FASE POST-OTTIMIZZAZIONE
+    // 7. FASE POST-OTTIMIZZAZIONE: Rifinimento intelligente del piano
     console.log(`\n\n🔧 === FASE POST-OTTIMIZZAZIONE ===`)
     console.log(`   Analisi turno per turno per possibili miglioramenti...`)
-    const assignedStartTimes = new Map<string, number>()
-    schedule.forEach(shift => {
-      const key = `${shift.dayOfWeek}_${shift.shiftType}_${shift.role}_${shift.startTime}`
-      assignedStartTimes.set(key, (assignedStartTimes.get(key) || 0) + 1)
-    })
-    schedule = await this.refineSchedule(schedule, requirements, users, transportLimits, assignedStartTimes)
-
-    // 7.4 Mario dinamico: se cucina è già a ≥2 e il forno ha ancora gap → Mario va PIZZAIOLO
-    console.log(`\n\n👨‍🍳 === APPLICA REGOLA MARIO (cucina≥2 → forno) ===`)
-    schedule = this.applyMarioRolePreference(schedule, requirements, users)
+    schedule = await this.refineSchedule(schedule, requirements, users, transportLimits)
     
-    // 7.5 OTTIMIZZAZIONE COORDINAMENTO VIP
+    // 7.5 OTTIMIZZAZIONE COORDINAMENTO VIP (valentino & mario)
     console.log(`\n\n🎯 === OTTIMIZZAZIONE COORDINAMENTO VIP ===`)
-    schedule = this.optimizeVIPCoordination(schedule, requirements, users)
-
-    // 7.6 Bilancio carico FATTORINI: sostituisci chi lavora troppo con colleghi più scarichi
-    console.log(`\n\n🛵 === BILANCIO CARICO FATTORINI ===`)
-    schedule = this.rebalanceFattoriniWorkload(schedule, users, transportLimits, assignedStartTimes)
+    schedule = this.optimizeVIPCoordination(schedule, users)
     
     // 8. Calcola statistiche finali
     const statistics = this.calculateStatistics(schedule, requirements, users)
@@ -523,6 +458,7 @@ export class MaxCoverageAlgorithmImproved {
     console.log(`📈 Copertura: ${(statistics.quality.coverageScore * 100).toFixed(1)}%`)
     console.log(`⚠️  Gap rimanenti: ${finalGaps.length}`)
     
+    // Distribuzione carico di lavoro
     const workloadValues = Object.values(statistics.userWorkload)
     if (workloadValues.length > 0) {
       const avgWorkload = workloadValues.reduce((a, b) => a + b, 0) / workloadValues.length
@@ -534,6 +470,7 @@ export class MaxCoverageAlgorithmImproved {
       console.log(`   Max: ${maxWorkload} turni`)
     }
     
+    // Gap dettagliati
     if (finalGaps.length > 0) {
       console.log(`\n⚠️  Gap non risolti:`)
       finalGaps.slice(0, 10).forEach(gap => {
@@ -550,254 +487,107 @@ export class MaxCoverageAlgorithmImproved {
   }
 
   /**
-   * Applica la regola dinamica di Mario a fine generazione:
-   * se è in CUCINA e lì ci sono già ≥2 mentre il forno ha ancora gap → spostalo in PIZZAIOLO.
-   * (Non fa il percorso inverso: altrimenti oscillerebbe C↔P.)
-   */
-  private applyMarioRolePreference(
-    schedule: ScheduleShift[],
-    requirements: ShiftRequirement[],
-    users: UserProfile[]
-  ): ScheduleShift[] {
-    const mario = users.find(u => u.username === 'mario.dipietro')
-    if (!mario || !mario.roles.includes('PIZZAIOLO')) return schedule
-
-    const turnKeys = new Set<string>()
-    schedule.forEach(s => turnKeys.add(`${s.dayOfWeek}_${s.shiftType}`))
-
-    let moves = 0
-    for (const turnKey of Array.from(turnKeys)) {
-      const [dayOfWeek, shiftType] = turnKey.split('_')
-      const day = parseInt(dayOfWeek)
-      const shift = shiftType as ShiftType
-
-      const marioIdx = schedule.findIndex(
-        s => s.userId === mario.id && s.dayOfWeek === day && s.shiftType === shift
-      )
-      if (marioIdx === -1) continue
-      if (schedule[marioIdx].role !== 'CUCINA') continue
-
-      const gaps = this.calculateTurnGaps(schedule, requirements, day, shift)
-      if (gaps.CUCINA.assigned < 2) continue
-      if (gaps.PIZZAIOLO.gap <= 0) continue
-
-      console.log(
-        `   🔄 Mario ${this.getDayName(day)} ${shift}: CUCINA → PIZZAIOLO (cucina ${gaps.CUCINA.assigned}/${gaps.CUCINA.required}, forno ${gaps.PIZZAIOLO.assigned}/${gaps.PIZZAIOLO.required})`
-      )
-      schedule[marioIdx].role = 'PIZZAIOLO'
-      moves++
-    }
-
-    if (moves === 0) {
-      console.log(`   ℹ️  Nessuno spostamento Mario necessario`)
-    } else {
-      console.log(`   ✅ Mario riallineato su ${moves} turni`)
-    }
-    return schedule
-  }
-
-  /**
-   * Ribilancia i turni FATTORINO: se qualcuno ha molti più turni di un collega
-   * libero sullo stesso turno, sostituiscilo (senza abbassare la copertura).
-   */
-  private rebalanceFattoriniWorkload(
-    schedule: ScheduleShift[],
-    users: UserProfile[],
-    transportLimits: { maxScooter: number },
-    assignedStartTimes: Map<string, number>
-  ): ScheduleShift[] {
-    const fatCount = (userId: string) =>
-      schedule.filter(s => s.userId === userId && s.role === 'FATTORINO').length
-
-    let swaps = 0
-    let guard = 0
-    const maxSwaps = 80
-
-    while (guard++ < maxSwaps) {
-      const fatShifts = schedule
-        .map((s, index) => ({ s, index }))
-        .filter(({ s }) => s.role === 'FATTORINO')
-        .sort((a, b) => fatCount(b.s.userId) - fatCount(a.s.userId))
-
-      let swapped = false
-
-      for (const { s: heavyShift, index: heavyIdx } of fatShifts) {
-        const heavyUser = users.find(u => u.id === heavyShift.userId)
-        if (!heavyUser) continue
-        const heavyLoad = fatCount(heavyUser.id)
-        if (heavyLoad <= 1) continue
-
-        const day = heavyShift.dayOfWeek
-        const shift = heavyShift.shiftType
-        const assignedIds = new Set(
-          schedule
-            .filter(x => x.dayOfWeek === day && x.shiftType === shift)
-            .map(x => x.userId)
-        )
-
-        const lighter = users
-          .filter(u => {
-            if (!u.roles.includes('FATTORINO')) return false
-            if (assignedIds.has(u.id)) return false
-            const av = u.availabilities.find(
-              a => a.dayOfWeek === day && a.shiftType === shift
-            )
-            if (!av?.isAvailable) return false
-            // Solo se il carico è chiaramente inferiore (almeno 2 turni in meno)
-            return fatCount(u.id) <= heavyLoad - 2
-          })
-          .sort((a, b) => fatCount(a.id) - fatCount(b.id) || a.username.localeCompare(b.username))
-
-        for (const lightUser of lighter) {
-          // Scooter check for the replacement
-          if (lightUser.primaryTransport === 'SCOOTER') {
-            const withoutHeavy = schedule.filter((_, i) => i !== heavyIdx)
-            const canAdd = this.checkScooterLimit(
-              lightUser,
-              withoutHeavy,
-              day,
-              shift,
-              transportLimits.maxScooter
-            )
-            if (!canAdd && !lightUser.transports.some(t => t !== 'SCOOTER')) {
-              continue
-            }
-          }
-
-          console.log(
-            `   🔄 ${heavyUser.username} (fat=${heavyLoad}) ←sostituito da← ${lightUser.username} (fat=${fatCount(lightUser.id)}) su ${this.getDayName(day)} ${shift}`
-          )
-
-          // Decremen old start-time key, assign new person keeping similar start if possible
-          const oldKey = `${day}_${shift}_FATTORINO_${heavyShift.startTime}`
-          assignedStartTimes.set(oldKey, Math.max(0, (assignedStartTimes.get(oldKey) || 1) - 1))
-
-          const startTime = this.getOptimalStartTime(
-            shift,
-            'FATTORINO',
-            day,
-            assignedStartTimes,
-            lightUser.username
-          )
-          schedule[heavyIdx] = {
-            ...heavyShift,
-            userId: lightUser.id,
-            startTime,
-            endTime: heavyShift.endTime
-          }
-          const newKey = `${day}_${shift}_FATTORINO_${startTime}`
-          assignedStartTimes.set(newKey, (assignedStartTimes.get(newKey) || 0) + 1)
-
-          swaps++
-          swapped = true
-          break
-        }
-        if (swapped) break
-      }
-
-      if (!swapped) break
-    }
-
-    if (swaps === 0) {
-      console.log(`   ℹ️  Carico fattorini già bilanciato`)
-    } else {
-      console.log(`   ✅ ${swaps} sostituzioni per bilanciare i fattorini`)
-    }
-    return schedule
-  }
-
-  /**
-   * Ottimizza il coordinamento tra valentino e mario.
-   * Valentino resta sempre sul forno quando possibile.
-   * Mario segue getMarioPreferredRole (non è sempre CUCINA).
+   * Ottimizza il coordinamento tra valentino e mario
+   * Quando entrambi sono nel turno in ruoli incrociati (valentino=CUCINA, mario=PIZZAIOLO),
+   * esegue lo swap verso valentino→PIZZAIOLO e mario→CUCINA se i ruoli lo consentono.
    */
   private optimizeVIPCoordination(
     schedule: ScheduleShift[],
-    requirements: ShiftRequirement[],
     users: UserProfile[]
   ): ScheduleShift[] {
     let swapsCount = 0
 
+    // Raggruppa turni per (dayOfWeek, shiftType)
     const turnKeys = new Set<string>()
     schedule.forEach(shift => {
       turnKeys.add(`${shift.dayOfWeek}_${shift.shiftType}`)
     })
 
+    // Per ogni turno, verifica se ci sono sia valentino che mario
     for (const turnKey of Array.from(turnKeys)) {
       const [dayOfWeek, shiftType] = turnKey.split('_')
       const day = parseInt(dayOfWeek)
       const shift = shiftType as ShiftType
 
+      const turnShifts = schedule.filter(s => s.dayOfWeek === day && s.shiftType === shift)
+
+      // Trova valentino e mario in questo turno
       let valentinoShift: ScheduleShift | undefined
       let marioShift: ScheduleShift | undefined
 
-      for (const s of schedule.filter(x => x.dayOfWeek === day && x.shiftType === shift)) {
+      for (const s of turnShifts) {
         const userProfile = users.find(u => u.id === s.userId)
-        if (userProfile?.username === 'valentino.dipietro') valentinoShift = s
-        else if (userProfile?.username === 'mario.dipietro') marioShift = s
+        if (userProfile?.username === 'valentino.dipietro') {
+          valentinoShift = s
+        } else if (userProfile?.username === 'mario.dipietro') {
+          marioShift = s
+        }
       }
 
-      if (!valentinoShift || !marioShift) continue
+      // Se entrambi sono presenti, verifica la configurazione
+      if (valentinoShift && marioShift) {
+        const valentinoUser = users.find(u => u.id === valentinoShift!.userId)!
+        const marioUser = users.find(u => u.id === marioShift!.userId)!
 
-      const valentinoUser = users.find(u => u.id === valentinoShift!.userId)!
-      const marioUser = users.find(u => u.id === marioShift!.userId)!
-      const gaps = this.calculateTurnGaps(schedule, requirements, day, shift)
-      const marioPref = this.getMarioPreferredRole(gaps)
+        console.log(`   🔍 ${this.getDayName(day)} ${shift}:`)
+        console.log(`      valentino: ${valentinoShift.role}, mario: ${marioShift.role}`)
 
-      console.log(`   🔍 ${this.getDayName(day)} ${shift}:`)
-      console.log(
-        `      valentino: ${valentinoShift.role}, mario: ${marioShift.role} (mario preferisce ${marioPref})`
-      )
+        // Configurazione attuale
+        const valentinoRole = valentinoShift.role
+        const marioRole = marioShift.role
 
-      const valentinoRole = valentinoShift.role
-      const marioRole = marioShift.role
+        // Configurazione OTTIMALE: valentino=PIZZAIOLO, mario=CUCINA
+        const isOptimal = valentinoRole === 'PIZZAIOLO' && marioRole === 'CUCINA'
+        
+        // Configurazione SWAPPABLE: valentino=CUCINA, mario=PIZZAIOLO
+        const isSwappable = valentinoRole === 'CUCINA' && marioRole === 'PIZZAIOLO'
 
-      // Valentino in cucina + Mario al forno → swap classico
-      if (valentinoRole === 'CUCINA' && marioRole === 'PIZZAIOLO') {
-        if (
-          valentinoUser.roles.includes('PIZZAIOLO') &&
-          marioUser.roles.includes('CUCINA')
-        ) {
-          console.log(
-            `      🔄 SWAP: valentino ${valentinoRole}→PIZZAIOLO, mario ${marioRole}→CUCINA`
-          )
-          const valentinoIndex = schedule.findIndex(
-            s =>
+        if (isOptimal) {
+          console.log(`      ✅ Configurazione già ottimale!`)
+        } else if (isSwappable) {
+          // Verifica se entrambi possono fare il ruolo dell'altro
+          const valentinoCanBePizzaiolo = valentinoUser.roles.includes('PIZZAIOLO')
+          const marioCanBeCucina = marioUser.roles.includes('CUCINA')
+
+          if (valentinoCanBePizzaiolo && marioCanBeCucina) {
+            // SWAP!
+            console.log(`      🔄 SWAP: valentino ${valentinoRole}→PIZZAIOLO, mario ${marioRole}→CUCINA`)
+            
+            // Trova gli indici nello schedule originale
+            const valentinoIndex = schedule.findIndex(s => 
               s.userId === valentinoShift!.userId &&
               s.dayOfWeek === day &&
               s.shiftType === shift &&
               s.role === valentinoRole
-          )
-          const marioIndex = schedule.findIndex(
-            s =>
+            )
+            
+            const marioIndex = schedule.findIndex(s => 
               s.userId === marioShift!.userId &&
               s.dayOfWeek === day &&
               s.shiftType === shift &&
               s.role === marioRole
-          )
-          if (valentinoIndex !== -1 && marioIndex !== -1) {
-            schedule[valentinoIndex].role = 'PIZZAIOLO'
-            schedule[marioIndex].role = 'CUCINA'
-            swapsCount++
-            console.log(`      ✅ Swap completato!`)
+            )
+
+            if (valentinoIndex !== -1 && marioIndex !== -1) {
+              schedule[valentinoIndex].role = 'PIZZAIOLO'
+              schedule[marioIndex].role = 'CUCINA'
+              swapsCount++
+              console.log(`      ✅ Swap completato!`)
+            }
+          } else {
+            console.log(`      ⚠️  Swap non possibile: ruoli mancanti`)
           }
         } else {
-          console.log(`      ⚠️  Swap non possibile: ruoli mancanti`)
+          // Altra configurazione (es: valentino=SALA, mario=FATTORINO)
+          console.log(`      ℹ️  Configurazione diversa, nessuna azione`)
         }
-        continue
-      }
-
-      if (valentinoRole === 'PIZZAIOLO' && marioRole === marioPref) {
-        console.log(`      ✅ Configurazione già ottimale!`)
-      } else {
-        console.log(`      ℹ️  Nessuno swap Valentino↔Mario applicabile`)
       }
     }
 
     if (swapsCount > 0) {
       console.log(`\n   ✅ Coordinamento VIP ottimizzato: ${swapsCount} swap effettuati`)
     } else {
-      console.log(`\n   ℹ️  Nessuno swap Valentino↔Mario necessario`)
+      console.log(`\n   ℹ️  Nessuno swap necessario, coordinamento già ottimale`)
     }
 
     return schedule
@@ -807,43 +597,44 @@ export class MaxCoverageAlgorithmImproved {
    * Post-ottimizzazione: Rifinisce il piano turno per turno
    * Cerca opportunità per spostare persone tra ruoli per migliorare la copertura
    */
-  private refineSchedule(
+  private async refineSchedule(
     initialSchedule: ScheduleShift[],
     requirements: ShiftRequirement[],
     users: UserProfile[],
-    transportLimits: { maxScooter: number },
-    assignedStartTimes: Map<string, number>
-  ): ScheduleShift[] {
+    transportLimits: { maxScooter: number }
+  ): Promise<ScheduleShift[]> {
     let schedule = [...initialSchedule]
     let improvementsMade = 0
-
+    
+    // Raggruppa turni per (dayOfWeek, shiftType)
     const turns = new Set<string>()
     schedule.forEach(shift => {
       turns.add(`${shift.dayOfWeek}_${shift.shiftType}`)
     })
-    requirements.forEach(req => {
-      turns.add(`${req.dayOfWeek}_${req.shiftType}`)
-    })
-
+    
+    // Per ogni turno, cerca miglioramenti
     for (const turnKey of Array.from(turns)) {
       const [dayOfWeek, shiftType] = turnKey.split('_')
       const day = parseInt(dayOfWeek)
       const shift = shiftType as ShiftType
-
+      
       console.log(`\n   🔍 ${this.getDayName(day)} ${shift}:`)
+      
+      // Calcola stato attuale del turno
+      const turnGaps = this.calculateTurnGaps(schedule, requirements, day, shift)
+      const turnShifts = schedule.filter(s => s.dayOfWeek === day && s.shiftType === shift)
 
-      let turnGaps = this.calculateTurnGaps(schedule, requirements, day, shift)
-      let turnShifts = schedule.filter(s => s.dayOfWeek === day && s.shiftType === shift)
-
+      // DEBUG: Mostra tutti i gap
       const gapDebug = Object.entries(turnGaps)
         .filter(([_, info]) => info.required > 0)
         .map(([role, info]) => `${role}:${info.assigned}/${info.required}`)
         .join(', ')
       console.log(`      📊 Gap turno: ${gapDebug || 'nessuno'}`)
-
-      let overStaffed: Role[] = []
-      let underStaffed: Role[] = []
-
+      
+      // Identifica ruoli con problemi
+      const overStaffed: Role[] = []
+      const underStaffed: Role[] = []
+      
       Object.entries(turnGaps).forEach(([role, info]) => {
         if (info.required > 0) {
           if (info.assigned > info.required) {
@@ -855,262 +646,187 @@ export class MaxCoverageAlgorithmImproved {
           }
         }
       })
-
+      
       if (overStaffed.length === 0 && underStaffed.length === 0) {
         console.log(`      ✅ Turno già ottimale`)
         continue
       }
-
-      // STRATEGIA 0: Fill roles that still have ZERO people (min coverage).
-      // May move from a HIGHER-priority role (e.g. FATTORINO → empty SALA) if that
-      // role keeps at least 1 person. Do NOT move into a role that already has ≥1
-      // just because it has a residual gap (that is seat 2+).
-      underStaffed.sort(
-        (a, b) => this.getRolePriority(b) - this.getRolePriority(a)
-      )
-      for (const toRole of [...underStaffed]) {
-        turnGaps = this.calculateTurnGaps(schedule, requirements, day, shift)
-        if (turnGaps[toRole].gap <= 0) continue
-        if (turnGaps[toRole].assigned > 0) continue // already has min coverage
-
-        turnShifts = schedule.filter(s => s.dayOfWeek === day && s.shiftType === shift)
-        const movable = turnShifts
-          .map(s => ({ shift: s, user: users.find(u => u.id === s.userId) }))
-          .filter(({ shift: s, user }) => {
-            if (!user) return false
-            if (!user.roles.includes(toRole)) return false
-            if (s.role === toRole) return false
-            // Never move Michele off SALA / Valentino off PIZZAIOLO / Giulia off SALA
-            const fixedPref = this.VIP_ROLE_PREFERENCES[user.username]
-            if (fixedPref && s.role === fixedPref) return false
-            // Mario: only move toward his dynamic preferred role
-            if (user.username === 'mario.dipietro') {
-              const marioPref = this.getMarioPreferredRole(turnGaps)
-              if (toRole !== marioPref) return false
-            }
-            // Don't strip a role down to zero if it still requires staff
-            const fromInfo = turnGaps[s.role]
-            if (fromInfo && fromInfo.required > 0 && fromInfo.assigned <= 1) return false
-            return true
-          })
-          // Prefer taking surplus from roles that already have the most people
-          .sort(
-            (a, b) =>
-              (turnGaps[b.shift.role]?.assigned ?? 0) - (turnGaps[a.shift.role]?.assigned ?? 0)
-          )
-
-        for (const { shift: shiftToMove, user: userProfile } of movable) {
-          turnGaps = this.calculateTurnGaps(schedule, requirements, day, shift)
-          if (turnGaps[toRole].gap <= 0 || turnGaps[toRole].assigned > 0) break
-          if (!userProfile) continue
-
-          let canSwap = true
-          if (toRole === 'FATTORINO' && userProfile.primaryTransport === 'SCOOTER') {
-            const scheduleWithoutCurrent = schedule.filter(s =>
-              !(s.userId === shiftToMove.userId && s.dayOfWeek === day && s.shiftType === shift)
-            )
-            canSwap = this.checkScooterLimit(
-              userProfile,
-              scheduleWithoutCurrent,
-              day,
-              shift,
-              transportLimits.maxScooter
-            )
-            if (!canSwap && userProfile.transports.some(t => t !== 'SCOOTER')) {
-              canSwap = true
-            }
-          }
-          if (!canSwap) continue
-
-          const fromInfo = turnGaps[shiftToMove.role]
-          if (fromInfo && fromInfo.required > 0 && fromInfo.assigned <= 1) continue
-
-          const shiftIndex = schedule.findIndex(s =>
-            s.userId === shiftToMove.userId &&
-            s.dayOfWeek === day &&
-            s.shiftType === shift &&
-            s.role === shiftToMove.role
-          )
-          if (shiftIndex === -1) continue
-
-          const oldRole = schedule[shiftIndex].role
-          schedule[shiftIndex].role = toRole
-          console.log(`      ⬆️ MIN-COVER: ${userProfile.username} ${oldRole} → ${toRole} (ruolo era vuoto)`)
-          improvementsMade++
-        }
-      }
-
-      // Recompute staffing after priority moves
-      turnGaps = this.calculateTurnGaps(schedule, requirements, day, shift)
-      turnShifts = schedule.filter(s => s.dayOfWeek === day && s.shiftType === shift)
-      overStaffed = []
-      underStaffed = []
-      Object.entries(turnGaps).forEach(([role, info]) => {
-        if (info.required > 0) {
-          if (info.assigned > info.required) overStaffed.push(role as Role)
-          else if (info.assigned < info.required) underStaffed.push(role as Role)
-        }
-      })
-
+      
+      // STRATEGIA 1: Swap da ruoli sovra-coperti a sotto-coperti
       for (const fromRole of overStaffed) {
-        for (const toRole of [...underStaffed]) {
+        for (const toRole of underStaffed) {
+          // Trova persone nel ruolo sovra-coperto che possono fare il ruolo sotto-coperto
           const shiftsInOverStaffed = turnShifts.filter(s => s.role === fromRole)
-
+          
           for (const shiftToMove of shiftsInOverStaffed) {
             const userProfile = users.find(u => u.id === shiftToMove.userId)
             if (!userProfile) continue
+            
+            // Verifica se l'utente ha il ruolo necessario
             if (!userProfile.roles.includes(toRole)) continue
-
+            
+            // Verifica se è disponibile (dovrebbe già esserlo, ma controlliamo)
             const availability = userProfile.availabilities.find(av =>
               av.dayOfWeek === day && av.shiftType === shift
             )
             if (!availability?.isAvailable) continue
-
+            
+            // Verifica limite scooter se cambio comporta fattorini
             let canSwap = true
             if (toRole === 'FATTORINO' && userProfile.primaryTransport === 'SCOOTER') {
-              const scheduleWithoutCurrent = schedule.filter(s =>
+              // Esclude temporaneamente questo turno per il check
+              const scheduleWithoutCurrent = schedule.filter(s => 
                 !(s.userId === shiftToMove.userId && s.dayOfWeek === day && s.shiftType === shift)
               )
-              canSwap = this.checkScooterLimit(
+              canSwap = await this.checkScooterLimit(
                 userProfile,
                 scheduleWithoutCurrent,
                 day,
                 shift,
                 transportLimits.maxScooter
               )
-
+              
               if (!canSwap) {
+                // Controlla se ha mezzi alternativi (AUTO)
                 const hasAlternativeTransport = userProfile.transports.some(t => t !== 'SCOOTER')
+                
                 if (hasAlternativeTransport) {
-                  canSwap = true
+                  canSwap = true // Può fare lo swap usando AUTO
                   console.log(`      🚗 ${userProfile.username}: usa AUTO per swap (limite scooter raggiunto)`)
-                }
+      }
               }
             }
-
+            
             if (!canSwap) {
               console.log(`      ⛔ ${userProfile.username}: limite scooter raggiunto, no alternative`)
               continue
             }
-
-            const fromGap = this.calculateTurnGaps(schedule, requirements, day, shift)[fromRole]
-            if (fromGap.assigned <= fromGap.required) continue
-
-            const shiftIndex = schedule.findIndex(s =>
-              s.userId === shiftToMove.userId &&
-              s.dayOfWeek === day &&
+            
+            // SWAP! Trova l'indice nello schedule e modifica il ruolo
+            const shiftIndex = schedule.findIndex(s => 
+              s.userId === shiftToMove.userId && 
+              s.dayOfWeek === day && 
               s.shiftType === shift &&
               s.role === fromRole
             )
-
+            
             if (shiftIndex !== -1) {
               const oldRole = schedule[shiftIndex].role
               schedule[shiftIndex].role = toRole
+              
               console.log(`      🔄 SWAP: ${userProfile.username} ${oldRole} → ${toRole}`)
               improvementsMade++
-
-              turnGaps = this.calculateTurnGaps(schedule, requirements, day, shift)
-              turnShifts = schedule.filter(s => s.dayOfWeek === day && s.shiftType === shift)
-              if (turnGaps[toRole].assigned >= turnGaps[toRole].required) {
+              
+              // Ricalcola gaps e esci dal loop interno se il ruolo è ora coperto
+              const newTurnGaps = this.calculateTurnGaps(schedule, requirements, day, shift)
+              if (newTurnGaps[toRole].assigned >= newTurnGaps[toRole].required) {
                 break
               }
             }
           }
         }
       }
-
-      turnGaps = this.calculateTurnGaps(schedule, requirements, day, shift)
-      underStaffed = []
-      Object.entries(turnGaps).forEach(([role, info]) => {
-        if (info.required > 0 && info.assigned < info.required) {
-          underStaffed.push(role as Role)
-        }
-      })
-
+      
+      // STRATEGIA 2: Tentativo di aggiungere persone ai ruoli sotto-coperti
+      // Cerca persone disponibili che non sono state assegnate a questo turno
       if (underStaffed.length > 0) {
         console.log(`\n      🔎 Tentativo di aggiungere persone ai ruoli mancanti...`)
-
+        
         for (const toRole of underStaffed) {
-          turnGaps = this.calculateTurnGaps(schedule, requirements, day, shift)
           const currentGap = turnGaps[toRole].gap
-          if (currentGap <= 0) continue
-
-          const assignedUserIds = new Set(
-            schedule.filter(s => s.dayOfWeek === day && s.shiftType === shift).map(s => s.userId)
-          )
-
+          if (currentGap === 0) continue // Già coperto da STRATEGIA 1
+          
+          // Trova utenti che:
+          // 1. Hanno il ruolo necessario
+          // 2. Sono disponibili per questo turno
+          // 3. Non sono ancora assegnati a questo turno
+          // 4. Rispettano i vincoli (scooter, riposo, ecc.)
+          
+          const assignedUserIds = turnShifts.map(s => s.userId)
           const availableUsers = users.filter(u => {
+            // Ha il ruolo?
             if (!u.roles.includes(toRole)) return false
+            
+            // È disponibile?
             const availability = u.availabilities.find(av =>
               av.dayOfWeek === day && av.shiftType === shift
             )
             if (!availability?.isAvailable) return false
-            if (assignedUserIds.has(u.id)) return false
+            
+            // Non è già assegnato a questo turno?
+            if (assignedUserIds.includes(u.id)) return false
+            
             return true
           })
-
+          
+          // Ordina per carico di lavoro (chi ha meno turni)
           const sortedUsers = availableUsers.sort((a, b) => {
-            if (toRole === 'FATTORINO') {
-              const aFat = schedule.filter(s => s.userId === a.id && s.role === 'FATTORINO').length
-              const bFat = schedule.filter(s => s.userId === b.id && s.role === 'FATTORINO').length
-              if (aFat !== bFat) return aFat - bFat
-            }
             const aShifts = schedule.filter(s => s.userId === a.id).length
             const bShifts = schedule.filter(s => s.userId === b.id).length
             return aShifts - bShifts
           })
-
+          
+          // Prova ad aggiungere le persone necessarie
           let added = 0
           for (const user of sortedUsers) {
             if (added >= currentGap) break
-
+            
+            // Verifica vincolo scooter se necessario
             if (toRole === 'FATTORINO' && user.primaryTransport === 'SCOOTER') {
-              const canAdd = this.checkScooterLimit(
+              const canAdd = await this.checkScooterLimit(
                 user,
                 schedule,
                 day,
                 shift,
                 transportLimits.maxScooter
               )
-
+              
               if (!canAdd) {
+                // Controlla se ha mezzi alternativi (AUTO)
                 const hasAlternativeTransport = user.transports.some(t => t !== 'SCOOTER')
+                
                 if (!hasAlternativeTransport) {
                   console.log(`         ⛔ ${user.username}: limite scooter raggiunto, no alternative`)
                   continue
                 }
+                // Ha alternative, può essere assegnato con AUTO
                 console.log(`         🚗 ${user.username}: usa AUTO (limite scooter raggiunto)`)
               }
             }
-
-            const startTime = this.getOptimalStartTime(
+            
+            // Verifica vincolo riposo (solo in modalità strict, qui lo saltiamo in post-ottimizzazione)
+            // L'obiettivo è massimizzare la copertura
+            
+            // Ottieni orario ottimale
+            const startTime = await this.getOptimalStartTime(
               shift,
               toRole,
               day,
-              assignedStartTimes,
+              new Map(), // Non serve per la post-ottimizzazione
               user.username
             )
-
+            
+            // Aggiungi il turno!
             const newShift: ScheduleShift = {
               userId: user.id,
               dayOfWeek: day,
               shiftType: shift,
               role: toRole,
               startTime,
-              endTime: shift === 'PRANZO' ? '14:00' : '22:00',
-              priority: 100,
-              score: 100
+              endTime: shift === 'PRANZO' ? '14:00' : '22:00', // Default
+              priority: 100, // Post-ottimizzazione priority
+              score: 100 // Post-ottimizzazione score
             }
-
+            
             schedule.push(newShift)
-            assignedUserIds.add(user.id)
-            const key = `${day}_${shift}_${toRole}_${startTime}`
-            assignedStartTimes.set(key, (assignedStartTimes.get(key) || 0) + 1)
+            turnShifts.push(newShift)
+            assignedUserIds.push(user.id)
             improvementsMade++
             added++
+            
             console.log(`      ➕ AGGIUNTO: ${user.username} → ${toRole}`)
           }
-
+          
           if (added > 0) {
             console.log(`         ✅ Aggiunti ${added}/${currentGap} per ${toRole}`)
           } else if (currentGap > 0) {
@@ -1119,13 +835,13 @@ export class MaxCoverageAlgorithmImproved {
         }
       }
     }
-
+    
     if (improvementsMade > 0) {
       console.log(`\n   ✅ Post-ottimizzazione completata: ${improvementsMade} miglioramenti`)
     } else {
       console.log(`\n   ℹ️  Nessun miglioramento trovato, piano già ottimale`)
     }
-
+    
     return schedule
   }
 
@@ -1177,7 +893,7 @@ export class MaxCoverageAlgorithmImproved {
       let assignedCount2 = 0
       while (assignedCount2 < needed) {
         const currentGaps = this.calculateTurnGaps(schedule, requirements, req.dayOfWeek, req.shiftType)
-        const candidates = this.findCandidatesWithScore(
+        const candidates = await this.findCandidatesWithScore(
           users,
           req,
           schedule,
@@ -1218,7 +934,7 @@ export class MaxCoverageAlgorithmImproved {
           }
         }
 
-        const startTime = this.getOptimalStartTime(
+        const startTime = await this.getOptimalStartTime(
           req.shiftType,
           req.role,
           req.dayOfWeek,
@@ -1243,20 +959,6 @@ export class MaxCoverageAlgorithmImproved {
 
         const key = `${req.dayOfWeek}_${req.shiftType}_${req.role}_${startTime}`
         assignedStartTimes.set(key, (assignedStartTimes.get(key) || 0) + 1)
-
-        // Track remaining priority gaps for opportunity-cost scoring
-        this.remainingPriorityGaps = this.remainingPriorityGaps
-          .map(g => {
-            if (
-              g.dayOfWeek === req.dayOfWeek &&
-              g.shiftType === req.shiftType &&
-              g.role === req.role
-            ) {
-              return { ...g, requiredStaff: Math.max(0, g.requiredStaff - 1) }
-            }
-            return g
-          })
-          .filter(g => g.requiredStaff > 0)
 
         console.log(`      ✅ ${candidate.user.username} → ${startTime}-${end} (${candidate.reason})`)
       }
@@ -1318,7 +1020,7 @@ export class MaxCoverageAlgorithmImproved {
    * 3. Un dipendente NON può fare 2 ruoli nello stesso turno (stesso giorno + stesso shiftType)
    * 4. I fattorini con scooter devono rispettare il limite scooter del turno
    */
-  private findCandidatesWithScore(
+  private async findCandidatesWithScore(
     users: UserProfile[], 
     requirement: ShiftRequirement,
     currentSchedule: ScheduleShift[],
@@ -1326,16 +1028,16 @@ export class MaxCoverageAlgorithmImproved {
     roleScarcity: Record<Role, { demand: number; supply: number; scarcityScore: number }>,
     transportLimits: { maxScooter: number },
     turnGaps?: Record<Role, { required: number; assigned: number; gap: number }>
-  ): CandidateScore[] {
+  ): Promise<CandidateScore[]> {
     
     const candidates: CandidateScore[] = []
 
     for (const user of users) {
-      // MODE VIP: Solo utenti prioritari (valentino, mario, alessio, michele, …)
+      // MODE VIP: Solo utenti prioritari (valentino, mario, alessio)
       if (mode === 'vip') {
         if (!this.isPriorityUser(user.username)) continue
         
-        // 🎯 VINCOLO VIP fisso (es. valentino → PIZZAIOLO) in fase VIP
+        // 🎯 VINCOLO VIP: chi ha preferenza fitta (es. valentino) solo su quel ruolo
         const preferredRole = this.VIP_ROLE_PREFERENCES[user.username]
         if (preferredRole && requirement.role !== preferredRole) continue
       }
@@ -1348,16 +1050,19 @@ export class MaxCoverageAlgorithmImproved {
       const isPrimaryRole = user.primaryRole === requirement.role
       
       // MODE PRIMARY: Solo utenti con questo come ruolo primario
-      // Eccezione Mario: può prendere CUCINA in primary se la regola dinamica lo chiede
-      if (mode === 'primary' && !isPrimaryRole) {
-        const marioOverride =
-          user.username === 'mario.dipietro' &&
-          !!turnGaps &&
-          this.getMarioPreferredRole(turnGaps) === requirement.role
-        if (!marioOverride) continue
-      }
+      // (per dare priorità agli specialisti)
+      if (mode === 'primary' && !isPrimaryRole) continue
       
+      // MODE SECONDARY: Tutti quelli che hanno il ruolo (primario o secondario)
+      // ✅ RIMOSSO IL FILTRO CHE ESCLUDEVA I RUOLI PRIMARI!
+      // Se uno è disponibile e ha il ruolo, può essere assegnato anche se è il suo primario
+      // (questo permette a Mario di fare CUCINA anche se è PIZZAIOLO primario)
+      
+      // mode 'vip' e 'flexible' accettano tutti
+
       // ⚠️ VINCOLO 3 FONDAMENTALE: Deve essere disponibile per questo turno
+      // Questo vincolo è SEMPRE rispettato in TUTTE le fasi!
+      // Un dipendente può essere assegnato SOLO dove ha dichiarato disponibilità
         const availability = user.availabilities.find(av => 
           av.dayOfWeek === requirement.dayOfWeek && 
           av.shiftType === requirement.shiftType
@@ -1365,6 +1070,9 @@ export class MaxCoverageAlgorithmImproved {
       if (!availability?.isAvailable) continue
 
       // VINCOLO 4: Non può fare DUE RUOLI nello stesso turno
+      // ✅ OK: PRANZO come SALA + CENA come CUCINA (turni diversi, stesso giorno)
+      // ❌ NO: PRANZO come SALA + PRANZO come CUCINA (stesso turno, stesso giorno)
+      // Verifica: stesso giorno (dayOfWeek) E stesso tipo turno (shiftType)
         const alreadyAssignedThisShift = currentSchedule.some(shift => 
           shift.userId === user.id && 
           shift.dayOfWeek === requirement.dayOfWeek && 
@@ -1373,9 +1081,10 @@ export class MaxCoverageAlgorithmImproved {
       if (alreadyAssignedThisShift) continue
 
       // VINCOLO 4.5: 🛵 Limite scooter per fattorini
+      // Se il ruolo è FATTORINO e l'utente usa SCOOTER come mezzo primario
       let usesAlternativeTransport = false
       if (requirement.role === 'FATTORINO' && user.primaryTransport === 'SCOOTER') {
-        const canAssignScooter = this.checkScooterLimit(
+        const canAssignScooter = await this.checkScooterLimit(
           user,
           currentSchedule,
           requirement.dayOfWeek,
@@ -1383,18 +1092,25 @@ export class MaxCoverageAlgorithmImproved {
           transportLimits.maxScooter
         )
         
+        // Se il limite scooter è raggiunto, controlla se ha mezzi alternativi
         if (!canAssignScooter) {
+          // Verifica se ha AUTO o altri mezzi disponibili
           const hasAlternativeTransport = user.transports.some(t => t !== 'SCOOTER')
           
           if (!hasAlternativeTransport) {
+            // Non ha alternative, deve essere skippato
             continue
           }
+          // Ha alternative (AUTO/BICI), può essere assegnato comunque!
+          // (In questo caso userà l'auto invece dello scooter)
           usesAlternativeTransport = true
         }
       }
 
       // VINCOLO 5 (mode-specific): Riposo tra turni consecutivi
+      // VIP e flexible ignorano questo vincolo per massimizzare copertura
       if (mode !== 'vip' && mode !== 'flexible') {
+        // Se è pranzo, non deve aver fatto cena la sera prima
           if (requirement.shiftType === 'PRANZO') {
           const prevDay = (requirement.dayOfWeek - 1 + 7) % 7
             const workedPrevEvening = currentSchedule.some(shift => 
@@ -1405,6 +1121,7 @@ export class MaxCoverageAlgorithmImproved {
           if (workedPrevEvening) continue
           }
           
+        // Se è cena, non deve fare pranzo il giorno dopo
           if (requirement.shiftType === 'CENA') {
           const nextDay = (requirement.dayOfWeek + 1) % 7
             const worksNextMorning = currentSchedule.some(shift => 
@@ -1415,158 +1132,88 @@ export class MaxCoverageAlgorithmImproved {
           if (worksNextMorning) continue
           }
         }
-
-      // Preferenze fisse (Michele→SALA, Valentino→PIZZAIOLO): non usarli altrove
-      // finché il ruolo preferito ha ancora bisogno di gente su questo turno
-      if (mode !== 'flexible' && turnGaps) {
-        const fixedPref = this.VIP_ROLE_PREFERENCES[user.username]
-        if (fixedPref && requirement.role !== fixedPref && user.roles.includes(fixedPref)) {
-          const pref = turnGaps[fixedPref]
-          if (pref && pref.required > 0 && pref.assigned < pref.required) {
-            continue
-          }
-        }
-
-        // Mario dinamico: cucina già a 2 → forno; cucina a 0/1 con gap → cucina
-        if (user.username === 'mario.dipietro') {
-          const marioPref = this.getMarioPreferredRole(turnGaps)
-          if (
-            requirement.role !== marioPref &&
-            user.roles.includes(marioPref) &&
-            turnGaps[marioPref] &&
-            turnGaps[marioPref].gap > 0
-          ) {
-            continue
-          }
-        }
-      }
-
-      // Min-coverage first: don't steal the only (or scarcer) person who can open
-      // an empty required role — even if that role has LOWER priority (e.g. SALA
-      // vs FATTORINO). Goal: at least 1 person on every required role.
-      if (mode !== 'flexible' && turnGaps) {
-        const assignedIds = new Set(
-          currentSchedule
-            .filter(
-              s =>
-                s.dayOfWeek === requirement.dayOfWeek &&
-                s.shiftType === requirement.shiftType
-            )
-            .map(s => s.userId)
-        )
-        const countFreeForRole = (role: Role) =>
-          users.filter(u => {
-            if (!u.roles.includes(role)) return false
-            if (assignedIds.has(u.id)) return false
-            const av = u.availabilities.find(
-              a =>
-                a.dayOfWeek === requirement.dayOfWeek &&
-                a.shiftType === requirement.shiftType
-            )
-            return !!av?.isAvailable
-          }).length
-
-        const currentAssigned = turnGaps[requirement.role]?.assigned ?? 0
-        const freeCurrent = countFreeForRole(requirement.role)
-
-        const reservedForEmptyOther = user.roles.some(otherRole => {
-          if (otherRole === requirement.role) return false
-          // Don't override fixed/dynamic VIP prefs above
-          if (this.VIP_ROLE_PREFERENCES[user.username]) return false
-          if (user.username === 'mario.dipietro') return false
-          const gap = turnGaps[otherRole]
-          if (!gap || gap.required <= 0 || gap.assigned > 0) return false
-
-          const freeOther = countFreeForRole(otherRole)
-
-          // Current role already has min coverage → never take openers of empty roles
-          if (currentAssigned >= 1) return true
-
-          // Both need a first person: keep this user for the scarcer empty role
-          if (freeOther < freeCurrent) return true
-          if (freeOther === freeCurrent) {
-            return this.getRolePriority(otherRole) > this.getRolePriority(requirement.role)
-          }
-          // Other role has more free people than current → current is scarcer, allow
-          return false
-        })
-        if (reservedForEmptyOther) continue
-      }
         
       // CALCOLO SCORE INTELLIGENTE
         let score = 100
       let reasonParts: string[] = []
 
-      // ⭐ BONUS MASSIMO per utenti prioritari (valentino, mario, alessio, michele)
+      // ⭐ BONUS MASSIMO per utenti prioritari (valentino, mario, alessio)
       if (this.isPriorityUser(user.username)) {
         score += 500
         reasonParts.push('🌟 PRIORITARIO')
 
-        // 🎯 BONUS EXTRA per ruolo preferito fisso (valentino→PIZZAIOLO, michele/giulia→SALA)
+        // 🎯 BONUS EXTRA per ruolo preferito vincolato (valentino → PIZZAIOLO)
         const preferredRole = this.VIP_ROLE_PREFERENCES[user.username]
         if (preferredRole && requirement.role === preferredRole) {
-          score += 200
+          score += 150
           reasonParts.push('🎯 RUOLO-PREFERITO')
         }
 
-        // Sala ranking: Michele (0) > Giulia (1) > tutti gli altri
-        if (requirement.role === 'SALA') {
-          const rank = this.getSalaPriorityRank(user.username)
-          if (rank < 100) {
-            score += 250 - rank * 80
-            reasonParts.push(rank === 0 ? 'sala#1 michele' : 'sala#2 giulia')
+        // PIZZAIOLO + CUCINA: evita 2+0 quando servono entrambi (meglio 1+1 che 2+0)
+        if (
+          requirement.role === 'PIZZAIOLO' &&
+          user.roles.includes('PIZZAIOLO') &&
+          user.roles.includes('CUCINA')
+        ) {
+          const g = turnGaps
+          if (g && g.PIZZAIOLO.required > 0 && g.CUCINA.required > 0) {
+            const relP = g.PIZZAIOLO.gap / g.PIZZAIOLO.required
+            const relC = g.CUCINA.gap / g.CUCINA.required
+            if (relC <= relP + 0.001) {
+              score += 80
+              reasonParts.push('🍕 P+C → forno (cucina non più indietro)')
+            } else {
+              score -= 180
+              reasonParts.push('⚖️ P+C → preferisci cucina (no 2+0)')
+            }
           } else {
-            score -= 40
-            reasonParts.push('sala-non-prioritaria')
+            score += 80
+            reasonParts.push('🍕 P+C → forno')
           }
         }
 
-        // Mario dinamico: bonus sul ruolo preferito in base a quante persone ci sono in cucina
-        if (user.username === 'mario.dipietro' && turnGaps) {
-          const marioPref = this.getMarioPreferredRole(turnGaps)
-          if (requirement.role === marioPref) {
-            score += 180
-            reasonParts.push(
-              marioPref === 'CUCINA'
-                ? 'mario→cucina (≤1 in cucina)'
-                : 'mario→forno (cucina già a 2)'
-            )
-          } else if (user.roles.includes(marioPref)) {
-            score -= 220
-            reasonParts.push('mario→ruolo non preferito ora')
-          }
-        }
-
-        // 🤝 COORDINAMENTO VIP: Valentino sempre forno; Mario segue regola cucina
+        // 🤝 COORDINAMENTO VIP: Verifica se l'altro VIP è già nel turno
+        // Se valentino e mario lavorano insieme, ottimizza la distribuzione
         if (user.username === 'valentino.dipietro' || user.username === 'mario.dipietro') {
           const otherVip = user.username === 'valentino.dipietro' ? 'mario.dipietro' : 'valentino.dipietro'
           
+          // Cerca tutti i turni dello stesso giorno/shiftType e trova l'altro VIP
           const turnShifts = currentSchedule.filter(s => 
             s.dayOfWeek === requirement.dayOfWeek &&
             s.shiftType === requirement.shiftType
           )
 
+          // Trova se l'altro VIP è già in questo turno
           for (const shift of turnShifts) {
             const shiftUser = users.find(u => u.id === shift.userId)
             if (shiftUser && shiftUser.username === otherVip) {
               const otherRole = shift.role
               
+              // Scenario: l'altro VIP è già nel turno con otherRole
+              // Vogliamo: valentino=PIZZAIOLO, mario=CUCINA
+              
               if (user.username === 'valentino.dipietro') {
-                if (requirement.role === 'PIZZAIOLO') {
+                if (requirement.role === 'PIZZAIOLO' && otherRole === 'CUCINA') {
+                  // ✅ PERFETTO: valentino→PIZZAIOLO, mario→CUCINA
                   score += 100
-                  reasonParts.push('🤝 valentino→forno')
+                  reasonParts.push('🤝 SYNC-PERFETTO')
                 } else if (requirement.role === 'CUCINA' && otherRole === 'PIZZAIOLO') {
-                  score -= 80
-                  reasonParts.push('⚠️ valentino non in cucina')
+                  // ⚠️ SUBOTTIMALE: valentino→CUCINA, mario→PIZZAIOLO
+                  score -= 50
+                  reasonParts.push('⚠️ sync-subottimale')
                 }
-              } else if (user.username === 'mario.dipietro' && turnGaps) {
-                const marioPref = this.getMarioPreferredRole(turnGaps)
-                if (requirement.role === marioPref && otherRole === 'PIZZAIOLO') {
+              } else if (user.username === 'mario.dipietro') {
+                if (requirement.role === 'CUCINA' && otherRole === 'PIZZAIOLO') {
+                  // ✅ PERFETTO: valentino→PIZZAIOLO, mario→CUCINA
                   score += 100
-                  reasonParts.push('🤝 sync-con-valentino')
+                  reasonParts.push('🤝 SYNC-PERFETTO')
+                } else if (requirement.role === 'PIZZAIOLO' && otherRole === 'CUCINA') {
+                  // ⚠️ SUBOTTIMALE: mario→PIZZAIOLO, valentino→CUCINA
+                  score -= 50
+                  reasonParts.push('⚠️ sync-subottimale')
                 }
               }
-              break
+              break // Trovato l'altro VIP, esci dal loop
             }
           }
         }
@@ -1610,9 +1257,6 @@ export class MaxCoverageAlgorithmImproved {
 
       // Conta turni già assegnati
       const userShiftsCount = currentSchedule.filter(s => s.userId === user.id).length
-      const userFattorinoCount = currentSchedule.filter(
-        s => s.userId === user.id && s.role === 'FATTORINO'
-      ).length
         
       // Bonus per distribuzione equa (chi ha meno turni)
       if (userShiftsCount === 0) {
@@ -1626,70 +1270,16 @@ export class MaxCoverageAlgorithmImproved {
         reasonParts.push('molti turni')
       }
 
-      // Penalità proporzionale al carico (VIP ancora leggeri, ma non immuni)
+      // Penalità proporzionale al carico (ridotta per utenti prioritari)
       if (this.isPriorityUser(user.username)) {
-        score -= userShiftsCount * 2
-      } else {
-        score -= userShiftsCount * 3
-      }
-
-      // 🛵 Bilancio FATTORINI: non far sempre lavorare gli stessi
-      if (requirement.role === 'FATTORINO') {
-        const assignedIds = new Set(
-          currentSchedule
-            .filter(
-              s =>
-                s.dayOfWeek === requirement.dayOfWeek &&
-                s.shiftType === requirement.shiftType
-            )
-            .map(s => s.userId)
-        )
-        const peerLoads = users
-          .filter(u => {
-            if (!u.roles.includes('FATTORINO')) return false
-            if (assignedIds.has(u.id) && u.id !== user.id) return false
-            const av = u.availabilities.find(
-              a =>
-                a.dayOfWeek === requirement.dayOfWeek &&
-                a.shiftType === requirement.shiftType
-            )
-            return !!av?.isAvailable
-          })
-          .map(u =>
-            currentSchedule.filter(s => s.userId === u.id && s.role === 'FATTORINO').length
-          )
-        const minPeerLoad = peerLoads.length > 0 ? Math.min(...peerLoads) : 0
-        const overPeer = Math.max(0, userFattorinoCount - minPeerLoad)
-
-        // Forte penalità assoluta + penalità se sei sopra i colleghi disponibili in questo turno
-        score -= userFattorinoCount * 35
-        if (overPeer > 0) {
-          score -= overPeer * 55
-          reasonParts.push(`bilancio-fat(+${overPeer})`)
-        } else if (userFattorinoCount === 0) {
-          score += 40
-          reasonParts.push('fat-freschi')
+        score -= userShiftsCount * 1  // Penalità minima per prioritari
         } else {
-          reasonParts.push(`fat×${userFattorinoCount}`)
+        score -= userShiftsCount * 3  // Penalità normale per altri
         }
-
-        // Oltre il 1° posto: non prendere chi è già molto sopra i pari
-        const fatAssigned = turnGaps?.FATTORINO?.assigned ?? 0
-        if (fatAssigned >= 1 && overPeer >= 2) {
-          score -= 80
-          reasonParts.push('troppo-carico-vs-pari')
-        }
-      }
         
       // 🎯 OTTIMIZZAZIONE GLOBALE: Considera i gap di altri ruoli (anche VIP: bilancia forno/cucina)
       if (turnGaps) {
         const currentRoleGap = turnGaps[requirement.role]
-
-        // Strong bonus: first person on this role (min coverage)
-        if (currentRoleGap.required > 0 && currentRoleGap.assigned === 0) {
-          score += 120
-          reasonParts.push('1° sul ruolo')
-        }
         
         // 🔴 PENALITÀ PESANTE: Se il ruolo è già coperto o sovra-coperto
         if (currentRoleGap.assigned >= currentRoleGap.required) {
@@ -1697,20 +1287,27 @@ export class MaxCoverageAlgorithmImproved {
           reasonParts.push('ruolo già coperto')
         }
 
-        // Penalize only if this person can open a still-EMPTY required role
-        let canOpenEmptyOther = false
+        // 🟢 BONUS: Se l'utente ha altri ruoli con gap maggiori, consideralo
+        // Questo favorisce persone versatili nei ruoli più necessari
+        let hasMoreNeededRole = false
+        let maxGapInOtherRoles = 0
+        
         user.roles.forEach(userRole => {
           if (userRole !== requirement.role && turnGaps[userRole]) {
-            const other = turnGaps[userRole]
-            if (other.required > 0 && other.assigned === 0) {
-              canOpenEmptyOther = true
+            const otherRoleGap = turnGaps[userRole].gap
+            if (otherRoleGap > maxGapInOtherRoles) {
+              maxGapInOtherRoles = otherRoleGap
+            }
+            if (otherRoleGap > currentRoleGap.gap) {
+              hasMoreNeededRole = true
             }
           }
         })
 
-        if (canOpenEmptyOther && currentRoleGap.assigned >= 1) {
-          score -= 200
-          reasonParts.push('apri prima ruolo vuoto')
+        // Se ha un ruolo con gap maggiore, penalizza (dovrebbe fare quell'altro ruolo)
+        if (hasMoreNeededRole) {
+          score -= 150
+          reasonParts.push('più utile altrove')
         }
         
         // Bonus proporzionale al gap del ruolo richiesto
@@ -1718,29 +1315,6 @@ export class MaxCoverageAlgorithmImproved {
         if (currentRoleGap.gap > 0) {
           reasonParts.push(`gap: ${currentRoleGap.gap}`)
         }
-      }
-
-      // Week-level opportunity cost: scarce people needed for higher-priority remaining gaps
-      // Skip when we are placing the FIRST person on this role (min coverage wins).
-      const placingFirstOnRole = !!turnGaps && turnGaps[requirement.role].assigned === 0
-      const higherPriorityGaps = placingFirstOnRole
-        ? []
-        : this.remainingPriorityGaps.filter(g => {
-        if (g.priority <= requirement.priority) return false
-        if (g.dayOfWeek === requirement.dayOfWeek && g.shiftType === requirement.shiftType && g.role === requirement.role) {
-          return false
-        }
-        return user.roles.includes(g.role) && user.availabilities.some(
-          av => av.dayOfWeek === g.dayOfWeek && av.shiftType === g.shiftType && av.isAvailable
-        )
-      })
-      if (higherPriorityGaps.length > 0) {
-        const isOvenKitchen = higherPriorityGaps.some(
-          g => (g.role === 'PIZZAIOLO' || g.role === 'CUCINA') && g.dayOfWeek >= 4
-        )
-        const penalty = isOvenKitchen ? 90 : 45
-        score -= penalty
-        reasonParts.push(isOvenKitchen ? 'riserva weekend forno/cucina' : 'utile gap prioritari')
       }
 
       // 🚗 Nota se usa mezzo alternativo (AUTO invece di SCOOTER)
@@ -1755,18 +1329,8 @@ export class MaxCoverageAlgorithmImproved {
       })
     }
 
-    // Ordina per score decrescente; a parità bilancia i fattorini (meno turni fat prima)
-    return candidates.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
-      if (requirement.role === 'FATTORINO') {
-        const aFat = currentSchedule.filter(s => s.userId === a.user.id && s.role === 'FATTORINO').length
-        const bFat = currentSchedule.filter(s => s.userId === b.user.id && s.role === 'FATTORINO').length
-        if (aFat !== bFat) return aFat - bFat
-      }
-      const aAll = currentSchedule.filter(s => s.userId === a.user.id).length
-      const bAll = currentSchedule.filter(s => s.userId === b.user.id).length
-      return aAll - bAll
-    })
+    // Ordina per score decrescente
+    return candidates.sort((a, b) => b.score - a.score)
   }
 
   /**
@@ -1797,10 +1361,13 @@ export class MaxCoverageAlgorithmImproved {
         },
         absences: {
           where: {
-            approved: true,
-            AND: [
-              { startDate: { lte: weekEnd } },
-              { endDate: { gte: ws } }
+            OR: [
+              {
+                AND: [
+                  { startDate: { lte: weekEnd } },
+                  { endDate: { gte: ws } }
+                ]
+              }
             ]
           }
         }
@@ -1819,9 +1386,6 @@ export class MaxCoverageAlgorithmImproved {
         // Filtra disponibilità escludendo giorni in assenza
         const absences = user.absences || []
         const filteredAvailabilities = user.availabilities.filter(av => {
-          if (av.isAbsentWeek) return false
-          if (!av.isAvailable) return false
-
           const dayKey = utcCalendarDateKey(addWeekCalendarDays(ws, av.dayOfWeek))
           const isAbsent = absences.some(absence => {
             const startKey = utcCalendarDateKey(normalizeDate(absence.startDate))
@@ -1940,68 +1504,8 @@ export class MaxCoverageAlgorithmImproved {
   }
 
   /**
-   * Min-coverage first ordering per (giorno, turno):
-   * seat 0 for every role (by role priority), then seat 1, then seat 2, ...
-   * So we get 1 Pizzaiolo + 1 Cucina + 1 Fattorino + 1 Sala before any 2nd seat.
-   */
-  private orderRequirementsMinCoverageFirst(requirements: ShiftRequirement[]): ShiftRequirement[] {
-    type TurnKey = string
-    const byTurn = new Map<TurnKey, ShiftRequirement[]>()
-
-    for (const req of requirements) {
-      const key = `${req.dayOfWeek}|${req.shiftType}`
-      if (!byTurn.has(key)) byTurn.set(key, [])
-      byTurn.get(key)!.push(req)
-    }
-
-    // Preserve turn order from first appearance in prioritized list
-    const turnOrder: TurnKey[] = []
-    for (const req of requirements) {
-      const key = `${req.dayOfWeek}|${req.shiftType}`
-      if (!turnOrder.includes(key)) turnOrder.push(key)
-    }
-
-    const result: ShiftRequirement[] = []
-    let seq = 0
-
-    for (const key of turnOrder) {
-      const turnReqs = byTurn.get(key) || []
-      // Merge duplicate role rows
-      const byRole = new Map<Role, ShiftRequirement>()
-      for (const req of turnReqs) {
-        const prev = byRole.get(req.role)
-        if (!prev) {
-          byRole.set(req.role, { ...req })
-        } else {
-          prev.requiredStaff += req.requiredStaff
-          prev.priority = Math.max(prev.priority, req.priority)
-        }
-      }
-
-      const roles = Array.from(byRole.values()).sort(
-        (a, b) => this.getRolePriority(b.role) - this.getRolePriority(a.role)
-      )
-      const maxSeats = roles.reduce((m, r) => Math.max(m, r.requiredStaff), 0)
-
-      for (let seat = 0; seat < maxSeats; seat++) {
-        for (const req of roles) {
-          if (seat >= req.requiredStaff) continue
-          result.push({
-            ...req,
-            requiredStaff: 1,
-            // tiny tie-break so earlier seats stay stable in logs
-            priority: req.priority + seat * 0.01 + seq++ * 0.0001
-          })
-        }
-      }
-    }
-
-    return result
-  }
-
-  /**
    * Per ogni (giorno, turno) espande PIZZAIOLO e CUCINA in sequenza alternata P,C,P,C,…
-   * (legacy helper — prefer orderRequirementsMinCoverageFirst)
+   * (ogni voce con requiredStaff: 1). Gli altri ruoli restano invariati nell’ordine.
    */
   private interleavePizzaioloCucina(requirements: ShiftRequirement[]): ShiftRequirement[] {
     const result: ShiftRequirement[] = []
@@ -2159,20 +1663,10 @@ export class MaxCoverageAlgorithmImproved {
     })
 
     const gaps = this.findGaps(schedule, requirements)
-
-    // Clamp coverage per requirement so overstaff cannot inflate quality > 100%
-    let coveredUnits = 0
-    let totalRequired = 0
-    requirements.forEach(req => {
-      totalRequired += req.requiredStaff
-      const assigned = schedule.filter(s =>
-        s.dayOfWeek === req.dayOfWeek &&
-        s.shiftType === req.shiftType &&
-        s.role === req.role
-      ).length
-      coveredUnits += Math.min(assigned, req.requiredStaff)
-    })
-    const coverageScore = totalRequired > 0 ? coveredUnits / totalRequired : 0
+    
+    const totalRequired = requirements.reduce((sum, req) => sum + req.requiredStaff, 0)
+    const totalAssigned = schedule.length
+    const coverageScore = totalRequired > 0 ? totalAssigned / totalRequired : 0
 
     return {
       totalShifts: schedule.length,
@@ -2194,6 +1688,3 @@ export class MaxCoverageAlgorithmImproved {
     return days[dayOfWeek] || 'Unknown'
   }
 }
-
-/** @deprecated Prefer MaxCoverageAlgorithmImproved — kept for import compatibility */
-export class MaxCoverageAlgorithm extends MaxCoverageAlgorithmImproved {}

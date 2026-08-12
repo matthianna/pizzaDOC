@@ -96,7 +96,6 @@ export function MobileBottomNav() {
     { name: 'Acconti', href: '/admin/advances', icon: Banknote },
     { name: 'Configurazioni', href: '/admin/settings', icon: Settings },
     { name: 'Sistema', href: '/admin/system', icon: Shield },
-    { name: 'Profilo', href: `/profile/${session.user.id}`, icon: User },
   ]
 
   const navigation = isUserAdmin ? adminNav : employeeNav

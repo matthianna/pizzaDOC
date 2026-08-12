@@ -48,14 +48,15 @@ export function ConfirmationModal({
     if (!isConfirmEnabled) return
 
     setIsLoading(true)
+    setInputValue('')
+    // Dismiss immediately so long actions (e.g. schedule generation animation) are not covered
+    onClose()
     try {
       await onConfirm()
-      onClose()
     } catch (error) {
       console.error('Confirmation action failed:', error)
     } finally {
       setIsLoading(false)
-      setInputValue('')
     }
   }
 

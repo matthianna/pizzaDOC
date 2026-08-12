@@ -17,6 +17,18 @@ import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { Modal } from '@/components/ui/modal'
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
+import {
+  ScheduleGenerateAnimation,
+  SCHEDULE_REVEAL_TOTAL_MS,
+  scheduleRevealDelayMs,
+} from '@/components/admin/schedule-generate-animation'
+import {
+  getScheduleAlgorithmLabel,
+  isScheduleAlgorithmId,
+  type ScheduleAlgorithmId,
+} from '@/lib/schedule-algorithms'
+
+const ALGORITHM_STORAGE_KEY = 'pizzadoc.scheduleAlgorithm'
 
 interface ScheduleShift {
   id: string
@@ -95,6 +107,8 @@ export default function AdminSchedulePage() {
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [revealing, setRevealing] = useState(false)
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState<ScheduleAlgorithmId>('improved')
   const [showAddShiftModal, setShowAddShiftModal] = useState(false)
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -129,6 +143,25 @@ export default function AdminSchedulePage() {
     fetchMissingAvailability()
     fetchHolidays()
   }, [currentWeek])
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(ALGORITHM_STORAGE_KEY)
+      if (isScheduleAlgorithmId(stored)) {
+        setSelectedAlgorithm(stored)
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ALGORITHM_STORAGE_KEY, selectedAlgorithm)
+    } catch {
+      // ignore storage errors
+    }
+  }, [selectedAlgorithm])
 
   useEffect(() => {
     if (schedule && shiftLimits.length > 0) {
@@ -254,7 +287,10 @@ export default function AdminSchedulePage() {
   }
 
   const generateSchedule = async () => {
+    // Close confirm modal first so the week-fill animation is visible
+    setShowGenerateConfirm(false)
     setGenerating(true)
+    setRevealing(false)
     try {
       const response = await fetch('/api/admin/schedule/generate', {
         method: 'POST',
@@ -262,7 +298,8 @@ export default function AdminSchedulePage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          weekStart: currentWeek.toISOString()
+          weekStart: currentWeek.toISOString(),
+          algorithm: selectedAlgorithm,
         })
       })
 
@@ -270,14 +307,18 @@ export default function AdminSchedulePage() {
         const data = await response.json()
         setGaps(data.gaps || [])
         await fetchSchedule()
-        notify(`Piano generato con successo! ${data.shiftsGenerated} turni assegnati.`)
+        setGenerating(false)
+        setRevealing(true)
+        window.setTimeout(() => setRevealing(false), SCHEDULE_REVEAL_TOTAL_MS)
+        const algoLabel = data.algorithmLabel || getScheduleAlgorithmLabel(selectedAlgorithm)
+        notify(`Piano generato con successo (${algoLabel})! ${data.shiftsGenerated} turni assegnati.`)
       } else {
         notify('Errore durante la generazione del piano')
+        setGenerating(false)
       }
     } catch (error) {
       console.error('Error generating schedule:', error)
       notify('Errore durante la generazione del piano')
-    } finally {
       setGenerating(false)
     }
   }
@@ -705,6 +746,11 @@ export default function AdminSchedulePage() {
           subtitle="Pranzo e cena per ruolo · tocca un collaboratore per modificare"
           card
         >
+          <div className="relative min-h-[280px]">
+          <ScheduleGenerateAnimation
+            active={generating}
+            algorithmLabel={getScheduleAlgorithmLabel(selectedAlgorithm)}
+          />
           {loading ? (
             <div className="p-8 space-y-6">
               <Skeleton className="h-10 w-48" />
@@ -712,6 +758,12 @@ export default function AdminSchedulePage() {
             </div>
           ) : schedule ? (
             <div className="overflow-x-auto">
+              <style>{`
+                @keyframes pd-schedule-row-in {
+                  from { opacity: 0; transform: translateY(8px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              `}</style>
               <table className="w-full border-collapse min-w-[780px]">
                 <thead>
                   <tr>
@@ -767,6 +819,11 @@ export default function AdminSchedulePage() {
                               ? 'var(--pd-surface)'
                               : 'color-mix(in srgb, var(--pd-surface-muted) 45%, var(--pd-surface))',
                           borderBottom: '1px solid var(--pd-border)',
+                          ...(revealing
+                            ? {
+                                animation: `pd-schedule-row-in 360ms ease-out ${scheduleRevealDelayMs(dayOfWeek, 'PRANZO')}ms both`,
+                              }
+                            : {}),
                         }}
                       >
                         <td
@@ -863,12 +920,14 @@ export default function AdminSchedulePage() {
                   type="button"
                   onClick={() => setShowGenerateConfirm(true)}
                   className="pd-btn-primary px-4 py-2 text-sm font-semibold"
+                  disabled={generating}
                 >
                   Genera ora
                 </button>
               }
             />
           )}
+          </div>
         </SectionBlock>
       </div>
 
@@ -1150,9 +1209,9 @@ export default function AdminSchedulePage() {
       <ConfirmationModal
         isOpen={showGenerateConfirm}
         onClose={() => setShowGenerateConfirm(false)}
-        onConfirm={async () => {
-          await generateSchedule()
-          setShowGenerateConfirm(false)
+        onConfirm={() => {
+          // Fire-and-forget: modal closes immediately, animation takes over
+          void generateSchedule()
         }}
         title="Genera Piano Settimanale"
         description="Stai per generare un nuovo piano settimanale. Se esiste già un piano per questa settimana, verrà sostituito. Questa azione è irreversibile."
@@ -1160,11 +1219,62 @@ export default function AdminSchedulePage() {
         confirmButtonText="Genera Piano"
         isDangerous={true}
         metadata={
-          <div className="text-sm space-y-1">
-            <p><strong>Settimana:</strong> {formatDate(currentWeek)} - {formatDate(addWeekCalendarDays(currentWeek, 6))}</p>
-            <p><strong>Modalità:</strong> Algoritmo massima copertura</p>
+          <div className="text-sm space-y-3">
+            <p>
+              <strong>Settimana:</strong> {formatDate(currentWeek)} -{' '}
+              {formatDate(addWeekCalendarDays(currentWeek, 6))}
+            </p>
+            <div>
+              <p className="font-semibold mb-2" style={{ color: 'var(--pd-text)' }}>
+                Algoritmo
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {(
+                  [
+                    {
+                      id: 'improved' as const,
+                      title: 'Migliorato',
+                      desc: 'Rigenera da zero, scarsità e copertura più accurate',
+                    },
+                    {
+                      id: 'classic' as const,
+                      title: 'Classico',
+                      desc: 'Versione originale (comportamento storico)',
+                    },
+                  ] as const
+                ).map((opt) => {
+                  const selected = selectedAlgorithm === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setSelectedAlgorithm(opt.id)}
+                      className="text-left px-3 py-2.5 transition-colors"
+                      style={{
+                        borderRadius: 'var(--pd-radius)',
+                        border: selected
+                          ? '1px solid var(--pd-accent)'
+                          : '1px solid var(--pd-border)',
+                        background: selected
+                          ? 'color-mix(in srgb, var(--pd-accent) 12%, var(--pd-surface))'
+                          : 'var(--pd-surface-muted)',
+                      }}
+                    >
+                      <span className="block text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
+                        {opt.title}
+                      </span>
+                      <span className="block text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
+                        {opt.desc}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
             {missingAvailability.length > 0 && (
-              <p style={{ color: 'var(--pd-warning)' }}><strong>Attenzione:</strong> {missingAvailability.length} utenti senza disponibilità</p>
+              <p style={{ color: 'var(--pd-warning)' }}>
+                <strong>Attenzione:</strong> {missingAvailability.length} utenti senza disponibilità
+              </p>
             )}
           </div>
         }

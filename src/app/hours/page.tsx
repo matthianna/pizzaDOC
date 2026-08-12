@@ -427,10 +427,6 @@ export default function HoursPage() {
                 <div className="space-y-3">
                   {sortedHistoryMonths.map(month => {
                     const isExpanded = expandedMonths.has(month.month)
-                    const monthShare =
-                      historyData.totalYearHours > 0
-                        ? (month.totalHours / historyData.totalYearHours) * 100
-                        : 0
 
                     return (
                       <div
@@ -452,19 +448,13 @@ export default function HoursPage() {
                               {month.month}
                             </p>
                             <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
-                              {month.shiftsCount} {month.shiftsCount === 1 ? 'turno' : 'turni'} · media{' '}
-                              {formatDecimalHoursIt(month.avgHoursPerShift)}
+                              {month.shiftsCount} {month.shiftsCount === 1 ? 'turno' : 'turni'}
                             </p>
                           </div>
                           <div className="flex items-center gap-2.5 shrink-0">
-                            <div className="text-right">
-                              <p className="text-sm font-semibold tabular-nums" style={{ color: 'var(--pd-text)' }}>
-                                {formatDecimalHoursIt(month.totalHours)}
-                              </p>
-                              <p className="text-[10px] mt-0.5" style={{ color: 'var(--pd-muted)' }}>
-                                {Math.round(monthShare)}% anno
-                              </p>
-                            </div>
+                            <p className="text-sm font-semibold tabular-nums" style={{ color: 'var(--pd-text)' }}>
+                              {formatDecimalHoursIt(month.totalHours)}
+                            </p>
                             <ChevronDown
                               className={cn(
                                 'h-4 w-4 transition-transform',

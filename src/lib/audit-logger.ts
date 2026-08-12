@@ -129,3 +129,34 @@ export async function getAuditStats() {
   }
 }
 
+/**
+ * Cancella i log di audit. Di default lascia i record di backup database.
+ */
+export async function clearAuditLogs(options?: {
+  keepBackups?: boolean
+  actor?: { userId: string; username: string }
+}) {
+  const keepBackups = options?.keepBackups !== false
+
+  const where = keepBackups ? { action: { not: 'DATABASE_BACKUP' as const } } : {}
+
+  const result = await prisma.audit_logs.deleteMany({ where })
+
+  if (options?.actor) {
+    await logAuditAction({
+      userId: options.actor.userId,
+      userUsername: options.actor.username,
+      action: 'TASK_RUN',
+      description: keepBackups
+        ? `Pulizia audit log: eliminati ${result.count} eventi (backup conservati)`
+        : `Pulizia audit log: eliminati ${result.count} eventi`,
+      metadata: {
+        deletedCount: result.count,
+        keepBackups,
+      },
+    })
+  }
+
+  return { deletedCount: result.count, keepBackups }
+}
+

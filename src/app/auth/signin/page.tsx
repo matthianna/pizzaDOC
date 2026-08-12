@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { DocumentTitle } from '@/components/layout/document-title'
 
 const inputStyle: React.CSSProperties = {
@@ -85,11 +84,7 @@ export default function SignInPage() {
       <DocumentTitle />
       <div className="absolute inset-0 pointer-events-none" aria-hidden style={heroGlowStyle} />
 
-      <div className="relative z-10 flex items-center justify-end px-4 sm:px-8 pt-safe py-4">
-        <ThemeToggle />
-      </div>
-
-      <div className="relative z-10 flex-1 flex flex-col justify-center px-4 sm:px-6 pb-12">
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-4 sm:px-6 pb-12 pt-safe">
         <div className="mx-auto w-full max-w-md">
           <div className="text-center mb-10">
             <div
