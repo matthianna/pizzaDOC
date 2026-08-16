@@ -24,11 +24,8 @@ import {
 } from '@/components/admin/schedule-generate-animation'
 import {
   getScheduleAlgorithmLabel,
-  isScheduleAlgorithmId,
   type ScheduleAlgorithmId,
 } from '@/lib/schedule-algorithms'
-
-const ALGORITHM_STORAGE_KEY = 'pizzadoc.scheduleAlgorithm'
 
 interface ScheduleShift {
   id: string
@@ -108,7 +105,7 @@ export default function AdminSchedulePage() {
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [revealing, setRevealing] = useState(false)
-  const [selectedAlgorithm, setSelectedAlgorithm] = useState<ScheduleAlgorithmId>('improved')
+  const [selectedAlgorithm] = useState<ScheduleAlgorithmId>('improved')
   const [showAddShiftModal, setShowAddShiftModal] = useState(false)
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -143,25 +140,6 @@ export default function AdminSchedulePage() {
     fetchMissingAvailability()
     fetchHolidays()
   }, [currentWeek])
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(ALGORITHM_STORAGE_KEY)
-      if (isScheduleAlgorithmId(stored)) {
-        setSelectedAlgorithm(stored)
-      }
-    } catch {
-      // ignore storage errors
-    }
-  }, [])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(ALGORITHM_STORAGE_KEY, selectedAlgorithm)
-    } catch {
-      // ignore storage errors
-    }
-  }, [selectedAlgorithm])
 
   useEffect(() => {
     if (schedule && shiftLimits.length > 0) {
@@ -1224,53 +1202,6 @@ export default function AdminSchedulePage() {
               <strong>Settimana:</strong> {formatDate(currentWeek)} -{' '}
               {formatDate(addWeekCalendarDays(currentWeek, 6))}
             </p>
-            <div>
-              <p className="font-semibold mb-2" style={{ color: 'var(--pd-text)' }}>
-                Algoritmo
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {(
-                  [
-                    {
-                      id: 'improved' as const,
-                      title: 'Migliorato',
-                      desc: 'Rigenera da zero, scarsità e copertura più accurate',
-                    },
-                    {
-                      id: 'classic' as const,
-                      title: 'Classico',
-                      desc: 'Versione originale (comportamento storico)',
-                    },
-                  ] as const
-                ).map((opt) => {
-                  const selected = selectedAlgorithm === opt.id
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setSelectedAlgorithm(opt.id)}
-                      className="text-left px-3 py-2.5 transition-colors"
-                      style={{
-                        borderRadius: 'var(--pd-radius)',
-                        border: selected
-                          ? '1px solid var(--pd-accent)'
-                          : '1px solid var(--pd-border)',
-                        background: selected
-                          ? 'color-mix(in srgb, var(--pd-accent) 12%, var(--pd-surface))'
-                          : 'var(--pd-surface-muted)',
-                      }}
-                    >
-                      <span className="block text-sm font-semibold" style={{ color: 'var(--pd-text)' }}>
-                        {opt.title}
-                      </span>
-                      <span className="block text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
-                        {opt.desc}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
             {missingAvailability.length > 0 && (
               <p style={{ color: 'var(--pd-warning)' }}>
                 <strong>Attenzione:</strong> {missingAvailability.length} utenti senza disponibilità
