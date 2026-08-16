@@ -6,8 +6,24 @@ import { it } from 'date-fns/locale'
 import { MainLayout } from '@/components/layout/main-layout'
 import { PageHeader } from '@/components/layout/page-header'
 import { SectionBlock } from '@/components/ui/section-block'
-import { EmptyState, ListRow } from '@/components/ui/list-row'
-import { Clock, Check, X, AlertCircle, Edit2, ChevronDown, User, Plus, Search, RefreshCw } from 'lucide-react'
+import { EmptyState } from '@/components/ui/list-row'
+import {
+  Clock,
+  Check,
+  X,
+  AlertCircle,
+  Edit2,
+  ChevronDown,
+  User,
+  Plus,
+  Search,
+  RefreshCw,
+  Bike,
+  ChefHat,
+  UserCheck,
+  Sun,
+  Moon,
+} from 'lucide-react'
 import { getDayName, getRoleName, getShiftTypeName, formatUsername } from '@/lib/utils'
 import { formatDateLong, shiftCalendarDateUtc } from '@/lib/date-utils'
 import { Role, ShiftType, HoursStatus } from '@prisma/client'
@@ -602,10 +618,18 @@ export default function AdminHoursPage() {
               icon={<Clock className="h-8 w-8" style={{ color: 'var(--pd-muted)' }} />}
             />
           ) : (
-            <div>
+            <div className="p-3 space-y-3">
               {missingDateGroups.map((group) => (
-                <div key={group.key}>
-                  <div className="pd-card-header flex items-center justify-between gap-3 px-4 py-2">
+                <div
+                  key={group.key}
+                  className="overflow-hidden"
+                  style={{
+                    background: 'var(--pd-surface-muted)',
+                    border: '1px solid var(--pd-border)',
+                    borderRadius: 'var(--pd-radius-lg)',
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
                     <p
                       className="text-xs font-semibold capitalize truncate"
                       style={{ color: 'var(--pd-text)' }}
@@ -613,40 +637,104 @@ export default function AdminHoursPage() {
                       {group.label}
                     </p>
                     <span
-                      className="text-[11px] font-medium tabular-nums px-2 py-0.5 shrink-0"
+                      className="text-[11px] font-semibold tabular-nums h-6 min-w-6 px-1.5 inline-flex items-center justify-center shrink-0"
                       style={{
-                        color: 'var(--pd-muted)',
-                        background: 'var(--pd-surface)',
+                        color: 'var(--pd-accent-fg)',
+                        background: 'var(--pd-accent)',
                         borderRadius: 'var(--pd-radius-pill)',
-                        border: '1px solid var(--pd-border)',
                       }}
                     >
                       {group.items.length}
                     </span>
                   </div>
-                  {group.items.map(({ user, row }) => {
-                    const rejected = row.hoursStatus === 'REJECTED'
-                    return (
-                      <ListRow
-                        key={row.shiftId}
-                        as="button"
-                        onClick={() => openCreateShiftModal(user, row)}
-                        title={formatUsername(user.username)}
-                        subtitle={`${getRoleName(user.primaryRole)} · ${getShiftTypeName(row.shiftType)}${
-                          rejected ? ' · Rifiutato' : ''
-                        }`}
-                        trailing={
+                  <div
+                    className="overflow-hidden"
+                    style={{
+                      background: 'var(--pd-surface)',
+                      borderTop: '1px solid var(--pd-border)',
+                    }}
+                  >
+                    {group.items.map(({ user, row }, idx) => {
+                      const rejected = row.hoursStatus === 'REJECTED'
+                      const isPranzo = row.shiftType === 'PRANZO'
+                      const RoleIcon =
+                        user.primaryRole === 'FATTORINO'
+                          ? Bike
+                          : user.primaryRole === 'CUCINA'
+                            ? ChefHat
+                            : UserCheck
+                      return (
+                        <button
+                          key={row.shiftId}
+                          type="button"
+                          onClick={() => openCreateShiftModal(user, row)}
+                          className="w-full px-3.5 py-3 flex items-center gap-3 text-left pd-press"
+                          style={{
+                            borderTop: idx === 0 ? undefined : '1px solid var(--pd-border)',
+                            background: rejected
+                              ? 'color-mix(in srgb, var(--pd-danger-soft) 50%, var(--pd-surface))'
+                              : undefined,
+                          }}
+                        >
                           <span
-                            className="inline-flex items-center gap-1 text-xs font-semibold"
-                            style={{ color: rejected ? 'var(--pd-danger)' : 'var(--pd-accent)' }}
+                            className="flex h-9 w-9 items-center justify-center shrink-0"
+                            style={{
+                              background: 'var(--pd-surface-muted)',
+                              color: 'var(--pd-muted)',
+                              borderRadius: 'var(--pd-radius)',
+                            }}
+                          >
+                            <RoleIcon className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className="text-sm font-semibold truncate"
+                              style={{ color: 'var(--pd-text)' }}
+                            >
+                              {formatUsername(user.username)}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5"
+                                style={{
+                                  color: isPranzo ? 'var(--pd-warning)' : 'var(--pd-accent)',
+                                  background: isPranzo
+                                    ? 'var(--pd-warning-soft)'
+                                    : 'var(--pd-accent-soft)',
+                                  borderRadius: 'var(--pd-radius-pill)',
+                                }}
+                              >
+                                {isPranzo ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+                                {getShiftTypeName(row.shiftType)}
+                              </span>
+                              <span className="text-[11px]" style={{ color: 'var(--pd-muted)' }}>
+                                {getRoleName(user.primaryRole)}
+                              </span>
+                              {rejected ? (
+                                <span
+                                  className="text-[10px] font-semibold"
+                                  style={{ color: 'var(--pd-danger)' }}
+                                >
+                                  Rifiutato
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <span
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold shrink-0"
+                            style={{
+                              color: rejected ? 'var(--pd-danger)' : 'var(--pd-accent-fg)',
+                              background: rejected ? 'var(--pd-danger-soft)' : 'var(--pd-accent)',
+                              borderRadius: 'var(--pd-radius)',
+                            }}
                           >
                             <Plus className="h-3.5 w-3.5" />
                             {rejected ? 'Correggi' : 'Ore'}
                           </span>
-                        }
-                      />
-                    )
-                  })}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               ))}
             </div>

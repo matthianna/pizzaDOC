@@ -149,8 +149,33 @@ function roleIcon(role: string) {
   return UserCheck
 }
 
+function roleTone(role: string): { color: string; bg: string } {
+  if (role === 'FATTORINO') {
+    return { color: 'var(--pd-accent)', bg: 'var(--pd-accent-soft)' }
+  }
+  if (role === 'CUCINA') {
+    return { color: 'var(--pd-warning)', bg: 'var(--pd-warning-soft)' }
+  }
+  if (role === 'PIZZAIOLO') {
+    return { color: 'var(--pd-success)', bg: 'var(--pd-success-soft)' }
+  }
+  return { color: 'var(--pd-muted)', bg: 'var(--pd-surface-muted)' }
+}
+
 function timeLabel(t: string) {
   return typeof t === 'string' ? t.slice(0, 5) : t
+}
+
+function groupShiftsByStart(shifts: TodayShift[]) {
+  const map = new Map<string, TodayShift[]>()
+  const sorted = [...shifts].sort((a, b) => a.startTime.localeCompare(b.startTime))
+  for (const s of sorted) {
+    const key = timeLabel(s.startTime)
+    const list = map.get(key)
+    if (list) list.push(s)
+    else map.set(key, [s])
+  }
+  return [...map.entries()]
 }
 
 export default function DashboardPage() {
@@ -548,6 +573,8 @@ export default function DashboardPage() {
                       : isPranzo
                         ? '11:30'
                         : '18:00'
+                    const timeGroups = groupShiftsByStart(shifts)
+                    const slotAccent = isPranzo ? 'var(--pd-warning)' : 'var(--pd-accent)'
 
                     return (
                       <div
@@ -561,22 +588,42 @@ export default function DashboardPage() {
                         }}
                       >
                         <div
-                          className="pd-card-header px-4 py-2.5 flex items-center justify-between gap-2"
+                          className="px-4 py-3 flex items-center justify-between gap-2"
+                          style={{
+                            background: `color-mix(in srgb, ${slotAccent} 10%, var(--pd-surface))`,
+                            borderBottom: '1px solid var(--pd-border)',
+                            borderLeft: `3px solid ${slotAccent}`,
+                          }}
                         >
                           <p
-                            className="text-sm font-semibold inline-flex items-center gap-1.5"
+                            className="text-sm font-semibold inline-flex items-center gap-2"
                             style={{ color: 'var(--pd-text)' }}
                           >
-                            <SlotIcon
-                              className="h-4 w-4"
-                              style={{ color: isPranzo ? 'var(--pd-warning)' : 'var(--pd-muted)' }}
-                            />
+                            <span
+                              className="flex h-7 w-7 items-center justify-center shrink-0"
+                              style={{
+                                background: `color-mix(in srgb, ${slotAccent} 18%, transparent)`,
+                                color: slotAccent,
+                                borderRadius: 'var(--pd-radius)',
+                              }}
+                            >
+                              <SlotIcon className="h-4 w-4" />
+                            </span>
                             {title}
                           </p>
-                          <span className="text-xs font-medium tabular-nums" style={{ color: 'var(--pd-muted)' }}>
+                          <span
+                            className="text-[11px] font-semibold tabular-nums px-2 py-0.5 shrink-0"
+                            style={{
+                              color: closed ? 'var(--pd-muted)' : slotAccent,
+                              background: closed
+                                ? 'var(--pd-surface-muted)'
+                                : `color-mix(in srgb, ${slotAccent} 14%, transparent)`,
+                              borderRadius: 'var(--pd-radius-pill)',
+                            }}
+                          >
                             {closed
                               ? 'Chiuso'
-                              : `${shifts.length} ${shifts.length === 1 ? 'persona' : 'persone'} · dalle ${timeLabel(earliest)}`}
+                              : `${shifts.length} · dalle ${timeLabel(earliest)}`}
                           </span>
                         </div>
 
@@ -585,59 +632,93 @@ export default function DashboardPage() {
                             Nessun servizio · chiusura programmata
                           </p>
                         ) : (
-                          <ul className="divide-y" style={{ borderColor: 'var(--pd-border)' }}>
-                            {[...shifts]
-                              .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                              .map((s) => {
-                                const isMe = s.user.id === session?.user.id
-                                const Icon = roleIcon(s.role)
-                                return (
-                                  <li
-                                    key={s.id}
-                                    className="px-4 py-3 flex items-center gap-3"
-                                    style={{
-                                      background: isMe
-                                        ? 'color-mix(in srgb, var(--pd-accent-soft) 45%, transparent)'
-                                        : undefined,
-                                    }}
+                          <div>
+                            {timeGroups.map(([start, group], gi) => (
+                              <div
+                                key={start}
+                                className="flex"
+                                style={{
+                                  borderTop: gi === 0 ? undefined : '1px solid var(--pd-border)',
+                                }}
+                              >
+                                <div
+                                  className="w-[4.25rem] shrink-0 flex flex-col items-center justify-start pt-3.5 pb-3"
+                                  style={{
+                                    background: 'var(--pd-surface-muted)',
+                                    borderRight: '1px solid var(--pd-border)',
+                                  }}
+                                >
+                                  <span
+                                    className="text-sm font-semibold tabular-nums leading-none"
+                                    style={{ color: 'var(--pd-text)' }}
                                   >
+                                    {start}
+                                  </span>
+                                  {group.length > 1 && (
                                     <span
-                                      className="flex h-9 w-9 items-center justify-center rounded-full shrink-0"
-                                      style={{
-                                        background: isMe
-                                          ? 'var(--pd-accent)'
-                                          : 'var(--pd-surface-muted)',
-                                        color: isMe ? 'var(--pd-accent-fg)' : 'var(--pd-muted)',
-                                      }}
+                                      className="text-[10px] font-medium mt-1"
+                                      style={{ color: 'var(--pd-muted)' }}
                                     >
-                                      <Icon className="h-4 w-4" />
+                                      {group.length}
                                     </span>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--pd-text)' }}>
-                                        {formatUsername(s.user.username)}
-                                        {isMe && (
-                                          <span
-                                            className="ml-1.5 text-[10px] font-bold uppercase tracking-wider"
-                                            style={{ color: 'var(--pd-accent)' }}
+                                  )}
+                                </div>
+                                <ul className="min-w-0 flex-1">
+                                  {group.map((s, ri) => {
+                                    const isMe = s.user.id === session?.user.id
+                                    const Icon = roleIcon(s.role)
+                                    const tone = roleTone(s.role)
+                                    return (
+                                      <li
+                                        key={s.id}
+                                        className="px-3 sm:px-4 py-2.5 flex items-center gap-2.5"
+                                        style={{
+                                          background: isMe
+                                            ? 'color-mix(in srgb, var(--pd-accent-soft) 55%, transparent)'
+                                            : undefined,
+                                          borderTop:
+                                            ri === 0 ? undefined : '1px solid var(--pd-border)',
+                                        }}
+                                      >
+                                        <span
+                                          className="flex h-8 w-8 items-center justify-center shrink-0"
+                                          style={{
+                                            background: isMe ? 'var(--pd-accent)' : tone.bg,
+                                            color: isMe ? 'var(--pd-accent-fg)' : tone.color,
+                                            borderRadius: 'var(--pd-radius)',
+                                          }}
+                                        >
+                                          <Icon className="h-3.5 w-3.5" />
+                                        </span>
+                                        <div className="min-w-0 flex-1">
+                                          <p
+                                            className="text-sm font-semibold truncate leading-tight"
+                                            style={{ color: 'var(--pd-text)' }}
                                           >
-                                            Tu
-                                          </span>
-                                        )}
-                                      </p>
-                                      <p className="text-xs mt-0.5" style={{ color: 'var(--pd-muted)' }}>
-                                        {getRoleName(s.role as Role)}
-                                      </p>
-                                    </div>
-                                    <span
-                                      className="text-sm font-semibold tabular-nums shrink-0"
-                                      style={{ color: 'var(--pd-text)' }}
-                                    >
-                                      {timeLabel(s.startTime)}
-                                    </span>
-                                  </li>
-                                )
-                              })}
-                          </ul>
+                                            {formatUsername(s.user.username)}
+                                            {isMe && (
+                                              <span
+                                                className="ml-1.5 text-[10px] font-bold uppercase tracking-wider"
+                                                style={{ color: 'var(--pd-accent)' }}
+                                              >
+                                                Tu
+                                              </span>
+                                            )}
+                                          </p>
+                                          <p
+                                            className="text-[11px] mt-0.5 font-medium"
+                                            style={{ color: tone.color }}
+                                          >
+                                            {getRoleName(s.role as Role)}
+                                          </p>
+                                        </div>
+                                      </li>
+                                    )
+                                  })}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
                     )
