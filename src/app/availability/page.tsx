@@ -149,7 +149,8 @@ export default function AvailabilityPage() {
         success()
         showToast('Disponibilità salvata con successo!', 'success')
       } else {
-        showToast('Errore durante il salvataggio', 'error')
+        const data = await response.json().catch(() => null)
+        showToast(data?.error || 'Errore durante il salvataggio', 'error')
       }
     } catch (error) {
       console.error('Error saving availability:', error)
@@ -242,6 +243,22 @@ export default function AvailabilityPage() {
           onNext={() => navigateWeek('next')}
           disabled={loading}
         />
+
+        {!canEditWeek && (
+          <div
+            className="px-4 py-3 flex items-start gap-3"
+            style={{
+              background: 'var(--pd-surface-muted)',
+              border: '1px solid var(--pd-border)',
+              borderRadius: 'var(--pd-radius-lg)',
+            }}
+          >
+            <Lock className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'var(--pd-muted)' }} />
+            <p className="text-sm" style={{ color: 'var(--pd-text)' }}>
+              La disponibilità di questa settimana non è più modificabile.
+            </p>
+          </div>
+        )}
 
         {absenceInfo.length > 0 && (
           <div

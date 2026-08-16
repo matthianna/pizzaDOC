@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Calendar, Edit, Trash2, Check, XCircle, ChevronDown } from 'lucide-react'
-import { format } from 'date-fns'
+import { differenceInCalendarDays, format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Modal } from '@/components/ui/modal'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -565,6 +565,13 @@ function AbsenceRow({
   const startDate = new Date(absence.startDate)
   const endDate = new Date(absence.endDate)
   const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  const noticeDays = differenceInCalendarDays(startDate, new Date(absence.createdAt))
+  const noticeLabel =
+    noticeDays > 0
+      ? `aggiunta ${noticeDays} ${noticeDays === 1 ? 'giorno' : 'giorni'} prima`
+      : noticeDays === 0
+        ? 'aggiunta lo stesso giorno'
+        : 'aggiunta dopo l’inizio'
 
   const status: { label: string; color: string; bg: string } = !absence.approved
     ? { label: 'In attesa', color: 'var(--pd-warning)', bg: 'var(--pd-warning-soft)' }
@@ -621,6 +628,7 @@ function AbsenceRow({
           <span className="tabular-nums">
             {daysDiff} {daysDiff === 1 ? 'giorno' : 'giorni'}
           </span>
+          <span>{noticeLabel}</span>
           {absence.reason ? <span className="truncate max-w-[16rem]">{absence.reason}</span> : null}
         </div>
         {absence.notes ? (

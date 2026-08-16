@@ -29,6 +29,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   SCOOTER_USAGE_EDIT: 'Uso scooter modificato',
   SCOOTER_USAGE_DELETE: 'Uso scooter eliminato',
   TASK_RUN: 'Task eseguito',
+  AVAILABILITY_CREATE: 'Disponibilità inserita',
+  AVAILABILITY_EDIT: 'Disponibilità modificata',
 }
 
 export type AuditTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger'
@@ -54,7 +56,12 @@ export function getAuditActionTone(action: string): AuditTone {
   if (action.includes('EDIT') || action === 'SETTINGS_CHANGE' || action === 'TASK_RUN') {
     return 'warning'
   }
-  if (action.startsWith('ABSENCE') || action.startsWith('SUBSTITUTION') || action.startsWith('HOURS')) {
+  if (
+    action.startsWith('ABSENCE') ||
+    action.startsWith('SUBSTITUTION') ||
+    action.startsWith('HOURS') ||
+    action.startsWith('AVAILABILITY')
+  ) {
     return 'accent'
   }
   return 'neutral'
@@ -143,6 +150,9 @@ const META_LABELS: Record<string, string> = {
   usedCustomPassword: 'Password personalizzata',
   forcedFirstLogin: 'Primo accesso forzato',
   requiredStaff: 'Personale richiesto',
+  availablePranzo: 'Slot pranzo',
+  availableCena: 'Slot cena',
+  isAbsentWeek: 'Settimana assente',
 }
 
 export function labelAuditMetaKey(key: string): string {

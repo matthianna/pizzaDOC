@@ -172,11 +172,9 @@ export function getNextWeekStart(): Date {
 }
 
 export function canEditAvailability(weekStart: Date): boolean {
-  const today = new Date()
-  const currentWeekStart = getWeekStart(today)
-  
-  // Can only edit future weeks
-  return isAfter(weekStart, currentWeekStart) || weekStart.getTime() === currentWeekStart.getTime()
+  const currentWeekStart = getWeekStart(new Date())
+  // Solo settimane future: dalla settimana in corso in poi è bloccata.
+  return isAfter(weekStart, currentWeekStart)
 }
 
 /** True if this calendar day (UTC) is today or later in Europe/Rome. */

@@ -8,6 +8,8 @@ import {
   holidayBlocksSlot,
   utcCalendarKey,
 } from '@/lib/availability-holidays'
+import { canEditAvailability, ensureUtcMondayWeekStart, formatDate } from '@/lib/date-utils'
+import { logAuditAction } from '@/lib/audit-logger'
 
 // GET /api/availability - Get user's availability for a specific week
 export async function GET(request: NextRequest) {
@@ -77,8 +79,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Week start required' }, { status: 400 })
     }
 
-    const weekStartDate = normalizeDate(weekStart)
+    const weekStartDate = ensureUtcMondayWeekStart(normalizeDate(weekStart))
+
+    if (!canEditAvailability(weekStartDate)) {
+      return NextResponse.json(
+        { error: 'La disponibilità di questa settimana non è più modificabile' },
+        { status: 403 }
+      )
+    }
+
     const weekSunday = dateForAvailabilityDay(weekStartDate, 6)
+
+    const existingCount = await prisma.availabilities.count({
+      where: {
+        userId: session.user.id,
+        weekStart: weekStartDate,
+      },
+    })
 
     const holidays = await prisma.holidays.findMany({
       where: {
@@ -143,6 +160,30 @@ export async function POST(request: NextRequest) {
         })
       }
     }
+
+    const slots = isAbsentWeek
+      ? []
+      : ((availabilities as Array<{ shiftType: string; isAvailable: boolean }>) || [])
+    const availablePranzo = slots.filter((s) => s.shiftType === 'PRANZO' && s.isAvailable).length
+    const availableCena = slots.filter((s) => s.shiftType === 'CENA' && s.isAvailable).length
+    const isCreate = existingCount === 0
+    const weekLabel = formatDate(weekStartDate)
+    const username = session.user.username
+
+    await logAuditAction({
+      userId: session.user.id,
+      userUsername: username,
+      action: isCreate ? 'AVAILABILITY_CREATE' : 'AVAILABILITY_EDIT',
+      description: isCreate
+        ? `${username} ha inserito la disponibilità per la settimana del ${weekLabel}`
+        : `${username} ha modificato la disponibilità per la settimana del ${weekLabel}`,
+      metadata: {
+        weekStart: weekStartDate.toISOString(),
+        availablePranzo,
+        availableCena,
+        isAbsentWeek: Boolean(isAbsentWeek),
+      },
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {
