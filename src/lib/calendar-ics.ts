@@ -114,6 +114,9 @@ export function buildPersonalCalendarIcs(opts: {
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeIcsText(calName)}`,
     'X-WR-TIMEZONE:Europe/Rome',
+    // Hint subscribed clients (Apple/Google) to re-fetch often after schedule changes
+    'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+    'X-PUBLISHED-TTL:PT1H',
   ]
 
   const events = opts.shifts.map((s) => buildVEvent(s))

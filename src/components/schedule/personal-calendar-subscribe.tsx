@@ -145,21 +145,27 @@ export function PersonalCalendarSubscribe() {
                 <div>
                   <p className="font-semibold mb-1">iPhone / Apple Calendario</p>
                   <ol className="list-decimal list-inside space-y-1 text-xs" style={{ color: 'var(--pd-muted)' }}>
-                    <li>Tocca «Apri in Calendario Apple» sul telefono, oppure copia il link.</li>
+                    <li>Tocca «Calendario Apple» sul telefono, oppure copia il link.</li>
                     <li>
                       In alternativa: Impostazioni → Calendario → Account → Aggiungi account → Altro →
                       Aggiungi calendario con iscrizione, e incolla il link HTTPS.
+                    </li>
+                    <li>
+                      Importante: su Mac/iPhone apri info del calendario PizzaDOC e imposta
+                      «Aggiornamento automatico» su ogni ora (o 15 min), non «ogni giorno» — altrimenti
+                      i turni nuovi appaiono solo al giorno dopo.
                     </li>
                   </ol>
                 </div>
                 <div>
                   <p className="font-semibold mb-1">Android / Google Calendar</p>
                   <ol className="list-decimal list-inside space-y-1 text-xs" style={{ color: 'var(--pd-muted)' }}>
-                    <li>Tocca «Aggiungi a Google Calendar» (si apre Google Calendar nel browser).</li>
+                    <li>Tocca «Google Calendar» (si apre Google Calendar nel browser).</li>
                     <li>
                       Oppure: calendar.google.com → impostazioni → Aggiungi calendario → Da URL →
                       incolla il link HTTPS.
                     </li>
+                    <li>Google aggiorna di solito da solo entro qualche ora dopo un nuovo piano.</li>
                   </ol>
                 </div>
               </div>
